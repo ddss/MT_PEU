@@ -529,5 +529,5 @@ if __name__ == "__main__":
         aux = concatenate((Estime.x.experimental.matriz_estimativa[:,i:i+1],Estime.x.experimental.matriz_incerteza[:,i:i+1]),axis=1)
         saida =  concatenate((saida,aux),axis=1)
         
-    print saida
+#    print saida
     #Estime.analiseResiduos()
