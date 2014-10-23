@@ -105,3 +105,6 @@ def Coef_R2(residuo,yexp):
         SEy     = sum([(ye - sum(yexp)/len(residuo))**2 for ye in yexp])
         
         return 1 -  SEline/SEy
+
+def CovarianciaXY(matriz_cov_x,matriz_cov_y):
+    matriz_cov_xy = concatenate((matriz_cov_x,matriz_cov_y))
