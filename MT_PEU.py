@@ -6,7 +6,7 @@ Principais classes do motor de cálculo do PEU
 @GrupoPesquisa: PROTEC
 @LinhadePesquisa: GI-UFBA
 """
-
+#
 # Importação de pacotes de terceiros
 from numpy import array, transpose, concatenate,size, diag, linspace, min, max, \
 sort, argsort
