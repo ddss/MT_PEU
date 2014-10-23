@@ -78,7 +78,7 @@ class Organizador:
 
 class Grandeza:
     
-    def __init__(self,nomes,simbolos,unidades):
+    def __init__(self,nomes,simbolos,unidades,label_latex):
         '''
         Classe para organizar as características das Grandezas:
         
@@ -91,7 +91,9 @@ class Grandeza:
         Entrada
         =======
         
-        * simbolos (list): deve ser uma lista contendo os símbolos, na ordem de entrada de cada variável
+        * nomes (list)      : deve ser uma lisra contendo o nome das variáveis
+        * simbolos (list)   : deve ser uma lista contendo os símbolos, na ordem de entrada de cada variável
+        * label_latex(list) : de ser uma lista contendo os símbolos em formato LATEX
         
         =======
         Métodos        
@@ -117,9 +119,10 @@ class Grandeza:
         * ``.x`` (objeto): objeto Organizador (vide documentação do mesmo). **só exitirá após execução do método _residuo_x**
         * ``.y`` (objeto): objeto Organizador (vide documentação do mesmo). **só exitirá após execução do método _residuo_y**
         '''        
-        self.nomes    = nomes
-        self.simbolos = simbolos
-        self.unidades = unidades
+        self.nomes       = nomes
+        self.simbolos    = simbolos
+        self.unidades    = unidades
+        self.label_latex = label_latex
     
     def _experimental(self,estimativa,variancia,tipo):
         
@@ -176,23 +179,27 @@ class Estimacao:
         =========
         Keywords:
         =========
-        * ``simbolos_x``     (list): lista com os símbolos para x (inclusive em formato LATEX)    
+        * ``simbolos_x``     (list): lista com os símbolos para x 
         * ``unidades_x``     (list): lista com as unidades para x (inclusive em formato LATEX)
-        * ``simbolos_y``     (list): lista com os símbolos para y (inclusive em formato LATEX)
+        * ``label_latex_x``  (list): lista com os símbolos das variáveis em formato LATEX
+        
+        * ``simbolos_y``     (list): lista com os símbolos para y
         * ``unidades_y``     (list): lista com as unidades para y (inclusive em formato LATEX)
+        * ``label_latex_y``  (list): lista com os símbolos das variáveis em formato LATEX
+        
         * ``simbolos_param`` (list): lista com os símbolos para os parâmetros (inclusive em formato LATEX)
         * ``unidades_param`` (list): lista com as unidades para os parâmetros (inclusive em formato LATEX)
-       
+        * ``label_latex_param`` (list): lista com os símbolos das variáveis em formato LATEX
         '''
         self.__validacaoArgumentosEntrada(kwargs,'init')
         self.__validacaoSimbologiaUnidade(kwargs)
         
         # Inicialização das variáveis
-        self.x          = Grandeza(Nomes_x    ,kwargs.get(self.__keywordsEntrada[0]),kwargs.get(self.__keywordsEntrada[1]))
-        self.y          = Grandeza(Nomes_y    ,kwargs.get(self.__keywordsEntrada[2]),kwargs.get(self.__keywordsEntrada[3]))
-        self.xval       = Grandeza(Nomes_x    ,kwargs.get(self.__keywordsEntrada[0]),kwargs.get(self.__keywordsEntrada[1]))
-        self.yval       = Grandeza(Nomes_y    ,kwargs.get(self.__keywordsEntrada[2]),kwargs.get(self.__keywordsEntrada[3]))
-        self.parametros = Grandeza(Nomes_param,kwargs.get(self.__keywordsEntrada[4]),kwargs.get(self.__keywordsEntrada[5]))
+        self.x          = Grandeza(Nomes_x    ,kwargs.get(self.__keywordsEntrada[0]),kwargs.get(self.__keywordsEntrada[1]),kwargs.get(self.__keywordsEntrada[2]))
+        self.y          = Grandeza(Nomes_y    ,kwargs.get(self.__keywordsEntrada[3]),kwargs.get(self.__keywordsEntrada[4]),kwargs.get(self.__keywordsEntrada[5]))
+        self.xval       = Grandeza(Nomes_x    ,kwargs.get(self.__keywordsEntrada[0]),kwargs.get(self.__keywordsEntrada[1]),kwargs.get(self.__keywordsEntrada[2]))
+        self.yval       = Grandeza(Nomes_y    ,kwargs.get(self.__keywordsEntrada[3]),kwargs.get(self.__keywordsEntrada[4]),kwargs.get(self.__keywordsEntrada[5]))
+        self.parametros = Grandeza(Nomes_param,kwargs.get(self.__keywordsEntrada[6]),kwargs.get(self.__keywordsEntrada[7]),kwargs.get(self.__keywordsEntrada[8]))
         
         # Número de variáveis
         self.NX  = size(self.x.nomes) # Número de variáveis independentes
@@ -223,7 +230,7 @@ class Estimacao:
         * Se houve keyword erradas        
         '''
         # Keywords disponíveis        
-        self.__keywordsEntrada = ['simbolos_x','unidades_x','simbolos_y','unidades_y','simbolos_param','unidades_param'] # Keywords disponíveis para a entrada
+        self.__keywordsEntrada = ['simbolos_x','unidades_x','label_latex_x','simbolos_y','unidades_y','label_latex_y','simbolos_param','unidades_param','label_latex_param'] # Keywords disponíveis para a entrada
         self.__keywordsOtimizacao = {'PSO':['itmax','Num_particulas','sup','inf','posinit_sup', 'posinit_inf','w' ,'C1' ,'C2', 'Vmax','Vreinit' , 'otimo' , 'deltaw', 'k', 'gama'],'Nelder_Mead':[]}        
         self.__keywordsOtimizacaoObrigatorias = {'PSO':['sup','inf'],'Nelder_Mead':[]}  
 
@@ -419,12 +426,18 @@ class Estimacao:
             xlim((ymin,ymax))
             ylim((ymin,ymax))
             
-            if self.y.simbolos == None and self.y.unidades == None:
-                xlabel(r'$y_{%d}$'%(i+1)+' experimental')
-                ylabel(r'$y_{%d}$'%(i+1)+' calculado')
-            elif self.y.simbolos != None and self.y.unidades == None:
+            if self.y.simbolos == None and self.y.label_latex == None and self.y.unidades == None:
+                xlabel(self.y.nomes[i]+' experimental')
+                ylabel(self.y.nomes[i]+' calculado')
+            elif self.y.simbolos != None and self.y.label_latex == None and self.y.unidades == None:
                 xlabel(self.y.simbolos[i]+' experimental')
                 ylabel(self.y.simbolos[i]+' calculado')   
+            elif self.y.simbolos == None and self.y.label_latex != None and self.y.unidades == None:
+                xlabel(self.y.label_latex[i]+' experimental')
+                ylabel(self.y.label_latex[i]+' calculado')  
+            elif self.y.simbolos != None and self.y.label_latex != None and self.y.unidades == None:
+                xlabel(self.y.label_latex[i]+' experimental')
+                ylabel(self.y.label_latex[i]+' calculado') 
             elif self.y.simbolos != None and self.y.unidades != None:
                 xlabel(self.y.simbolos[i]+'/'+self.y.unidades[i]+' experimental')
                 ylabel(self.y.simbolos[i]+'/'+self.y.unidades[i]+' calculado')   
@@ -457,12 +470,20 @@ class Estimacao:
             ax.yaxis.grid(color='gray', linestyle='dashed')
             ax.xaxis.grid(color='gray', linestyle='dashed')
             ylabel(r"$\quad \Phi $",fontsize = 20)
-            if self.parametros.simbolos == None and self.parametros.unidades == None:
-                    xlabel(r'$\theta_{%d}$'%(i+1),fontsize=20)
-            elif self.parametros.simbolos != None and self.parametros.unidades == None:
+            if self.parametros.simbolos == None and self.parametros.label_latex == None and self.parametros.unidades == None:
+                    xlabel(self.parametros.nomes[0],fontsize=20)
+            elif self.parametros.simbolos != None and self.parametros.label_latex == None and self.parametros.unidades == None:
                     xlabel(self.parametros.simbolos[0],fontsize=20)   
-            elif self.parametros.simbolos != None and self.parametros.unidades != None:
+            elif self.parametros.simbolos == None and self.parametros.label_latex != None and self.parametros.unidades == None:
+                    xlabel(self.parametros.label_latex[0],fontsize=20)  
+            elif self.parametros.simbolos != None and self.parametros.label_latex != None and self.parametros.unidades == None:
+                    xlabel(self.parametros.label_latex[0],fontsize=20) 
+            elif self.parametros.simbolos != None and self.parametros.label_latex == None and self.parametros.unidades != None:
                     xlabel(self.parametros.simbolos[0]+'/'+self.parametros.unidades[0],fontsize=20)  
+            elif self.parametros.simbolos == None and self.parametros.label_latex != None and self.parametros.unidades != None:
+                    xlabel(self.parametros.label_latex[0]+'/'+self.parametros.unidades[0],fontsize=20)  
+            elif self.parametros.simbolos != None and self.parametros.label_latex != None and self.parametros.unidades != None:
+                    xlabel(self.parametros.label_latex[0]+'/'+self.parametros.unidades[0],fontsize=20)  
             fig.savefig(base_path+base_dir+'Regiao_verossimilhanca_'+str(self.parametros.nomes[0])+'_'+str(self.parametros.nomes[0])+'.png')
             close()
         
@@ -486,15 +507,27 @@ class Estimacao:
                 ax.yaxis.grid(color='gray', linestyle='dashed')                        
                 ax.xaxis.grid(color='gray', linestyle='dashed')
              
-                if self.parametros.simbolos == None and self.parametros.unidades == None:
-                        xlabel(r'$\theta_{%d}$'%(p1+1),fontsize=20)
-                        ylabel(r'$\theta_{%d}$'%(p2+1),fontsize=20)
-                elif self.parametros.simbolos != None and self.parametros.unidades == None:
+                if self.parametros.simbolos == None and self.parametros.label_latex == None and self.parametros.unidades == None:
+                        xlabel(self.parametros.nomes[p1],fontsize=20)
+                        ylabel(self.parametros.nomes[p2],fontsize=20)
+                elif self.parametros.label_latex != None and self.parametros.simbolos == None and  self.parametros.unidades == None:
+                        xlabel(self.parametros.label_latex[p1],fontsize=20)   
+                        ylabel(self.parametros.label_latex[p2],fontsize=20)  
+                elif self.parametros.label_latex == None and self.parametros.simbolos != None and  self.parametros.unidades == None:
                         xlabel(self.parametros.simbolos[p1],fontsize=20)   
-                        ylabel(self.parametros.simbolos[p2],fontsize=20)  
-                elif self.parametros.simbolos != None and self.parametros.unidades != None:
+                        ylabel(self.parametros.simbolos[p2],fontsize=20)
+                elif self.parametros.label_latex != None and self.parametros.simbolos != None and  self.parametros.unidades == None:
+                        xlabel(self.parametros.label_latex[p1],fontsize=20)   
+                        ylabel(self.parametros.label_latex[p2],fontsize=20)  
+                elif self.parametros.label_latex != None and self.parametros.simbolos == None and  self.parametros.unidades != None:
+                        xlabel(self.parametros.label_latex[p1]+'/'+self.parametros.unidades[p1],fontsize=20)   
+                        ylabel(self.parametros.label_latex[p2]+'/'+self.parametros.unidades[p2],fontsize=20)      
+                elif self.parametros.label_latex != None and self.parametros.simbolos == None and  self.parametros.unidades != None:
                         xlabel(self.parametros.simbolos[p1]+'/'+self.parametros.unidades[p1],fontsize=20)   
-                        ylabel(self.parametros.simbolos[p2]+'/'+self.parametros.unidades[p2],fontsize=20)                 
+                        ylabel(self.parametros.simbolos[p2]+'/'+self.parametros.unidades[p2],fontsize=20)  
+                elif self.parametros.label_latex != None and self.parametros.simbolos != None and  self.parametros.unidades != None:
+                        xlabel(self.parametros.label_latex[p1]+'/'+self.parametros.unidades[p1],fontsize=20)   
+                        ylabel(self.parametros.label_latex[p2]+'/'+self.parametros.unidades[p2],fontsize=20)  
                 fig.savefig(base_path+base_dir+'Regiao_verossimilhanca_'+str(self.parametros.nomes[p1])+'_'+str(self.parametros.nomes[p2])+'.png')
                 close()
                 p2+=1
@@ -521,9 +554,9 @@ if __name__ == "__main__":
     uy = concatenate((uy1,uy2),axis=1)
 
 
-    Estime = Estimacao(WLS,Modelo,Nomes_x = ['x1','x2'],simbolos_x=[r'$x_1$',r'$x_2$'],Nomes_y=['y1','y2'],simbolos_y=[r'$y_1$',r'$y_2$'],Nomes_param=['theyta'+str(i) for i in xrange(4)],simbolos_param=[r'$\theta_{%d}$'%i for i in xrange(4)])
+    Estime = Estimacao(WLS,Modelo,Nomes_x = ['variavel teste x1','variavel teste x2'],simbolos_x=[r'x1',r'x2'],label_latex_x=[r'$x_1$',r'$x_2$'],Nomes_y=['y1','y2'],simbolos_y=[r'y1',r'y2'],Nomes_param=['theyta'+str(i) for i in xrange(4)],simbolos_param=[r'theta%d'%i for i in xrange(4)],label_latex_param=[r'$\theta_{%d}$'%i for i in xrange(4)])
     Estime.otimiza(x,y,ux,uy,sup=[2,2,2,2],inf=[-2,-2,-2,-2],algoritmo='PSO',itmax=5)
-    #Estime.graficos(0.95)
+    Estime.graficos(0.95)
     saida = concatenate((Estime.x.experimental.matriz_estimativa[:,0:1],Estime.x.experimental.matriz_incerteza[:,0:1]),axis=1)
     for i in xrange(1,Estime.NX):
         aux = concatenate((Estime.x.experimental.matriz_estimativa[:,i:i+1],Estime.x.experimental.matriz_incerteza[:,i:i+1]),axis=1)
