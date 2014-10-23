@@ -5,7 +5,7 @@ Created on Tue Oct 21 10:36:09 2014
 @author: Daniel
 """
 
-from numpy import array, transpose, concatenate,size
+from numpy import array, transpose, concatenate, size
 from os import path, makedirs
 
 def matriz2vetor(matriz):
@@ -98,11 +98,11 @@ def Validacao_Diretorio(base_path,diretorio=None):
             makedirs(directory)
 
 def Coef_R2(residuo,yexp):
-        residuo = residuo.transpose().tolist()[0]
-        yexp    = yexp.transpose().tolist()[0]
+        residuo = residuo
+        yexp    = yexp.tolist()[0]
         
-        SEline  = sum([d**2 for d in residuo])
-        SEy     = sum([(ye - sum(yexp)/len(residuo))**2 for ye in yexp])
+        SEline  = residuo**2
+        SEy     = sum([(ye - sum(yexp)/size(residuo))**2 for ye in yexp])
         
         return 1 -  SEline/SEy
 
