@@ -258,7 +258,7 @@ class Estimacao:
             if len(keyobrigatoria) != 0:
                 aux = [args]
                 aux.extend(keyobrigatoria)
-                raise NameError((u'Para o método de %s a(s) keyword(s) obrigatória(s) não foram (foi) definida(s): '+(len(keyincorreta)-1)*'%s, '+u'%s.')%tuple(aux))
+                raise NameError((u'Para o método de %s a(s) keyword(s) obrigatória(s) não foram (foi) definida(s): '+(len(keyobrigatoria)-1)*'%s, '+u'%s.')%tuple(aux))
     
     def __validacaoDadosEntrada(self,dados,udados,Ndados):
         '''
