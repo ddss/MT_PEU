@@ -2,7 +2,7 @@
 """
 Principais classes do motor de cálculo do PEU
 
-@author: Daniel
+@author(es): Daniel, Francisco, Anderson, Leomar, Victor, Leonardo
 @GrupoPesquisa: PROTEC
 @LinhadePesquisa: GI-UFBA
 """
