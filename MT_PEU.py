@@ -76,6 +76,10 @@ class Organizador:
                 self.matriz_covariancia = incerteza      
                 self.matriz_incerteza   = vetor2matriz(transpose(array([diag(self.matriz_covariancia**0.5)])),NE)
 
+    def _estatisticas(self,testes):
+        
+        self.estatisticas = testes
+
 class Grandeza:
     
     def __init__(self,nomes,simbolos,unidades,label_latex):
@@ -126,7 +130,8 @@ class Grandeza:
     
     def _experimental(self,estimativa,variancia,tipo):
         
-        self.experimental = Organizador(estimativa,variancia,tipo)        
+        self.experimental = Organizador(estimativa,variancia,tipo)     
+        self.experimental._estatisticas(self._testesEstatisticos(self.experimental.matriz_estimativa))
         
     def _modelo(self,estimativa,variancia,tipo,NE):
 
@@ -145,6 +150,16 @@ class Grandeza:
     def _residuo_y(self,estimativa,variancia,tipo,NE):
         
         self.y = Organizador(estimativa,variancia,tipo,NE)   
+
+    def _testesEstatisticos(self,dados):
+        '''
+        Subrotina para realizar testes estatísticos de normalidade
+        '''
+        
+        pvalor = [{'kolmogorov':1.,'liliee':2}]*size(dados,1)
+
+        return pvalor
+
 
 class Estimacao:
     
