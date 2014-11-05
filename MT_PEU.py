@@ -284,21 +284,40 @@ class Estimacao:
             Num_particulas = 30  if kwargs.get('Num_particulas') == None else kwargs.get('Num_particulas')
         
             return (itmax, Num_particulas)
-        
-         
-    def otimiza(self,xe,ye,ux,uy,uxy=None,args=None,algoritmo='PSO',**kwargs):
+   
+    def gerarEntradas(self,xe,ye,ux,uy,uxy=None):
         '''
-        Método para realização da otimização        
+        Método para incluir os dados de entrada da estimação
         
         =======================
         Entradas (Obrigatórias)
-        =======================
+        =======================        
         
         * xe        : array com as variáveis independentes na forma de colunas
         * ux        : array com as incertezas das variáveis independentes na forma de colunas
         * ye        : array com as variáveis dependentes na forma de colunas
         * uy        : array com as incertezas das variáveis dependentes na forma de colunas
         * uxy       : covariância entre x e y
+        '''
+
+        # Validação dos dados de entrada x e y
+        self.__validacaoDadosEntrada(xe,ux,self.NX) 
+        self.__validacaoDadosEntrada(ye,uy,self.NY)
+        
+        # Salvando os dados nas variáveis 
+        self.x._experimental(xe,ux,{'estimativa':'matriz','incerteza':'incerteza'})
+        self.y._experimental(ye,uy,{'estimativa':'matriz','incerteza':'incerteza'}) 
+ 
+        self.NE  = size(self.x.experimental.matriz_estimativa,0) # Número de observações
+         
+    def otimiza(self,algoritmo='PSO',args=None,**kwargs):
+        '''
+        Método para realização da otimização        
+        
+        =======================
+        Entradas (Obrigatórias)
+        =======================
+
         * algoritmo : string informando o algoritmo de otimização a ser utilizado. Cada algoritmo tem suas próprias keywords
         * args      : argumentos extras a serem passados para o modelo
         
@@ -317,15 +336,6 @@ class Estimacao:
         # Validação dos keywords do método de otimização
         self.__validacaoArgumentosEntrada(kwargs,'otimizacao',algoritmo)       
 
-        # Validação dos dados de entrada x e y
-        self.__validacaoDadosEntrada(xe,ux,self.NX) 
-        self.__validacaoDadosEntrada(ye,uy,self.NY)
-        
-        # Salvando os dados nas variáveis 
-        self.x._experimental(xe,ux,{'estimativa':'matriz','incerteza':'incerteza'})
-        self.y._experimental(ye,uy,{'estimativa':'matriz','incerteza':'incerteza'}) 
- 
-        self.NE  = size(self.x.experimental.matriz_estimativa,0) # Número de observações
     
         args_model = [self.y.experimental.vetor_estimativa,self.x.experimental.matriz_estimativa,\
         self.y.experimental.matriz_covariancia,self.x.experimental.matriz_covariancia,\
@@ -555,7 +565,8 @@ if __name__ == "__main__":
 
 
     Estime = Estimacao(WLS,Modelo,Nomes_x = ['variavel teste x1','variavel teste x2'],simbolos_x=[r'x1',r'x2'],label_latex_x=[r'$x_1$',r'$x_2$'],Nomes_y=['y1','y2'],simbolos_y=[r'y1',r'y2'],Nomes_param=['theyta'+str(i) for i in xrange(4)],simbolos_param=[r'theta%d'%i for i in xrange(4)],label_latex_param=[r'$\theta_{%d}$'%i for i in xrange(4)])
-    Estime.otimiza(x,y,ux,uy,sup=[2,2,2,2],inf=[-2,-2,-2,-2],algoritmo='PSO',itmax=5)
+    Estime.gerarEntradas(x,y,ux,uy)    
+    Estime.otimiza(sup=[2,2,2,2],inf=[-2,-2,-2,-2],algoritmo='PSO',itmax=5)
     Estime.graficos(0.95)
     saida = concatenate((Estime.x.experimental.matriz_estimativa[:,0:1],Estime.x.experimental.matriz_incerteza[:,0:1]),axis=1)
     for i in xrange(1,Estime.NX):
