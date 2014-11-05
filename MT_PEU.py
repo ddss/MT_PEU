@@ -339,7 +339,7 @@ class Estimacao:
     
         args_model = [self.y.experimental.vetor_estimativa,self.x.experimental.matriz_estimativa,\
         self.y.experimental.matriz_covariancia,self.x.experimental.matriz_covariancia,\
-        self.x.simbolos,self.y.simbolos,args] # Argumentos extras a serem passados para a função objetivo
+        args,self.x.simbolos,self.y.simbolos,self.parametros.simbolos] # Argumentos extras a serem passados para a função objetivo
         
         if algoritmo == 'PSO': # Obtençao das valores e definiçaão dos valores default
 
