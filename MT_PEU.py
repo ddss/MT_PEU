@@ -146,6 +146,21 @@ class Grandeza:
         
         self.y = Organizador(estimativa,variancia,tipo,NE)   
 
+
+    def labelGraficos(self):
+
+        if(self.label_latex != None):
+            label = self.label_latex
+        elif(self.nomes != None):
+            label = self.nomes
+        elif(self.simbolos != None):
+            label = self.simbolos
+        if(self.unidades == None):
+            return label
+        else:
+            return [label[i]+"/"+self.unidades[i] for i in xrange(len(self.nomes))]
+
+
 class Estimacao:
     
     def __init__(self,FO,Modelo,Nomes_y,Nomes_x,Nomes_param,projeto=None,**kwargs):
@@ -310,6 +325,8 @@ class Estimacao:
  
         self.NE  = size(self.x.experimental.matriz_estimativa,0) # Número de observações
          
+        self.graficos('entrada',.95)         
+        
     def otimiza(self,algoritmo='PSO',args=None,**kwargs):
         '''
         Método para realização da otimização        
@@ -404,143 +421,160 @@ class Estimacao:
         self.residuos._residuo_y(residuo_y,None,{'estimativa':'matriz','incerteza':'incerteza'},self.NE)
 
 
-    def graficos(self,PA):
+    def graficos(self,etapa,PA):
         
         base_path  = self.__base_path + '/Graficos/'
-        # Gráficos da otimização
-        base_dir = '/PSO/'
-        Validacao_Diretorio(base_path,base_dir)
+        
+        #If para gerar os gráficos de entrada
+        if(etapa == 'entrada'):
+            base_dir = '/Entradas/'
+            Validacao_Diretorio(base_path,base_dir)
 
-        self.Otimizacao.Graficos(base_path+base_dir,Nome_param=self.parametros.simbolos,Unid_param=self.parametros.unidades,FO2a2=True)
-        
-        # Gráficos da estimação
-        base_dir = '/Estimacao/'
-        Validacao_Diretorio(base_path,base_dir)
-        
-        
-        # Gráfico comparativo entre valores experimentais e calculados pelo modelo, sem variância
-        for i in xrange(self.NY):
-            y  = self.y.experimental.matriz_estimativa[:,i]
-            ym = self.y.modelo.matriz_estimativa[:,i]
-            
-            ymin = min(y)            
-            ymax = max(y)            
-            
-            diag = linspace(min(y),max(y))  
-            fig = figure()
-            ax = fig.add_subplot(1,1,1)
-            plot(y,ym,'bo',linewidth=2.0)
-            plot(diag,diag,'k-',linewidth=2.0)
-            ax.yaxis.grid(color='gray', linestyle='dashed')                        
-            ax.xaxis.grid(color='gray', linestyle='dashed')
-            xlim((ymin,ymax))
-            ylim((ymin,ymax))
-            
-            if self.y.simbolos == None and self.y.label_latex == None and self.y.unidades == None:
-                xlabel(self.y.nomes[i]+' experimental')
-                ylabel(self.y.nomes[i]+' calculado')
-            elif self.y.simbolos != None and self.y.label_latex == None and self.y.unidades == None:
-                xlabel(self.y.simbolos[i]+' experimental')
-                ylabel(self.y.simbolos[i]+' calculado')   
-            elif self.y.simbolos == None and self.y.label_latex != None and self.y.unidades == None:
-                xlabel(self.y.label_latex[i]+' experimental')
-                ylabel(self.y.label_latex[i]+' calculado')  
-            elif self.y.simbolos != None and self.y.label_latex != None and self.y.unidades == None:
-                xlabel(self.y.label_latex[i]+' experimental')
-                ylabel(self.y.label_latex[i]+' calculado') 
-            elif self.y.simbolos != None and self.y.unidades != None:
-                xlabel(self.y.simbolos[i]+'/'+self.y.unidades[i]+' experimental')
-                ylabel(self.y.simbolos[i]+'/'+self.y.unidades[i]+' calculado')   
-            fig.savefig(base_path+base_dir+'grafico_'+str(self.y.nomes[i])+'_ye_ym_sem_var.png')
-            close()
+            for z in xrange(self.NX):
+                for i in xrange(self.NY):
+                    plot(self.x.experimental.matriz_estimativa[:,z],self.y.experimental.matriz_estimativa[:,i],'o')
+                    ymin = min(self.y.experimental.matriz_estimativa[:,i]) - 1
+                    ymax = min(self.y.experimental.matriz_estimativa[:,i]) + 1
+                    xlabel(self.x.labelGraficos()[z],fontsize=20)
+                    ylabel(self.y.labelGraficos()[i],fontsize=20)
+                    savefig(base_path+base_dir+"xe{}_ye{}".format(z+1,i+1))
+                    close()        
 
+        if(etapa == 'otimizacao'):
+            # Gráficos da otimização
+            base_dir = '/PSO/'
+            Validacao_Diretorio(base_path,base_dir)
+    
+            self.Otimizacao.Graficos(base_path+base_dir,Nome_param=self.parametros.simbolos,Unid_param=self.parametros.unidades,FO2a2=True)
+                    
+            # Gráficos da estimação
+            base_dir = '/Estimacao/'
+            Validacao_Diretorio(base_path,base_dir)
             
-        # Região de abrangência (verossimilhança)
-        
-        Hist_Posicoes , Hist_Fitness = self.regiaoAbrangencia(PA)
-       
-        if self.NP == 1:
+            
+            # Gráfico comparativo entre valores experimentais e calculados pelo modelo, sem variância
+            for i in xrange(self.NY):
+                y  = self.y.experimental.matriz_estimativa[:,i]
+                ym = self.y.modelo.matriz_estimativa[:,i]
                 
-            aux = []
-            for it in xrange(size(self.parametros.regiao_abrangencia)/self.NP):     
-                aux.append(self.parametros.regiao_abrangencia[it][0])
-                   
-            X = [Hist_Posicoes[it][0] for it in xrange(len(Hist_Posicoes))]
-            Y = Hist_Fitness
-            X_sort   = sort(X)
-            Y_sort   = [Y[i] for i in argsort(X)]    
-            fig = figure()
-            ax = fig.add_subplot(1,1,1)
-            plot(X_sort,Y_sort,'bo',markersize=4)
-            plot(self.parametros.estimativa[0],self.Otimizacao.best_fitness,'ro',markersize=8)
-            plot([min(aux),min(aux)],[min(Y_sort),max(Y_sort)/4],'r-')
-            plot([max(aux),max(aux)],[min(Y_sort),max(Y_sort)/4],'r-')
-            ax.text(min(aux),max(Y_sort)/4,u'%.2e'%(min(aux),), fontsize=8, horizontalalignment='center')
-            ax.text(max(aux),max(Y_sort)/4,u'%.2e'%(max(aux),), fontsize=8, horizontalalignment='center')
-            ax.yaxis.grid(color='gray', linestyle='dashed')
-            ax.xaxis.grid(color='gray', linestyle='dashed')
-            ylabel(r"$\quad \Phi $",fontsize = 20)
-            if self.parametros.simbolos == None and self.parametros.label_latex == None and self.parametros.unidades == None:
-                    xlabel(self.parametros.nomes[0],fontsize=20)
-            elif self.parametros.simbolos != None and self.parametros.label_latex == None and self.parametros.unidades == None:
-                    xlabel(self.parametros.simbolos[0],fontsize=20)   
-            elif self.parametros.simbolos == None and self.parametros.label_latex != None and self.parametros.unidades == None:
-                    xlabel(self.parametros.label_latex[0],fontsize=20)  
-            elif self.parametros.simbolos != None and self.parametros.label_latex != None and self.parametros.unidades == None:
-                    xlabel(self.parametros.label_latex[0],fontsize=20) 
-            elif self.parametros.simbolos != None and self.parametros.label_latex == None and self.parametros.unidades != None:
-                    xlabel(self.parametros.simbolos[0]+'/'+self.parametros.unidades[0],fontsize=20)  
-            elif self.parametros.simbolos == None and self.parametros.label_latex != None and self.parametros.unidades != None:
-                    xlabel(self.parametros.label_latex[0]+'/'+self.parametros.unidades[0],fontsize=20)  
-            elif self.parametros.simbolos != None and self.parametros.label_latex != None and self.parametros.unidades != None:
-                    xlabel(self.parametros.label_latex[0]+'/'+self.parametros.unidades[0],fontsize=20)  
-            fig.savefig(base_path+base_dir+'Regiao_verossimilhanca_'+str(self.parametros.nomes[0])+'_'+str(self.parametros.nomes[0])+'.png')
-            close()
-        
-        else:
-            
-            Combinacoes = int(factorial(self.NP)/(factorial(self.NP-2)*factorial(2)))
-            p1 = 0; p2 = 1; cont = 0; passo = 1
-            
-            for pos in xrange(Combinacoes):
-                if pos == (self.NP-1)+cont:
-                    p1 +=1; p2 = p1+1; passo +=1
-                    cont += self.NP-passo
+                ymin = min(y)            
+                ymax = max(y)            
                 
+                diag = linspace(min(y),max(y))  
                 fig = figure()
                 ax = fig.add_subplot(1,1,1)
-                
-                for it in xrange(size(self.parametros.regiao_abrangencia)/self.NP):     
-                    PSO, = plot(self.parametros.regiao_abrangencia[it][p1],self.parametros.regiao_abrangencia[it][p2],'bo',linewidth=2.0,zorder=1)
-            
-                plot(self.parametros.estimativa[p1],self.parametros.estimativa[p2],'r*',markersize=10.0,zorder=2)
+                plot(y,ym,'bo',linewidth=2.0)
+                plot(diag,diag,'k-',linewidth=2.0)
                 ax.yaxis.grid(color='gray', linestyle='dashed')                        
                 ax.xaxis.grid(color='gray', linestyle='dashed')
-             
-                if self.parametros.simbolos == None and self.parametros.label_latex == None and self.parametros.unidades == None:
-                        xlabel(self.parametros.nomes[p1],fontsize=20)
-                        ylabel(self.parametros.nomes[p2],fontsize=20)
-                elif self.parametros.label_latex != None and self.parametros.simbolos == None and  self.parametros.unidades == None:
-                        xlabel(self.parametros.label_latex[p1],fontsize=20)   
-                        ylabel(self.parametros.label_latex[p2],fontsize=20)  
-                elif self.parametros.label_latex == None and self.parametros.simbolos != None and  self.parametros.unidades == None:
-                        xlabel(self.parametros.simbolos[p1],fontsize=20)   
-                        ylabel(self.parametros.simbolos[p2],fontsize=20)
-                elif self.parametros.label_latex != None and self.parametros.simbolos != None and  self.parametros.unidades == None:
-                        xlabel(self.parametros.label_latex[p1],fontsize=20)   
-                        ylabel(self.parametros.label_latex[p2],fontsize=20)  
-                elif self.parametros.label_latex != None and self.parametros.simbolos == None and  self.parametros.unidades != None:
-                        xlabel(self.parametros.label_latex[p1]+'/'+self.parametros.unidades[p1],fontsize=20)   
-                        ylabel(self.parametros.label_latex[p2]+'/'+self.parametros.unidades[p2],fontsize=20)      
-                elif self.parametros.label_latex != None and self.parametros.simbolos == None and  self.parametros.unidades != None:
-                        xlabel(self.parametros.simbolos[p1]+'/'+self.parametros.unidades[p1],fontsize=20)   
-                        ylabel(self.parametros.simbolos[p2]+'/'+self.parametros.unidades[p2],fontsize=20)  
-                elif self.parametros.label_latex != None and self.parametros.simbolos != None and  self.parametros.unidades != None:
-                        xlabel(self.parametros.label_latex[p1]+'/'+self.parametros.unidades[p1],fontsize=20)   
-                        ylabel(self.parametros.label_latex[p2]+'/'+self.parametros.unidades[p2],fontsize=20)  
-                fig.savefig(base_path+base_dir+'Regiao_verossimilhanca_'+str(self.parametros.nomes[p1])+'_'+str(self.parametros.nomes[p2])+'.png')
+                xlim((ymin,ymax))
+                ylim((ymin,ymax))
+                
+                if self.y.simbolos == None and self.y.label_latex == None and self.y.unidades == None:
+                    xlabel(self.y.nomes[i]+' experimental')
+                    ylabel(self.y.nomes[i]+' calculado')
+                elif self.y.simbolos != None and self.y.label_latex == None and self.y.unidades == None:
+                    xlabel(self.y.simbolos[i]+' experimental')
+                    ylabel(self.y.simbolos[i]+' calculado')   
+                elif self.y.simbolos != None and  base_path  == self.__base_path + '/Graficos/' == None and self.y.label_latex != None and self.y.unidades == None:
+                    xlabel(self.y.label_latex[i]+' experimental')
+                    ylabel(self.y.label_latex[i]+' calculado')  
+                elif self.y.simbolos != None and self.y.label_latex != None and self.y.unidades == None:
+                    xlabel(self.y.label_latex[i]+' experimental')
+                    ylabel(self.y.label_latex[i]+' calculado') 
+                elif self.y.simbolos != None and self.y.unidades != None:
+                    xlabel(self.y.simbolos[i]+'/'+self.y.unidades[i]+' experimental')
+                    ylabel(self.y.simbolos[i]+'/'+self.y.unidades[i]+' calculado')   
+                fig.savefig(base_path+base_dir+'grafico_'+str(self.y.nomes[i])+'_ye_ym_sem_var.png')
                 close()
-                p2+=1
+    
+                
+            # Região de abrangência (verossimilhança)
+            
+            Hist_Posicoes , Hist_Fitness = self.regiaoAbrangencia(PA)
+           
+            if self.NP == 1:
+                    
+                aux = []
+                for it in xrange(size(self.parametros.regiao_abrangencia)/self.NP):     
+                    aux.append(self.parametros.regiao_abrangencia[it][0])
+                       
+                X = [Hist_Posicoes[it][0] for it in xrange(len(Hist_Posicoes))]
+                Y = Hist_Fitness
+                X_sort   = sort(X)
+                Y_sort   = [Y[i] for i in argsort(X)]    
+                fig = figure()
+                ax = fig.add_subplot(1,1,1)
+                plot(X_sort,Y_sort,'bo',markersize=4)
+                plot(self.parametros.estimativa[0],self.Otimizacao.best_fitness,'ro',markersize=8)
+                plot([min(aux),min(aux)],[min(Y_sort),max(Y_sort)/4],'r-')
+                plot([max(aux),max(aux)],[min(Y_sort),max(Y_sort)/4],'r-')
+                ax.text(min(aux),max(Y_sort)/4,u'%.2e'%(min(aux),), fontsize=8, horizontalalignment='center')
+                ax.text(max(aux),max(Y_sort)/4,u'%.2e'%(max(aux),), fontsize=8, horizontalalignment='center')
+                ax.yaxis.grid(color='gray', linestyle='dashed')
+                ax.xaxis.grid(color='gray', linestyle='dashed')
+                ylabel(r"$\quad \Phi $",fontsize = 20)
+                if self.parametros.simbolos == None and self.parametros.label_latex == None and self.parametros.unidades == None:
+                        xlabel(self.parametros.nomes[0],fontsize=20)
+                elif self.parametros.simbolos != None and self.parametros.label_latex == None and self.parametros.unidades == None:
+                        xlabel(self.parametros.simbolos[0],fontsize=20)   
+                elif self.parametros.simbolos == None and self.parametros.label_latex != None and self.parametros.unidades == None:
+                        xlabel(self.parametros.label_latex[0],fontsize=20)  
+                elif self.parametros.simbolos != None and self.parametros.label_latex != None and self.parametros.unidades == None:
+                        xlabel(self.parametros.label_latex[0],fontsize=20) 
+                elif self.parametros.simbolos != None and self.parametros.label_latex == None and self.parametros.unidades != None:
+                        xlabel(self.parametros.simbolos[0]+'/'+self.parametros.unidades[0],fontsize=20)  
+                elif self.parametros.simbolos == None and self.parametros.label_latex != None and self.parametros.unidades != None:
+                        xlabel(self.parametros.label_latex[0]+'/'+self.parametros.unidades[0],fontsize=20)  
+                elif self.parametros.simbolos != None and self.parametros.label_latex != None and self.parametros.unidades != None:
+                        xlabel(self.parametros.label_latex[0]+'/'+self.parametros.unidades[0],fontsize=20)  
+                fig.savefig(base_path+base_dir+'Regiao_verossimilhanca_'+str(self.parametros.nomes[0])+'_'+str(self.parametros.nomes[0])+'.png')
+                close()
+            
+            else:
+                
+                Combinacoes = int(factorial(self.NP)/(factorial(self.NP-2)*factorial(2)))
+                p1 = 0; p2 = 1; cont = 0; passo = 1
+                
+                for pos in xrange(Combinacoes):
+                    if pos == (self.NP-1)+cont:
+                        p1 +=1; p2 = p1+1; passo +=1
+                        cont += self.NP-passo
+                    
+                    fig = figure()
+                    ax = fig.add_subplot(1,1,1)
+                    
+                    for it in xrange(size(self.parametros.regiao_abrangencia)/self.NP):     
+                        PSO, = plot(self.parametros.regiao_abrangencia[it][p1],self.parametros.regiao_abrangencia[it][p2],'bo',linewidth=2.0,zorder=1)
+                
+                    plot(self.parametros.estimativa[p1],self.parametros.estimativa[p2],'r*',markersize=10.0,zorder=2)
+                    ax.yaxis.grid(color='gray', linestyle='dashed')                        
+                    ax.xaxis.grid(color='gray', linestyle='dashed')
+                 
+                    if self.parametros.simbolos == None and self.parametros.label_latex == None and self.parametros.unidades == None:
+                            xlabel(self.parametros.nomes[p1],fontsize=20)
+                            ylabel(self.parametros.nomes[p2],fontsize=20)
+                    elif self.parametros.label_latex != None and self.parametros.simbolos == None and  self.parametros.unidades == None:
+                            xlabel(self.parametros.label_latex[p1],fontsize=20)   
+                            ylabel(self.parametros.label_latex[p2],fontsize=20)  
+                    elif self.parametros.label_latex == None and self.parametros.simbolos != None and  self.parametros.unidades == None:
+                            xlabel(self.parametros.simbolos[p1],fontsize=20)   
+                            ylabel(self.parametros.simbolos[p2],fontsize=20)
+                    elif self.parametros.label_latex != None and self.parametros.simbolos != None and  self.parametros.unidades == None:
+                            xlabel(self.parametros.label_latex[p1],fontsize=20)   
+                            ylabel(self.parametros.label_latex[p2],fontsize=20)  
+                    elif self.parametros.label_latex != None and self.parametros.simbolos == None and  self.parametros.unidades != None:
+                            xlabel(self.parametros.label_latex[p1]+'/'+self.parametros.unidades[p1],fontsize=20)   
+                            ylabel(self.parametros.label_latex[p2]+'/'+self.parametros.unidades[p2],fontsize=20)      
+                    elif self.parametros.label_latex != None and self.parametros.simbolos == None and  self.parametros.unidades != None:
+                            xlabel(self.parametros.simbolos[p1]+'/'+self.parametros.unidades[p1],fontsize=20)   
+                            ylabel(self.parametros.simbolos[p2]+'/'+self.parametros.unidades[p2],fontsize=20)  
+                    elif self.parametros.label_latex != None and self.parametros.simbolos != None and  self.parametros.unidades != None:
+                            xlabel(self.parametros.label_latex[p1]+'/'+self.parametros.unidades[p1],fontsize=20)   
+                            ylabel(self.parametros.label_latex[p2]+'/'+self.parametros.unidades[p2],fontsize=20)  
+                    fig.savefig(base_path+base_dir+'Regiao_verossimilhanca_'+str(self.parametros.nomes[p1])+'_'+str(self.parametros.nomes[p2])+'.png')
+                    close()
+                    p2+=1
 
 
         
@@ -566,12 +600,12 @@ if __name__ == "__main__":
 
     Estime = Estimacao(WLS,Modelo,Nomes_x = ['variavel teste x1','variavel teste x2'],simbolos_x=[r'x1',r'x2'],label_latex_x=[r'$x_1$',r'$x_2$'],Nomes_y=['y1','y2'],simbolos_y=[r'y1',r'y2'],Nomes_param=['theyta'+str(i) for i in xrange(4)],simbolos_param=[r'theta%d'%i for i in xrange(4)],label_latex_param=[r'$\theta_{%d}$'%i for i in xrange(4)])
     Estime.gerarEntradas(x,y,ux,uy)    
-    Estime.otimiza(sup=[2,2,2,2],inf=[-2,-2,-2,-2],algoritmo='PSO',itmax=5)
-    Estime.graficos(0.95)
-    saida = concatenate((Estime.x.experimental.matriz_estimativa[:,0:1],Estime.x.experimental.matriz_incerteza[:,0:1]),axis=1)
-    for i in xrange(1,Estime.NX):
-        aux = concatenate((Estime.x.experimental.matriz_estimativa[:,i:i+1],Estime.x.experimental.matriz_incerteza[:,i:i+1]),axis=1)
-        saida =  concatenate((saida,aux),axis=1)
+#    Estime.otimiza(sup=[2,2,2,2],inf=[-2,-2,-2,-2],algoritmo='PSO',itmax=5)
+#    Estime.graficos(0.95)
+#    saida = concatenate((Estime.x.experimental.matriz_estimativa[:,0:1],Estime.x.experimental.matriz_incerteza[:,0:1]),axis=1)
+#    for i in xrange(1,Estime.NX):
+#        aux = concatenate((Estime.x.experimental.matriz_estimativa[:,i:i+1],Estime.x.experimental.matriz_incerteza[:,i:i+1]),axis=1)
+#        saida =  concatenate((saida,aux),axis=1)
         
 #    print saida
     #Estime.analiseResiduos()
