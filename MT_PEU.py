@@ -10,7 +10,7 @@ Principais classes do motor de cálculo do PEU
 # Importação de pacotes de terceiros
 from numpy import array, transpose, concatenate,size, diag, linspace, min, max, \
 sort, argsort
-from scipy.stats import f
+from scipy.stats import f, normaltest, anderson, shapiro
 from scipy.misc import factorial
 
 from matplotlib.pyplot import figure, axes, plot, subplot, xlabel, ylabel,\
@@ -131,34 +131,53 @@ class Grandeza:
     def _experimental(self,estimativa,variancia,tipo):
         
         self.experimental = Organizador(estimativa,variancia,tipo)     
-        self.experimental._estatisticas(self._testesEstatisticos(self.experimental.matriz_estimativa))
+        self.__ID         = 'experimental'
         
     def _modelo(self,estimativa,variancia,tipo,NE):
 
         self.modelo = Organizador(estimativa,variancia,tipo,NE)     
+        self.__ID         = 'modelo'
 
     def _parametro(self,estimativa,variancia,regiao):
         
         self.estimativa         = estimativa
         self.matriz_covariancia = variancia
         self.regiao_abrangencia = regiao
-        
-    def _residuo_x(self,estimativa,variancia,tipo,NE):
-        
-        self.x = Organizador(estimativa,variancia,tipo,NE)   
-    
-    def _residuo_y(self,estimativa,variancia,tipo,NE):
-        
-        self.y = Organizador(estimativa,variancia,tipo,NE)   
+        self.__ID         = 'parametro'
 
-    def _testesEstatisticos(self,dados):
+    def _residuo(self,estimativa,variancia,tipo,NE):
+        
+        self.estimativa = Organizador(estimativa,variancia,tipo,NE)   
+        self.__ID         = 'residuo'
+
+
+    def _testesEstatisticos(self):
         '''
         Subrotina para realizar testes estatísticos de normalidade
-        '''
+        Entrada; 
+        #===============
+        * `` data`` (array):  Conjunto de dados que serão analisados para verificar se seguem uma distribuição normal
+        #=========
+        Métodos;
+        #===============
+        * ``normaltest(a[, axis])``; Testa se uma amostra difere de uma distribuição normal.
+        * ``shapiro(x[, a, reta])`` ; Realiza o teste de Shapiro-Wilk para normalidade.	
+        * ``anderson(x[, dist])``  ; Teste para os dados provenientes de uma distribuição em particular 
+                                     o teste de Anderson-Darling é uma modificação do kstest_ teste de Kolmogorov-Smirnov		
+        #===============
+        Saídas
+        #===============
+        * ``pvalor``  (float)       ; Valor p para a hipótese nula de normalidade com região crítica de 10%
+        #==============='''
+    
+        if self.__ID == 'residuo':
+            dados = self.estimativa.matriz_estimativa
+        for i in xrange(len(self.nomes)):
+            p=[normaltest(dados[:,i]), shapiro(dados[:,i]), anderson(dados[:,i], dist='norm')]
         
-        pvalor = [{'kolmogorov':1.,'liliee':2}]*size(dados,1)
+      
 
-        return pvalor
+        return p
 
 
 class Estimacao:
@@ -400,13 +419,17 @@ class Estimacao:
         '''
         Método para realização da análise de resíduos
         '''
-        self.residuos = Grandeza()
+        
+        self.residuos_x = Grandeza(['residuo_x%d'%(i,) for i in xrange(self.NX)],['rx_%d'%(i,) for i in xrange(self.NX)],\
+                         self.x.unidades,[r'$rx_%d$'%(i,) for i in xrange(self.NX)])
+        self.residuos_y = Grandeza(['residuo_y%d'%(i,) for i in xrange(self.NY)],['ry_%d'%(i,) for i in xrange(self.NY)],\
+                         self.y.unidades,[r'$ry_%d$'%(i,) for i in xrange(self.NY)])
         
         residuo_y = self.y.experimental.matriz_estimativa - self.y.modelo.matriz_estimativa
         residuo_x = self.x.experimental.matriz_estimativa - self.x.modelo.matriz_estimativa
         
-        self.residuos._residuo_x(residuo_x,None,{'estimativa':'matriz','incerteza':'incerteza'},self.NE)
-        self.residuos._residuo_y(residuo_y,None,{'estimativa':'matriz','incerteza':'incerteza'},self.NE)
+        self.residuos_x._residuo(residuo_x,None,{'estimativa':'matriz','incerteza':'incerteza'},self.NE)
+        self.residuos_y._residuo(residuo_y,None,{'estimativa':'matriz','incerteza':'incerteza'},self.NE)
 
 
     def graficos(self,PA):
@@ -571,11 +594,13 @@ if __name__ == "__main__":
 
     Estime = Estimacao(WLS,Modelo,Nomes_x = ['variavel teste x1','variavel teste x2'],simbolos_x=[r'x1',r'x2'],label_latex_x=[r'$x_1$',r'$x_2$'],Nomes_y=['y1','y2'],simbolos_y=[r'y1',r'y2'],Nomes_param=['theyta'+str(i) for i in xrange(4)],simbolos_param=[r'theta%d'%i for i in xrange(4)],label_latex_param=[r'$\theta_{%d}$'%i for i in xrange(4)])
     Estime.otimiza(x,y,ux,uy,sup=[2,2,2,2],inf=[-2,-2,-2,-2],algoritmo='PSO',itmax=5)
-    Estime.graficos(0.95)
-    saida = concatenate((Estime.x.experimental.matriz_estimativa[:,0:1],Estime.x.experimental.matriz_incerteza[:,0:1]),axis=1)
-    for i in xrange(1,Estime.NX):
-        aux = concatenate((Estime.x.experimental.matriz_estimativa[:,i:i+1],Estime.x.experimental.matriz_incerteza[:,i:i+1]),axis=1)
-        saida =  concatenate((saida,aux),axis=1)
+    Estime.analiseResiduos()
+    a=Estime.residuos_x._testesEstatisticos()
+    #Estime.graficos(0.95)
+    #saida = concatenate((Estime.x.experimental.matriz_estimativa[:,0:1],Estime.x.experimental.matriz_incerteza[:,0:1]),axis=1)
+    #for i in xrange(1,Estime.NX):
+     #   aux = concatenate((Estime.x.experimental.matriz_estimativa[:,i:i+1],Estime.x.experimental.matriz_incerteza[:,i:i+1]),axis=1)
+      #  saida =  concatenate((saida,aux),axis=1)
         
 #    print saida
     #Estime.analiseResiduos()
