@@ -9,8 +9,8 @@ Principais classes do motor de cálculo do PEU
 
 # Importação de pacotes de terceiros
 from numpy import array, transpose, concatenate,size, diag, linspace, min, max, \
-sort, argsort
-from scipy.stats import f, normaltest, anderson, shapiro
+sort, argsort, random
+from scipy.stats import f, normaltest, anderson, shapiro, kruskal
 from scipy.misc import factorial
 
 from matplotlib.pyplot import figure, axes, plot, subplot, xlabel, ylabel,\
@@ -154,9 +154,6 @@ class Grandeza:
     def _testesEstatisticos(self):
         '''
         Subrotina para realizar testes estatísticos de normalidade
-        Entrada; 
-        #===============
-        * `` data`` (array):  Conjunto de dados que serão analisados para verificar se seguem uma distribuição normal
         #=========
         Métodos;
         #===============
@@ -173,11 +170,21 @@ class Grandeza:
         if self.__ID == 'residuo':
             dados = self.estimativa.matriz_estimativa
         for i in xrange(len(self.nomes)):
-            p=[normaltest(dados[:,i]), shapiro(dados[:,i]), anderson(dados[:,i], dist='norm')]
-        
+            param_comparacao=random.normal(0, 1, len(dados[:,i]))
+            p=[normaltest(dados[:,i]), shapiro(dados[:,i]), anderson(dados[:,i], dist='norm'), kruskal(param_comparacao,dados[:,i])]
+        if (p[0][1] and p[1][1]) < 0.1 and (p[2][0] > p[2][1][1]) :
+            #não é normal
+            pvalor={'normalidade':{'normaltest':p[0][1], 'shapiro':p[1][1], 'anderson':[[p[2][0]], p[2][1][1]]}}
+        elif p[3][1] < 0.1:
+
+            pvalor={'normalidade':{'normaltest':p[0][1], 'shapiro':p[1][1], 'anderson':[[p[2][0]], p[2][1][1]]}, 'mediazero':{'kruskal':p[3][1]}}
+            #continua o algoritimo?
+        else:
+            #continua o algoritimo?
+            pvalor={'normalidade':{'normaltest':p[0][1], 'shapiro':p[1][1], 'anderson':[[p[2][0]], p[2][1][1]]}, 'mediazero':{'kruskal':p[3][1]}}
       
 
-        return p
+        return pvalor
 
 
 class Estimacao:
