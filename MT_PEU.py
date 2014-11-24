@@ -363,7 +363,10 @@ class Estimacao:
         self.regiaoAbrangencia(PA) # método para avaliação da região de abrangência
         
     def __Hessiana_FO_Param(self,args_FO):
-        
+        '''
+        Método para calcular a matriz Hessiana da função objetivo em reaçao aos parâmetros
+        - derivada central
+        '''
         #Construçao da matriz Hessiana
         
         delta = 1e-8
@@ -379,10 +382,10 @@ class Estimacao:
                 
                 if i==j:
                     parametrootm=self.parametros.estimativa
-                    parametro1=copy(self.parametros.estimativa)
+                    parametro1=copy(self.parametros.estimativa) # incremneto em delta do parametro i
                     parametro1[i]=parametro1[i]+delta
                     
-                    parametro2=copy(self.parametros.estimativa)
+                    parametro2=copy(self.parametros.estimativa) # incremneto em delta do parametro j
                     parametro2[i]=parametro2[i]-delta
                 
                     p1=self.__FO(parametro1,args_FO)
@@ -398,16 +401,10 @@ class Estimacao:
                     p1.join()                    
                     potim.join()
                     
+                    # Fórmula de diferença finita para i=j (Ref?)
                     derivadas[i][j]=(((p1.result)-2*(potim.result)+(p2.result))/(delta)**2)
                     
-                    #FUNÇÃO I
                     
-                    '''
-                    A FUNÇÃO I É PARA CALCULAR AS DERIVADAS DE SEGUNDA ORDEM 
-                    DOS ELEMENTOS DA MATRIZ DA DIAGONAL PRINCIPAL, E PARA ISSO
-                    USO A DERIVADA I DA FOBJ COMO ESTÁ NA FOTO ANEXADA
-                    
-                    '''
                 
                 else:
                     
@@ -446,13 +443,6 @@ class Estimacao:
                     
                     derivadas[i][j]=((p3.result)-(p4.result)-(p5.result)+(p6.result))/(4*delta**2)
                     
-                    
-                    #FUNÇÃO II
-                    
-                    '''
-                    AQUI MONTO O ESQUEMA PARA ACHAR A DERIVADA SEGUNDA PARA OS 
-                    DEMAIS ELEMENTOS DA TABELA
-                    '''
                     
         Hess= array(derivadas)
         
