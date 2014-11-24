@@ -9,7 +9,7 @@ Principais classes do motor de cálculo do PEU
 
 # Importação de pacotes de terceiros
 from numpy import array, transpose, concatenate,size, diag, linspace, min, max, \
-sort, argsort
+sort, argsort, copy
 from scipy.stats import f
 from scipy.misc import factorial
 
@@ -348,9 +348,9 @@ class Estimacao:
         self.y._modelo(aux.result,None,{'estimativa':'matriz','incerteza':'variancia'},None)
         self.x._modelo(self.x.experimental.matriz_estimativa,self.x.experimental.matriz_incerteza,{'estimativa':'matriz','incerteza':'incerteza'},None)
 
-        self.incertezaParametros(self.__FO,self.__modelo)
+        self.incertezaParametros(self.__FO,self.__modelo,args_model)
         
-    def incertezaParametros(self,FO,Modelo,PA=0.95):
+    def incertezaParametros(self,FO,Modelo,args_model,PA=0.95):
         '''
         Método para avaliação da matriz covariãncia dos parâmetros.
         
@@ -358,8 +358,107 @@ class Estimacao:
         matriz_covariancia = diag(len(self.parametros.estimativa)*[1])
         
         self.parametros._parametro(self.parametros.estimativa,matriz_covariancia,self.parametros.regiao_abrangencia)
+        self.__Hessiana_FO_Param(args_model)
         
         self.regiaoAbrangencia(PA) # método para avaliação da região de abrangência
+        
+    def __Hessiana_FO_Param(self,args_FO):
+        
+        #Construçao da matriz Hessiana
+        
+        delta = 1e-8
+        derivadas=[[1. for col in range(self.NP)] for row in range(self.NP)]
+        
+        
+        #print type(delta)
+        #print self.parametros.estimativa
+        #print type(self.parametros.estimativa)
+        
+        for i in range(self.NP): 
+            for j in range(self.NP):
+                
+                if i==j:
+                    parametrootm=self.parametros.estimativa
+                    parametro1=copy(self.parametros.estimativa)
+                    parametro1[i]=parametro1[i]+delta
+                    
+                    parametro2=copy(self.parametros.estimativa)
+                    parametro2[i]=parametro2[i]-delta
+                
+                    p1=self.__FO(parametro1,args_FO)
+                    p1.start()
+                                     
+                    p2=self.__FO(parametro2,args_FO)
+                    p2.start()
+                     
+                    potim=self.__FO(parametrootm,args_FO)
+                    potim.start()
+
+                    p2.join()
+                    p1.join()                    
+                    potim.join()
+                    
+                    derivadas[i][j]=(((p1.result)-2*(potim.result)+(p2.result))/(delta)**2)
+                    
+                    #FUNÇÃO I
+                    
+                    '''
+                    A FUNÇÃO I É PARA CALCULAR AS DERIVADAS DE SEGUNDA ORDEM 
+                    DOS ELEMENTOS DA MATRIZ DA DIAGONAL PRINCIPAL, E PARA ISSO
+                    USO A DERIVADA I DA FOBJ COMO ESTÁ NA FOTO ANEXADA
+                    
+                    '''
+                
+                else:
+                    
+                    parametro3=copy(self.parametros.estimativa)
+                    parametro3[i] = parametro3[i] + delta
+                    parametro3[j] = parametro3[j] + delta
+                    
+                    p3=self.__FO(parametro3,args_FO)
+                    p3.start()
+                    
+                    parametro4=copy(self.parametros.estimativa)
+                    parametro4[j]=parametro4[j]-delta
+                    parametro4[i]=parametro4[i]+delta
+                    
+                    p4=self.__FO(parametro4,args_FO)
+                    p4.start()
+
+                    parametro5=copy(self.parametros.estimativa)
+                    parametro5[j]=parametro5[j]+delta
+                    parametro5[i]=parametro5[i]-delta
+                    
+                    p5=self.__FO(parametro5,args_FO)
+                    p5.start()
+
+                    parametro6=copy(self.parametros.estimativa)
+                    parametro6[j]=parametro6[j]-delta
+                    parametro6[i]=parametro6[i]-delta
+                    
+                    p6=self.__FO(parametro6,args_FO)
+                    p6.start()
+                    
+                    p3.join()
+                    p4.join()
+                    p5.join()
+                    p6.join()
+                    
+                    derivadas[i][j]=((p3.result)-(p4.result)-(p5.result)+(p6.result))/(4*delta**2)
+                    
+                    
+                    #FUNÇÃO II
+                    
+                    '''
+                    AQUI MONTO O ESQUEMA PARA ACHAR A DERIVADA SEGUNDA PARA OS 
+                    DEMAIS ELEMENTOS DA TABELA
+                    '''
+                    
+        Hess= array(derivadas)
+        
+        print size(Hess)
+        print Hess
+        return Hess
         
     def regiaoAbrangencia(self,PA=0.95):
         '''
