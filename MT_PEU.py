@@ -10,7 +10,7 @@ Principais classes do motor de cálculo do PEU
 # Importação de pacotes de terceiros
 from numpy import array, transpose, concatenate,size, diag, linspace, min, max, \
 sort, argsort, random
-from scipy.stats import f, normaltest, anderson, shapiro, kruskal
+from scipy.stats import f, normaltest, anderson, shapiro, ttest_1samp
 from scipy.misc import factorial
 
 from matplotlib.pyplot import figure, axes, plot, subplot, xlabel, ylabel,\
@@ -153,10 +153,21 @@ class Grandeza:
 
     def _testesEstatisticos(self):
         '''
-        Subrotina para realizar testes estatísticos de normalidade
-        #=========
-        Métodos;
-        #===============
+        Subrotina para realizar testes estatísticos nos resíduos
+        
+        =================
+        Testes realizados
+        =================
+        NORMALIDADE:
+        
+        * normaltest: retorna o pvalor do teste de normalidade. Hipótese nula: a amostra vem de distribuição normal
+        * shapiro   :
+        * anderson  :
+        
+        MÉDIA:
+        
+        * ttest: retorna o pvalor para o T-test de média. Hipótese nula:o valor esperado da amostra é igual a zero
+        
         * ``normaltest(a[, axis])``; Testa se uma amostra difere de uma distribuição normal.
         * ``shapiro(x[, a, reta])`` ; Realiza o teste de Shapiro-Wilk para normalidade.	
         * ``anderson(x[, dist])``  ; Teste para os dados provenientes de uma distribuição em particular 
@@ -169,20 +180,21 @@ class Grandeza:
     
         if self.__ID == 'residuo':
             dados = self.estimativa.matriz_estimativa
-        for i in xrange(len(self.nomes)):
-            param_comparacao=random.normal(0, 1, len(dados[:,i]))
-            p=[normaltest(dados[:,i]), shapiro(dados[:,i]), anderson(dados[:,i], dist='norm'), kruskal(param_comparacao,dados[:,i])]
-        if (p[0][1] and p[1][1]) < 0.1 and (p[2][0] > p[2][1][1]) :
-            #não é normal
-            pvalor={'normalidade':{'normaltest':p[0][1], 'shapiro':p[1][1], 'anderson':[[p[2][0]], p[2][1][1]]}}
-        elif p[3][1] < 0.1:
+            
+            pvalor = {}
+            for nome in self.nomes:
+                pvalor[nome] = {}
 
-            pvalor={'normalidade':{'normaltest':p[0][1], 'shapiro':p[1][1], 'anderson':[[p[2][0]], p[2][1][1]]}, 'mediazero':{'kruskal':p[3][1]}}
-            #continua o algoritimo?
+            for i,nome in enumerate(self.nomes):
+                # Testes para normalidade
+                pnormal=[normaltest(dados[:,i]), shapiro(dados[:,i]), anderson(dados[:,i], dist='norm')]
+                pvalor[nome]['normalidade'] = {'normaltest':pnormal[0][1], 'shapiro':pnormal[1][1], 'anderson':[[pnormal[2][0]], pnormal[2][1][1]]}
+                # Testes para a média:
+                pmedia = ttest_1samp(dados[:,i],0.)
+                pvalor[nome]['media'] = {'ttest':pmedia[1]}
+                
         else:
-            #continua o algoritimo?
-            pvalor={'normalidade':{'normaltest':p[0][1], 'shapiro':p[1][1], 'anderson':[[p[2][0]], p[2][1][1]]}, 'mediazero':{'kruskal':p[3][1]}}
-      
+            raise NameError(u'Os testes estatísticos são válidos apenas para o resíduos')
 
         return pvalor
 
@@ -581,8 +593,8 @@ class Estimacao:
         
 if __name__ == "__main__":
     
-    x1 = transpose(array([1,2,3,4,5,6,7,8,9,10],ndmin=2))
-    x2 = transpose(array([1,2,3,4,5,6,7,8,9,10],ndmin=2))
+    x1 = transpose(array([1.5,1.8,3.4,4.1,4.8,6.05,6.9,7.8,9.2,9.8],ndmin=2))
+    x2 = transpose(array([1.5,1.9,2.9,4.2,5.2,5.89,7.1,8.2,8.8,10.1],ndmin=2))
     
     ux1 = transpose(array([1,1,1,1,1,1,1,1,1,1],ndmin=2))
     ux2 = transpose(array([1,1,1,1,1,1,1,1,1,1],ndmin=2))
@@ -590,8 +602,8 @@ if __name__ == "__main__":
     y1 = transpose(array([2,3,4,5,6,7,8,9,10,11],ndmin=2))
     y2 = transpose(array([2,4,6,8,10,12,14,16,18,20],ndmin=2))
 
-    uy1 = transpose(array([1,1,1,1,1,1,1,1,1,1],ndmin=2))
-    uy2 = transpose(array([1,1,1,1,1,1,1,1,1,1],ndmin=2))
+    uy1 = transpose(array([2,2,1.5,1,0.5,1,2,0.5,0.5,0.5],ndmin=2))
+    uy2 = transpose(array([1,1,1,1,1,3.,1.,2.,1.5,0.5],ndmin=2))
     
     x  = concatenate((x1,x2),axis=1)
     y  = concatenate((y1,y2),axis=1)
@@ -602,7 +614,7 @@ if __name__ == "__main__":
     Estime = Estimacao(WLS,Modelo,Nomes_x = ['variavel teste x1','variavel teste x2'],simbolos_x=[r'x1',r'x2'],label_latex_x=[r'$x_1$',r'$x_2$'],Nomes_y=['y1','y2'],simbolos_y=[r'y1',r'y2'],Nomes_param=['theyta'+str(i) for i in xrange(4)],simbolos_param=[r'theta%d'%i for i in xrange(4)],label_latex_param=[r'$\theta_{%d}$'%i for i in xrange(4)])
     Estime.otimiza(x,y,ux,uy,sup=[2,2,2,2],inf=[-2,-2,-2,-2],algoritmo='PSO',itmax=5)
     Estime.analiseResiduos()
-    a=Estime.residuos_x._testesEstatisticos()
+    a=Estime.residuos_y._testesEstatisticos()
     #Estime.graficos(0.95)
     #saida = concatenate((Estime.x.experimental.matriz_estimativa[:,0:1],Estime.x.experimental.matriz_incerteza[:,0:1]),axis=1)
     #for i in xrange(1,Estime.NX):
