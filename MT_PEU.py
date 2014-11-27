@@ -76,6 +76,13 @@ class Organizador:
                 self.matriz_covariancia = incerteza      
                 self.matriz_incerteza   = vetor2matriz(transpose(array([diag(self.matriz_covariancia**0.5)])),NE)
 
+        # Criação de variável sob a forma de lista
+        self.lista_estimativa = self.matriz_estimativa.transpose().tolist()
+        
+        if incerteza != None:        
+            self.lista_incerteza  = self.matriz_incerteza.transpose().tolist()
+            self.lista_variancia  = diag(self.matriz_covariancia).tolist()
+
 class Grandeza:
     
     def __init__(self,nomes,simbolos,unidades,label_latex):
@@ -118,11 +125,24 @@ class Grandeza:
         * ``.regiao_abrangencia`` (list): lista representando os pontos pertencentes à região de abrangência. **só exitirá após execução do método _parametro**
         * ``.x`` (objeto): objeto Organizador (vide documentação do mesmo). **só exitirá após execução do método _residuo_x**
         * ``.y`` (objeto): objeto Organizador (vide documentação do mesmo). **só exitirá após execução do método _residuo_y**
-        '''        
+        '''
+
         self.nomes       = nomes
-        self.simbolos    = simbolos
+        if nomes == None:
+            self.nomes = [None]*len(nomes)
+
+        self.simbolos    = simbolos        
+        if simbolos == None:
+            self.simbolos = [None]*len(nomes)
+
         self.unidades    = unidades
+        if unidades == None:
+            self.unidades = [None]*len(nomes)
+        
         self.label_latex = label_latex
+        if label_latex == None:
+            self.label_latex = [None]*len(nomes)
+
     
     def _experimental(self,estimativa,variancia,tipo):
         
@@ -210,6 +230,10 @@ class Estimacao:
         self.__FO        = FO
         self.__modelo    = Modelo
         self.__base_path = getcwd()+'/'+str(projeto)+'/'
+        
+        # Controle interno das etapas do algoritmo (métodos executados)
+        self.__etapasdisponiveis = ['__init__','gerarEntradas','otimizacao','incertezaParametros','regiaoAbrangencia','analiseResiduos'] # Lista de etapas que o algoritmo irá executar
+        self.__etapas     = [self.__etapasdisponiveis[0]] # Variável de armazenamento das etapas realizadas pelo algoritmo
         
     def __validacaoSimbologiaUnidade(self,keywargs):
         '''
@@ -309,7 +333,43 @@ class Estimacao:
         self.y._experimental(ye,uy,{'estimativa':'matriz','incerteza':'incerteza'}) 
  
         self.NE  = size(self.x.experimental.matriz_estimativa,0) # Número de observações
-         
+    
+        self.__etapas.append(self.__etapasdisponiveis[1]) # Inclusão desta etapa da lista de etapas
+        
+    def _armazenarDicionario(self):
+        '''
+        Método opcional para armazenar as Grandezas (x,y e parãmetros) na
+        forma de um dicionário, cujas chaves são os símbolos.
+        
+        ======
+        Saídas
+        ======
+        
+        * grandeza: dicionário cujas chaves são os símbolos das grandezas e respectivos
+        conteúdos objetos da classe Grandezas.
+        '''
+        grandeza = {}        
+        for j,simbolo in enumerate(self.y.simbolos):
+            grandeza[simbolo] = Grandeza(self.y.nomes[j],simbolo,self.y.unidades[j],self.y.label_latex[j])
+            if self.__etapasdisponiveis[1] in self.__etapas:
+                grandeza[simbolo]._experimental(self.y.experimental.matriz_estimativa[:,j:j+1],self.y.experimental.matriz_incerteza[:,j:j+1],{'estimativa':'matriz','incerteza':'incerteza'})
+            if self.__etapasdisponiveis[2] in self.__etapas:
+                grandeza[simbolo]._modelo(self.y.modelo.matriz_estimativa[:,j:j+1],None,{'estimativa':'matriz','incerteza':'variancia'},None)
+
+        for j,simbolo in enumerate(self.x.simbolos):
+            grandeza[simbolo] = Grandeza(self.y.nomes[j],simbolo,self.x.unidades[j],self.x.label_latex[j])
+            if self.__etapasdisponiveis[1] in self.__etapas:            
+                grandeza[simbolo]._experimental(self.x.experimental.matriz_estimativa[:,j:j+1],self.x.experimental.matriz_incerteza[:,j:j+1],{'estimativa':'matriz','incerteza':'incerteza'})
+            if self.__etapasdisponiveis[2] in self.__etapas:            
+                grandeza[simbolo]._modelo(self.x.modelo.matriz_estimativa[:,j:j+1],None,{'estimativa':'matriz','incerteza':'variancia'},None)
+
+        for j,simbolo in enumerate(self.parametros.simbolos):
+            grandeza[simbolo] = Grandeza(self.parametros.nomes[j],simbolo,self.parametros.unidades[j],self.parametros.label_latex[j])
+            if self.__etapasdisponiveis[2] in self.__etapas:    
+                grandeza[simbolo]._parametro(self.parametros.estimativa[j],self.parametros.matriz_covariancia[j,j],None)
+            
+        return grandeza
+    
     def otimiza(self,algoritmo='PSO',args=None,**kwargs):
         '''
         Método para realização da otimização        
@@ -350,14 +410,16 @@ class Estimacao:
             self.Otimizacao.Busca(self.__FO)
             self.parametros._parametro(self.Otimizacao.gbest,None,None) # Atribuindo o valor ótimo dos parâemetros
 
+
         aux = self.__modelo(self.parametros.estimativa,self.x.experimental.matriz_estimativa,args)
         aux.start()
         aux.join()
-        
+                
         # Salvando os resultados
         self.y._modelo(aux.result,None,{'estimativa':'matriz','incerteza':'variancia'},None)
         self.x._modelo(self.x.experimental.matriz_estimativa,self.x.experimental.matriz_incerteza,{'estimativa':'matriz','incerteza':'incerteza'},None)
-
+        self.__etapas.append(self.__etapasdisponiveis[2]) # Inclusão desta etapa da lista de etapas
+ 
         self.incertezaParametros(self.__FO,self.__modelo)
         
     def incertezaParametros(self,FO,Modelo,PA=0.95):
@@ -371,6 +433,8 @@ class Estimacao:
         
         self.regiaoAbrangencia(PA) # método para avaliação da região de abrangência
         
+        self.__etapas.append(self.__etapasdisponiveis[3]) # Inclusão desta etapa da lista de etapas
+
     def regiaoAbrangencia(self,PA=0.95):
         '''
         Método para avaliação da região de abrangência
@@ -389,6 +453,8 @@ class Estimacao:
             
         self.parametros._parametro(self.parametros.estimativa,self.parametros.matriz_covariancia,Regiao)
         
+        self.__etapas.append(self.__etapasdisponiveis[4]) # Inclusão desta etapa da lista de etapas
+
         return (Hist_Posicoes, Hist_Fitness)
         
     def analiseResiduos(self):
@@ -403,7 +469,8 @@ class Estimacao:
         self.residuos._residuo_x(residuo_x,None,{'estimativa':'matriz','incerteza':'incerteza'},self.NE)
         self.residuos._residuo_y(residuo_y,None,{'estimativa':'matriz','incerteza':'incerteza'},self.NE)
 
-
+        self.__etapas.append(self.__etapasdisponiveis[5]) # Inclusão desta etapa da lista de etapas
+        
     def graficos(self,PA):
         
         base_path  = self.__base_path + '/Graficos/'
@@ -555,7 +622,7 @@ if __name__ == "__main__":
     y1 = transpose(array([2,3,4,5,6,7,8,9,10,11],ndmin=2))
     y2 = transpose(array([2,4,6,8,10,12,14,16,18,20],ndmin=2))
 
-    uy1 = transpose(array([1,1,1,1,1,1,1,1,1,1],ndmin=2))
+    uy1 = transpose(array([2,1,1,1,1,1,1,1,1,2],ndmin=2))
     uy2 = transpose(array([1,1,1,1,1,1,1,1,1,1],ndmin=2))
     
     x  = concatenate((x1,x2),axis=1)
@@ -564,14 +631,30 @@ if __name__ == "__main__":
     uy = concatenate((uy1,uy2),axis=1)
 
 
-    Estime = Estimacao(WLS,Modelo,Nomes_x = ['variavel teste x1','variavel teste x2'],simbolos_x=[r'x1',r'x2'],label_latex_x=[r'$x_1$',r'$x_2$'],Nomes_y=['y1','y2'],simbolos_y=[r'y1',r'y2'],Nomes_param=['theyta'+str(i) for i in xrange(4)],simbolos_param=[r'theta%d'%i for i in xrange(4)],label_latex_param=[r'$\theta_{%d}$'%i for i in xrange(4)])
+    Estime = Estimacao(WLS,Modelo,Nomes_x = ['x1','x2'],simbolos_x=[r'x1',r'x2'],label_latex_x=[r'$x_1$',r'$x_2$'],Nomes_y=['y1','y2'],simbolos_y=[r'y1',r'y2'],Nomes_param=['theta'+str(i) for i in xrange(4)],simbolos_param=[r'theta%d'%i for i in xrange(4)],label_latex_param=[r'$\theta_{%d}$'%i for i in xrange(4)])
     Estime.gerarEntradas(x,y,ux,uy)    
+    grandeza = Estime._armazenarDicionario() # ETAPA PARA CRIAÇÃO DOS DICIONÁRIOS
+
+    # Obtenção das grandezas
+    print grandeza['x1'].experimental.lista_estimativa
+    print grandeza['x2'].experimental.lista_estimativa
+    print grandeza['y1'].experimental.lista_estimativa
+    print grandeza['y2'].experimental.lista_estimativa
+    print grandeza['y1'].experimental.lista_variancia
+    print grandeza['y2'].experimental.lista_variancia
+    
+    # Otimização
     Estime.otimiza(sup=[2,2,2,2],inf=[-2,-2,-2,-2],algoritmo='PSO',itmax=5)
-    Estime.graficos(0.95)
-    saida = concatenate((Estime.x.experimental.matriz_estimativa[:,0:1],Estime.x.experimental.matriz_incerteza[:,0:1]),axis=1)
-    for i in xrange(1,Estime.NX):
-        aux = concatenate((Estime.x.experimental.matriz_estimativa[:,i:i+1],Estime.x.experimental.matriz_incerteza[:,i:i+1]),axis=1)
-        saida =  concatenate((saida,aux),axis=1)
+    grandeza = Estime._armazenarDicionario()
+    
+    # Obtenção das grandezas
+    print grandeza['x1'].modelo.lista_estimativa
+    print grandeza['x2'].modelo.lista_estimativa
+    print grandeza['y1'].modelo.lista_estimativa
+    print grandeza['y2'].modelo.lista_estimativa
+    print grandeza['theta1'].estimativa
+    print grandeza['theta2'].matriz_covariancia
+    #Estime.graficos(0.95)
         
 #    print saida
     #Estime.analiseResiduos()
