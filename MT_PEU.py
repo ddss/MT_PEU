@@ -503,21 +503,8 @@ class Estimacao:
             xlim((ymin,ymax))
             ylim((ymin,ymax))
             
-            if self.y.simbolos == None and self.y.label_latex == None and self.y.unidades == None:
-                xlabel(self.y.nomes[i]+' experimental')
-                ylabel(self.y.nomes[i]+' calculado')
-            elif self.y.simbolos != None and self.y.label_latex == None and self.y.unidades == None:
-                xlabel(self.y.simbolos[i]+' experimental')
-                ylabel(self.y.simbolos[i]+' calculado')   
-            elif self.y.simbolos == None and self.y.label_latex != None and self.y.unidades == None:
-                xlabel(self.y.label_latex[i]+' experimental')
-                ylabel(self.y.label_latex[i]+' calculado')  
-            elif self.y.simbolos != None and self.y.label_latex != None and self.y.unidades == None:
-                xlabel(self.y.label_latex[i]+' experimental')
-                ylabel(self.y.label_latex[i]+' calculado') 
-            elif self.y.simbolos != None and self.y.unidades != None:
-                xlabel(self.y.simbolos[i]+'/'+self.y.unidades[i]+' experimental')
-                ylabel(self.y.simbolos[i]+'/'+self.y.unidades[i]+' calculado')   
+            xlabel(self.y.nomes[i]+' experimental')
+            ylabel(self.y.nomes[i]+' calculado')
             fig.savefig(base_path+base_dir+'grafico_'+str(self.y.nomes[i])+'_ye_ym_sem_var.png')
             close()
 
@@ -547,20 +534,7 @@ class Estimacao:
             ax.yaxis.grid(color='gray', linestyle='dashed')
             ax.xaxis.grid(color='gray', linestyle='dashed')
             ylabel(r"$\quad \Phi $",fontsize = 20)
-            if self.parametros.simbolos == None and self.parametros.label_latex == None and self.parametros.unidades == None:
-                    xlabel(self.parametros.nomes[0],fontsize=20)
-            elif self.parametros.simbolos != None and self.parametros.label_latex == None and self.parametros.unidades == None:
-                    xlabel(self.parametros.simbolos[0],fontsize=20)   
-            elif self.parametros.simbolos == None and self.parametros.label_latex != None and self.parametros.unidades == None:
-                    xlabel(self.parametros.label_latex[0],fontsize=20)  
-            elif self.parametros.simbolos != None and self.parametros.label_latex != None and self.parametros.unidades == None:
-                    xlabel(self.parametros.label_latex[0],fontsize=20) 
-            elif self.parametros.simbolos != None and self.parametros.label_latex == None and self.parametros.unidades != None:
-                    xlabel(self.parametros.simbolos[0]+'/'+self.parametros.unidades[0],fontsize=20)  
-            elif self.parametros.simbolos == None and self.parametros.label_latex != None and self.parametros.unidades != None:
-                    xlabel(self.parametros.label_latex[0]+'/'+self.parametros.unidades[0],fontsize=20)  
-            elif self.parametros.simbolos != None and self.parametros.label_latex != None and self.parametros.unidades != None:
-                    xlabel(self.parametros.label_latex[0]+'/'+self.parametros.unidades[0],fontsize=20)  
+            xlabel(self.parametros.nomes[0],fontsize=20)
             fig.savefig(base_path+base_dir+'Regiao_verossimilhanca_'+str(self.parametros.nomes[0])+'_'+str(self.parametros.nomes[0])+'.png')
             close()
         
@@ -584,27 +558,9 @@ class Estimacao:
                 ax.yaxis.grid(color='gray', linestyle='dashed')                        
                 ax.xaxis.grid(color='gray', linestyle='dashed')
              
-                if self.parametros.simbolos == None and self.parametros.label_latex == None and self.parametros.unidades == None:
-                        xlabel(self.parametros.nomes[p1],fontsize=20)
-                        ylabel(self.parametros.nomes[p2],fontsize=20)
-                elif self.parametros.label_latex != None and self.parametros.simbolos == None and  self.parametros.unidades == None:
-                        xlabel(self.parametros.label_latex[p1],fontsize=20)   
-                        ylabel(self.parametros.label_latex[p2],fontsize=20)  
-                elif self.parametros.label_latex == None and self.parametros.simbolos != None and  self.parametros.unidades == None:
-                        xlabel(self.parametros.simbolos[p1],fontsize=20)   
-                        ylabel(self.parametros.simbolos[p2],fontsize=20)
-                elif self.parametros.label_latex != None and self.parametros.simbolos != None and  self.parametros.unidades == None:
-                        xlabel(self.parametros.label_latex[p1],fontsize=20)   
-                        ylabel(self.parametros.label_latex[p2],fontsize=20)  
-                elif self.parametros.label_latex != None and self.parametros.simbolos == None and  self.parametros.unidades != None:
-                        xlabel(self.parametros.label_latex[p1]+'/'+self.parametros.unidades[p1],fontsize=20)   
-                        ylabel(self.parametros.label_latex[p2]+'/'+self.parametros.unidades[p2],fontsize=20)      
-                elif self.parametros.label_latex != None and self.parametros.simbolos == None and  self.parametros.unidades != None:
-                        xlabel(self.parametros.simbolos[p1]+'/'+self.parametros.unidades[p1],fontsize=20)   
-                        ylabel(self.parametros.simbolos[p2]+'/'+self.parametros.unidades[p2],fontsize=20)  
-                elif self.parametros.label_latex != None and self.parametros.simbolos != None and  self.parametros.unidades != None:
-                        xlabel(self.parametros.label_latex[p1]+'/'+self.parametros.unidades[p1],fontsize=20)   
-                        ylabel(self.parametros.label_latex[p2]+'/'+self.parametros.unidades[p2],fontsize=20)  
+                xlabel(self.parametros.nomes[p1],fontsize=20)
+                ylabel(self.parametros.nomes[p2],fontsize=20)
+
                 fig.savefig(base_path+base_dir+'Regiao_verossimilhanca_'+str(self.parametros.nomes[p1])+'_'+str(self.parametros.nomes[p2])+'.png')
                 close()
                 p2+=1
@@ -633,28 +589,12 @@ if __name__ == "__main__":
 
     Estime = Estimacao(WLS,Modelo,Nomes_x = ['x1','x2'],simbolos_x=[r'x1',r'x2'],label_latex_x=[r'$x_1$',r'$x_2$'],Nomes_y=['y1','y2'],simbolos_y=[r'y1',r'y2'],Nomes_param=['theta'+str(i) for i in xrange(4)],simbolos_param=[r'theta%d'%i for i in xrange(4)],label_latex_param=[r'$\theta_{%d}$'%i for i in xrange(4)])
     Estime.gerarEntradas(x,y,ux,uy)    
-    grandeza = Estime._armazenarDicionario() # ETAPA PARA CRIAÇÃO DOS DICIONÁRIOS
-
-    # Obtenção das grandezas
-    print grandeza['x1'].experimental.lista_estimativa
-    print grandeza['x2'].experimental.lista_estimativa
-    print grandeza['y1'].experimental.lista_estimativa
-    print grandeza['y2'].experimental.lista_estimativa
-    print grandeza['y1'].experimental.lista_variancia
-    print grandeza['y2'].experimental.lista_variancia
+    grandeza = Estime._armazenarDicionario() # ETAPA PARA CRIAÇÃO DOS DICIONÁRIOS - Grandeza é uma variável que retorna as grandezas na forma de dicionário
     
     # Otimização
     Estime.otimiza(sup=[2,2,2,2],inf=[-2,-2,-2,-2],algoritmo='PSO',itmax=5)
     grandeza = Estime._armazenarDicionario()
-    
-    # Obtenção das grandezas
-    print grandeza['x1'].modelo.lista_estimativa
-    print grandeza['x2'].modelo.lista_estimativa
-    print grandeza['y1'].modelo.lista_estimativa
-    print grandeza['y2'].modelo.lista_estimativa
-    print grandeza['theta1'].estimativa
-    print grandeza['theta2'].matriz_covariancia
-    #Estime.graficos(0.95)
+    Estime.graficos(0.95)
         
 #    print saida
     #Estime.analiseResiduos()
