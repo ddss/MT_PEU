@@ -76,6 +76,13 @@ class Organizador:
                 self.matriz_covariancia = incerteza      
                 self.matriz_incerteza   = vetor2matriz(transpose(array([diag(self.matriz_covariancia**0.5)])),NE)
 
+        # Criação de variável sob a forma de lista
+        self.lista_estimativa = self.matriz_estimativa.transpose().tolist()
+        
+        if incerteza != None:        
+            self.lista_incerteza  = self.matriz_incerteza.transpose().tolist()
+            self.lista_variancia  = diag(self.matriz_covariancia).tolist()
+
 class Grandeza:
     
     def __init__(self,nomes,simbolos,unidades,label_latex):
@@ -118,11 +125,24 @@ class Grandeza:
         * ``.regiao_abrangencia`` (list): lista representando os pontos pertencentes à região de abrangência. **só exitirá após execução do método _parametro**
         * ``.x`` (objeto): objeto Organizador (vide documentação do mesmo). **só exitirá após execução do método _residuo_x**
         * ``.y`` (objeto): objeto Organizador (vide documentação do mesmo). **só exitirá após execução do método _residuo_y**
-        '''        
+        '''
+
         self.nomes       = nomes
-        self.simbolos    = simbolos
+        if nomes == None:
+            self.nomes = [None]*len(nomes)
+
+        self.simbolos    = simbolos        
+        if simbolos == None:
+            self.simbolos = [None]*len(nomes)
+
         self.unidades    = unidades
+        if unidades == None:
+            self.unidades = [None]*len(nomes)
+        
         self.label_latex = label_latex
+        if label_latex == None:
+            self.label_latex = [None]*len(nomes)
+
     
     def _experimental(self,estimativa,variancia,tipo):
         
@@ -226,6 +246,10 @@ class Estimacao:
         self.__modelo    = Modelo
         self.__base_path = getcwd()+'/'+str(projeto)+'/'
         
+        # Controle interno das etapas do algoritmo (métodos executados)
+        self.__etapasdisponiveis = ['__init__','gerarEntradas','otimizacao','incertezaParametros','regiaoAbrangencia','analiseResiduos'] # Lista de etapas que o algoritmo irá executar
+        self.__etapas     = [self.__etapasdisponiveis[0]] # Variável de armazenamento das etapas realizadas pelo algoritmo
+        
     def __validacaoSimbologiaUnidade(self,keywargs):
         '''
         Método para validação da simbologia e das unidades, se entradas pelo usuário
@@ -324,9 +348,48 @@ class Estimacao:
         self.y._experimental(ye,uy,{'estimativa':'matriz','incerteza':'incerteza'}) 
  
         self.NE  = size(self.x.experimental.matriz_estimativa,0) # Número de observações
+
          
         self.graficos('entrada',.95)         
         
+    
+        self.__etapas.append(self.__etapasdisponiveis[1]) # Inclusão desta etapa da lista de etapas
+        
+    def _armazenarDicionario(self):
+        '''
+        Método opcional para armazenar as Grandezas (x,y e parãmetros) na
+        forma de um dicionário, cujas chaves são os símbolos.
+        
+        ======
+        Saídas
+        ======
+        
+        * grandeza: dicionário cujas chaves são os símbolos das grandezas e respectivos
+        conteúdos objetos da classe Grandezas.
+        '''
+        grandeza = {}        
+        for j,simbolo in enumerate(self.y.simbolos):
+            grandeza[simbolo] = Grandeza(self.y.nomes[j],simbolo,self.y.unidades[j],self.y.label_latex[j])
+            if self.__etapasdisponiveis[1] in self.__etapas:
+                grandeza[simbolo]._experimental(self.y.experimental.matriz_estimativa[:,j:j+1],self.y.experimental.matriz_incerteza[:,j:j+1],{'estimativa':'matriz','incerteza':'incerteza'})
+            if self.__etapasdisponiveis[2] in self.__etapas:
+                grandeza[simbolo]._modelo(self.y.modelo.matriz_estimativa[:,j:j+1],None,{'estimativa':'matriz','incerteza':'variancia'},None)
+
+        for j,simbolo in enumerate(self.x.simbolos):
+            grandeza[simbolo] = Grandeza(self.y.nomes[j],simbolo,self.x.unidades[j],self.x.label_latex[j])
+            if self.__etapasdisponiveis[1] in self.__etapas:            
+                grandeza[simbolo]._experimental(self.x.experimental.matriz_estimativa[:,j:j+1],self.x.experimental.matriz_incerteza[:,j:j+1],{'estimativa':'matriz','incerteza':'incerteza'})
+            if self.__etapasdisponiveis[2] in self.__etapas:            
+                grandeza[simbolo]._modelo(self.x.modelo.matriz_estimativa[:,j:j+1],None,{'estimativa':'matriz','incerteza':'variancia'},None)
+
+        for j,simbolo in enumerate(self.parametros.simbolos):
+            grandeza[simbolo] = Grandeza(self.parametros.nomes[j],simbolo,self.parametros.unidades[j],self.parametros.label_latex[j])
+            if self.__etapasdisponiveis[2] in self.__etapas:    
+                grandeza[simbolo]._parametro(self.parametros.estimativa[j],self.parametros.matriz_covariancia[j,j],None)
+            
+        return grandeza
+    
+
     def otimiza(self,algoritmo='PSO',args=None,**kwargs):
         '''
         Método para realização da otimização        
@@ -367,14 +430,16 @@ class Estimacao:
             self.Otimizacao.Busca(self.__FO)
             self.parametros._parametro(self.Otimizacao.gbest,None,None) # Atribuindo o valor ótimo dos parâemetros
 
+
         aux = self.__modelo(self.parametros.estimativa,self.x.experimental.matriz_estimativa,args)
         aux.start()
         aux.join()
-        
+                
         # Salvando os resultados
         self.y._modelo(aux.result,None,{'estimativa':'matriz','incerteza':'variancia'},None)
         self.x._modelo(self.x.experimental.matriz_estimativa,self.x.experimental.matriz_incerteza,{'estimativa':'matriz','incerteza':'incerteza'},None)
-
+        self.__etapas.append(self.__etapasdisponiveis[2]) # Inclusão desta etapa da lista de etapas
+ 
         self.incertezaParametros(self.__FO,self.__modelo)
         
     def incertezaParametros(self,FO,Modelo,PA=0.95):
@@ -388,6 +453,8 @@ class Estimacao:
         
         self.regiaoAbrangencia(PA) # método para avaliação da região de abrangência
         
+        self.__etapas.append(self.__etapasdisponiveis[3]) # Inclusão desta etapa da lista de etapas
+
     def regiaoAbrangencia(self,PA=0.95):
         '''
         Método para avaliação da região de abrangência
@@ -406,6 +473,8 @@ class Estimacao:
             
         self.parametros._parametro(self.parametros.estimativa,self.parametros.matriz_covariancia,Regiao)
         
+        self.__etapas.append(self.__etapasdisponiveis[4]) # Inclusão desta etapa da lista de etapas
+
         return (Hist_Posicoes, Hist_Fitness)
         
     def analiseResiduos(self):
@@ -422,10 +491,14 @@ class Estimacao:
 
 
     def graficos(self,etapa,PA):
+
+        self.__etapas.append(self.__etapasdisponiveis[5]) # Inclusão desta etapa da lista de etapas
+      
         
         base_path  = self.__base_path + '/Graficos/'
         
         #If para gerar os gráficos de entrada
+
         if(etapa == 'entrada'):
             base_dir = '/Entradas/'
             Validacao_Diretorio(base_path,base_dir)
@@ -435,10 +508,10 @@ class Estimacao:
                     plot(self.x.experimental.matriz_estimativa[:,z],self.y.experimental.matriz_estimativa[:,i],'o')
                     ymin = min(self.y.experimental.matriz_estimativa[:,i]) - 1
                     ymax = min(self.y.experimental.matriz_estimativa[:,i]) + 1
-                    xlabel(self.x.labelGraficos()[z],fontsize=20)
-                    ylabel(self.y.labelGraficos()[i],fontsize=20)
+ #                   xlabel(self.x.labelGraficos()[z],fontsize=20)
+ #                   ylabel(self.y.labelGraficos()[i],fontsize=20)
                     savefig(base_path+base_dir+"xe{}_ye{}".format(z+1,i+1))
-                    close()        
+                    close()  
 
         if(etapa == 'otimizacao'):
             # Gráficos da otimização
@@ -450,7 +523,6 @@ class Estimacao:
             # Gráficos da estimação
             base_dir = '/Estimacao/'
             Validacao_Diretorio(base_path,base_dir)
-            
             
             # Gráfico comparativo entre valores experimentais e calculados pelo modelo, sem variância
             for i in xrange(self.NY):
@@ -470,111 +542,70 @@ class Estimacao:
                 xlim((ymin,ymax))
                 ylim((ymin,ymax))
                 
-                if self.y.simbolos == None and self.y.label_latex == None and self.y.unidades == None:
-                    xlabel(self.y.nomes[i]+' experimental')
-                    ylabel(self.y.nomes[i]+' calculado')
-                elif self.y.simbolos != None and self.y.label_latex == None and self.y.unidades == None:
-                    xlabel(self.y.simbolos[i]+' experimental')
-                    ylabel(self.y.simbolos[i]+' calculado')   
-                elif self.y.simbolos != None and  base_path  == self.__base_path + '/Graficos/' == None and self.y.label_latex != None and self.y.unidades == None:
-                    xlabel(self.y.label_latex[i]+' experimental')
-                    ylabel(self.y.label_latex[i]+' calculado')  
-                elif self.y.simbolos != None and self.y.label_latex != None and self.y.unidades == None:
-                    xlabel(self.y.label_latex[i]+' experimental')
-                    ylabel(self.y.label_latex[i]+' calculado') 
-                elif self.y.simbolos != None and self.y.unidades != None:
-                    xlabel(self.y.simbolos[i]+'/'+self.y.unidades[i]+' experimental')
-                    ylabel(self.y.simbolos[i]+'/'+self.y.unidades[i]+' calculado')   
+                xlabel(self.y.nomes[i]+' experimental')
+                ylabel(self.y.nomes[i]+' calculado')
                 fig.savefig(base_path+base_dir+'grafico_'+str(self.y.nomes[i])+'_ye_ym_sem_var.png')
                 close()
-    
                 
-            # Região de abrangência (verossimilhança)
-            
-            Hist_Posicoes , Hist_Fitness = self.regiaoAbrangencia(PA)
-           
-            if self.NP == 1:
                     
-                aux = []
-                for it in xrange(size(self.parametros.regiao_abrangencia)/self.NP):     
-                    aux.append(self.parametros.regiao_abrangencia[it][0])
-                       
-                X = [Hist_Posicoes[it][0] for it in xrange(len(Hist_Posicoes))]
-                Y = Hist_Fitness
-                X_sort   = sort(X)
-                Y_sort   = [Y[i] for i in argsort(X)]    
-                fig = figure()
-                ax = fig.add_subplot(1,1,1)
-                plot(X_sort,Y_sort,'bo',markersize=4)
-                plot(self.parametros.estimativa[0],self.Otimizacao.best_fitness,'ro',markersize=8)
-                plot([min(aux),min(aux)],[min(Y_sort),max(Y_sort)/4],'r-')
-                plot([max(aux),max(aux)],[min(Y_sort),max(Y_sort)/4],'r-')
-                ax.text(min(aux),max(Y_sort)/4,u'%.2e'%(min(aux),), fontsize=8, horizontalalignment='center')
-                ax.text(max(aux),max(Y_sort)/4,u'%.2e'%(max(aux),), fontsize=8, horizontalalignment='center')
-                ax.yaxis.grid(color='gray', linestyle='dashed')
-                ax.xaxis.grid(color='gray', linestyle='dashed')
-                ylabel(r"$\quad \Phi $",fontsize = 20)
-                if self.parametros.simbolos == None and self.parametros.label_latex == None and self.parametros.unidades == None:
-                        xlabel(self.parametros.nomes[0],fontsize=20)
-                elif self.parametros.simbolos != None and self.parametros.label_latex == None and self.parametros.unidades == None:
-                        xlabel(self.parametros.simbolos[0],fontsize=20)   
-                elif self.parametros.simbolos == None and self.parametros.label_latex != None and self.parametros.unidades == None:
-                        xlabel(self.parametros.label_latex[0],fontsize=20)  
-                elif self.parametros.simbolos != None and self.parametros.label_latex != None and self.parametros.unidades == None:
-                        xlabel(self.parametros.label_latex[0],fontsize=20) 
-                elif self.parametros.simbolos != None and self.parametros.label_latex == None and self.parametros.unidades != None:
-                        xlabel(self.parametros.simbolos[0]+'/'+self.parametros.unidades[0],fontsize=20)  
-                elif self.parametros.simbolos == None and self.parametros.label_latex != None and self.parametros.unidades != None:
-                        xlabel(self.parametros.label_latex[0]+'/'+self.parametros.unidades[0],fontsize=20)  
-                elif self.parametros.simbolos != None and self.parametros.label_latex != None and self.parametros.unidades != None:
-                        xlabel(self.parametros.label_latex[0]+'/'+self.parametros.unidades[0],fontsize=20)  
-                fig.savefig(base_path+base_dir+'Regiao_verossimilhanca_'+str(self.parametros.nomes[0])+'_'+str(self.parametros.nomes[0])+'.png')
-                close()
-            
-            else:
+                # Região de abrangência (verossimilhança)
                 
-                Combinacoes = int(factorial(self.NP)/(factorial(self.NP-2)*factorial(2)))
-                p1 = 0; p2 = 1; cont = 0; passo = 1
-                
-                for pos in xrange(Combinacoes):
-                    if pos == (self.NP-1)+cont:
-                        p1 +=1; p2 = p1+1; passo +=1
-                        cont += self.NP-passo
-                    
+                Hist_Posicoes , Hist_Fitness = self.regiaoAbrangencia(PA)
+               
+                if self.NP == 1:
+                        
+                    aux = []
+                    for it in xrange(size(self.parametros.regiao_abrangencia)/self.NP):     
+                        aux.append(self.parametros.regiao_abrangencia[it][0])
+                           
+                    X = [Hist_Posicoes[it][0] for it in xrange(len(Hist_Posicoes))]
+                    Y = Hist_Fitness
+                    X_sort   = sort(X)
+                    Y_sort   = [Y[i] for i in argsort(X)]    
                     fig = figure()
                     ax = fig.add_subplot(1,1,1)
-                    
-                    for it in xrange(size(self.parametros.regiao_abrangencia)/self.NP):     
-                        PSO, = plot(self.parametros.regiao_abrangencia[it][p1],self.parametros.regiao_abrangencia[it][p2],'bo',linewidth=2.0,zorder=1)
-                
-                    plot(self.parametros.estimativa[p1],self.parametros.estimativa[p2],'r*',markersize=10.0,zorder=2)
-                    ax.yaxis.grid(color='gray', linestyle='dashed')                        
+                    plot(X_sort,Y_sort,'bo',markersize=4)
+                    plot(self.parametros.estimativa[0],self.Otimizacao.best_fitness,'ro',markersize=8)
+                    plot([min(aux),min(aux)],[min(Y_sort),max(Y_sort)/4],'r-')
+                    plot([max(aux),max(aux)],[min(Y_sort),max(Y_sort)/4],'r-')
+                    ax.text(min(aux),max(Y_sort)/4,u'%.2e'%(min(aux),), fontsize=8, horizontalalignment='center')
+                    ax.text(max(aux),max(Y_sort)/4,u'%.2e'%(max(aux),), fontsize=8, horizontalalignment='center')
+                    ax.yaxis.grid(color='gray', linestyle='dashed')
                     ax.xaxis.grid(color='gray', linestyle='dashed')
-                 
-                    if self.parametros.simbolos == None and self.parametros.label_latex == None and self.parametros.unidades == None:
-                            xlabel(self.parametros.nomes[p1],fontsize=20)
-                            ylabel(self.parametros.nomes[p2],fontsize=20)
-                    elif self.parametros.label_latex != None and self.parametros.simbolos == None and  self.parametros.unidades == None:
-                            xlabel(self.parametros.label_latex[p1],fontsize=20)   
-                            ylabel(self.parametros.label_latex[p2],fontsize=20)  
-                    elif self.parametros.label_latex == None and self.parametros.simbolos != None and  self.parametros.unidades == None:
-                            xlabel(self.parametros.simbolos[p1],fontsize=20)   
-                            ylabel(self.parametros.simbolos[p2],fontsize=20)
-                    elif self.parametros.label_latex != None and self.parametros.simbolos != None and  self.parametros.unidades == None:
-                            xlabel(self.parametros.label_latex[p1],fontsize=20)   
-                            ylabel(self.parametros.label_latex[p2],fontsize=20)  
-                    elif self.parametros.label_latex != None and self.parametros.simbolos == None and  self.parametros.unidades != None:
-                            xlabel(self.parametros.label_latex[p1]+'/'+self.parametros.unidades[p1],fontsize=20)   
-                            ylabel(self.parametros.label_latex[p2]+'/'+self.parametros.unidades[p2],fontsize=20)      
-                    elif self.parametros.label_latex != None and self.parametros.simbolos == None and  self.parametros.unidades != None:
-                            xlabel(self.parametros.simbolos[p1]+'/'+self.parametros.unidades[p1],fontsize=20)   
-                            ylabel(self.parametros.simbolos[p2]+'/'+self.parametros.unidades[p2],fontsize=20)  
-                    elif self.parametros.label_latex != None and self.parametros.simbolos != None and  self.parametros.unidades != None:
-                            xlabel(self.parametros.label_latex[p1]+'/'+self.parametros.unidades[p1],fontsize=20)   
-                            ylabel(self.parametros.label_latex[p2]+'/'+self.parametros.unidades[p2],fontsize=20)  
-                    fig.savefig(base_path+base_dir+'Regiao_verossimilhanca_'+str(self.parametros.nomes[p1])+'_'+str(self.parametros.nomes[p2])+'.png')
+    
+                    ylabel(r"$\quad \Phi $",fontsize = 20)
+                    xlabel(self.parametros.nomes[0],fontsize=20)
+    
+                    fig.savefig(base_path+base_dir+'Regiao_verossimilhanca_'+str(self.parametros.nomes[0])+'_'+str(self.parametros.nomes[0])+'.png')
+
+    
                     close()
-                    p2+=1
+                
+                else:
+                    
+                    Combinacoes = int(factorial(self.NP)/(factorial(self.NP-2)*factorial(2)))
+                    p1 = 0; p2 = 1; cont = 0; passo = 1
+                    
+                    for pos in xrange(Combinacoes):
+                        if pos == (self.NP-1)+cont:
+                            p1 +=1; p2 = p1+1; passo +=1
+                            cont += self.NP-passo
+                        
+                        fig = figure()
+                        ax = fig.add_subplot(1,1,1)
+                        
+                        for it in xrange(size(self.parametros.regiao_abrangencia)/self.NP):     
+                            PSO, = plot(self.parametros.regiao_abrangencia[it][p1],self.parametros.regiao_abrangencia[it][p2],'bo',linewidth=2.0,zorder=1)
+                    
+                        plot(self.parametros.estimativa[p1],self.parametros.estimativa[p2],'r*',markersize=10.0,zorder=2)
+                        ax.yaxis.grid(color='gray', linestyle='dashed')                        
+                        ax.xaxis.grid(color='gray', linestyle='dashed')
+                        xlabel(self.parametros.nomes[p1],fontsize=20)
+                        ylabel(self.parametros.nomes[p2],fontsize=20)
+                        fig.savefig(base_path+base_dir+'Regiao_verossimilhanca_'+str(self.parametros.nomes[p1])+'_'+str(self.parametros.nomes[p2])+'.png')
+
+                        close()
+                        p2+=1
 
 
         
@@ -589,7 +620,7 @@ if __name__ == "__main__":
     y1 = transpose(array([2,3,4,5,6,7,8,9,10,11],ndmin=2))
     y2 = transpose(array([2,4,6,8,10,12,14,16,18,20],ndmin=2))
 
-    uy1 = transpose(array([1,1,1,1,1,1,1,1,1,1],ndmin=2))
+    uy1 = transpose(array([2,1,1,1,1,1,1,1,1,2],ndmin=2))
     uy2 = transpose(array([1,1,1,1,1,1,1,1,1,1],ndmin=2))
     
     x  = concatenate((x1,x2),axis=1)
@@ -598,14 +629,21 @@ if __name__ == "__main__":
     uy = concatenate((uy1,uy2),axis=1)
 
 
-    Estime = Estimacao(WLS,Modelo,Nomes_x = ['variavel teste x1','variavel teste x2'],simbolos_x=[r'x1',r'x2'],label_latex_x=[r'$x_1$',r'$x_2$'],Nomes_y=['y1','y2'],simbolos_y=[r'y1',r'y2'],Nomes_param=['theyta'+str(i) for i in xrange(4)],simbolos_param=[r'theta%d'%i for i in xrange(4)],label_latex_param=[r'$\theta_{%d}$'%i for i in xrange(4)])
+    Estime = Estimacao(WLS,Modelo,Nomes_x = ['x1','x2'],simbolos_x=[r'x1',r'x2'],label_latex_x=[r'$x_1$',r'$x_2$'],Nomes_y=['y1','y2'],simbolos_y=[r'y1',r'y2'],Nomes_param=['theta'+str(i) for i in xrange(4)],simbolos_param=[r'theta%d'%i for i in xrange(4)],label_latex_param=[r'$\theta_{%d}$'%i for i in xrange(4)])
     Estime.gerarEntradas(x,y,ux,uy)    
-#    Estime.otimiza(sup=[2,2,2,2],inf=[-2,-2,-2,-2],algoritmo='PSO',itmax=5)
-#    Estime.graficos(0.95)
+
+ #   Estime.otimiza(sup=[2,2,2,2],inf=[-2,-2,-2,-2],algoritmo='PSO',itmax=5)
+ #   Estime.graficos(0.95)
 #    saida = concatenate((Estime.x.experimental.matriz_estimativa[:,0:1],Estime.x.experimental.matriz_incerteza[:,0:1]),axis=1)
 #    for i in xrange(1,Estime.NX):
 #        aux = concatenate((Estime.x.experimental.matriz_estimativa[:,i:i+1],Estime.x.experimental.matriz_incerteza[:,i:i+1]),axis=1)
 #        saida =  concatenate((saida,aux),axis=1)
+#    grandeza = Estime._armazenarDicionario() # ETAPA PARA CRIAÇÃO DOS DICIONÁRIOS - Grandeza é uma variável que retorna as grandezas na forma de dicionário
+    
+    # Otimização
+    Estime.otimiza(sup=[2,2,2,2],inf=[-2,-2,-2,-2],algoritmo='PSO',itmax=5)
+    grandeza = Estime._armazenarDicionario()
+    Estime.graficos('otimizacao',0.95)
         
 #    print saida
     #Estime.analiseResiduos()
