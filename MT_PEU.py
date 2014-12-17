@@ -160,23 +160,15 @@ class Grandeza:
         =================
         NORMALIDADE:
         
-        * normaltest: retorna o pvalor do teste de normalidade. Hipótese nula: a amostra vem de distribuição normal
-        * shapiro   :
-        * anderson  :
+        * normaltest: Retorna o pvalor do teste de normalidade. Hipótese nula: a amostra vem de distribuição normal
+        * shapiro   : Retorna o valor de normalidade. Hipótese nula: a amostra vem de uma distribuição normal
+        * anderson  : Retorna o valor do Teste para os dados provenientes de uma distribuição em particular. Hipotese nula: a amostra vem de uma normal
         
         MÉDIA:
-        
-        * ttest: retorna o pvalor para o T-test de média. Hipótese nula:o valor esperado da amostra é igual a zero
-        
-        * ``normaltest(a[, axis])``; Testa se uma amostra difere de uma distribuição normal.
-        * ``shapiro(x[, a, reta])`` ; Realiza o teste de Shapiro-Wilk para normalidade.	
-        * ``anderson(x[, dist])``  ; Teste para os dados provenientes de uma distribuição em particular 
-                                     o teste de Anderson-Darling é uma modificação do kstest_ teste de Kolmogorov-Smirnov		
-        #===============
-        Saídas
-        #===============
-        * ``pvalor``  (float)       ; Valor p para a hipótese nula de normalidade com região crítica de 10%
-        #==============='''
+        * ttest_1sam: Retorna o pvalor para média determinada. Hipótese nula: a amostra tem a média detrminada
+      
+        SAÍDA
+        * pvalor (float):  Valor das hipóses testeadas. Para a hipótese nula tida como verdadeira, um valor abaixo de 0.05 nos diz que para 95% de confiança pode-se rejeitar essa hipótese'''
     
         if self.__ID == 'residuo':
             dados = self.estimativa.matriz_estimativa
@@ -188,10 +180,11 @@ class Grandeza:
             for i,nome in enumerate(self.nomes):
                 # Testes para normalidade
                 pnormal=[normaltest(dados[:,i]), shapiro(dados[:,i]), anderson(dados[:,i], dist='norm')]
-                pvalor[nome]['normalidade'] = {'normaltest':pnormal[0][1], 'shapiro':pnormal[1][1], 'anderson':[[pnormal[2][0]], pnormal[2][1][1]]}
+                pvalor[nome]['Normalidade'] = {'normaltest':pnormal[0][1], 'shapiro':pnormal[1][1], 'anderson':[[pnormal[2][0]], pnormal[2][1][1]]}
                 # Testes para a média:
                 pmedia = ttest_1samp(dados[:,i],0.)
-                pvalor[nome]['media'] = {'ttest':pmedia[1]}
+                pvalor[nome]['Media'] = {'ttest':pmedia[1]}
+                
                 
         else:
             raise NameError(u'Os testes estatísticos são válidos apenas para o resíduos')
