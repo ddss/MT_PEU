@@ -12,10 +12,10 @@ from numpy import array, transpose, concatenate,size, diag, linspace, min, max, 
 sort, argsort
 from scipy.stats import f
 from scipy.misc import factorial
-
+from matplotlib.axis import Axis
 from matplotlib.pyplot import figure, axes, plot, subplot, xlabel, ylabel,\
-    title, legend, savefig, xlim, ylim, close
-
+    title, legend, savefig, xlim, ylim, close, axis
+    
 from os import getcwd
 
 # Subrotinas próprias (desenvolvidas pelo GI-UFBA)
@@ -168,17 +168,18 @@ class Grandeza:
 
 
     def labelGraficos(self):
+        for z in xrange(len(self.unidades)):
 
-        if(self.label_latex != None):
-            label = self.label_latex
-        elif(self.nomes != None):
-            label = self.nomes
-        elif(self.simbolos != None):
-            label = self.simbolos
-        if(self.unidades == None):
-            return label
-        else:
-            return [label[i]+"/"+self.unidades[i] for i in xrange(len(self.nomes))]
+            if self.label_latex[z] != None:
+                label = self.label_latex
+            elif self.nomes[z] != None:
+                label = self.nomes
+            elif self.simbolos[z] != None:
+                label = self.simbolos
+            if self.unidades[z] == None:
+                return label
+            else:
+                return [label[i]+"/"+self.unidades[i] for i in xrange(len(self.nomes))]
 
 
 class Estimacao:
@@ -505,13 +506,23 @@ class Estimacao:
 
             for z in xrange(self.NX):
                 for i in xrange(self.NY):
-                    plot(self.x.experimental.matriz_estimativa[:,z],self.y.experimental.matriz_estimativa[:,i],'o')
+                    x = self.x.experimental.matriz_estimativa[:,z]
+                    y = self.y.experimental.matriz_estimativa[:,i]                    
                     ymin = min(self.y.experimental.matriz_estimativa[:,i]) - 1
                     ymax = min(self.y.experimental.matriz_estimativa[:,i]) + 1
- #                   xlabel(self.x.labelGraficos()[z],fontsize=20)
- #                   ylabel(self.y.labelGraficos()[i],fontsize=20)
+                    diag = linspace(min(y),max(y))  
+                    fig = figure()
+                    ax = fig.add_subplot(1,1,1)
+                    plot(x,y,'o')
+                    Axis(axes.transData)
+                    xlabel(self.x.labelGraficos()[z],fontsize=20)
+                    ylabel(self.y.labelGraficos()[i],fontsize=20)
+                    ax.yaxis.grid(color='gray', linestyle='dashed')                        
+                    ax.xaxis.grid(color='gray', linestyle='dashed')
+                    
                     savefig(base_path+base_dir+"xe{}_ye{}".format(z+1,i+1))
-                    close()  
+                    close()                    
+                
 
         if(etapa == 'otimizacao'):
             # Gráficos da otimização
@@ -540,8 +551,7 @@ class Estimacao:
                 ax.yaxis.grid(color='gray', linestyle='dashed')                        
                 ax.xaxis.grid(color='gray', linestyle='dashed')
                 xlim((ymin,ymax))
-                ylim((ymin,ymax))
-                
+                ylim((ymin,ymax))                
                 xlabel(self.y.nomes[i]+' experimental')
                 ylabel(self.y.nomes[i]+' calculado')
                 fig.savefig(base_path+base_dir+'grafico_'+str(self.y.nomes[i])+'_ye_ym_sem_var.png')
@@ -643,7 +653,7 @@ if __name__ == "__main__":
     # Otimização
     Estime.otimiza(sup=[2,2,2,2],inf=[-2,-2,-2,-2],algoritmo='PSO',itmax=5)
     grandeza = Estime._armazenarDicionario()
-    Estime.graficos('otimizacao',0.95)
+    Estime.graficos('entrada',0.95)
         
 #    print saida
     #Estime.analiseResiduos()
