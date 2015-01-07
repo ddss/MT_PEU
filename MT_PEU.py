@@ -12,8 +12,8 @@ from numpy import array, transpose, concatenate,size, diag, linspace, min, max, 
 sort, argsort
 from scipy.stats import f
 from scipy.misc import factorial
-from matplotlib.axis import Axis
-from matplotlib.pyplot import figure, axes, plot, subplot, xlabel, ylabel,\
+
+from matplotlib.pyplot import figure, plot, subplot, xlabel, ylabel,\
     title, legend, savefig, xlim, ylim, close, axis
     
 from os import getcwd
@@ -351,7 +351,7 @@ class Estimacao:
         self.NE  = size(self.x.experimental.matriz_estimativa,0) # Número de observações
 
          
-        self.graficos('entrada',.95)         
+        #self.graficos('entrada',.95)         
         
     
         self.__etapas.append(self.__etapasdisponiveis[1]) # Inclusão desta etapa da lista de etapas
@@ -492,6 +492,20 @@ class Estimacao:
 
 
     def graficos(self,etapa,PA):
+        '''
+        Métodos para gerar e salvar os gráficos
+        =======================
+        Entradas (obrigatórias)
+        =======================
+        * ``Etapa``   : Status que determinam se o método deve gerar os gráficos de entrada ou de otimização
+        * ``PA``      : 
+        ==========
+        Atributos
+        ==========
+        *``tamanhoticketx ``:(float) Guarda o tamanho do tick para o eixo x
+        *``tamanhotickety ``:(float) Guarda o tamanho do tick para o eixo y
+        
+        '''
 
         self.__etapas.append(self.__etapasdisponiveis[5]) # Inclusão desta etapa da lista de etapas
       
@@ -507,19 +521,28 @@ class Estimacao:
             for z in xrange(self.NX):
                 for i in xrange(self.NY):
                     x = self.x.experimental.matriz_estimativa[:,z]
-                    y = self.y.experimental.matriz_estimativa[:,i]                    
-                    ymin = min(self.y.experimental.matriz_estimativa[:,i]) - 1
-                    ymax = min(self.y.experimental.matriz_estimativa[:,i]) + 1
-                    diag = linspace(min(y),max(y))  
+                    y = self.y.experimental.matriz_estimativa[:,i] 
+                    #tamanhoticketx = (float)(x[len(x)-1]-x[0])/len(x)
+                    #tamanhotickety = (float)(y[len(y)-1]-y[0])/len(y)
+                    tamanhoticketx = (float)(x[len(x)-1]-x[len(x) - 2])
+                    tamanhotickety = (float)(y[len(y)-1]-y[len(y) - 2])
+                    xmin = x[0] - tamanhoticketx
+                    xmax = x[len(x)-1] + tamanhoticketx
+                    xlim(xmin,xmax)
+                    print xlim
+                    ymin = y[0] - tamanhotickety
+                    ymax = y[len(x)-1] + tamanhotickety
+                    ylim(ymin,ymax)
+                    #diag = linspace(min(y),max(y))  
                     fig = figure()
                     ax = fig.add_subplot(1,1,1)
                     plot(x,y,'o')
-                    Axis(axes.transData)
+                    xlim(xmin,xmax)
+                    ylim(ymin,ymax)
                     xlabel(self.x.labelGraficos()[z],fontsize=20)
                     ylabel(self.y.labelGraficos()[i],fontsize=20)
                     ax.yaxis.grid(color='gray', linestyle='dashed')                        
                     ax.xaxis.grid(color='gray', linestyle='dashed')
-                    
                     savefig(base_path+base_dir+"xe{}_ye{}".format(z+1,i+1))
                     close()                    
                 
@@ -582,7 +605,6 @@ class Estimacao:
                     ax.text(max(aux),max(Y_sort)/4,u'%.2e'%(max(aux),), fontsize=8, horizontalalignment='center')
                     ax.yaxis.grid(color='gray', linestyle='dashed')
                     ax.xaxis.grid(color='gray', linestyle='dashed')
-    
                     ylabel(r"$\quad \Phi $",fontsize = 20)
                     xlabel(self.parametros.nomes[0],fontsize=20)
     
