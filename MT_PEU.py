@@ -24,7 +24,6 @@ from PSO_rev26 import PSO
 from Funcao_Objetivo import WLS
 from Modelo import Modelo
 
-
 class Organizador:
     
     def __init__(self,estimativa,incerteza,tipos={'estimativa':'matriz','incerteza':'incerteza'},NE=None):
@@ -168,19 +167,26 @@ class Grandeza:
 
 
     def labelGraficos(self):
-        for z in xrange(len(self.unidades)):
+        '''
+        Método para definição do label dos gráficos relacionado às grandezas.
+        '''
+        # Definição dos labels: latex ou nomes ou simbolos (nesta ordem)
+        label = [None]*len(self.nomes)
+        
+        for z in xrange(len(self.nomes)):
 
             if self.label_latex[z] != None:
-                label = self.label_latex
+                label[z] = self.label_latex[z]
             elif self.nomes[z] != None:
-                label = self.nomes
+                label[z] = self.nomes[z]
             elif self.simbolos[z] != None:
-                label = self.simbolos
-            if self.unidades[z] == None:
-                return label
-            else:
-                return [label[i]+"/"+self.unidades[i] for i in xrange(len(self.nomes))]
-
+                label[z] = self.simbolos[z]
+            
+            # Caso seja definido uma unidade, esta será incluída no label
+            if self.unidades[z] != None:
+                label[z] = label[z]+"/"+self.unidades[z]
+            
+        return label
 
 class Estimacao:
     
@@ -521,24 +527,25 @@ class Estimacao:
             for z in xrange(self.NX):
                 for i in xrange(self.NY):
                     x = self.x.experimental.matriz_estimativa[:,z]
-                    y = self.y.experimental.matriz_estimativa[:,i] 
-                    #tamanhoticketx = (float)(x[len(x)-1]-x[0])/len(x)
-                    #tamanhotickety = (float)(y[len(y)-1]-y[0])/len(y)
-                    tamanhoticketx = (float)(x[len(x)-1]-x[len(x) - 2])
-                    tamanhotickety = (float)(y[len(y)-1]-y[len(y) - 2])
-                    xmin = x[0] - tamanhoticketx
-                    xmax = x[len(x)-1] + tamanhoticketx
-                    xlim(xmin,xmax)
-                    print xlim
-                    ymin = y[0] - tamanhotickety
-                    ymax = y[len(x)-1] + tamanhotickety
-                    ylim(ymin,ymax)
-                    #diag = linspace(min(y),max(y))  
+                    y = self.y.experimental.matriz_estimativa[:,i]
                     fig = figure()
                     ax = fig.add_subplot(1,1,1)
                     plot(x,y,'o')
+                    # obtençao do tick do grafico
+                    # eixo x
+                    label_tick_x   = ax.get_xticks().tolist()                 
+                    tamanho_tick_x = (label_tick_x[1] - label_tick_x[0])/2
+                    # eixo y
+                    label_tick_y = ax.get_yticks().tolist()
+                    tamanho_tick_y = (label_tick_y[1] - label_tick_y[0])/2
+                    # Modificação do limite dos gráficos
+                    xmin   = x[0]  - tamanho_tick_x
+                    xmax   = x[-1] + tamanho_tick_x
+                    ymin   = y[0]  - tamanho_tick_y
+                    ymax   = y[-1] + tamanho_tick_y
                     xlim(xmin,xmax)
                     ylim(ymin,ymax)
+                    # Labels
                     xlabel(self.x.labelGraficos()[z],fontsize=20)
                     ylabel(self.y.labelGraficos()[i],fontsize=20)
                     ax.yaxis.grid(color='gray', linestyle='dashed')                        
@@ -661,9 +668,9 @@ if __name__ == "__main__":
     uy = concatenate((uy1,uy2),axis=1)
 
 
-    Estime = Estimacao(WLS,Modelo,Nomes_x = ['x1','x2'],simbolos_x=[r'x1',r'x2'],label_latex_x=[r'$x_1$',r'$x_2$'],Nomes_y=['y1','y2'],simbolos_y=[r'y1',r'y2'],Nomes_param=['theta'+str(i) for i in xrange(4)],simbolos_param=[r'theta%d'%i for i in xrange(4)],label_latex_param=[r'$\theta_{%d}$'%i for i in xrange(4)])
+    Estime = Estimacao(WLS,Modelo,Nomes_x = ['x1','x2'],simbolos_x=[r'x1',r'x2'],label_latex_x=[r'$x_1$',r'$x_2$'],Nomes_y=['y1','y2'],simbolos_y=[r'y1',r'y2'],Nomes_param=['theta'+str(i) for i in xrange(4)],simbolos_param=[r'theta%d'%i for i in xrange(4)],label_latex_param=[r'$\theta_{%d}$'%i for i in xrange(4)],unidades_x = ['g','K'])
     Estime.gerarEntradas(x,y,ux,uy)    
-
+    #print Estime.x.labelGraficos()
  #   Estime.otimiza(sup=[2,2,2,2],inf=[-2,-2,-2,-2],algoritmo='PSO',itmax=5)
  #   Estime.graficos(0.95)
 #    saida = concatenate((Estime.x.experimental.matriz_estimativa[:,0:1],Estime.x.experimental.matriz_incerteza[:,0:1]),axis=1)
@@ -674,8 +681,9 @@ if __name__ == "__main__":
     
     # Otimização
     Estime.otimiza(sup=[2,2,2,2],inf=[-2,-2,-2,-2],algoritmo='PSO',itmax=5)
-    grandeza = Estime._armazenarDicionario()
+    #grandeza = Estime._armazenarDicionario()
     Estime.graficos('entrada',0.95)
+    Estime.graficos('otimizacao',0.95)
         
 #    print saida
     #Estime.analiseResiduos()
