@@ -14,7 +14,7 @@ from scipy.stats import f
 from scipy.misc import factorial
 
 from matplotlib.pyplot import figure, plot, subplot, xlabel, ylabel,\
-    title, legend, savefig, xlim, ylim, close, axis
+    title, legend, savefig, xlim, ylim, close, axis, errorbar,grid
     
 from os import getcwd
 
@@ -510,6 +510,10 @@ class Estimacao:
         ==========
         *``tamanhoticketx ``:(float) Guarda o tamanho do tick para o eixo x
         *``tamanhotickety ``:(float) Guarda o tamanho do tick para o eixo y
+        *``xmin ``          :(float) Guarda o menor valor para o limite inferior do eixo x
+        *``ymin ``          :(float) Guarda o menor valor para o limite inferior do eixo y
+        *``xmax ``          :(float) Guarda o maior valor para o limite superior do eixo x
+        *``ymax ``          :(float) Guarda o maior valor para o limite superior do eixo y
         
         '''
 
@@ -526,6 +530,7 @@ class Estimacao:
 
             for z in xrange(self.NX):
                 for i in xrange(self.NY):
+                    #Gráfico apenas com os pontos experimentais
                     x = self.x.experimental.matriz_estimativa[:,z]
                     y = self.y.experimental.matriz_estimativa[:,i]
                     fig = figure()
@@ -548,10 +553,39 @@ class Estimacao:
                     # Labels
                     xlabel(self.x.labelGraficos()[z],fontsize=20)
                     ylabel(self.y.labelGraficos()[i],fontsize=20)
-                    ax.yaxis.grid(color='gray', linestyle='dashed')                        
-                    ax.xaxis.grid(color='gray', linestyle='dashed')
+                    #Grades
+                    grid(b = 'on', which = 'major', axis = 'both')
                     savefig(base_path+base_dir+"xe{}_ye{}".format(z+1,i+1))
                     close()                    
+                    
+                    #Grafico com os pontos experimentais e as incertezas
+                    
+                    ax = fig.add_subplot(1,1,1)
+                    xerr = 2*self.x.experimental.matriz_incerteza[:,z]
+                    yerr = 2*self.y.experimental.matriz_incerteza[:,i]
+                    errorbar(x,y,xerr,yerr,'o')
+                    # obtençao do tick do grafico
+                    # eixo x
+                    label_tick_x   = ax.get_xticks().tolist()                 
+                    tamanho_tick_x = (label_tick_x[1] - label_tick_x[0])/2
+                    # eixo y
+                    label_tick_y = ax.get_yticks().tolist()
+                    tamanho_tick_y = (label_tick_y[1] - label_tick_y[0])/2
+                    # Modificação dos limites dos gráficos                    
+                    xmin  = min(x - xerr) - tamanho_tick_x
+                    ymin  = min(y - yerr) - tamanho_tick_y
+                    xmax  = max(x + xerr) + tamanho_tick_x                    
+                    ymax  = max(y + yerr) + tamanho_tick_y
+                    xlim(xmin,xmax)
+                    ylim(ymin,ymax)
+                    # Labels
+                    xlabel(self.x.labelGraficos()[z],fontsize=20)
+                    ylabel(self.y.labelGraficos()[i],fontsize=20)
+                    #Grades
+                    grid(b = 'on', which = 'major', axis = 'both')
+                    savefig(base_path+base_dir+"xe{}_ye{}_com_incerteza".format(z+1,i+1))
+                    close()
+                    
                 
 
         if(etapa == 'otimizacao'):
@@ -569,10 +603,8 @@ class Estimacao:
             for i in xrange(self.NY):
                 y  = self.y.experimental.matriz_estimativa[:,i]
                 ym = self.y.modelo.matriz_estimativa[:,i]
-                
-                ymin = min(y)            
-                ymax = max(y)            
-                
+                print 'Y',y
+                print 'Ym',ym
                 diag = linspace(min(y),max(y))  
                 fig = figure()
                 ax = fig.add_subplot(1,1,1)
@@ -580,6 +612,14 @@ class Estimacao:
                 plot(diag,diag,'k-',linewidth=2.0)
                 ax.yaxis.grid(color='gray', linestyle='dashed')                        
                 ax.xaxis.grid(color='gray', linestyle='dashed')
+                label_tick_x   = ax.get_xticks().tolist()                 
+                tamanho_tick_x = (label_tick_x[1] - label_tick_x[0])/2
+#                label_tick_y = ax.get_yticks().tolist()
+#                tamanho_tick_y = (label_tick_y[1] - label_tick_y[0])/2
+#                xmin   = y[0]  - tamanho_tick_x
+                ymin   = ym[0]  - tamanho_tick_x
+#                xmax   = y[-1] + tamanho_tick_x
+                ymax   = ym[-1] + tamanho_tick_x
                 xlim((ymin,ymax))
                 ylim((ymin,ymax))                
                 xlabel(self.y.nomes[i]+' experimental')
@@ -659,7 +699,7 @@ if __name__ == "__main__":
     y1 = transpose(array([2,3,4,5,6,7,8,9,10,11],ndmin=2))
     y2 = transpose(array([2,4,6,8,10,12,14,16,18,20],ndmin=2))
 
-    uy1 = transpose(array([2,1,1,1,1,1,1,1,1,2],ndmin=2))
+    uy1 = transpose(array([1,1,1,1,1,1,1,1,1,1],ndmin=2))
     uy2 = transpose(array([1,1,1,1,1,1,1,1,1,1],ndmin=2))
     
     x  = concatenate((x1,x2),axis=1)
@@ -683,7 +723,7 @@ if __name__ == "__main__":
     Estime.otimiza(sup=[2,2,2,2],inf=[-2,-2,-2,-2],algoritmo='PSO',itmax=5)
     #grandeza = Estime._armazenarDicionario()
     Estime.graficos('entrada',0.95)
-    Estime.graficos('otimizacao',0.95)
+    #Estime.graficos('otimizacao',0.95)
         
 #    print saida
     #Estime.analiseResiduos()
