@@ -497,7 +497,7 @@ class Estimacao:
         self.residuos._residuo_y(residuo_y,None,{'estimativa':'matriz','incerteza':'incerteza'},self.NE)
 
 
-    def graficos(self,etapa,PA):
+    def graficos(self,lista_de_etapas,PA):
         '''
         Métodos para gerar e salvar os gráficos
         =======================
@@ -508,13 +508,7 @@ class Estimacao:
         ==========
         Atributos
         ==========
-        *``tamanhoticketx ``:(float) Guarda o tamanho do tick para o eixo x
-        *``tamanhotickety ``:(float) Guarda o tamanho do tick para o eixo y
-        *``xmin ``          :(float) Guarda o menor valor para o limite inferior do eixo x
-        *``ymin ``          :(float) Guarda o menor valor para o limite inferior do eixo y
-        *``xmax ``          :(float) Guarda o maior valor para o limite superior do eixo x
-        *``ymax ``          :(float) Guarda o maior valor para o limite superior do eixo y
-        
+                
         '''
 
         self.__etapas.append(self.__etapasdisponiveis[5]) # Inclusão desta etapa da lista de etapas
@@ -522,73 +516,77 @@ class Estimacao:
         
         base_path  = self.__base_path + '/Graficos/'
         
+        #Sub-rotina que geram os gráficos de entrada e saída
+        def graficos_entrada_saida(x,y,ux,uy,z,i):
+            #Gráfico apenas com os pontos experimentais
+            fig = figure()
+            ax = fig.add_subplot(1,1,1)
+            plot(x,y,'o')
+            # obtençao do tick do grafico
+            # eixo x
+            label_tick_x   = ax.get_xticks().tolist()                 
+            tamanho_tick_x = (label_tick_x[1] - label_tick_x[0])/2
+            # eixo y
+            label_tick_y = ax.get_yticks().tolist()
+            tamanho_tick_y = (label_tick_y[1] - label_tick_y[0])/2
+            # Modificação do limite dos gráficos
+            xmin   = x[0]  - tamanho_tick_x
+            xmax   = x[-1] + tamanho_tick_x
+            ymin   = y[0]  - tamanho_tick_y
+            ymax   = y[-1] + tamanho_tick_y
+            xlim(xmin,xmax)
+            ylim(ymin,ymax)
+            # Labels
+            xlabel(self.x.labelGraficos()[z],fontsize=20)
+            ylabel(self.y.labelGraficos()[i],fontsize=20)
+            #Grades
+            grid(b = 'on', which = 'major', axis = 'both')
+            savefig(base_path+base_dir+"xe{}_ye{}".format(z+1,i+1))
+            close()                    
+                    
+            #Grafico com os pontos experimentais e as incertezas
+                    
+            ax = fig.add_subplot(1,1,1)
+            xerr = 2*ux
+            yerr = 2*uy
+            errorbar(x,y,xerr,yerr,'o')
+            # obtençao do tick do grafico
+            # eixo x
+            label_tick_x   = ax.get_xticks().tolist()                 
+            tamanho_tick_x = (label_tick_x[1] - label_tick_x[0])/2
+            # eixo y
+            label_tick_y = ax.get_yticks().tolist()
+            tamanho_tick_y = (label_tick_y[1] - label_tick_y[0])/2
+            # Modificação dos limites dos gráficos                    
+            xmin  = min(x - xerr) - tamanho_tick_x
+            ymin  = min(y - yerr) - tamanho_tick_y
+            xmax  = max(x + xerr) + tamanho_tick_x                    
+            ymax  = max(y + yerr) + tamanho_tick_y
+            xlim(xmin,xmax)
+            ylim(ymin,ymax)
+            # Labels
+            xlabel(self.x.labelGraficos()[z],fontsize=20)
+            ylabel(self.y.labelGraficos()[i],fontsize=20)
+            #Grades
+            grid(b = 'on', which = 'major', axis = 'both')
+            savefig(base_path+base_dir+"xe{}_ye{}_com_incerteza".format(z+1,i+1))
+            close()
         #If para gerar os gráficos de entrada
-
-        if(etapa == 'entrada'):
+        
+        
+        if('entrada' in lista_de_etapas) and('gerarEntradas'in self.__etapas):
             base_dir = '/Entradas/'
             Validacao_Diretorio(base_path,base_dir)
-
             for z in xrange(self.NX):
                 for i in xrange(self.NY):
-                    #Gráfico apenas com os pontos experimentais
                     x = self.x.experimental.matriz_estimativa[:,z]
                     y = self.y.experimental.matriz_estimativa[:,i]
-                    fig = figure()
-                    ax = fig.add_subplot(1,1,1)
-                    plot(x,y,'o')
-                    # obtençao do tick do grafico
-                    # eixo x
-                    label_tick_x   = ax.get_xticks().tolist()                 
-                    tamanho_tick_x = (label_tick_x[1] - label_tick_x[0])/2
-                    # eixo y
-                    label_tick_y = ax.get_yticks().tolist()
-                    tamanho_tick_y = (label_tick_y[1] - label_tick_y[0])/2
-                    # Modificação do limite dos gráficos
-                    xmin   = x[0]  - tamanho_tick_x
-                    xmax   = x[-1] + tamanho_tick_x
-                    ymin   = y[0]  - tamanho_tick_y
-                    ymax   = y[-1] + tamanho_tick_y
-                    xlim(xmin,xmax)
-                    ylim(ymin,ymax)
-                    # Labels
-                    xlabel(self.x.labelGraficos()[z],fontsize=20)
-                    ylabel(self.y.labelGraficos()[i],fontsize=20)
-                    #Grades
-                    grid(b = 'on', which = 'major', axis = 'both')
-                    savefig(base_path+base_dir+"xe{}_ye{}".format(z+1,i+1))
-                    close()                    
-                    
-                    #Grafico com os pontos experimentais e as incertezas
-                    
-                    ax = fig.add_subplot(1,1,1)
-                    xerr = 2*self.x.experimental.matriz_incerteza[:,z]
-                    yerr = 2*self.y.experimental.matriz_incerteza[:,i]
-                    errorbar(x,y,xerr,yerr,'o')
-                    # obtençao do tick do grafico
-                    # eixo x
-                    label_tick_x   = ax.get_xticks().tolist()                 
-                    tamanho_tick_x = (label_tick_x[1] - label_tick_x[0])/2
-                    # eixo y
-                    label_tick_y = ax.get_yticks().tolist()
-                    tamanho_tick_y = (label_tick_y[1] - label_tick_y[0])/2
-                    # Modificação dos limites dos gráficos                    
-                    xmin  = min(x - xerr) - tamanho_tick_x
-                    ymin  = min(y - yerr) - tamanho_tick_y
-                    xmax  = max(x + xerr) + tamanho_tick_x                    
-                    ymax  = max(y + yerr) + tamanho_tick_y
-                    xlim(xmin,xmax)
-                    ylim(ymin,ymax)
-                    # Labels
-                    xlabel(self.x.labelGraficos()[z],fontsize=20)
-                    ylabel(self.y.labelGraficos()[i],fontsize=20)
-                    #Grades
-                    grid(b = 'on', which = 'major', axis = 'both')
-                    savefig(base_path+base_dir+"xe{}_ye{}_com_incerteza".format(z+1,i+1))
-                    close()
-                    
+                    ux = self.x.experimental.matriz_incerteza[:,z]
+                    uy = self.y.experimental.matriz_incerteza[:,i]
+                    graficos_entrada_saida(x,y,ux,uy,z,i)
                 
 
-        if(etapa == 'otimizacao'):
+        if('otimizacao' in lista_de_etapas) and('otimizacao' in self.__etapas):
             # Gráficos da otimização
             base_dir = '/PSO/'
             Validacao_Diretorio(base_path,base_dir)
@@ -603,8 +601,6 @@ class Estimacao:
             for i in xrange(self.NY):
                 y  = self.y.experimental.matriz_estimativa[:,i]
                 ym = self.y.modelo.matriz_estimativa[:,i]
-                print 'Y',y
-                print 'Ym',ym
                 diag = linspace(min(y),max(y))  
                 fig = figure()
                 ax = fig.add_subplot(1,1,1)
@@ -685,7 +681,18 @@ class Estimacao:
 
                         close()
                         p2+=1
+            if('saida' in lista_de_etapas) and('regiaoAbrangencia' in self.__etapas) and('analiseResiduos' in self.__etapas):
+                base_dir = '/Saidas/'
+                Validacao_Diretorio(base_path,base_dir)
+                for z in xrange(self.NX):
+                    for i in xrange(self.NY):
+#                        x = self.x.experimental.matriz_estimativa[:,z]
+#                        y = self.y.modelo.matriz_estimativa[:,i]
+#                        ux = self.x.experimental.matriz_incerteza[:,z]
+#                        uy = self.y.experimental.matriz_incerteza[:,i]
+#                        graficos_entrada_saida(x,y,ux,uy,z,i)
 
+                    
 
         
 if __name__ == "__main__":
@@ -722,7 +729,8 @@ if __name__ == "__main__":
     # Otimização
     Estime.otimiza(sup=[2,2,2,2],inf=[-2,-2,-2,-2],algoritmo='PSO',itmax=5)
     #grandeza = Estime._armazenarDicionario()
-    Estime.graficos('entrada',0.95)
+    lista_de_etapas = ['entrada','otimizacao','saida']
+    Estime.graficos(lista_de_etapas,0.95)
     #Estime.graficos('otimizacao',0.95)
         
 #    print saida
