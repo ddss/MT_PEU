@@ -577,12 +577,12 @@ class Estimacao:
         if('entrada' in lista_de_etapas) and('gerarEntradas'in self.__etapas):
             base_dir = '/Entradas/'
             Validacao_Diretorio(base_path,base_dir)
-            for z in xrange(self.NX):
-                for i in xrange(self.NY):
-                    x = self.x.experimental.matriz_estimativa[:,z]
-                    y = self.y.experimental.matriz_estimativa[:,i]
-                    ux = self.x.experimental.matriz_incerteza[:,z]
-                    uy = self.y.experimental.matriz_incerteza[:,i]
+            for z in xrange(self.NY):
+                for i in xrange(self.NX):
+                    x = self.x.experimental.matriz_estimativa[:,i]
+                    y = self.y.experimental.matriz_estimativa[:,z]
+                    ux = self.x.experimental.matriz_incerteza[:,i]
+                    uy = self.y.experimental.matriz_incerteza[:,z]
                     graficos_entrada_saida(x,y,ux,uy,z,i)
                 
 
@@ -597,33 +597,7 @@ class Estimacao:
             base_dir = '/Estimacao/'
             Validacao_Diretorio(base_path,base_dir)
             
-            # Gráfico comparativo entre valores experimentais e calculados pelo modelo, sem variância
             for i in xrange(self.NY):
-                y  = self.y.experimental.matriz_estimativa[:,i]
-                ym = self.y.modelo.matriz_estimativa[:,i]
-                diag = linspace(min(y),max(y))  
-                fig = figure()
-                ax = fig.add_subplot(1,1,1)
-                plot(y,ym,'bo',linewidth=2.0)
-                plot(diag,diag,'k-',linewidth=2.0)
-                ax.yaxis.grid(color='gray', linestyle='dashed')                        
-                ax.xaxis.grid(color='gray', linestyle='dashed')
-                label_tick_x   = ax.get_xticks().tolist()                 
-                tamanho_tick_x = (label_tick_x[1] - label_tick_x[0])/2
-#                label_tick_y = ax.get_yticks().tolist()
-#                tamanho_tick_y = (label_tick_y[1] - label_tick_y[0])/2
-#                xmin   = y[0]  - tamanho_tick_x
-                ymin   = ym[0]  - tamanho_tick_x
-#                xmax   = y[-1] + tamanho_tick_x
-                ymax   = ym[-1] + tamanho_tick_x
-                xlim((ymin,ymax))
-                ylim((ymin,ymax))                
-                xlabel(self.y.nomes[i]+' experimental')
-                ylabel(self.y.nomes[i]+' calculado')
-                fig.savefig(base_path+base_dir+'grafico_'+str(self.y.nomes[i])+'_ye_ym_sem_var.png')
-                close()
-                
-                    
                 # Região de abrangência (verossimilhança)
                 
                 Hist_Posicoes , Hist_Fitness = self.regiaoAbrangencia(PA)
@@ -684,13 +658,37 @@ class Estimacao:
             if('saida' in lista_de_etapas) and('regiaoAbrangencia' in self.__etapas) and('analiseResiduos' in self.__etapas):
                 base_dir = '/Saidas/'
                 Validacao_Diretorio(base_path,base_dir)
-                for z in xrange(self.NX):
-                    for i in xrange(self.NY):
-#                        x = self.x.experimental.matriz_estimativa[:,z]
-#                        y = self.y.modelo.matriz_estimativa[:,i]
-#                        ux = self.x.experimental.matriz_incerteza[:,z]
-#                        uy = self.y.experimental.matriz_incerteza[:,i]
-#                        graficos_entrada_saida(x,y,ux,uy,z,i)
+                for z in xrange(self.NY):
+                    for i in xrange(self.NX):
+                        x = self.x.modelo.matriz_estimativa[:,i]
+                        y = self.y.modelo.matriz_estimativa[:,z]
+                        ux = self.x.modelo.matriz_incerteza[:,i]
+                        #Falta a matriz incerteza do modelo, então está sendo usado a incerteza do pontos
+                        #experimentais apenas para compilar
+#                        uy = self.y.modelo.matriz_incerteza[:,i]
+                        uy = self.y.experimental.matriz_incerteza[:,z]
+                        graficos_entrada_saida(x,y,ux,uy,z,i)
+                        
+               # Gráfico comparativo entre valores experimentais e calculados pelo modelo, sem variância         
+                    y  = self.y.experimental.matriz_estimativa[:,i]
+                    ym = self.y.modelo.matriz_estimativa[:,i]
+                    diag = linspace(min(y),max(y))  
+                    fig = figure()
+                    ax = fig.add_subplot(1,1,1)
+                    plot(y,ym,'bo',linewidth=2.0)
+                    plot(diag,diag,'k-',linewidth=2.0)
+                    ax.yaxis.grid(color='gray', linestyle='dashed')                        
+                    ax.xaxis.grid(color='gray', linestyle='dashed')
+                    label_tick_x   = ax.get_xticks().tolist()                 
+                    tamanho_tick_x = (label_tick_x[1] - label_tick_x[0])/2
+                    ymin   = ym[0]  - tamanho_tick_x
+                    ymax   = ym[-1] + tamanho_tick_x
+                    xlim((ymin,ymax))
+                    ylim((ymin,ymax))                
+                    xlabel(self.y.nomes[i]+' experimental')
+                    ylabel(self.y.nomes[i]+' calculado')
+                    fig.savefig(base_path+base_dir+'grafico_'+str(self.y.nomes[i])+'_ye_ym_sem_var.png')
+                    close()
 
                     
 
