@@ -16,7 +16,8 @@ from scipy.misc import factorial
 from matplotlib.pyplot import figure, plot, subplot, xlabel, ylabel,\
     title, legend, savefig, xlim, ylim, close, axis, errorbar,grid
     
-from os import getcwd
+#from os import getcwd,path
+import os
 
 # Subrotinas próprias (desenvolvidas pelo GI-UFBA)
 from subrotinas import matriz2vetor, vetor2matriz, Validacao_Diretorio 
@@ -251,7 +252,7 @@ class Estimacao:
         # Criaçaão das variáveis internas
         self.__FO        = FO
         self.__modelo    = Modelo
-        self.__base_path = getcwd()+'/'+str(projeto)+'/'
+        self.__base_path = os.getcwd()+'/'+str(projeto)+'/'
         
         # Controle interno das etapas do algoritmo (métodos executados)
         self.__etapasdisponiveis = ['__init__','gerarEntradas','otimizacao','incertezaParametros','regiaoAbrangencia','analiseResiduos'] # Lista de etapas que o algoritmo irá executar
@@ -512,9 +513,9 @@ class Estimacao:
         '''
 
         self.__etapas.append(self.__etapasdisponiveis[5]) # Inclusão desta etapa da lista de etapas
-      
-        
-        base_path  = self.__base_path + '/Graficos/'
+           
+#        base_path = os.sep + ' Graficos '+ os.sep
+        base_path  = self.__base_path + os.sep +'Graficos'+os.sep
         
         #Sub-rotina que geram os gráficos de entrada e saída
         def graficos_entrada_saida(x,y,ux,uy,z,i):
@@ -575,7 +576,7 @@ class Estimacao:
         
         
         if('entrada' in lista_de_etapas) and('gerarEntradas'in self.__etapas):
-            base_dir = '/Entradas/'
+            base_dir = os.sep+'Entradas'+os.sep
             Validacao_Diretorio(base_path,base_dir)
             for z in xrange(self.NY):
                 for i in xrange(self.NX):
@@ -584,11 +585,15 @@ class Estimacao:
                     ux = self.x.experimental.matriz_incerteza[:,i]
                     uy = self.y.experimental.matriz_incerteza[:,z]
                     graficos_entrada_saida(x,y,ux,uy,z,i)
+                yNe = []
+                for cont in xrange(1,self.NE):
+                    yNe = cont
+                print yNe
                 
 
         if('otimizacao' in lista_de_etapas) and('otimizacao' in self.__etapas):
             # Gráficos da otimização
-            base_dir = '/PSO/'
+            base_dir = os.sep+'PSO'+os.sep
             Validacao_Diretorio(base_path,base_dir)
     
             self.Otimizacao.Graficos(base_path+base_dir,Nome_param=self.parametros.simbolos,Unid_param=self.parametros.unidades,FO2a2=True)
@@ -656,7 +661,7 @@ class Estimacao:
                         close()
                         p2+=1
             if('saida' in lista_de_etapas) and('regiaoAbrangencia' in self.__etapas) and('analiseResiduos' in self.__etapas):
-                base_dir = '/Saidas/'
+                base_dir = os.sep+'Saidas'+os.sep
                 Validacao_Diretorio(base_path,base_dir)
                 for z in xrange(self.NY):
                     for i in xrange(self.NX):
