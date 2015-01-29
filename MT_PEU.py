@@ -586,10 +586,35 @@ class Estimacao:
                     uy = self.y.experimental.matriz_incerteza[:,z]
                     graficos_entrada_saida(x,y,ux,uy,z,i)
                 yNe = []
-                for cont in xrange(1,self.NE):
-                    yNe = cont
+                for cont in xrange(1,self.NE + 1):
+                    yNe.append(cont)
+                #Gráfico apenas com os pontos experimentais
                 print yNe
-                
+                print y
+                fig = figure()
+                ax = fig.add_subplot(1,1,1)
+                plot(yNe,y,'o')
+                # obtençao do tick do grafico
+                # eixo x
+                label_tick_x   = ax.get_xticks().tolist()                 
+                tamanho_tick_x = (label_tick_x[1] - label_tick_x[0])/2
+                # eixo y
+                label_tick_y = ax.get_yticks().tolist()
+                tamanho_tick_y = (label_tick_y[1] - label_tick_y[0])/2
+                # Modificação do limite dos gráficos
+                xmin   = x[0]  - tamanho_tick_x
+                xmax   = x[-1] + tamanho_tick_x
+                ymin   = y[0]  - tamanho_tick_y
+                ymax   = y[-1] + tamanho_tick_y
+                xlim(xmin,xmax)
+                ylim(ymin,ymax)
+                # Labels
+                xlabel(u'Número de pontos',fontsize=20)
+                ylabel(self.y.labelGraficos()[i],fontsize=20)
+                #Grades
+                grid(b = 'on', which = 'major', axis = 'both')
+                savefig(base_path+base_dir+"Ye{}_Ne".format(z+1))
+                close()   
 
         if('otimizacao' in lista_de_etapas) and('otimizacao' in self.__etapas):
             # Gráficos da otimização
