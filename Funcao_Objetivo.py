@@ -63,12 +63,9 @@ class WLS(Thread):
         ym = Modelo(self.param,self.x,[self.args,self.simb_x,self.simb_y,self.simb_param])
         ym.start()
         ym.join()
-        
         ym = matriz2vetor(ym.result)
-
         #print '-------------'
         #print ym
         #print '-------------'
-
         d     = self.y - ym
         self.result =  float(dot(dot(transpose(d),linalg.inv(self.Vy)),d))
