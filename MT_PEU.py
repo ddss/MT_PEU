@@ -9,16 +9,22 @@ Principais classes do motor de cálculo do PEU
 
 # Importação de pacotes de terceiros
 from numpy import array, transpose, concatenate,size, diag, linspace, min, max, \
-sort, argsort, copy
-from scipy.stats import f
+sort, argsort, mean,  std, amin, amax, copy
+
+from scipy.stats import f, normaltest, anderson, shapiro, ttest_1samp, kstest,\
+ norm, probplot, ttest_ind
+
 from scipy.misc import factorial
 from numpy.linalg import inv
 from math import floor, log10
 
-from matplotlib.pyplot import figure, axes, plot, subplot, xlabel, ylabel,\
-    title, legend, savefig, xlim, ylim, close
+from matplotlib import use
+use('Agg')
 
-from os import getcwd
+from matplotlib.pyplot import figure, axes, plot, subplot, xlabel, ylabel,\
+    title, legend, savefig, xlim, ylim, close, show, text, hist, boxplot
+
+from os import getcwd, sep
 
 # Subrotinas próprias (desenvolvidas pelo GI-UFBA)
 from subrotinas import matriz2vetor, vetor2matriz, Validacao_Diretorio 
@@ -148,25 +154,156 @@ class Grandeza:
     
     def _experimental(self,estimativa,variancia,tipo):
         
+        self.__ID         = 'experimental'        
         self.experimental = Organizador(estimativa,variancia,tipo)        
         
     def _modelo(self,estimativa,variancia,tipo,NE):
-
+        
+        self.__ID   = 'modelo'
         self.modelo = Organizador(estimativa,variancia,tipo,NE)     
-
+        
     def _parametro(self,estimativa,variancia,regiao):
         
+        self.__ID               = 'parametro'                
         self.estimativa         = estimativa
         self.matriz_covariancia = variancia
         self.regiao_abrangencia = regiao
+
+    def _residuo(self,estimativa,variancia,tipo,NE):
         
-    def _residuo_x(self,estimativa,variancia,tipo,NE):
+        self.__ID         = 'residuo'
+        self.estimativa = Organizador(estimativa,variancia,tipo,NE)           
+
+    def _testesEstatisticos(self):
+        '''
+        Subrotina para realizar testes estatísticos nos resíduos
         
-        self.x = Organizador(estimativa,variancia,tipo,NE)   
+        =================
+        Testes realizados
+        =================
+        NORMALIDADE:
+        
+        * normaltest: Retorna o pvalor do teste de normalidade. Hipótese nula: a amostra vem de distribuição normal
+        * shapiro   : Retorna o valor de normalidade. Hipótese nula: a amostra vem de uma distribuição normal
+        * anderson  : Retorna o valor do Teste para os dados provenientes de uma distribuição em particular. Hipotese nula: a amostra vem de uma normal
+        * probplot  : Gera um gráfico de probabilidade de dados de exemplo contra os quantis de uma distribuição teórica especificado (a distribuição normal por padrão).
+                      Calcula uma linha de melhor ajuste para os dados se "encaixar" é verdadeiro e traça os resultados usando Matplotlib.
+                      tornar um conjunto de dados positivos transformados por uma transformação Box-Cox power.
+        MÉDIA:
+        * ttest_1sam: Retorna o pvalor para média determinada. Hipótese nula: a amostra tem a média determinada
+      
+        SAÍDA (sobe a forma de ATRIBUTO)
+        * estatisticas (float):  Valor das hipóteses testadas. Para a hipótese nula tida como verdadeira, um valor abaixo de 0.05 nos diz que para 95% de confiança pode-se rejeitar essa hipótese
+        '''
     
-    def _residuo_y(self,estimativa,variancia,tipo,NE):
+
+        if self.__ID == 'residuo':
+            
+            pvalor = {}
+            for nome in self.simbolos:
+                pvalor[nome] = {}
+                
+
+            for i,nome in enumerate(self.simbolos):
+                dados = self.estimativa.matriz_estimativa[:,i]
+                
+                # Testes para normalidade
+                # Lista que contém as chamadas das funções de teste:
+                if size(dados) < 20: # Se for menor do que 20 não será realizado no normaltest, pois ele só é válido a partir dste número de dados
+                    pnormal=[None, shapiro(dados), anderson(dados, dist='norm'),kstest(dados,'norm',args=(mean(dados),std(dados,ddof=1)))]                
+                    pvalor[nome]['Normalidade'] = {'normaltest':None, 'shapiro':pnormal[1][1], 'anderson':[[pnormal[2][0]], pnormal[2][1][1]],'kstest':pnormal[3][1]}
+                else:
+                    pnormal=[normaltest(dados), shapiro(dados), anderson(dados, dist='norm'),kstest(dados,'norm',args=(mean(dados),std(dados,ddof=1)))]                
+                    pvalor[nome]['Normalidade'] = {'normaltest':pnormal[0][1], 'shapiro':pnormal[1][1], 'anderson':[[pnormal[2][0]], pnormal[2][1][1]],'kstest':pnormal[3][1]}
+
+                # Dicionário para salvar os resultados                
+                # Testes para a média:
+                pmedia = [ttest_1samp(dados,0.), ttest_ind(dados,norm.rvs(loc=0.,scale=std(dados,ddof=1),size=size(dados)))]
+                pvalor[nome]['Media'] = {'ttest':pmedia[0][1],'ttest_ind':pmedia[1][1]}
+                
+        else:
+            raise NameError(u'Os testes estatísticos são válidos apenas para o resíduos')
+
+        self.estatisticas = pvalor
+            
+    def Graficos(self,base_path=None):
         
-        self.y = Organizador(estimativa,variancia,tipo,NE)   
+        if base_path == None:
+            base_path = getcwd()
+        else:
+            base_path  = base_path + sep + 'Grandezas' + sep
+        
+        
+        # Gráficos gerais:
+        for i,nome in enumerate(self.simbolos):
+             # Gráficos da estimação
+            base_dir = sep + self.simbolos[i] + sep
+            Validacao_Diretorio(base_path,base_dir)
+                       
+            dados = self.estimativa.matriz_estimativa[:,i]
+                        
+            fig = figure()
+            ax = fig.add_subplot(1,1,1)
+            plot(linspace(1,size(dados),num=size(dados)),dados, 'o')
+            xlabel('Ordem de Coleta')
+            ylabel(self.simbolos[i])
+            ax.yaxis.grid(color='gray', linestyle='dashed')                        
+            ax.xaxis.grid(color='gray', linestyle='dashed')
+            xlim((0,size(dados)))
+            ax.axhline(0, color='black', lw=2)
+            fig.savefig(base_path+base_dir+'Ordem_'+self.simbolos[i])
+            close()
+    
+        if self.__ID == 'residuo':
+
+            # BOXPLOT
+            fig = figure()
+            ax = fig.add_subplot(1,1,1)
+            boxplot(self.estimativa.matriz_estimativa)
+            ax.set_xticklabels(self.simbolos)
+            fig.savefig(base_path+'Boxplot_Residuos')
+
+            for i,nome in enumerate(self.simbolos):
+                # Gráficos da estimação
+                base_dir = sep + self.simbolos[i] + sep
+                Validacao_Diretorio(base_path,base_dir)
+
+                dados = self.estimativa.matriz_estimativa[:,i]
+        
+                # AUTO CORRELAÇÃO
+                fig = figure()
+                ax = fig.add_subplot(1,1,1)
+                ax.acorr(dados,usevlines=True, normed=True,maxlags=None)
+                ax.yaxis.grid(color='gray', linestyle='dashed')                        
+                ax.xaxis.grid(color='gray', linestyle='dashed')
+                ax.axhline(0, color='black', lw=2)
+                xlim((0,size(dados)))
+                fig.savefig(base_path+base_dir+'autocorrelacao_'+self.simbolos[i])
+                close()
+
+                # HISTOGRAMA                
+                fig = figure()
+                hist(dados, normed=True)
+                xlabel(self.simbolos[i])
+                ylabel(u'Frequência')
+                fig.savefig(base_path+base_dir+'histograma_'+self.simbolos[i])
+                close()
+
+                # NORMALIDADE               
+                res = probplot(dados, dist='norm', sparams=(mean(dados),std(dados,ddof=1)))
+                fig = figure()
+                plot(res[0][0], res[0][1], 'o', res[0][0], res[1][0]*res[0][0] + res[1][1])
+                xlabel('Quantis')
+                ylabel('Valores ordenados')
+                xmin = amin(res[0][0])
+                xmax = amax(res[0][0])
+                ymin = amin(dados)
+                ymax = amax(dados)
+                posx = xmin + 0.70 * (xmax - xmin)
+                posy = ymin + 0.01 * (ymax - ymin)
+                text(posx, posy, "$R^2$=%1.4f" % res[1][2])
+                fig.savefig(base_path+base_dir+'probplot_'+self.simbolos[i])
+                
 
 class Estimacao:
     
@@ -211,7 +348,8 @@ class Estimacao:
         
         * ``simbolos_param`` (list): lista com os símbolos para os parâmetros (inclusive em formato LATEX)
         * ``unidades_param`` (list): lista com as unidades para os parâmetros (inclusive em formato LATEX)
-        * ``label_latex_param`` (list): lista com os símbolos das variáveis em formato LATEX
+        * ``label_latex_param`` (list): lista com os símbolos d['residuo_y%d'%(i,) for i in xrange(self.NY)],['ry_%d'%(i,) for i in xrange(self.NY)],\
+                         self.y.unidades,[r'$res_y_%d$'%(i,) for i in xrange(self.NY)as variáveis em formato LATEX
         '''
         self.__validacaoArgumentosEntrada(kwargs,'init')
         self.__validacaoSimbologiaUnidade(kwargs)
@@ -227,7 +365,7 @@ class Estimacao:
         self.NX  = size(self.x.nomes) # Número de variáveis independentes
         self.NY  = size(self.y.nomes) # Número de variáveis dependentes
         self.NP  = size(self.parametros.nomes) # Número de parâmetros
-        
+    
         # Criaçaão das variáveis internas
         self.__FO        = FO
         self.__modelo    = Modelo
@@ -368,9 +506,12 @@ class Estimacao:
 
         for j,simbolo in enumerate(self.parametros.simbolos):
             grandeza[simbolo] = Grandeza(self.parametros.nomes[j],simbolo,self.parametros.unidades[j],self.parametros.label_latex[j])
-            if self.__etapasdisponiveis[2] in self.__etapas:    
-                grandeza[simbolo]._parametro(self.parametros.estimativa[j],self.parametros.matriz_covariancia[j,j],None)
-            
+            if self.__etapasdisponiveis[2] in self.__etapas:
+                if self.parametros.matriz_covariancia == None:
+                    grandeza[simbolo]._parametro(self.parametros.estimativa[j],None,None)
+                else:
+                    grandeza[simbolo]._parametro(self.parametros.estimativa[j],self.parametros.matriz_covariancia[j,j],None)
+
         return grandeza
     
     def otimiza(self,algoritmo='PSO',args=None,**kwargs):
@@ -433,34 +574,22 @@ class Estimacao:
         =======================
         Entradas (Obrigatórias)
         =======================
-        * FO         : Valor da função objetivo dado os asgumentos requeridos
-        * Modelo     : Modelo avaliado
-        * args_model : argumentos de emtrada utilizado pelo modelo
-        * PA         : ?
-        
-        =========
-        Keywords 
-        =========
-        
-        *matriz_covariancia           : array quardrada de ordem igula ao número de parâmetros em questão
-        *__Hessiana_FO_Param          : array quardrada como derivadas numéricas de segunda ordem em funçao dos parâmetros
-        * sup           : limite superior de busca
-        *matriz_de_diag_com_incertezas:
-        * inf           : limite inferior de busca
-        * Num_particulas: número de particulas
-        * itmax         : número máximo de iterações
-        
+        * PA         : probabilidade de abrangência para gerar a região de abrangência
+        * delta      : incremento para o cálculo das derivadas (derivada numérica)
+
+        ======
+        Saídas
+        ======
+        * a matriz de covariância é salva na Grandeza parâmetros
         '''
+        
         # Except temporário
         try:
             matriz_covariancia = 2*inv(self.__Hessiana_FO_Param(delta))
         except:
             matriz_covariancia = None
             
-        #diag(len(self.parametros.estimativa)*[1])
-        
         self.parametros._parametro(self.parametros.estimativa,matriz_covariancia,self.parametros.regiao_abrangencia)
-        #self.__Hessiana_FO_Param(args_model)
         
         self.regiaoAbrangencia(PA) # método para avaliação da região de abrangência
                 
@@ -470,12 +599,11 @@ class Estimacao:
         '''
         Método para calcular a matriz Hessiana da função objetivo em relaçao aos parâmetros.
         
-        Estão disponíveis o método de derivada central.
+        Está disponível o método de derivada central.
         
         ========
         Entradas
         ========
-        * args_FO: argumentos a serem passados para a função objetivo
         * delta: valor do incremento relativo para o cálculo da derivada. Incremento relativo à ordem de grandeza do parâmetro.
 
         =====
@@ -586,17 +714,55 @@ class Estimacao:
         
     def analiseResiduos(self):
         '''
-        Método para realização da análise de resíduos
+        Método para realização da análise de resíduos.
+        
+        ======
+        Saídas
+        ======
+        
+        * Saídas na forma de gráficos
+        * As grandezas resíduos possuem o atributo "estatisticas".
         '''
-        self.residuos = Grandeza()
+        
+        self.residuos_x = Grandeza(nomes=['residuo_'+self.x.nomes[i] for i in xrange(self.NX)],simbolos=['res_'+self.x.simbolos[i] for i in xrange(self.NX)],\
+                         unidades = self.x.unidades,label_latex = [r'$res_x_%d$'%(i,) for i in xrange(self.NX)])
+        self.residuos_y = Grandeza(nomes=['residuo_'+self.y.nomes[i] for i in xrange(self.NY)],simbolos=['res_'+self.y.simbolos[i] for i in xrange(self.NY)],\
+                         unidades = self.y.unidades,label_latex = [r'$res_y_%d$'%(i,) for i in xrange(self.NY)])
         
         residuo_y = self.y.experimental.matriz_estimativa - self.y.modelo.matriz_estimativa
         residuo_x = self.x.experimental.matriz_estimativa - self.x.modelo.matriz_estimativa
         
-        self.residuos._residuo_x(residuo_x,None,{'estimativa':'matriz','incerteza':'incerteza'},self.NE)
-        self.residuos._residuo_y(residuo_y,None,{'estimativa':'matriz','incerteza':'incerteza'},self.NE)
+        self.residuos_x._residuo(residuo_x,None,{'estimativa':'matriz','incerteza':'incerteza'},self.NE)
+        self.residuos_y._residuo(residuo_y,None,{'estimativa':'matriz','incerteza':'incerteza'},self.NE)
+        
+        # DESCOMENTAR QUANDO RECONCILIAÇÃO !!
+        # self.residuos_x._testesEstatisticos()
+        # self.residuos_x.Graficos(self.__base_path)
+        self.residuos_y.Graficos(self.__base_path + sep + 'Graficos'  + sep)
+        self.residuos_y._testesEstatisticos()
+        
+        # Gráficos que dependem de informações da estimação (y)
 
-        self.__etapas.append(self.__etapasdisponiveis[5]) # Inclusão desta etapa da lista de etapas
+        base_path  = self.__base_path + sep + 'Graficos'  + sep
+  
+        for i,simb in enumerate(self.y.simbolos):         
+            base_dir =  sep + 'Grandezas' + sep + self.residuos_y.simbolos[i] + sep
+            # Gráficos da otimização
+            Validacao_Diretorio(base_path,base_dir)  
+        
+            ymodelo = self.y.experimental.matriz_estimativa[:,i]
+            fig = figure()
+            ax = fig.add_subplot(1,1,1)
+            plot(ymodelo,self.residuos_y.estimativa.matriz_estimativa[:,i], 'o')
+            xlabel(u'Valores Ajustados '+self.y.simbolos[i])
+            ylabel(u'Resíduos '+self.y.simbolos[i])
+            ax.yaxis.grid(color='gray', linestyle='dashed')                        
+            ax.xaxis.grid(color='gray', linestyle='dashed')
+            ax.axhline(0, color='black', lw=2)
+            fig.savefig(base_path+base_dir+'grafico_residuo_'+str(self.y.nomes[i])+'_versus_ycalculado.png')
+            close()
+
+        self.__etapas.append(self.__etapasdisponiveis[5]) # Inclusão desta etapa na lista de etapas
         
     def graficos(self,PA):
         
@@ -698,7 +864,7 @@ if __name__ == "__main__":
     from numpy import ones
 
     # Exemplo validação: Exemplo resolvido 5.11, 5.12, 5.13 (capítulo 5) (Análise de Dados experimentais I)
-#    #Tempo
+    #Tempo
 #    x1 = transpose(array([120.0,60.0,60.0,120.0,120.0,60.0,60.0,30.0,15.0,60.0,\
 #    45.1,90.0,150.0,60.0,60.0,60.0,30.0,90.0,150.0,90.4,120.0,\
 #    60.0,60.0,60.0,60.0,60.0,60.0,30.0,45.1,30.0,30.0,45.0,15.0,30.0,90.0,25.0,\
@@ -722,8 +888,8 @@ if __name__ == "__main__":
 #    uy = ones((41,1))    
 #    
 #    Estime = Estimacao(WLS,Modelo,Nomes_x = ['variavel teste x1','variavel teste 2'],simbolos_x=[r't','T'],label_latex_x=[r'$t$','$T$'],Nomes_y=['y1'],simbolos_y=[r'y1'],Nomes_param=['theyta'+str(i) for i in xrange(2)],simbolos_param=[r'theta%d'%i for i in xrange(2)],label_latex_param=[r'$\theta_{%d}$'%i for i in xrange(2)])
-    #sup=[1,30000]
-    #inf=[0,20000]
+#    sup=[1,30000]
+#    inf=[0,20000]
 
     # Exemplo de validacao Exemplo resolvido 5.2 (capitulo 6) (Análise de dados experimentais 1)
 
@@ -735,6 +901,7 @@ if __name__ == "__main__":
     Estime = Estimacao(WLS,Modelo,Nomes_x = ['variavel teste x1'],simbolos_x=[r'x'],label_latex_x=[r'$x$'],Nomes_y=['y1'],simbolos_y=[r'y1'],Nomes_param=['theyta'+str(i) for i in xrange(2)],simbolos_param=[r'theta%d'%i for i in xrange(2)],label_latex_param=[r'$\theta_{%d}$'%i for i in xrange(2)])
     sup = [10,10]
     inf = [-10,-10]
+    
     # Continuacao
     Estime.gerarEntradas(x,y,ux,uy)    
     grandeza = Estime._armazenarDicionario() # ETAPA PARA CRIAÇÃO DOS DICIONÁRIOS - Grandeza é uma variável que retorna as grandezas na forma de dicionário
@@ -742,6 +909,8 @@ if __name__ == "__main__":
     # Otimização
     Estime.otimiza(sup=sup,inf=inf,algoritmo='PSO',itmax=300,Num_particulas=30)
     grandeza = Estime._armazenarDicionario()
-    #Estime.incertezaParametros(delta=1e-6)    
-    #Estime.graficos(0.95)
+    #Estime.incertezaParametros(delta=1e-6) 
+    Estime.analiseResiduos()
+    Estime.graficos(.95)
+
         

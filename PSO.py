@@ -43,8 +43,8 @@ from math import isnan
 import codecs
 
 # Importação de pacotes para gráficos
-from matplotlib import use, cm, ticker
-use('Agg')
+from matplotlib import cm, ticker
+#use('Agg')
 
 
 from matplotlib.pyplot import figure, axes, plot, subplot, xlabel, ylabel,\
