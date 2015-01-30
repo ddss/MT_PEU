@@ -14,16 +14,14 @@ class Modelo(Thread):
 
     def run(self):
         
-        x1 = self.x[:,0:1]
-        x2 = self.x[:,1:2]
-        
+        x = self.x
 
         alpha = self.param[0]
         beta  = self.param[1]
-        gama  = self.param[2]
-        eta   = self.param[3]
-        
-        y1 = alpha*x1 + beta 
-        y2 = gama*x2  + eta
+        #gama  = self.param[2]
+        #eta   = self.param[3]
+        y1 = alpha*(x**beta)
+        #y1 = alpha*x/(1+beta*x)
+        #y2 = gama*x2  + eta
 
-        self.result = concatenate((y1,y2),1)
+        self.result = y1

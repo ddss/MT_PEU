@@ -12,6 +12,8 @@ from numpy import array, transpose, concatenate,size, diag, linspace, min, max, 
 sort, argsort, copy
 from scipy.stats import f
 from scipy.misc import factorial
+from numpy.linalg import inv
+from math import floor, log10
 
 from matplotlib.pyplot import figure, axes, plot, subplot, xlabel, ylabel,\
     title, legend, savefig, xlim, ylim, close
@@ -260,6 +262,7 @@ class Estimacao:
                 aux.extend(keyobrigatoria)
                 raise NameError((u'Para o método de %s a(s) keyword(s) obrigatória(s) não foram (foi) definida(s): '+(len(keyincorreta)-1)*'%s, '+u'%s.')%tuple(aux))
     
+    
     def __validacaoDadosEntrada(self,dados,udados,Ndados):
         '''
         Validação dos dados de entrada 
@@ -348,107 +351,139 @@ class Estimacao:
         self.y._modelo(aux.result,None,{'estimativa':'matriz','incerteza':'variancia'},None)
         self.x._modelo(self.x.experimental.matriz_estimativa,self.x.experimental.matriz_incerteza,{'estimativa':'matriz','incerteza':'incerteza'},None)
 
-        self.incertezaParametros(self.__FO,self.__modelo,args_model)
+        self.incertezaParametros(self.__FO,self.__modelo,args_model,.95,1e-6)
         
-    def incertezaParametros(self,FO,Modelo,args_model,PA=0.95):
+    def incertezaParametros(self,FO,Modelo,args_model,PA=0.95,delta=1e-6):
+        
         '''
         Método para avaliação da matriz covariãncia dos parâmetros.
         
+        =======================
+        Entradas (Obrigatórias)
+        =======================
+        * FO         : Valor da função objetivo dado os asgumentos requeridos
+        * Modelo     : Modelo avaliado
+        * args_model : argumentos de emtrada utilizado pelo modelo
+        * PA         : ?
+        
+        =========
+        Keywords 
+        =========
+        
+        *matriz_covariancia           : array quardrada de ordem igula ao número de parâmetros em questão
+        *__Hessiana_FO_Param          : array quardrada como derivadas numéricas de segunda ordem em funçao dos parâmetros
+        * sup           : limite superior de busca
+        *matriz_de_diag_com_incertezas:
+        * inf           : limite inferior de busca
+        * Num_particulas: número de particulas
+        * itmax         : número máximo de iterações
+        
         '''
-        matriz_covariancia = diag(len(self.parametros.estimativa)*[1])
+        matriz_covariancia = 2*inv(self.__Hessiana_FO_Param(args_model,delta))
+    
+        #diag(len(self.parametros.estimativa)*[1])
         
         self.parametros._parametro(self.parametros.estimativa,matriz_covariancia,self.parametros.regiao_abrangencia)
-        self.__Hessiana_FO_Param(args_model)
+        #self.__Hessiana_FO_Param(args_model)
         
         self.regiaoAbrangencia(PA) # método para avaliação da região de abrangência
+                
         
-    def __Hessiana_FO_Param(self,args_FO):
+    def __Hessiana_FO_Param(self,args_FO,delta=1e-6):
         '''
-        Método para calcular a matriz Hessiana da função objetivo em reaçao aos parâmetros
-        - derivada central
+        Método para calcular a matriz Hessiana da função objetivo em relaçao aos parâmetros.
+        
+        Estão disponíveis o método de derivada central.
+        
+        ========
+        Entradas
+        ========
+        * args_FO: argumentos a serem passados para a função objetivo
+        * delta: valor do incremento relativo para o cálculo da derivada. Incremento relativo à ordem de grandeza do parâmetro.
+
+        =====
+        Saída
+        =====
+        
+        Retorna a matriz Hessiana
         '''
-        #Construçao da matriz Hessiana
+ 
+       
+        def Vetor_delta(posicao,delta):
+            '''
+            Subrotina para somar "delta" a uma posicao do vetor.
+            '''
+            vetor = copy(self.parametros.estimativa)
+
+            if isinstance(posicao,list):
+                vetor[posicao[0]] = vetor[posicao[0]]+delta[0]
+                vetor[posicao[1]] = vetor[posicao[1]]+delta[1]
+            else:
+                vetor[posicao] = vetor[posicao]+delta
+                
+            return vetor
+            
+        matriz_hessiana=[[1. for col in range(self.NP)] for row in range(self.NP)]
         
-        delta = 1e-8
-        derivadas=[[1. for col in range(self.NP)] for row in range(self.NP)]
-        
-        
-        #print type(delta)
-        #print self.parametros.estimativa
-        #print type(self.parametros.estimativa)
-        
+        FO_otimo = self.Otimizacao.best_fitness # Valor da função objetivo no ponto ótimo
+
         for i in range(self.NP): 
             for j in range(self.NP):
                 
+                delta1 = (10**(floor(log10((self.parametros.estimativa[i])))))*delta
+                delta2 = (10**(floor(log10((self.parametros.estimativa[j])))))*delta
+                
                 if i==j:
-                    parametrootm=self.parametros.estimativa
-                    parametro1=copy(self.parametros.estimativa) # incremneto em delta do parametro i
-                    parametro1[i]=parametro1[i]+delta
-                    
-                    parametro2=copy(self.parametros.estimativa) # incremneto em delta do parametro j
-                    parametro2[i]=parametro2[i]-delta
-                
-                    p1=self.__FO(parametro1,args_FO)
-                    p1.start()
-                                     
-                    p2=self.__FO(parametro2,args_FO)
-                    p2.start()
-                     
-                    potim=self.__FO(parametrootm,args_FO)
-                    potim.start()
+                    # Incrementos
+                    vetor_parametro_delta_positivo = Vetor_delta(i,delta1) # Vetor que irá conter o incremento no parâmetro i
+                    vetor_parametro_delta_negativo = Vetor_delta(j,-delta2)  # Vetor que irá conter o incremento no parâmetro j
 
-                    p2.join()
-                    p1.join()                    
-                    potim.join()
+                    # Cálculo da função objetivo
+                    FO_delta_positivo=self.__FO(vetor_parametro_delta_positivo,args_FO)
+                    FO_delta_positivo.start()
+                                     
+                    FO_delta_negativo=self.__FO(vetor_parametro_delta_negativo,args_FO)
+                    FO_delta_negativo.start()
+                     
+                    FO_delta_positivo.join()
+                    FO_delta_negativo.join()                    
                     
-                    # Fórmula de diferença finita para i=j (Ref?)
-                    derivadas[i][j]=(((p1.result)-2*(potim.result)+(p2.result))/(delta)**2)
-                    
-                    
-                
+                    # Fórmula de diferença finita para i=j (REF????)
+                    matriz_hessiana[i][j]=(FO_delta_positivo.result-2*FO_otimo+FO_delta_negativo.result)/(delta1*delta2)
+                     
                 else:
                     
-                    parametro3=copy(self.parametros.estimativa)
-                    parametro3[i] = parametro3[i] + delta
-                    parametro3[j] = parametro3[j] + delta
+                    vetor_parametro_delta_ipositivo_jpositivo = Vetor_delta([i,j],[delta1,delta2])
                     
-                    p3=self.__FO(parametro3,args_FO)
-                    p3.start()
+                    FO_ipositivo_jpositivo=self.__FO(vetor_parametro_delta_ipositivo_jpositivo,args_FO)
+                    FO_ipositivo_jpositivo.start()
                     
-                    parametro4=copy(self.parametros.estimativa)
-                    parametro4[j]=parametro4[j]-delta
-                    parametro4[i]=parametro4[i]+delta
-                    
-                    p4=self.__FO(parametro4,args_FO)
-                    p4.start()
+                    vetor_parametro_delta_inegativo_jpositivo=Vetor_delta([i,j],[-delta1,delta2])
+ 
+                    FO_inegativo_jpositivo=self.__FO(vetor_parametro_delta_inegativo_jpositivo,args_FO)
+                    FO_inegativo_jpositivo.start()
 
-                    parametro5=copy(self.parametros.estimativa)
-                    parametro5[j]=parametro5[j]+delta
-                    parametro5[i]=parametro5[i]-delta
-                    
-                    p5=self.__FO(parametro5,args_FO)
-                    p5.start()
+                    vetor_parametro_delta_ipositivo_jnegativo=Vetor_delta([i,j],[delta1,-delta2])
+   
+                    FO_ipositivo_jnegativo=self.__FO(vetor_parametro_delta_ipositivo_jnegativo,args_FO)
+                    FO_ipositivo_jnegativo.start()
 
-                    parametro6=copy(self.parametros.estimativa)
-                    parametro6[j]=parametro6[j]-delta
-                    parametro6[i]=parametro6[i]-delta
+                    vetor_parametro_delta_inegativo_jnegativo=Vetor_delta([i,j],[-delta1,-delta2])
+
                     
-                    p6=self.__FO(parametro6,args_FO)
-                    p6.start()
+                    FO_inegativo_jnegativo=self.__FO(vetor_parametro_delta_inegativo_jnegativo,args_FO)
+                    FO_inegativo_jnegativo.start()
                     
-                    p3.join()
-                    p4.join()
-                    p5.join()
-                    p6.join()
+                    FO_ipositivo_jpositivo.join()
+                    FO_inegativo_jpositivo.join()
+                    FO_ipositivo_jnegativo.join()
+                    FO_inegativo_jnegativo.join()
                     
-                    derivadas[i][j]=((p3.result)-(p4.result)-(p5.result)+(p6.result))/(4*delta**2)
-                    
-                    
-        Hess= array(derivadas)
-        
-        print size(Hess)
-        print Hess
-        return Hess
+                    # Referẽncia???
+                    matriz_hessiana[i][j]=((FO_ipositivo_jpositivo.result-FO_inegativo_jpositivo.result)/(2*delta1)\
+                    -(FO_ipositivo_jnegativo.result-FO_inegativo_jnegativo.result)/(2*delta1))/(2*delta2)
+ 
+        return array(matriz_hessiana)
         
     def regiaoAbrangencia(self,PA=0.95):
         '''
@@ -625,31 +660,32 @@ class Estimacao:
         
 if __name__ == "__main__":
     
-    x1 = transpose(array([1,2,3,4,5,6,7,8,9,10],ndmin=2))
-    x2 = transpose(array([1,2,3,4,5,6,7,8,9,10],ndmin=2))
+    x = transpose(array([1,2,3,5,10,15,20,30,40,50],ndmin=2))
+    #x2 = transpose(array([1,2,3,4,5,6,7,8,9,10],ndmin=2))
     
-    ux1 = transpose(array([1,1,1,1,1,1,1,1,1,1],ndmin=2))
-    ux2 = transpose(array([1,1,1,1,1,1,1,1,1,1],ndmin=2))
+    ux = transpose(array([1,1,1,1,1,1,1,1,1,1],ndmin=2))
+    #ux2 = transpose(array([1,1,1,1,1,1,1,1,1,1],ndmin=2))
     
-    y1 = transpose(array([2,3,4,5,6,7,8,9,10,11],ndmin=2))
-    y2 = transpose(array([2,4,6,8,10,12,14,16,18,20],ndmin=2))
+    y = transpose(array([1.66,6.07,7.55,9.72,15.24,18.79,19.33,22.38,24.27,25.51],ndmin=2))
+    #y2 = transpose(array([2,4,6,8,10,12,14,16,18,20],ndmin=2))
 
-    uy1 = transpose(array([1,1,1,1,1,1,1,1,1,1],ndmin=2))
-    uy2 = transpose(array([1,1,1,1,1,1,1,1,1,1],ndmin=2))
+    uy = transpose(array([1,1,1,1,1,1,1,1,1,1],ndmin=2))
+    #uy2 = transpose(array([1,1,1,1,1,1,1,1,1,1],ndmin=2))
     
-    x  = concatenate((x1,x2),axis=1)
-    y  = concatenate((y1,y2),axis=1)
-    ux = concatenate((ux1,ux2),axis=1)
-    uy = concatenate((uy1,uy2),axis=1)
+    #x  = concatenate((x1),axis=1)
+    #y  = concatenate((y1),axis=1)
+    #ux = concatenate((ux1),axis=1)
+    #uy = concatenate((uy1),axis=1)
 
 
-    Estime = Estimacao(WLS,Modelo,Nomes_x = ['variavel teste x1','variavel teste x2'],simbolos_x=[r'x1',r'x2'],label_latex_x=[r'$x_1$',r'$x_2$'],Nomes_y=['y1','y2'],simbolos_y=[r'y1',r'y2'],Nomes_param=['theyta'+str(i) for i in xrange(4)],simbolos_param=[r'theta%d'%i for i in xrange(4)],label_latex_param=[r'$\theta_{%d}$'%i for i in xrange(4)])
-    Estime.otimiza(x,y,ux,uy,sup=[2,2,2,2],inf=[-2,-2,-2,-2],algoritmo='PSO',itmax=5)
-    Estime.graficos(0.95)
+    Estime = Estimacao(WLS,Modelo,Nomes_x = ['variavel teste x1'],simbolos_x=[r'x1'],label_latex_x=[r'$x_1$'],Nomes_y=['y1'],simbolos_y=[r'y1'],Nomes_param=['theyta'+str(i) for i in xrange(2)],simbolos_param=[r'theta%d'%i for i in xrange(2)],label_latex_param=[r'$\theta_{%d}$'%i for i in xrange(2)])
+    Estime.otimiza(x,y,ux,uy,sup=[10,10],inf=[0,0],algoritmo='PSO',itmax=300)
+    #Estime.graficos(0.95)
     saida = concatenate((Estime.x.experimental.matriz_estimativa[:,0:1],Estime.x.experimental.matriz_incerteza[:,0:1]),axis=1)
     for i in xrange(1,Estime.NX):
         aux = concatenate((Estime.x.experimental.matriz_estimativa[:,i:i+1],Estime.x.experimental.matriz_incerteza[:,i:i+1]),axis=1)
         saida =  concatenate((saida,aux),axis=1)
-        
+    print Estime.parametros.estimativa
+    print Estime.parametros.matriz_covariancia
 #    print saida
     #Estime.analiseResiduos()
