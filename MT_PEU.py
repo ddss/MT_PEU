@@ -9,14 +9,15 @@ Principais classes do motor de cálculo do PEU
 
 # Importação de pacotes de terceiros
 from numpy import array, transpose, concatenate,size, diag, linspace, min, max, \
-sort, argsort, random
-from scipy.stats import f, normaltest, anderson, shapiro, ttest_1samp
+sort, mean,  std, amin, amax, correlate, corrcoef
+from scipy.stats import f, normaltest, anderson, shapiro, ttest_1samp, kstest,\
+ norm, t, probplot, boxcox_normplot, boxcox, pearsonr, ttest_ind
 from scipy.misc import factorial
 
 from matplotlib.pyplot import figure, axes, plot, subplot, xlabel, ylabel,\
-    title, legend, savefig, xlim, ylim, close
+    title, legend, savefig, xlim, ylim, close, show, text, hist, boxplot
 
-from os import getcwd
+from os import getcwd, sep
 
 # Subrotinas próprias (desenvolvidas pelo GI-UFBA)
 from subrotinas import matriz2vetor, vetor2matriz, Validacao_Diretorio 
@@ -163,34 +164,125 @@ class Grandeza:
         * normaltest: Retorna o pvalor do teste de normalidade. Hipótese nula: a amostra vem de distribuição normal
         * shapiro   : Retorna o valor de normalidade. Hipótese nula: a amostra vem de uma distribuição normal
         * anderson  : Retorna o valor do Teste para os dados provenientes de uma distribuição em particular. Hipotese nula: a amostra vem de uma normal
-        
+        * probplot  : Gera um gráfico de probabilidade de dados de exemplo contra os quantis de uma distribuição teórica especificado (a distribuição normal por padrão).
+                      Calcula uma linha de melhor ajuste para os dados se "encaixar" é verdadeiro e traça os resultados usando Matplotlib.
+        * boxcox_normplot : Calcular os parâmetros para um Gráfico de normalidade  Box-Cox. O gráfico de normalidade Box-Cox mostra graficamente qual é o melhor parâmetro de transformação para usar em boxcox para obter uma distribuição que é próximo da normal.             
+        * boxcox    : Retornar um conjunto de dados positivos transformados por uma transformação Box-Cox power.
         MÉDIA:
-        * ttest_1sam: Retorna o pvalor para média determinada. Hipótese nula: a amostra tem a média detrminada
+        * ttest_1sam: Retorna o pvalor para média determinada. Hipótese nula: a amostra tem a média determinada
       
         SAÍDA
-        * pvalor (float):  Valor das hipóses testeadas. Para a hipótese nula tida como verdadeira, um valor abaixo de 0.05 nos diz que para 95% de confiança pode-se rejeitar essa hipótese'''
+        * pvalor (float):  Valor das hipóteses testadas. Para a hipótese nula tida como verdadeira, um valor abaixo de 0.05 nos diz que para 95% de confiança pode-se rejeitar essa hipótese'''
     
+
         if self.__ID == 'residuo':
-            dados = self.estimativa.matriz_estimativa
+            
             
             pvalor = {}
-            for nome in self.nomes:
+            for nome in self.simbolos:
                 pvalor[nome] = {}
+                
 
-            for i,nome in enumerate(self.nomes):
+            for i,nome in enumerate(self.simbolos):
+                dados = self.estimativa.matriz_estimativa[:,i]
+                
                 # Testes para normalidade
-                pnormal=[normaltest(dados[:,i]), shapiro(dados[:,i]), anderson(dados[:,i], dist='norm')]
-                pvalor[nome]['Normalidade'] = {'normaltest':pnormal[0][1], 'shapiro':pnormal[1][1], 'anderson':[[pnormal[2][0]], pnormal[2][1][1]]}
+                # Lista que contém as chamadas das funções de teste:
+                if size(dados) < 20: # Se for menor do que 20 não será realizado no normaltest, pois ele só é válido a partir dste número de dados
+                    pnormal=[None, shapiro(dados), anderson(dados, dist='norm'),kstest(dados,'norm',args=(mean(dados),std(dados,ddof=1)))]                
+                    pvalor[nome]['Normalidade'] = {'normaltest':None, 'shapiro':pnormal[1][1], 'anderson':[[pnormal[2][0]], pnormal[2][1][1]],'kstest':pnormal[3][1]}
+                else:
+                    pnormal=[normaltest(dados), shapiro(dados), anderson(dados, dist='norm'),kstest(dados,'norm',args=(mean(dados),std(dados,ddof=1)))]                
+                    pvalor[nome]['Normalidade'] = {'normaltest':pnormal[0][1], 'shapiro':pnormal[1][1], 'anderson':[[pnormal[2][0]], pnormal[2][1][1]],'kstest':pnormal[3][1]}
+
+                # Dicionário para salvar os resultados                
                 # Testes para a média:
-                pmedia = ttest_1samp(dados[:,i],0.)
-                pvalor[nome]['Media'] = {'ttest':pmedia[1]}
+                pmedia = [ttest_1samp(dados,0.), ttest_ind(dados,norm.rvs(loc=0.,scale=std(dados,ddof=1),size=size(dados)))]
+                pvalor[nome]['Media'] = {'ttest':pmedia[0][1],'ttest_ind':pmedia[1][1]}
                 
-                
+
         else:
             raise NameError(u'Os testes estatísticos são válidos apenas para o resíduos')
 
         return pvalor
+            
+    def Graficos(self,base_path=None):
+        
+        if base_path == None:
+            base_path = getcwd()
+        else:
+            base_path  = base_path + sep + 'Grandezas' + sep
+        
+        
+        # Gráficos gerais:
+        for i,nome in enumerate(self.simbolos):
+             # Gráficos da estimação
+            base_dir = sep + self.simbolos[i] + sep
+            Validacao_Diretorio(base_path,base_dir)
+                       
+            dados = self.estimativa.matriz_estimativa[:,i]
+                        
+            fig = figure()
+            ax = fig.add_subplot(1,1,1)
+            plot(linspace(1,size(dados),num=size(dados)),dados, 'o')
+            plot()
+            xlabel('Ordem de Coleta')
+            ylabel('LABEL')
+            xlim((0,size(dados)))
+            ax.axhline(0, color='black', lw=2)
+            fig.savefig(base_path+base_dir+'Ordem_'+self.simbolos[i])
+            close()
+    
+        if self.__ID == 'residuo':
 
+            # BOXPLOT
+            fig = figure()
+            ax = fig.add_subplot(1,1,1)
+            boxplot(self.estimativa.matriz_estimativa)
+            ax.set_xticklabels(self.simbolos)
+            fig.savefig(base_path+'Boxplot_Residuos')
+
+            for i,nome in enumerate(self.simbolos):
+                # Gráficos da estimação
+                base_dir = sep + self.simbolos[i] + sep
+                Validacao_Diretorio(base_path,base_dir)
+
+                dados = self.estimativa.matriz_estimativa[:,i]
+        
+                # AUTO CORRELAÇÃO
+                fig = figure()
+                ax = fig.add_subplot(1,1,1)
+                ax.acorr(dados,usevlines=True, normed=True,maxlags=None)
+                ax.yaxis.grid(color='gray', linestyle='dashed')                        
+                ax.xaxis.grid(color='gray', linestyle='dashed')
+                ax.axhline(0, color='black', lw=2)
+                xlim((0,size(dados)))
+                fig.savefig(base_path+base_dir+'autocorrelacao_'+self.simbolos[i])
+                close()
+
+                # HISTOGRAMA                
+                fig = figure()
+                hist(dados, normed=True)
+                xlabel(self.simbolos[i])
+                ylabel(u'Frequência')
+                fig.savefig(base_path+base_dir+'histograma_'+self.simbolos[i])
+                close()
+
+                # NORMALIDADE               
+                res = probplot(dados, dist='norm', sparams=(mean(dados),std(dados,ddof=1)))
+                fig = figure()
+                plot(res[0][0], res[0][1], 'o', res[0][0], res[1][0]*res[0][0] + res[1][1])
+                xlabel('Quantis')
+                ylabel('Valores ordenados')
+                xmin = amin(res[0][0])
+                xmax = amax(res[0][0])
+                ymin = amin(dados)
+                ymax = amax(dados)
+                posx = xmin + 0.70 * (xmax - xmin)
+                posy = ymin + 0.01 * (ymax - ymin)
+                text(posx, posy, "$R^2$=%1.4f" % res[1][2])
+                fig.savefig(base_path+base_dir+'probplot_'+self.simbolos[i])
+                
 
 class Estimacao:
     
@@ -235,7 +327,8 @@ class Estimacao:
         
         * ``simbolos_param`` (list): lista com os símbolos para os parâmetros (inclusive em formato LATEX)
         * ``unidades_param`` (list): lista com as unidades para os parâmetros (inclusive em formato LATEX)
-        * ``label_latex_param`` (list): lista com os símbolos das variáveis em formato LATEX
+        * ``label_latex_param`` (list): lista com os símbolos d['residuo_y%d'%(i,) for i in xrange(self.NY)],['ry_%d'%(i,) for i in xrange(self.NY)],\
+                         self.y.unidades,[r'$res_y_%d$'%(i,) for i in xrange(self.NY)as variáveis em formato LATEX
         '''
         self.__validacaoArgumentosEntrada(kwargs,'init')
         self.__validacaoSimbologiaUnidade(kwargs)
@@ -251,7 +344,7 @@ class Estimacao:
         self.NX  = size(self.x.nomes) # Número de variáveis independentes
         self.NY  = size(self.y.nomes) # Número de variáveis dependentes
         self.NP  = size(self.parametros.nomes) # Número de parâmetros
-        
+    
         # Criaçaão das variáveis internas
         self.__FO        = FO
         self.__modelo    = Modelo
@@ -432,16 +525,44 @@ class Estimacao:
         Método para realização da análise de resíduos
         '''
         
-        self.residuos_x = Grandeza(['residuo_x%d'%(i,) for i in xrange(self.NX)],['rx_%d'%(i,) for i in xrange(self.NX)],\
-                         self.x.unidades,[r'$rx_%d$'%(i,) for i in xrange(self.NX)])
-        self.residuos_y = Grandeza(['residuo_y%d'%(i,) for i in xrange(self.NY)],['ry_%d'%(i,) for i in xrange(self.NY)],\
-                         self.y.unidades,[r'$ry_%d$'%(i,) for i in xrange(self.NY)])
+        self.residuos_x = Grandeza(nomes=['residuo_'+self.x.nomes[i] for i in xrange(self.NX)],simbolos=['res_'+self.x.simbolos[i] for i in xrange(self.NX)],\
+                         unidades = self.x.unidades,label_latex = [r'$res_x_%d$'%(i,) for i in xrange(self.NX)])
+        self.residuos_y = Grandeza(nomes=['residuo_'+self.y.nomes[i] for i in xrange(self.NY)],simbolos=['res_'+self.y.simbolos[i] for i in xrange(self.NY)],\
+                         unidades = self.y.unidades,label_latex = [r'$res_y_%d$'%(i,) for i in xrange(self.NY)])
         
         residuo_y = self.y.experimental.matriz_estimativa - self.y.modelo.matriz_estimativa
         residuo_x = self.x.experimental.matriz_estimativa - self.x.modelo.matriz_estimativa
         
         self.residuos_x._residuo(residuo_x,None,{'estimativa':'matriz','incerteza':'incerteza'},self.NE)
         self.residuos_y._residuo(residuo_y,None,{'estimativa':'matriz','incerteza':'incerteza'},self.NE)
+        
+        # DESCOMENTAR QUANDO RECONCILIAÇÃO !!
+        # self.residuos_x._testesEstatisticos()
+        # self.residuos_x.Graficos(self.__base_path)
+        self.residuos_y._testesEstatisticos()    
+        self.residuos_y.Graficos(self.__base_path + sep + 'Graficos'  + sep)
+    
+    
+        # Gráficos que dependem de informações da estimação (y)
+
+        base_path  = self.__base_path + sep + 'Graficos'  + sep
+  
+        for i,simb in enumerate(self.y.simbolos):         
+            base_dir =  sep + 'Grandezas' + sep + self.residuos_y.simbolos[i] + sep
+            # Gráficos da otimização
+            Validacao_Diretorio(base_path,base_dir)  
+        
+            ymodelo = self.y.experimental.matriz_estimativa[:,i]
+            fig = figure()
+            ax = fig.add_subplot(1,1,1)
+            plot(ymodelo,self.residuos_y.estimativa.matriz_estimativa[:,i], 'o')
+            xlabel(u'Valores Ajustados '+self.y.simbolos[i])
+            ylabel(u'Resíduos '+self.y.simbolos[i])
+            ax.yaxis.grid(color='gray', linestyle='dashed')                        
+            ax.xaxis.grid(color='gray', linestyle='dashed')
+            ax.axhline(0, color='black', lw=2)
+            fig.savefig(base_path+base_dir+'grafico_residuo_'+str(self.y.nomes[i])+'_versus_ycalculado.png')
+            close()
 
 
     def graficos(self,PA):
@@ -605,9 +726,12 @@ if __name__ == "__main__":
 
 
     Estime = Estimacao(WLS,Modelo,Nomes_x = ['variavel teste x1','variavel teste x2'],simbolos_x=[r'x1',r'x2'],label_latex_x=[r'$x_1$',r'$x_2$'],Nomes_y=['y1','y2'],simbolos_y=[r'y1',r'y2'],Nomes_param=['theyta'+str(i) for i in xrange(4)],simbolos_param=[r'theta%d'%i for i in xrange(4)],label_latex_param=[r'$\theta_{%d}$'%i for i in xrange(4)])
-    Estime.otimiza(x,y,ux,uy,sup=[2,2,2,2],inf=[-2,-2,-2,-2],algoritmo='PSO',itmax=5)
+    Estime.otimiza(x,y,ux,uy,sup=[2,2,2,2],inf=[-2,-2,-2,-2],algoritmo='PSO',itmax=50)
     Estime.analiseResiduos()
-    a=Estime.residuos_y._testesEstatisticos()
+    #a=Estime.residuos_y._testesEstatisticos()
+    #Estime.residuos_y.Graficos()
+    
+    
     #Estime.graficos(0.95)
     #saida = concatenate((Estime.x.experimental.matriz_estimativa[:,0:1],Estime.x.experimental.matriz_incerteza[:,0:1]),axis=1)
     #for i in xrange(1,Estime.NX):
