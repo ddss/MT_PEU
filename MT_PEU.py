@@ -585,7 +585,8 @@ class Estimacao:
             self.parametros._parametro(self.Otimizacao.gbest,None,None) # Atribuindo o valor ótimo dos parâemetros
 
 
-        aux = self.__modelo(self.parametros.estimativa,self.x.experimental.matriz_estimativa,args)
+        # O modelo é calculado para os dados de validação
+        aux = self.__modelo(self.parametros.estimativa,self.x.validacao.matriz_estimativa,args)
         aux.start()
         aux.join()
                 
