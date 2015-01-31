@@ -157,11 +157,18 @@ class Grandeza:
         self.__ID         = 'experimental'        
         self.experimental = Organizador(estimativa,variancia,tipo)        
         
+    def _validacao(self,estimativa,variancia,tipo):
+        
+        self.__ID      = 'validacao'
+        self.validacao = Organizador(estimativa,variancia,tipo)
+
+
     def _modelo(self,estimativa,variancia,tipo,NE):
         
         self.__ID   = 'modelo'
         self.modelo = Organizador(estimativa,variancia,tipo,NE)     
-        
+    
+ 
     def _parametro(self,estimativa,variancia,regiao):
         
         self.__ID               = 'parametro'                
@@ -169,10 +176,10 @@ class Grandeza:
         self.matriz_covariancia = variancia
         self.regiao_abrangencia = regiao
 
-    def _residuo(self,estimativa,variancia,tipo,NE):
+    def _residuo(self,estimativa,variancia,tipo):
         
         self.__ID         = 'residuo'
-        self.estimativa = Organizador(estimativa,variancia,tipo,NE)           
+        self.estimativa = Organizador(estimativa,variancia,tipo)           
 
     def _testesEstatisticos(self):
         '''
@@ -230,30 +237,10 @@ class Grandeza:
         
         if base_path == None:
             base_path = getcwd()
-        else:
-            base_path  = base_path + sep + 'Grandezas' + sep
-        
-        
-        # Gráficos gerais:
-        for i,nome in enumerate(self.simbolos):
-             # Gráficos da estimação
-            base_dir = sep + self.simbolos[i] + sep
-            Validacao_Diretorio(base_path,base_dir)
-                       
-            dados = self.estimativa.matriz_estimativa[:,i]
-                        
-            fig = figure()
-            ax = fig.add_subplot(1,1,1)
-            plot(linspace(1,size(dados),num=size(dados)),dados, 'o')
-            xlabel('Ordem de Coleta')
-            ylabel(self.simbolos[i])
-            ax.yaxis.grid(color='gray', linestyle='dashed')                        
-            ax.xaxis.grid(color='gray', linestyle='dashed')
-            xlim((0,size(dados)))
-            ax.axhline(0, color='black', lw=2)
-            fig.savefig(base_path+base_dir+'Ordem_'+self.simbolos[i])
-            close()
-    
+
+        base_dir  = sep + 'Grandezas' + sep
+        Validacao_Diretorio(base_path,base_dir)
+
         if self.__ID == 'residuo':
 
             # BOXPLOT
@@ -265,10 +252,23 @@ class Grandeza:
 
             for i,nome in enumerate(self.simbolos):
                 # Gráficos da estimação
-                base_dir = sep + self.simbolos[i] + sep
+                base_dir = base_dir + sep + self.simbolos[i] + sep
                 Validacao_Diretorio(base_path,base_dir)
 
                 dados = self.estimativa.matriz_estimativa[:,i]
+        
+                # TENDENCIA
+                fig = figure()
+                ax = fig.add_subplot(1,1,1)
+                plot(linspace(1,size(dados),num=size(dados)),dados, 'o')
+                xlabel('Ordem de Coleta')
+                ylabel(self.simbolos[i])
+                ax.yaxis.grid(color='gray', linestyle='dashed')                        
+                ax.xaxis.grid(color='gray', linestyle='dashed')
+                xlim((0,size(dados)))
+                ax.axhline(0, color='black', lw=2)
+                fig.savefig(base_path+base_dir+'Ordem_'+self.simbolos[i])
+                close()        
         
                 # AUTO CORRELAÇÃO
                 fig = figure()
@@ -357,8 +357,8 @@ class Estimacao:
         # Inicialização das variáveis
         self.x          = Grandeza(Nomes_x    ,kwargs.get(self.__keywordsEntrada[0]),kwargs.get(self.__keywordsEntrada[1]),kwargs.get(self.__keywordsEntrada[2]))
         self.y          = Grandeza(Nomes_y    ,kwargs.get(self.__keywordsEntrada[3]),kwargs.get(self.__keywordsEntrada[4]),kwargs.get(self.__keywordsEntrada[5]))
-        self.xval       = Grandeza(Nomes_x    ,kwargs.get(self.__keywordsEntrada[0]),kwargs.get(self.__keywordsEntrada[1]),kwargs.get(self.__keywordsEntrada[2]))
-        self.yval       = Grandeza(Nomes_y    ,kwargs.get(self.__keywordsEntrada[3]),kwargs.get(self.__keywordsEntrada[4]),kwargs.get(self.__keywordsEntrada[5]))
+        #self.xval       = Grandeza(Nomes_x    ,kwargs.get(self.__keywordsEntrada[0]),kwargs.get(self.__keywordsEntrada[1]),kwargs.get(self.__keywordsEntrada[2]))
+        #self.yval       = Grandeza(Nomes_y    ,kwargs.get(self.__keywordsEntrada[3]),kwargs.get(self.__keywordsEntrada[4]),kwargs.get(self.__keywordsEntrada[5]))
         self.parametros = Grandeza(Nomes_param,kwargs.get(self.__keywordsEntrada[6]),kwargs.get(self.__keywordsEntrada[7]),kwargs.get(self.__keywordsEntrada[8]))
         
         # Número de variáveis
@@ -425,19 +425,26 @@ class Estimacao:
                 raise NameError((u'Para o método de %s a(s) keyword(s) obrigatória(s) não foram (foi) definida(s): '+(len(keyobrigatoria)-1)*'%s, '+u'%s.')%tuple(aux))
     
     
-    def __validacaoDadosEntrada(self,dados,udados,Ndados):
+    def __validacaoDadosEntrada(self,dados,udados,Ndados,NE):
         '''
         Validação dos dados de entrada 
         
         * verificar se as colunas dos arrays de entrada são iguais aos nomes das variáveis definidas (y, x)
+        * verificar se as grandezas têm o mesmo número de dados experimentais
         '''
+        if size(dados,0) != NE:
+            raise ValueError(u'Foram inseridos %d dados experimentais para uma grandeza e %d para outra'%(NE,size(dados,0)))
         
         if size(dados,1) != Ndados: 
-            raise ValueError(u'O número de variáveis definidas foi %s, mas foram inseridos dados apenas para %s variáveis.'%(Ndados,size(dados,1)))
-       
-        if Ndados != size(udados,1):
-           raise ValueError(u'O número de variáveis definidas foi %s, mas foram inseridos dados apenas para %s incertezas.'%(Ndados,size(udados,1)))
-          
+            raise ValueError(u'O número de variáveis definidas foi %s, mas foram inseridos dados para %s variáveis.'%(Ndados,size(dados,1)))
+            
+        if size(udados,0) != NE:
+            raise ValueError(u'Foram inseridos %d dados experimentais, mas incertezas para %d dados'%(NE,size(udados,0)))
+        
+        if size(udados,1) != Ndados: 
+            raise ValueError(u'O número de variáveis definidas foi %s, mas foram inseridas incertezas para %s.'%(Ndados,size(udados,1)))
+ 
+                
     def __defaults(self,kwargs,algoritmo):
         '''
         Definição dos valores dos paramêmtros para os métodos, inclusive os valores default
@@ -450,7 +457,7 @@ class Estimacao:
         
             return (itmax, Num_particulas)
    
-    def gerarEntradas(self,xe,ye,ux,uy,uxy=None):
+    def gerarEntradas(self,xe,ye,ux,uy,xval=None,yval=None,uxval=None,uyval=None,uxy=None):
         '''
         Método para incluir os dados de entrada da estimação
         
@@ -458,22 +465,45 @@ class Estimacao:
         Entradas (Obrigatórias)
         =======================        
         
-        * xe        : array com as variáveis independentes na forma de colunas
+        * xe        : array com os dados experimentais das variáveis independentes na forma de colunas
         * ux        : array com as incertezas das variáveis independentes na forma de colunas
-        * ye        : array com as variáveis dependentes na forma de colunas
+        * ye        : array com os dados experimentais das variáveis dependentes na forma de colunas
         * uy        : array com as incertezas das variáveis dependentes na forma de colunas
+        * xval      : array com os dados de validação para as variáveis independentes na forma de colunas
+        * yval      : array com os dados de validação para as variáveis dependentes na forma de colunas
         * uxy       : covariância entre x e y
         '''
-
-        # Validação dos dados de entrada x e y
-        self.__validacaoDadosEntrada(xe,ux,self.NX) 
-        self.__validacaoDadosEntrada(ye,uy,self.NY)
+        # DEFAULT
+        # Caso não definidos dados de validação, será assumido os valores experimentais
+        if xval == None:
+            xval = xe
         
-        # Salvando os dados nas variáveis 
+        if yval == None:
+            yval = ye
+        
+        if uxval == None:
+            uxval = ux
+            
+        if uyval == None:
+            uyval = uy        
+        
+        # QUANTIDADE DE PONTOS EXPERIMENTAIS
+        self.NE  = size(xe,0) # Número de observações
+
+        # VALIDAÇÃO dos dados de entrada x, y, xval e yval
+        self.__validacaoDadosEntrada(xe,ux,self.NX,self.NE) 
+        self.__validacaoDadosEntrada(ye,uy,self.NY,self.NE)
+        self.__validacaoDadosEntrada(xval,uxval,self.NX,self.NE) 
+        self.__validacaoDadosEntrada(yval,uyval,self.NY,self.NE)
+
+        
+        # Salvando os dados experimentais nas variáveis.
         self.x._experimental(xe,ux,{'estimativa':'matriz','incerteza':'incerteza'})
         self.y._experimental(ye,uy,{'estimativa':'matriz','incerteza':'incerteza'}) 
- 
-        self.NE  = size(self.x.experimental.matriz_estimativa,0) # Número de observações
+        
+        # Salvando os dados de validação.
+        self.x._validacao(xval,uxval,{'estimativa':'matriz','incerteza':'incerteza'})
+        self.y._validacao(yval,uyval,{'estimativa':'matriz','incerteza':'incerteza'}) 
     
         self.__etapas.append(self.__etapasdisponiveis[1]) # Inclusão desta etapa da lista de etapas
         
@@ -723,17 +753,19 @@ class Estimacao:
         * Saídas na forma de gráficos
         * As grandezas resíduos possuem o atributo "estatisticas".
         '''
-        
+        # Criação dos resíduos como Grandezas
         self.residuos_x = Grandeza(nomes=['residuo_'+self.x.nomes[i] for i in xrange(self.NX)],simbolos=['res_'+self.x.simbolos[i] for i in xrange(self.NX)],\
                          unidades = self.x.unidades,label_latex = [r'$res_x_%d$'%(i,) for i in xrange(self.NX)])
         self.residuos_y = Grandeza(nomes=['residuo_'+self.y.nomes[i] for i in xrange(self.NY)],simbolos=['res_'+self.y.simbolos[i] for i in xrange(self.NY)],\
                          unidades = self.y.unidades,label_latex = [r'$res_y_%d$'%(i,) for i in xrange(self.NY)])
         
-        residuo_y = self.y.experimental.matriz_estimativa - self.y.modelo.matriz_estimativa
-        residuo_x = self.x.experimental.matriz_estimativa - self.x.modelo.matriz_estimativa
+        # Calculos dos residuos (ou desvios) - estão baseados nos dados de validação
+        residuo_y = self.y.validacao.matriz_estimativa - self.y.modelo.matriz_estimativa
+        residuo_x = self.x.validacao.matriz_estimativa - self.x.modelo.matriz_estimativa
         
-        self.residuos_x._residuo(residuo_x,None,{'estimativa':'matriz','incerteza':'incerteza'},self.NE)
-        self.residuos_y._residuo(residuo_y,None,{'estimativa':'matriz','incerteza':'incerteza'},self.NE)
+        # Attribuição dos valores nos objetos
+        self.residuos_x._residuo(residuo_x,None,{'estimativa':'matriz','incerteza':'incerteza'})
+        self.residuos_y._residuo(residuo_y,None,{'estimativa':'matriz','incerteza':'incerteza'})
         
         # DESCOMENTAR QUANDO RECONCILIAÇÃO !!
         # self.residuos_x._testesEstatisticos()
@@ -742,6 +774,7 @@ class Estimacao:
         self.residuos_y._testesEstatisticos()
         
         # Gráficos que dependem de informações da estimação (y)
+        # TO DO: RELOCAR PARA A SESSÃO DE GRÁFICOS
 
         base_path  = self.__base_path + sep + 'Graficos'  + sep
   
@@ -865,42 +898,42 @@ if __name__ == "__main__":
 
     # Exemplo validação: Exemplo resolvido 5.11, 5.12, 5.13 (capítulo 5) (Análise de Dados experimentais I)
     #Tempo
-#    x1 = transpose(array([120.0,60.0,60.0,120.0,120.0,60.0,60.0,30.0,15.0,60.0,\
-#    45.1,90.0,150.0,60.0,60.0,60.0,30.0,90.0,150.0,90.4,120.0,\
-#    60.0,60.0,60.0,60.0,60.0,60.0,30.0,45.1,30.0,30.0,45.0,15.0,30.0,90.0,25.0,\
-#    60.1,60.0,30.0,30.0,60.0],ndmin=2))
-#    #Temperatura
-#    
-#    x2 = transpose(array([600.0,600.0,612.0,612.0,612.0,612.0,620.0,620.0,620.0,\
-#    620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,\
-#    620.0,620.0,620.0,620.0,620.0,620.0,631.0,631.0,631.0,631.0,631.0,639.0,639.0,\
-#    639.0,639.0,639.0,639.0,639.0,639.0,639.0],ndmin=2))
-#    
-#    x = concatenate((x1,x2),axis=1)
-#
-#    ux = ones((41,2))
-#    
-#    y = transpose(array([0.9,0.949,0.886,0.785,0.791,0.890,0.787,0.877,0.938,\
-#    0.782,0.827,0.696,0.582,0.795,0.800,0.790,0.883,0.712,0.576,0.715,0.673,\
-#    0.802,0.802,0.804,0.794,0.804,0.799,0.764,0.688,0.717,0.802,0.695,0.808,\
-#    0.655,0.309,0.689,0.437,0.425,0.638,.659,0.449],ndmin=2))
-#        
-#    uy = ones((41,1))    
-#    
-#    Estime = Estimacao(WLS,Modelo,Nomes_x = ['variavel teste x1','variavel teste 2'],simbolos_x=[r't','T'],label_latex_x=[r'$t$','$T$'],Nomes_y=['y1'],simbolos_y=[r'y1'],Nomes_param=['theyta'+str(i) for i in xrange(2)],simbolos_param=[r'theta%d'%i for i in xrange(2)],label_latex_param=[r'$\theta_{%d}$'%i for i in xrange(2)])
-#    sup=[1,30000]
-#    inf=[0,20000]
+    x1 = transpose(array([120.0,60.0,60.0,120.0,120.0,60.0,60.0,30.0,15.0,60.0,\
+    45.1,90.0,150.0,60.0,60.0,60.0,30.0,90.0,150.0,90.4,120.0,\
+    60.0,60.0,60.0,60.0,60.0,60.0,30.0,45.1,30.0,30.0,45.0,15.0,30.0,90.0,25.0,\
+    60.1,60.0,30.0,30.0,60.0],ndmin=2))
+    
+    #Temperatura
+    x2 = transpose(array([600.0,600.0,612.0,612.0,612.0,612.0,620.0,620.0,620.0,\
+    620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,\
+    620.0,620.0,620.0,620.0,620.0,620.0,631.0,631.0,631.0,631.0,631.0,639.0,639.0,\
+    639.0,639.0,639.0,639.0,639.0,639.0,639.0],ndmin=2))
+    
+    x = concatenate((x1,x2),axis=1)
+
+    ux = ones((41,2))
+    
+    y = transpose(array([0.9,0.949,0.886,0.785,0.791,0.890,0.787,0.877,0.938,\
+    0.782,0.827,0.696,0.582,0.795,0.800,0.790,0.883,0.712,0.576,0.715,0.673,\
+    0.802,0.802,0.804,0.794,0.804,0.799,0.764,0.688,0.717,0.802,0.695,0.808,\
+    0.655,0.309,0.689,0.437,0.425,0.638,.659,0.449],ndmin=2))
+        
+    uy = ones((41,1))    
+    
+    Estime = Estimacao(WLS,Modelo,Nomes_x = ['variavel teste x1','variavel teste 2'],simbolos_x=[r't','T'],label_latex_x=[r'$t$','$T$'],Nomes_y=['y1'],simbolos_y=[r'y1'],Nomes_param=['theyta'+str(i) for i in xrange(2)],simbolos_param=[r'theta%d'%i for i in xrange(2)],label_latex_param=[r'$\theta_{%d}$'%i for i in xrange(2)])
+    sup=[1,30000]
+    inf=[0,20000]
 
     # Exemplo de validacao Exemplo resolvido 5.2 (capitulo 6) (Análise de dados experimentais 1)
 
-    x = transpose(array([1.,2.,3.,5.,10,15.,20.,30.,40.,50.],ndmin=2))
-    y = transpose(array([1.66,6.07,7.55,9.72,15.24,18.79,19.33,22.38,24.27,25.51],ndmin=2))
-    ux = ones((10,1))
-    uy = ones((10,1))    
+#    x = transpose(array([1.,2.,3.,5.,10,15.,20.,30.,40.,50.],ndmin=2))
+#    y = transpose(array([1.66,6.07,7.55,9.72,15.24,18.79,19.33,22.38,24.27,25.51],ndmin=2))
+#    ux = ones((10,1))
+#    uy = ones((10,1))    
     
-    Estime = Estimacao(WLS,Modelo,Nomes_x = ['variavel teste x1'],simbolos_x=[r'x'],label_latex_x=[r'$x$'],Nomes_y=['y1'],simbolos_y=[r'y1'],Nomes_param=['theyta'+str(i) for i in xrange(2)],simbolos_param=[r'theta%d'%i for i in xrange(2)],label_latex_param=[r'$\theta_{%d}$'%i for i in xrange(2)])
-    sup = [10,10]
-    inf = [-10,-10]
+#    Estime = Estimacao(WLS,Modelo,Nomes_x = ['variavel teste x1'],simbolos_x=[r'x'],label_latex_x=[r'$x$'],Nomes_y=['y1'],simbolos_y=[r'y1'],Nomes_param=['theyta'+str(i) for i in xrange(2)],simbolos_param=[r'theta%d'%i for i in xrange(2)],label_latex_param=[r'$\theta_{%d}$'%i for i in xrange(2)])
+#    sup = [10,10]
+#    inf = [-10,-10]
     
     # Continuacao
     Estime.gerarEntradas(x,y,ux,uy)    
