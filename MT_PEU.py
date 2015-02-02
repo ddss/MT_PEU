@@ -11,8 +11,7 @@ Principais classes do motor de cálculo do PEU
 from numpy import array, transpose, concatenate,size, diag, linspace, min, max, \
 sort, argsort, mean,  std, amin, amax, copy
 
-from scipy.stats import f, normaltest, anderson, shapiro, ttest_1samp, kstest,\
- norm, probplot, ttest_ind
+from scipy.stats import f
 
 from scipy.misc import factorial
 from numpy.linalg import inv
@@ -21,327 +20,18 @@ from math import floor, log10
 from matplotlib import use
 use('Agg')
 
-from matplotlib.pyplot import figure, axes, plot, subplot, xlabel, ylabel,\
-    title, legend, savefig, xlim, ylim, close, show, text, hist, boxplot
+from matplotlib.pyplot import figure, axes, axis, plot, errorbar, subplot, xlabel, ylabel,\
+    title, legend, savefig, xlim, ylim, close, grid, text, hist, boxplot
 
 from os import getcwd, sep
 
-# Subrotinas próprias (desenvolvidas pelo GI-UFBA)
-from subrotinas import matriz2vetor, vetor2matriz, Validacao_Diretorio 
+# Subrotinas próprias e adaptações (desenvolvidas pelo GI-UFBA)
+from Grandeza import Grandeza
+from subrotinas import Validacao_Diretorio, plot_cov_ellipse
 from PSO import PSO
 from Funcao_Objetivo import WLS
 from Modelo import Modelo
 
-
-class Organizador:
-    
-    def __init__(self,estimativa,incerteza,tipos={'estimativa':'matriz','incerteza':'incerteza'},NE=None):
-        '''
-        Classe para organizar os dados das estimativas e suas respectivas incertezas, disponibilizando-os na forma de matriz, vetores e listas.
-        
-        ========    
-        Entradas
-        ========
-        
-        * ``estimativa`` (array) : estimativas para as observações das variáveis (na forma de um vetor ou matriz). \
-        Caso seja uma matriz, cada coluna contém as estimativas para uma variável. Se for um vetor, as estimativas estão \
-        numa única coluna, sendo necessário fornecer a entrada NE.
-        * ``incerteza``  (array) : incerteza (ou variância) para os valores das estimativas. Esta informação sempre será uma matriz. No entanto, \
-        caso sejam as incertezas, cada coluna da contém a incerteza para os pontos de uma variável. Caso seja as variâncias, será a matriz de covariância.
-        * ``tipos``      (dicionário): dicionário que define como as entradas estimativa e incerteza foram definidas:\
-        As chaves e conteúdos são: estimativa (conteúdo: ``matriz`` ou ``vetor``) e incerteza (conteúdo: ``incerteza`` ou `variancia``).
-        * ``NE`` (int): quantidade de pontos experimentais. Necessário apenas quanto a estimativa é um vetor.
-        
-        **AVISO:**
-        
-        * se estimativa for uma matriz, espera-se que ``ìncerteza`` seja uma matriz em que cada coluna seja as *INCERTEZAS* para cada observação de uma certa variável (ela será o atributo ``.matriz_incerteza`` ) (``tipo`` = {`estimativa`:`matriz`, `incerteza`:`incerteza`})
-        * se estimativa for um vetor, espera-se que ``ìncerteza`` seja a matriz de *COVARIÂNCIA* (dimensão de estimativa x dimensçao de estimativa) (ela será o atributo ``.matriz_covariancia`` ) (``tipo`` = {`estimativa`:`vetor`, `incerteza`:`variancia`})
-        * se a incerteza for definida na forma de uma matriz de incertezas, a matriz de covariância assumirá que os elementos fora da diagonal principal são ZEROS.
-        
-        =========
-        Atributos
-        =========
-        
-        * ``.matriz_estimativa`` (array): cada variável está alocada em uma coluna que contém suas observações.
-        * ``.vetor_estimativa``  (array): todas as observações de todas as variáveis estão em um único vetor.
-        * ``lista_estimativa``   (list):  lista de listas, em quw cada lista interna contém as estimativas para uma variável.   
-        * ``.matriz_incerteza``  (array): matriz em que cada coluna contém a incerteza de cada ponto de uma certeza variável.
-        * ``.matriz_covariancia`` (array): matriz de covariância.
-        * ``lista_incerteza``(list): lista de listas, em que cada lista interna contém as incertezas para uma variável. 
-        * ``lista_variancia``(list): ista de listas, onde cada lista interna contém as variâncias para uma variável. Aqui \
-        é considerado somente a diagonal principal da matriz de covariancia.
-
-        ** AVISO: **
-
-        * Caso a incerteza seja definida como None, os atributos relacionados a ela NÃO serão criados.
-        '''
-        # ---------------------------------------------------------------------
-        # VALIDAÇÃO da entrada tipos:
-        # ---------------------------------------------------------------------
-        # verificação se as chaves estão corretas:
-        if ('estimativa' not in tipos.keys()) or ('incerteza' not in tipos.keys()):
-            raise NameError(u'É necessário definir as chaves estimativa e incerteza da entrada tipos. Elas não foram\
-            incluídas ou a grafia está errada')
-        
-        # conteúdos disponíveis
-        tiposEstimativa = ('matriz','vetor') 
-        tiposIncerteza  = ('incerteza','variancia')            
-        
-        # verificação se os conteúdos estão corretos
-        if tipos['estimativa'] not in tiposEstimativa:
-            raise NameError(('Os conteúdos disponíveis para a chave estimativa do dicionário tipos são: '\
-            +'%s, '*(len(tiposEstimativa)-1)+'%s.')%tiposEstimativa)
-        
-        if tipos['incerteza'] not in tiposIncerteza:
-            raise NameError(('Os conteúdos disponíveis para a chave incerteza do dicionário tipos são: '\
-            +'%s, '*(len(tiposIncerteza)-1)+'%s.')%tiposIncerteza)
-        
-        # ---------------------------------------------------------------------
-        # CRIAÇÃO dos atributos na forma de ARRAYS
-        # ---------------------------------------------------------------------
-        if tipos['estimativa'] == 'matriz':
-            
-            self.matriz_estimativa  = estimativa
-            self.vetor_estimativa   = matriz2vetor(self.matriz_estimativa) # conversão de matriz para vetor
-        
-        if tipos['estimativa'] == 'vetor':
-            
-            self.vetor_estimativa   = estimativa
-            self.matriz_estimativa  = vetor2matriz(self.vetor_estimativa,NE) # Conversão de vetor para uma matriz  
-        
-        if tipos['incerteza'] == 'incerteza':
-
-            if incerteza != None:            
-                self.matriz_incerteza   = incerteza            
-                self.matriz_covariancia = diag(transpose(matriz2vetor(self.matriz_incerteza**2)).tolist()[0])
-
-        if tipos['incerteza'] == 'variancia':
-
-            if incerteza != None:        
-                self.matriz_covariancia = incerteza      
-                self.matriz_incerteza   = vetor2matriz(transpose(array([diag(self.matriz_covariancia**0.5)])),NE)
-        # ---------------------------------------------------------------------
-        # Criação dos atributos na forma de LISTAS
-        # ---------------------------------------------------------------------
-        self.lista_estimativa = self.matriz_estimativa.transpose().tolist()
-        
-        if incerteza != None:        
-            self.lista_incerteza  = self.matriz_incerteza.transpose().tolist()
-            self.lista_variancia  = diag(self.matriz_covariancia).tolist()
-
-class Grandeza:
-    
-    def __init__(self,nomes,simbolos,unidades,label_latex):
-        '''
-        Classe para organizar as características das Grandezas:
-        
-        * experimentais
-        * do modelo
-        * parâmetros
-        * resíduos
-        
-        =======
-        Entrada
-        =======
-        
-        * nomes (list)      : deve ser uma lisra contendo o nome das variáveis
-        * simbolos (list)   : deve ser uma lista contendo os símbolos, na ordem de entrada de cada variável
-        * label_latex(list) : de ser uma lista contendo os símbolos em formato LATEX
-        
-        =======
-        Métodos        
-        =======
-        
-        * _experimental: irá criar o atributo experimental. Deve ser usado se se tratar de dados experimentais
-        * _modelo      : irá criar o atributo experimental. Deve ser usado se se tratar de dados do modelo
-        * _parametro   : irá criar os atributos estimativa, matriz_covariancia, regiao_abrangencia. Deve ser usado para os parâmetros
-        * _residuo_x   : irá criar os atributos x. Deve ser usado para os resíduos de x
-        * _residuo_y   : irá criar os atributos y. Deve ser usado para os resíduos de y
-    
-        =========
-        Atributos
-        =========
-        
-        * ``.nomes`` (list): lista com os nomes das variáveis
-        * ``.simbolos`` (list): lista com os símbolos das variáveis (inclusive em código Latex)
-        * ``.experimental`` (objeto): objeto Organizador (vide documentação do mesmo). **só exitirá após execução do método _experimental**
-        * ``.modelo`` (objeto): objeto Organizador (vide documentação do mesmo). **só exitirá após execução do método _modelo**
-        * ``.estimativa`` (list): lista com estimativas. **só exitirá após execução do método _parametro**
-        * ``.matriz_covariancia`` (array): array representando a matriz covariância. **só exitirá após execução do método _parametro**
-        * ``.regiao_abrangencia`` (list): lista representando os pontos pertencentes à região de abrangência. **só exitirá após execução do método _parametro**
-        * ``.x`` (objeto): objeto Organizador (vide documentação do mesmo). **só exitirá após execução do método _residuo_x**
-        * ``.y`` (objeto): objeto Organizador (vide documentação do mesmo). **só exitirá após execução do método _residuo_y**
-        '''
-
-        self.nomes       = nomes
-        if nomes == None:
-            self.nomes = [None]*len(nomes)
-
-        self.simbolos    = simbolos        
-        if simbolos == None:
-            self.simbolos = [None]*len(nomes)
-
-        self.unidades    = unidades
-        if unidades == None:
-            self.unidades = [None]*len(nomes)
-        
-        self.label_latex = label_latex
-        if label_latex == None:
-            self.label_latex = [None]*len(nomes)
-
-    
-    def _experimental(self,estimativa,variancia,tipo):
-        
-        self.__ID         = 'experimental'        
-        self.experimental = Organizador(estimativa,variancia,tipo)        
-        
-    def _validacao(self,estimativa,variancia,tipo):
-        
-        self.__ID      = 'validacao'
-        self.validacao = Organizador(estimativa,variancia,tipo)
-
-
-    def _modelo(self,estimativa,variancia,tipo,NE):
-        
-        self.__ID   = 'modelo'
-        self.modelo = Organizador(estimativa,variancia,tipo,NE)     
-    
- 
-    def _parametro(self,estimativa,variancia,regiao):
-        
-        self.__ID               = 'parametro'                
-        self.estimativa         = estimativa
-        self.matriz_covariancia = variancia
-        self.regiao_abrangencia = regiao
-
-    def _residuo(self,estimativa,variancia,tipo):
-        
-        self.__ID         = 'residuo'
-        self.estimativa = Organizador(estimativa,variancia,tipo)           
-
-    def _testesEstatisticos(self):
-        '''
-        Subrotina para realizar testes estatísticos nos resíduos
-        
-        =================
-        Testes realizados
-        =================
-        NORMALIDADE:
-        
-        * normaltest: Retorna o pvalor do teste de normalidade. Hipótese nula: a amostra vem de distribuição normal
-        * shapiro   : Retorna o valor de normalidade. Hipótese nula: a amostra vem de uma distribuição normal
-        * anderson  : Retorna o valor do Teste para os dados provenientes de uma distribuição em particular. Hipotese nula: a amostra vem de uma normal
-        * probplot  : Gera um gráfico de probabilidade de dados de exemplo contra os quantis de uma distribuição teórica especificado (a distribuição normal por padrão).
-                      Calcula uma linha de melhor ajuste para os dados se "encaixar" é verdadeiro e traça os resultados usando Matplotlib.
-                      tornar um conjunto de dados positivos transformados por uma transformação Box-Cox power.
-        MÉDIA:
-        * ttest_1sam: Retorna o pvalor para média determinada. Hipótese nula: a amostra tem a média determinada
-      
-        SAÍDA (sobe a forma de ATRIBUTO)
-        * estatisticas (float):  Valor das hipóteses testadas. Para a hipótese nula tida como verdadeira, um valor abaixo de 0.05 nos diz que para 95% de confiança pode-se rejeitar essa hipótese
-        '''
-    
-
-        if self.__ID == 'residuo':
-            
-            pvalor = {}
-            for nome in self.simbolos:
-                pvalor[nome] = {}
-                
-
-            for i,nome in enumerate(self.simbolos):
-                dados = self.estimativa.matriz_estimativa[:,i]
-                
-                # Testes para normalidade
-                # Lista que contém as chamadas das funções de teste:
-                if size(dados) < 20: # Se for menor do que 20 não será realizado no normaltest, pois ele só é válido a partir dste número de dados
-                    pnormal=[None, shapiro(dados), anderson(dados, dist='norm'),kstest(dados,'norm',args=(mean(dados),std(dados,ddof=1)))]                
-                    pvalor[nome]['Normalidade'] = {'normaltest':None, 'shapiro':pnormal[1][1], 'anderson':[[pnormal[2][0]], pnormal[2][1][1]],'kstest':pnormal[3][1]}
-                else:
-                    pnormal=[normaltest(dados), shapiro(dados), anderson(dados, dist='norm'),kstest(dados,'norm',args=(mean(dados),std(dados,ddof=1)))]                
-                    pvalor[nome]['Normalidade'] = {'normaltest':pnormal[0][1], 'shapiro':pnormal[1][1], 'anderson':[[pnormal[2][0]], pnormal[2][1][1]],'kstest':pnormal[3][1]}
-
-                # Dicionário para salvar os resultados                
-                # Testes para a média:
-                pmedia = [ttest_1samp(dados,0.), ttest_ind(dados,norm.rvs(loc=0.,scale=std(dados,ddof=1),size=size(dados)))]
-                pvalor[nome]['Media'] = {'ttest':pmedia[0][1],'ttest_ind':pmedia[1][1]}
-                
-        else:
-            raise NameError(u'Os testes estatísticos são válidos apenas para o resíduos')
-
-        self.estatisticas = pvalor
-            
-    def Graficos(self,base_path=None):
-        
-        if base_path == None:
-            base_path = getcwd()
-
-        base_dir  = sep + 'Grandezas' + sep
-        Validacao_Diretorio(base_path,base_dir)
-
-        if self.__ID == 'residuo':
-
-            # BOXPLOT
-            fig = figure()
-            ax = fig.add_subplot(1,1,1)
-            boxplot(self.estimativa.matriz_estimativa)
-            ax.set_xticklabels(self.simbolos)
-            fig.savefig(base_path+'Boxplot_Residuos')
-
-            for i,nome in enumerate(self.simbolos):
-                # Gráficos da estimação
-                base_dir = base_dir + sep + self.simbolos[i] + sep
-                Validacao_Diretorio(base_path,base_dir)
-
-                dados = self.estimativa.matriz_estimativa[:,i]
-        
-                # TENDENCIA
-                fig = figure()
-                ax = fig.add_subplot(1,1,1)
-                plot(linspace(1,size(dados),num=size(dados)),dados, 'o')
-                xlabel('Ordem de Coleta')
-                ylabel(self.simbolos[i])
-                ax.yaxis.grid(color='gray', linestyle='dashed')                        
-                ax.xaxis.grid(color='gray', linestyle='dashed')
-                xlim((0,size(dados)))
-                ax.axhline(0, color='black', lw=2)
-                fig.savefig(base_path+base_dir+'Ordem_'+self.simbolos[i])
-                close()        
-        
-                # AUTO CORRELAÇÃO
-                fig = figure()
-                ax = fig.add_subplot(1,1,1)
-                ax.acorr(dados,usevlines=True, normed=True,maxlags=None)
-                ax.yaxis.grid(color='gray', linestyle='dashed')                        
-                ax.xaxis.grid(color='gray', linestyle='dashed')
-                ax.axhline(0, color='black', lw=2)
-                xlim((0,size(dados)))
-                fig.savefig(base_path+base_dir+'autocorrelacao_'+self.simbolos[i])
-                close()
-
-                # HISTOGRAMA                
-                fig = figure()
-                hist(dados, normed=True)
-                xlabel(self.simbolos[i])
-                ylabel(u'Frequência')
-                fig.savefig(base_path+base_dir+'histograma_'+self.simbolos[i])
-                close()
-
-                # NORMALIDADE               
-                res = probplot(dados, dist='norm', sparams=(mean(dados),std(dados,ddof=1)))
-                fig = figure()
-                plot(res[0][0], res[0][1], 'o', res[0][0], res[1][0]*res[0][0] + res[1][1])
-                xlabel('Quantis')
-                ylabel('Valores ordenados')
-                xmin = amin(res[0][0])
-                xmax = amax(res[0][0])
-                ymin = amin(dados)
-                ymax = amax(dados)
-                posx = xmin + 0.70 * (xmax - xmin)
-                posy = ymin + 0.01 * (ymax - ymin)
-                text(posx, posy, "$R^2$=%1.4f" % res[1][2])
-                fig.savefig(base_path+base_dir+'probplot_'+self.simbolos[i])
-                
 
 class Estimacao:
     
@@ -407,7 +97,7 @@ class Estimacao:
         # Criaçaão das variáveis internas
         self.__FO        = FO
         self.__modelo    = Modelo
-        self.__base_path = getcwd()+'/'+str(projeto)+'/'
+        self.__base_path = getcwd()+ sep +str(projeto)+sep
         
         # Controle interno das etapas do algoritmo (métodos executados)
         self.__etapasdisponiveis = ['__init__','gerarEntradas','otimizacao','incertezaParametros','regiaoAbrangencia','analiseResiduos'] # Lista de etapas que o algoritmo irá executar
@@ -542,7 +232,7 @@ class Estimacao:
         # Salvando os dados de validação.
         self.x._validacao(xval,uxval,{'estimativa':'matriz','incerteza':'incerteza'})
         self.y._validacao(yval,uyval,{'estimativa':'matriz','incerteza':'incerteza'}) 
-    
+     
         self.__etapas.append(self.__etapasdisponiveis[1]) # Inclusão desta etapa da lista de etapas
         
     def _armazenarDicionario(self):
@@ -582,6 +272,7 @@ class Estimacao:
 
         return grandeza
     
+
     def otimiza(self,algoritmo='PSO',args=None,**kwargs):
         '''
         Método para realização da otimização        
@@ -793,24 +484,24 @@ class Estimacao:
         * As grandezas resíduos possuem o atributo "estatisticas".
         '''
         # Criação dos resíduos como Grandezas
-        self.residuos_x = Grandeza(nomes=['residuo_'+self.x.nomes[i] for i in xrange(self.NX)],simbolos=['res_'+self.x.simbolos[i] for i in xrange(self.NX)],\
-                         unidades = self.x.unidades,label_latex = [r'$res_x_%d$'%(i,) for i in xrange(self.NX)])
-        self.residuos_y = Grandeza(nomes=['residuo_'+self.y.nomes[i] for i in xrange(self.NY)],simbolos=['res_'+self.y.simbolos[i] for i in xrange(self.NY)],\
-                         unidades = self.y.unidades,label_latex = [r'$res_y_%d$'%(i,) for i in xrange(self.NY)])
+        #self.residuos_x = Grandeza(nomes=['residuo_'+self.x.nomes[i] for i in xrange(self.NX)],simbolos=['res_'+self.x.simbolos[i] for i in xrange(self.NX)],\
+        #                 unidades = self.x.unidades,label_latex = [r'$res_x_%d$'%(i,) for i in xrange(self.NX)])
+        #self.residuos_y = Grandeza(nomes=['residuo_'+self.y.nomes[i] for i in xrange(self.NY)],simbolos=['res_'+self.y.simbolos[i] for i in xrange(self.NY)],\
+        #                 unidades = self.y.unidades,label_latex = [r'$res_y_%d$'%(i,) for i in xrange(self.NY)])
         
         # Calculos dos residuos (ou desvios) - estão baseados nos dados de validação
         residuo_y = self.y.validacao.matriz_estimativa - self.y.modelo.matriz_estimativa
         residuo_x = self.x.validacao.matriz_estimativa - self.x.modelo.matriz_estimativa
         
         # Attribuição dos valores nos objetos
-        self.residuos_x._residuo(residuo_x,None,{'estimativa':'matriz','incerteza':'incerteza'})
-        self.residuos_y._residuo(residuo_y,None,{'estimativa':'matriz','incerteza':'incerteza'})
+        self.x._residuos(residuo_x,None,{'estimativa':'matriz','incerteza':'incerteza'})
+        self.y._residuos(residuo_y,None,{'estimativa':'matriz','incerteza':'incerteza'})
         
         # DESCOMENTAR QUANDO RECONCILIAÇÃO !!
-        # self.residuos_x._testesEstatisticos()
-        # self.residuos_x.Graficos(self.__base_path)
-        self.residuos_y.Graficos(self.__base_path + sep + 'Graficos'  + sep)
-        self.residuos_y._testesEstatisticos()
+        #self.x.Graficos(self.__base_path + sep + 'Graficos'  + sep,ID=['residuo'])
+        #self.x._testesEstatisticos()
+        self.y.Graficos(self.__base_path + sep + 'Graficos'  + sep,ID=['residuo'])
+        self.y._testesEstatisticos()
         
         # Gráficos que dependem de informações da estimação (y)
         # TO DO: RELOCAR PARA A SESSÃO DE GRÁFICOS
@@ -818,120 +509,225 @@ class Estimacao:
         base_path  = self.__base_path + sep + 'Graficos'  + sep
   
         for i,simb in enumerate(self.y.simbolos):         
-            base_dir =  sep + 'Grandezas' + sep + self.residuos_y.simbolos[i] + sep
+            base_dir =  sep + 'Grandezas' + sep + self.y.simbolos[i] + sep
             # Gráficos da otimização
             Validacao_Diretorio(base_path,base_dir)  
         
             ymodelo = self.y.experimental.matriz_estimativa[:,i]
             fig = figure()
             ax = fig.add_subplot(1,1,1)
-            plot(ymodelo,self.residuos_y.estimativa.matriz_estimativa[:,i], 'o')
-            xlabel(u'Valores Ajustados '+self.y.simbolos[i])
-            ylabel(u'Resíduos '+self.y.simbolos[i])
+            plot(ymodelo,self.y.residuos.matriz_estimativa[:,i], 'o')
+            xlabel(u'Valores Ajustados '+self.y.labelGraficos()[i])
+            ylabel(u'Resíduos '+self.y.labelGraficos()[i])
             ax.yaxis.grid(color='gray', linestyle='dashed')                        
             ax.xaxis.grid(color='gray', linestyle='dashed')
             ax.axhline(0, color='black', lw=2)
-            fig.savefig(base_path+base_dir+'grafico_residuo_'+str(self.y.nomes[i])+'_versus_ycalculado.png')
+            fig.savefig(base_path+base_dir+'residuos_versus_ycalculado.png')
             close()
 
         self.__etapas.append(self.__etapasdisponiveis[5]) # Inclusão desta etapa na lista de etapas
-        
-    def graficos(self,PA):
-        
-        base_path  = self.__base_path + '/Graficos/'
-        # Gráficos da otimização
-        base_dir = '/PSO/'
-        Validacao_Diretorio(base_path,base_dir)
 
-        self.Otimizacao.Graficos(base_path+base_dir,Nome_param=self.parametros.simbolos,Unid_param=self.parametros.unidades,FO2a2=True)
+    def graficos(self,lista_de_etapas,PA):
+        '''
+        Métodos para gerar e salvar os gráficos
+        =======================
+        Entradas (obrigatórias)
+        =======================
+        * ``Etapa``   : Status que determinam se o método deve gerar os gráficos de entrada ou de otimização
+        * ``PA``      : 
+        ==========
+        Atributos
+        ==========
+                
+        '''
+        self.__etapas.append(self.__etapasdisponiveis[5]) # Inclusão desta etapa da lista de etapas
+           
+#        base_path = os.sep + ' Graficos '+ os.sep
+        base_path  = self.__base_path + sep +'Graficos'+ sep
         
-        # Gráficos da estimação
-        base_dir = '/Estimacao/'
-        Validacao_Diretorio(base_path,base_dir)
-        
-        
-        # Gráfico comparativo entre valores experimentais e calculados pelo modelo, sem variância
-        for i in xrange(self.NY):
-            y  = self.y.experimental.matriz_estimativa[:,i]
-            ym = self.y.modelo.matriz_estimativa[:,i]
-            
-            ymin = min(y)            
-            ymax = max(y)            
-            
-            diag = linspace(min(y),max(y))  
+        #Sub-rotina que geram os gráficos de entrada e saída
+        def graficos_entrada_saida(x,y,ux,uy,ix,iy,base_dir,info):            
+            #Gráfico apenas com os pontos experimentais
             fig = figure()
             ax = fig.add_subplot(1,1,1)
-            plot(y,ym,'bo',linewidth=2.0)
-            plot(diag,diag,'k-',linewidth=2.0)
-            ax.yaxis.grid(color='gray', linestyle='dashed')                        
-            ax.xaxis.grid(color='gray', linestyle='dashed')
-            xlim((ymin,ymax))
-            ylim((ymin,ymax))
-            
-            xlabel(self.y.nomes[i]+' experimental')
-            ylabel(self.y.nomes[i]+' calculado')
-            fig.savefig(base_path+base_dir+'grafico_'+str(self.y.nomes[i])+'_ye_ym_sem_var.png')
-            close()
-
-            
-        # Região de abrangência (verossimilhança)
-        
-        Hist_Posicoes , Hist_Fitness = self.regiaoAbrangencia(PA)
-       
-        if self.NP == 1:
-                
-            aux = []
-            for it in xrange(size(self.parametros.regiao_abrangencia)/self.NP):     
-                aux.append(self.parametros.regiao_abrangencia[it][0])
-                   
-            X = [Hist_Posicoes[it][0] for it in xrange(len(Hist_Posicoes))]
-            Y = Hist_Fitness
-            X_sort   = sort(X)
-            Y_sort   = [Y[i] for i in argsort(X)]    
+            plot(x,y,'o')
+            # obtençao do tick do grafico
+            # eixo x
+            label_tick_x   = ax.get_xticks().tolist()                 
+            tamanho_tick_x = (label_tick_x[1] - label_tick_x[0])/2
+            # eixo y
+            label_tick_y = ax.get_yticks().tolist()
+            tamanho_tick_y = (label_tick_y[1] - label_tick_y[0])/2
+            # Modificação do limite dos gráficos
+            xmin   = min(x) - tamanho_tick_x
+            xmax   = max(x) + tamanho_tick_x
+            ymin   = min(y) - tamanho_tick_y
+            ymax   = max(y) + tamanho_tick_y
+            xlim(xmin,xmax)
+            ylim(ymin,ymax)
+            # Labels
+            xlabel(self.x.labelGraficos()[ix],fontsize=20)
+            ylabel(self.y.labelGraficos()[iy],fontsize=20)
+            #Grades
+            grid(b = 'on', which = 'major', axis = 'both')
+            fig.savefig(base_path+base_dir+info+'_'+self.y.simbolos[iy]+'_funcao_de_'+self.x.simbolos[ix]+'_sem_incerteza')
+            close()                    
+                    
+            #Grafico com os pontos experimentais e as incertezas
             fig = figure()
             ax = fig.add_subplot(1,1,1)
-            plot(X_sort,Y_sort,'bo',markersize=4)
-            plot(self.parametros.estimativa[0],self.Otimizacao.best_fitness,'ro',markersize=8)
-            plot([min(aux),min(aux)],[min(Y_sort),max(Y_sort)/4],'r-')
-            plot([max(aux),max(aux)],[min(Y_sort),max(Y_sort)/4],'r-')
-            ax.text(min(aux),max(Y_sort)/4,u'%.2e'%(min(aux),), fontsize=8, horizontalalignment='center')
-            ax.text(max(aux),max(Y_sort)/4,u'%.2e'%(max(aux),), fontsize=8, horizontalalignment='center')
-            ax.yaxis.grid(color='gray', linestyle='dashed')
-            ax.xaxis.grid(color='gray', linestyle='dashed')
-            ylabel(r"$\quad \Phi $",fontsize = 20)
-            xlabel(self.parametros.nomes[0],fontsize=20)
-            fig.savefig(base_path+base_dir+'Regiao_verossimilhanca_'+str(self.parametros.nomes[0])+'_'+str(self.parametros.nomes[0])+'.png')
+            xerr = 2*ux
+            yerr = 2*uy
+            errorbar(x,y,xerr=xerr,yerr=yerr,marker='o')
+            # obtençao do tick do grafico
+            # eixo x
+            label_tick_x   = ax.get_xticks().tolist()                 
+            tamanho_tick_x = (label_tick_x[1] - label_tick_x[0])/2
+            # eixo y
+            label_tick_y = ax.get_yticks().tolist()
+            tamanho_tick_y = (label_tick_y[1] - label_tick_y[0])/2
+            # Modificação dos limites dos gráficos                    
+            xmin  = min(x - xerr) - tamanho_tick_x
+            ymin  = min(y - yerr) - tamanho_tick_y
+            xmax  = max(x + xerr) + tamanho_tick_x                    
+            ymax  = max(y + yerr) + tamanho_tick_y
+            xlim(xmin,xmax)
+            ylim(ymin,ymax)
+            # Labels
+            xlabel(self.x.labelGraficos()[ix],fontsize=20)
+            ylabel(self.y.labelGraficos()[iy],fontsize=20)
+            #Grades
+            grid(b = 'on', which = 'major', axis = 'both')
+            fig.savefig(base_path+base_dir+info+'_'+self.y.simbolos[iy]+'_funcao_de_'+self.x.simbolos[ix]+'_com_incerteza')
             close()
-        
-        else:
             
-            Combinacoes = int(factorial(self.NP)/(factorial(self.NP-2)*factorial(2)))
-            p1 = 0; p2 = 1; cont = 0; passo = 1
+        #If para gerar os gráficos das grandezas de entrada (x e y)        
+        if('entrada' in lista_de_etapas) and('gerarEntradas'in self.__etapas):
+            base_dir = sep + 'Grandezas' + sep
+            Validacao_Diretorio(base_path,base_dir)
+
+            self.x.Graficos(base_path, ID = ['experimental','validacao'])
+            self.y.Graficos(base_path, ID = ['experimental','validacao'])
+
+            for iy in xrange(self.NY):
+                for ix in xrange(self.NX):
+                    x = self.x.experimental.matriz_estimativa[:,ix]
+                    y = self.y.experimental.matriz_estimativa[:,iy]
+                    ux = self.x.experimental.matriz_incerteza[:,ix]
+                    uy = self.y.experimental.matriz_incerteza[:,iy]                    
+                    graficos_entrada_saida(x,y,ux,uy,ix,iy,base_dir,'experimental')
+
+
+        if('otimizacao' in lista_de_etapas) and('otimizacao' in self.__etapas):
+            # Gráficos da otimização
+            base_dir = sep+'PSO'+ sep
+            Validacao_Diretorio(base_path,base_dir)
+    
+            self.Otimizacao.Graficos(base_path+base_dir,Nome_param=self.parametros.simbolos,Unid_param=self.parametros.unidades,FO2a2=True)
+
+
+        if('estimacao' in lista_de_etapas) and('regiaoAbrangencia' in self.__etapas) and('analiseResiduos' in self.__etapas):
+            # Gráficos da estimação
+            base_dir = sep + 'Estimacao' + sep
+            Validacao_Diretorio(base_path,base_dir)
             
-            for pos in xrange(Combinacoes):
-                if pos == (self.NP-1)+cont:
-                    p1 +=1; p2 = p1+1; passo +=1
-                    cont += self.NP-passo
+            for i in xrange(self.NY):
+                # Região de abrangência (método da verossimilhança)
+                Hist_Posicoes , Hist_Fitness = self.regiaoAbrangencia(PA)
+               
+                if self.NP == 1:
+                        
+                    aux = []
+                    for it in xrange(size(self.parametros.regiao_abrangencia)/self.NP):     
+                        aux.append(self.parametros.regiao_abrangencia[it][0])
+                           
+                    X = [Hist_Posicoes[it][0] for it in xrange(len(Hist_Posicoes))]
+                    Y = Hist_Fitness
+                    X_sort   = sort(X)
+                    Y_sort   = [Y[i] for i in argsort(X)]    
+                    fig = figure()
+                    ax = fig.add_subplot(1,1,1)
+                    plot(X_sort,Y_sort,'bo',markersize=4)
+                    plot(self.parametros.estimativa[0],self.Otimizacao.best_fitness,'ro',markersize=8)
+                    plot([min(aux),min(aux)],[min(Y_sort),max(Y_sort)/4],'r-')
+                    plot([max(aux),max(aux)],[min(Y_sort),max(Y_sort)/4],'r-')
+                    ax.text(min(aux),max(Y_sort)/4,u'%.2e'%(min(aux),), fontsize=8, horizontalalignment='center')
+                    ax.text(max(aux),max(Y_sort)/4,u'%.2e'%(max(aux),), fontsize=8, horizontalalignment='center')
+                    ax.yaxis.grid(color='gray', linestyle='dashed')
+                    ax.xaxis.grid(color='gray', linestyle='dashed')
+                    ylabel(r"$\quad \Phi $",fontsize = 20)
+                    xlabel(self.parametros.labelGraficos()[0],fontsize=20)
+                    fig.savefig(base_path+base_dir+'regiao_verossimilhanca_'+str(self.parametros.nomes[0])+'_'+str(self.parametros.nomes[0])+'.png')
+                    close()
                 
-                fig = figure()
-                ax = fig.add_subplot(1,1,1)
-                
-                for it in xrange(size(self.parametros.regiao_abrangencia)/self.NP):     
-                    PSO, = plot(self.parametros.regiao_abrangencia[it][p1],self.parametros.regiao_abrangencia[it][p2],'bo',linewidth=2.0,zorder=1)
+                else:
+                    
+                    Combinacoes = int(factorial(self.NP)/(factorial(self.NP-2)*factorial(2)))
+                    p1 = 0; p2 = 1; cont = 0; passo = 1
+                    
+                    for pos in xrange(Combinacoes):
+                        if pos == (self.NP-1)+cont:
+                            p1 +=1; p2 = p1+1; passo +=1
+                            cont += self.NP-passo
+                        
+                        fig = figure()
+                        ax = fig.add_subplot(1,1,1)
+                        
+                        for it in xrange(size(self.parametros.regiao_abrangencia)/self.NP):     
+                            PSO, = plot(self.parametros.regiao_abrangencia[it][p1],self.parametros.regiao_abrangencia[it][p2],'bo',linewidth=2.0,zorder=1)
+                        
+                        Fisher = f.ppf(PA,self.NP,(self.NE*self.NY-self.NP))            
+                        Comparacao = self.Otimizacao.best_fitness*(float(self.NP)/(self.NE*self.NY-float(self.NP))*Fisher)
+                        cov = array([[self.parametros.matriz_covariancia[p1,p1],self.parametros.matriz_covariancia[p1,p2]],[self.parametros.matriz_covariancia[p2,p1],self.parametros.matriz_covariancia[p2,p2]]])
+                        ellipse = plot_cov_ellipse(cov, [self.parametros.estimativa[p1],self.parametros.estimativa[p2]], Comparacao, fill = False, color = 'r', linewidth=2.0,zorder=2)
+                        plot(self.parametros.estimativa[p1],self.parametros.estimativa[p2],'r*',markersize=10.0,zorder=2)
+                        ax.yaxis.grid(color='gray', linestyle='dashed')                        
+                        ax.xaxis.grid(color='gray', linestyle='dashed')
+                        xlabel(self.parametros.labelGraficos()[p1],fontsize=20)
+                        ylabel(self.parametros.labelGraficos()[p2],fontsize=20)
+                        legend([ellipse,PSO],[u"Ellipse",u"Verossimilhança"])
+                        fig.savefig(base_path+base_dir+'Regiao_verossimilhanca_'+str(self.parametros.nomes[p1])+'_'+str(self.parametros.nomes[p2])+'.png')
+                        close()
+                        p2+=1            
+           
+            base_dir = sep + 'Grandezas' + sep
+            Validacao_Diretorio(base_path,base_dir)
+            for iy in xrange(self.NY):
+                for ix in xrange(self.NX):
+                    x = self.x.modelo.matriz_estimativa[:,ix]
+                    y = self.y.modelo.matriz_estimativa[:,iy]
+                    ux = self.x.modelo.matriz_incerteza[:,ix]
+                    #Falta a matriz incerteza do modelo, então está sendo usado a incerteza do pontos
+                    #experimentais apenas para compilar
+        #           uy = self.y.modelo.matriz_incerteza[:,i]
+                    uy = self.y.experimental.matriz_incerteza[:,iy]                    
+                    graficos_entrada_saida(x,y,ux,uy,ix,iy,base_dir,'calculado')
             
-                plot(self.parametros.estimativa[p1],self.parametros.estimativa[p2],'r*',markersize=10.0,zorder=2)
-                ax.yaxis.grid(color='gray', linestyle='dashed')                        
-                ax.xaxis.grid(color='gray', linestyle='dashed')
-             
-                xlabel(self.parametros.nomes[p1],fontsize=20)
-                ylabel(self.parametros.nomes[p2],fontsize=20)
-
-                fig.savefig(base_path+base_dir+'Regiao_verossimilhanca_'+str(self.parametros.nomes[p1])+'_'+str(self.parametros.nomes[p2])+'.png')
-                close()
-                p2+=1
-
-
-        
+            base_dir = sep + 'Estimacao' + sep
+            Validacao_Diretorio(base_path,base_dir)
+            for iy in xrange(self.NY):
+                for ix in xrange(self.NX):
+               # Gráfico comparativo entre valores experimentais e calculados pelo modelo, sem variância         
+                    y  = self.y.experimental.matriz_estimativa[:,i]
+                    ym = self.y.modelo.matriz_estimativa[:,i]
+                    diagonal = linspace(min(y),max(y))  
+                    fig = figure()
+                    ax = fig.add_subplot(1,1,1)
+                    plot(y,ym,'bo',linewidth=2.0)
+                    plot(diagonal,diagonal,'k-',linewidth=2.0)
+                    ax.yaxis.grid(color='gray', linestyle='dashed')                        
+                    ax.xaxis.grid(color='gray', linestyle='dashed')
+                    label_tick_x   = ax.get_xticks().tolist()                 
+                    tamanho_tick_x = (label_tick_x[1] - label_tick_x[0])/2
+                    ymin   = min(ym) - tamanho_tick_x
+                    ymax   = max(ym) + tamanho_tick_x
+                    xlim((ymin,ymax))
+                    ylim((ymin,ymax))                
+                    xlabel(self.y.nomes[i]+' experimental')
+                    ylabel(self.y.nomes[i]+' calculado')
+                    fig.savefig(base_path+base_dir+'grafico_'+str(self.y.nomes[i])+'_ye_ym_sem_var.png')
+                    close()
+                    
 if __name__ == "__main__":
     from numpy import ones
 
@@ -959,12 +755,11 @@ if __name__ == "__main__":
         
     uy = ones((41,1))    
     
-    Estime = Estimacao(WLS,Modelo,Nomes_x = ['variavel teste x1','variavel teste 2'],simbolos_x=[r't','T'],label_latex_x=[r'$t$','$T$'],Nomes_y=['y1'],simbolos_y=[r'y1'],Nomes_param=['theyta'+str(i) for i in xrange(2)],simbolos_param=[r'theta%d'%i for i in xrange(2)],label_latex_param=[r'$\theta_{%d}$'%i for i in xrange(2)])
+    Estime = Estimacao(WLS,Modelo,Nomes_x = ['variavel teste x1','variavel teste 2'],simbolos_x=[r'te','T'],label_latex_x=[r'$t$','$T$'],Nomes_y=['y1'],simbolos_y=[r'y1'],Nomes_param=['theyta'+str(i) for i in xrange(2)],simbolos_param=[r'theta%d'%i for i in xrange(2)],label_latex_param=[r'$\theta_{%d}$'%i for i in xrange(2)])
     sup=[1,30000]
     inf=[0,20000]
 
     # Exemplo de validacao Exemplo resolvido 5.2 (capitulo 6) (Análise de dados experimentais 1)
-
 #    x = transpose(array([1.,2.,3.,5.,10,15.,20.,30.,40.,50.],ndmin=2))
 #    y = transpose(array([1.66,6.07,7.55,9.72,15.24,18.79,19.33,22.38,24.27,25.51],ndmin=2))
 #    ux = ones((10,1))
@@ -976,13 +771,18 @@ if __name__ == "__main__":
     
     # Continuacao
     Estime.gerarEntradas(x,y,ux,uy)    
-    grandeza = Estime._armazenarDicionario() # ETAPA PARA CRIAÇÃO DOS DICIONÁRIOS - Grandeza é uma variável que retorna as grandezas na forma de dicionário
+    #print Estime.x.labelGraficos()
+ #   Estime.otimiza(sup=[2,2,2,2],inf=[-2,-2,-2,-2],algoritmo='PSO',itmax=5)
+ #   Estime.graficos(0.95)
+#    saida = concatenate((Estime.x.experimental.matriz_estimativa[:,0:1],Estime.x.experimental.matriz_incerteza[:,0:1]),axis=1)
+#    for i in xrange(1,Estime.NX):
+#        aux = concatenate((Estime.x.experimental.matriz_estimativa[:,i:i+1],Estime.x.experimental.matriz_incerteza[:,i:i+1]),axis=1)
+#        saida =  concatenate((saida,aux),axis=1)
+#    grandeza = Estime._armazenarDicionario() # ETAPA PARA CRIAÇÃO DOS DICIONÁRIOS - Grandeza é uma variável que retorna as grandezas na forma de dicionário
     
     # Otimização
     Estime.otimiza(sup=sup,inf=inf,algoritmo='PSO',itmax=300,Num_particulas=30)
     grandeza = Estime._armazenarDicionario()
-    #Estime.incertezaParametros(delta=1e-6) 
     Estime.analiseResiduos()
-    Estime.graficos(.95)
-
-        
+    lista_de_etapas = ['entrada','otimizacao','estimacao']
+    Estime.graficos(lista_de_etapas,0.95)       
