@@ -37,40 +37,77 @@ class Organizador:
     
     def __init__(self,estimativa,incerteza,tipos={'estimativa':'matriz','incerteza':'incerteza'},NE=None):
         '''
-        Classe para organizar as estimativas e suas incertezas, convertendo  de matrizes para vetores quando necessário
+        Classe para organizar os dados das estimativas e suas respectivas incertezas, disponibilizando-os na forma de matriz, vetores e listas.
         
         ========    
         Entradas
         ========
         
-        * ``estimativas`` (array) : estimativas para as observações das variáveis (na forma de um vetor ou matriz)
-        * ``incerteza``   (array) : incerteza para os valores das variáveis ou a matriz de covariância
-        * ``tipo``       (dicionário) : definindo os métodos, cujas chaves são estimativa (conteúdo - matriz ou vetor) e incerteza (conteúdo  - incerteza ou variancia)
+        * ``estimativa`` (array) : estimativas para as observações das variáveis (na forma de um vetor ou matriz). \
+        Caso seja uma matriz, cada coluna contém as estimativas para uma variável. Se for um vetor, as estimativas estão \
+        numa única coluna, sendo necessário fornecer a entrada NE.
+        * ``incerteza``  (array) : incerteza (ou variância) para os valores das estimativas. Esta informação sempre será uma matriz. No entanto, \
+        caso sejam as incertezas, cada coluna da contém a incerteza para os pontos de uma variável. Caso seja as variâncias, será a matriz de covariância.
+        * ``tipos``      (dicionário): dicionário que define como as entradas estimativa e incerteza foram definidas:\
+        As chaves e conteúdos são: estimativa (conteúdo: ``matriz`` ou ``vetor``) e incerteza (conteúdo: ``incerteza`` ou `variancia``).
+        * ``NE`` (int): quantidade de pontos experimentais. Necessário apenas quanto a estimativa é um vetor.
         
         **AVISO:**
         
-        * se estimativa for uma matriz (``tipo`` = matriz), espera-se que ``ìncerteza`` seja uma matriz em que cada coluna seja as *INCERTEZAS* para cada observação de uma certa variável (ela será o atributo ``.matriz_incerteza`` )
-        * se estimativa for um vetor (``tipo`` = vetor), espera-se que ``ìncerteza`` seja a matriz de *COVARIÂNCIA* (dimensão de estimativa x dimensçao de estimativa) (ela será o atributo ``.matriz_covariancia`` )
+        * se estimativa for uma matriz, espera-se que ``ìncerteza`` seja uma matriz em que cada coluna seja as *INCERTEZAS* para cada observação de uma certa variável (ela será o atributo ``.matriz_incerteza`` ) (``tipo`` = {`estimativa`:`matriz`, `incerteza`:`incerteza`})
+        * se estimativa for um vetor, espera-se que ``ìncerteza`` seja a matriz de *COVARIÂNCIA* (dimensão de estimativa x dimensçao de estimativa) (ela será o atributo ``.matriz_covariancia`` ) (``tipo`` = {`estimativa`:`vetor`, `incerteza`:`variancia`})
+        * se a incerteza for definida na forma de uma matriz de incertezas, a matriz de covariância assumirá que os elementos fora da diagonal principal são ZEROS.
         
         =========
         Atributos
         =========
         
-        * ``.matriz_estimativa`` (array): cada variável está alocada em uma coluna que contém suas observações
-        * ``.vetor_estimativa``  (array): todas as observações de todas as variáveis estão em um único vetor
-        * ``.matriz_incerteza``  (array): uma matriz em que cada coluna contém a incerteza das observações de uma certeza variável
-        * ``.matriz_covariancia`` (array): matriz de covariância
+        * ``.matriz_estimativa`` (array): cada variável está alocada em uma coluna que contém suas observações.
+        * ``.vetor_estimativa``  (array): todas as observações de todas as variáveis estão em um único vetor.
+        * ``lista_estimativa``   (list):  lista de listas, em quw cada lista interna contém as estimativas para uma variável.   
+        * ``.matriz_incerteza``  (array): matriz em que cada coluna contém a incerteza de cada ponto de uma certeza variável.
+        * ``.matriz_covariancia`` (array): matriz de covariância.
+        * ``lista_incerteza``(list): lista de listas, em que cada lista interna contém as incertezas para uma variável. 
+        * ``lista_variancia``(list): ista de listas, onde cada lista interna contém as variâncias para uma variável. Aqui \
+        é considerado somente a diagonal principal da matriz de covariancia.
+
+        ** AVISO: **
+
+        * Caso a incerteza seja definida como None, os atributos relacionados a ela NÃO serão criados.
         '''
+        # ---------------------------------------------------------------------
+        # VALIDAÇÃO da entrada tipos:
+        # ---------------------------------------------------------------------
+        # verificação se as chaves estão corretas:
+        if ('estimativa' not in tipos.keys()) or ('incerteza' not in tipos.keys()):
+            raise NameError(u'É necessário definir as chaves estimativa e incerteza da entrada tipos. Elas não foram\
+            incluídas ou a grafia está errada')
         
+        # conteúdos disponíveis
+        tiposEstimativa = ('matriz','vetor') 
+        tiposIncerteza  = ('incerteza','variancia')            
+        
+        # verificação se os conteúdos estão corretos
+        if tipos['estimativa'] not in tiposEstimativa:
+            raise NameError(('Os conteúdos disponíveis para a chave estimativa do dicionário tipos são: '\
+            +'%s, '*(len(tiposEstimativa)-1)+'%s.')%tiposEstimativa)
+        
+        if tipos['incerteza'] not in tiposIncerteza:
+            raise NameError(('Os conteúdos disponíveis para a chave incerteza do dicionário tipos são: '\
+            +'%s, '*(len(tiposIncerteza)-1)+'%s.')%tiposIncerteza)
+        
+        # ---------------------------------------------------------------------
+        # CRIAÇÃO dos atributos na forma de ARRAYS
+        # ---------------------------------------------------------------------
         if tipos['estimativa'] == 'matriz':
             
             self.matriz_estimativa  = estimativa
-            self.vetor_estimativa   = matriz2vetor(self.matriz_estimativa)
+            self.vetor_estimativa   = matriz2vetor(self.matriz_estimativa) # conversão de matriz para vetor
         
         if tipos['estimativa'] == 'vetor':
             
             self.vetor_estimativa   = estimativa
-            self.matriz_estimativa  = vetor2matriz(self.vetor_estimativa,NE)       
+            self.matriz_estimativa  = vetor2matriz(self.vetor_estimativa,NE) # Conversão de vetor para uma matriz  
         
         if tipos['incerteza'] == 'incerteza':
 
@@ -83,8 +120,9 @@ class Organizador:
             if incerteza != None:        
                 self.matriz_covariancia = incerteza      
                 self.matriz_incerteza   = vetor2matriz(transpose(array([diag(self.matriz_covariancia**0.5)])),NE)
-
-        # Criação de variável sob a forma de lista
+        # ---------------------------------------------------------------------
+        # Criação dos atributos na forma de LISTAS
+        # ---------------------------------------------------------------------
         self.lista_estimativa = self.matriz_estimativa.transpose().tolist()
         
         if incerteza != None:        
