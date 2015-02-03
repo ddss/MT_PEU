@@ -57,6 +57,8 @@ class Organizador:
         * ``lista_incerteza``(list): lista de listas, em que cada lista interna contém as incertezas para uma variável. 
         * ``lista_variancia``(list): ista de listas, onde cada lista interna contém as variâncias para uma variável. Aqui \
         é considerado somente a diagonal principal da matriz de covariancia.
+        * ``NE`` (float): número de observações (para cada grandeza)
+        * ``NV`` (float): número de variáveis
 
         ** AVISO: **
 
@@ -118,19 +120,18 @@ class Organizador:
             self.lista_variancia  = diag(self.matriz_covariancia).tolist()
 
         # ---------------------------------------------------------------------
-        # Número de pontos
+        # Número de pontos experimentais e de variáveis
         # ---------------------------------------------------------------------
-
         self.NE = size(self.matriz_estimativa,0)
-
+        
 class Grandeza:
     
-    def __init__(self,nomes,simbolos,unidades,label_latex):
+    def __init__(self,simbolos,nomes=None,unidades=None,label_latex=None):
         '''
         Classe para organizar as características das Grandezas:
         
         * experimentais
-        * caculados
+        * do modelo
         * validação
         * parâmetros
         * resíduos
@@ -138,22 +139,24 @@ class Grandeza:
         =======
         Entrada
         =======
+        OBRIGATÓRIO:
+        * simbolos (list)   : deve ser uma lista contendo os símbolos, na ordem de entrada de cada variável   
         
+        OPCIONAL:
         * nomes (list)      : deve ser uma lisra contendo o nome das variáveis
-        * simbolos (list)   : deve ser uma lista contendo os símbolos, na ordem de entrada de cada variável
+        * unidades (list)   : deve ser uma lista contendo as unidades das variáveis
         * label_latex(list) : de ser uma lista contendo os símbolos em formato LATEX
         
         =======
         Métodos        
         =======
         
-        * _experimental: irá criar o atributo experimental. Deve ser usado se se tratar de dados experimentais
-        * _calculado   : irá criar o atributo calculaod. Deve ser usado se se tratar de dados do modelo
-        * _validacao   :irá criar o atributo validacao. Deve ser usado se se tratar de dados de validação
-        * _parametro   : irá criar os atributos estimativa, matriz_covariancia, regiao_abrangencia. Deve ser usado para os parâmetros
-        * _residuo_x   : irá criar os atributos x. Deve ser usado para os resíduos de x
-        * _residuo_y   : irá criar os atributos y. Deve ser usado para os resíduos de y
-    
+        * _SETexperimental: irá criar o atributo experimental. Deve ser usado se se tratar de dados experimentais
+        * _SETmodelo      : irá criar o atributo modelo. Deve ser usado se se tratar de dados do modelo
+        * _SETvalidacao   :irá criar o atributo validacao. Deve ser usado se se tratar de dados de validação
+        * _SETparametro   : irá criar os atributos estimativa, matriz_covariancia, regiao_abrangencia. Deve ser usado para os parâmetros
+        * _SETresiduos    : irá criar o atributo resíduos. Deve ser usado para os resíduos de x
+
         =========
         Atributos
         =========
@@ -168,49 +171,73 @@ class Grandeza:
         * ``.x`` (objeto): objeto Organizador (vide documentação do mesmo). **só exitirá após execução do método _residuo_x**
         * ``.y`` (objeto): objeto Organizador (vide documentação do mesmo). **só exitirá após execução do método _residuo_y**
         '''
+        if simbolos == None:
+            raise NameError('Os símbolos das grandezas são obrigatórios')
+
+        self.simbolos    = simbolos        
 
         self.nomes       = nomes
         if nomes == None:
-            self.nomes = [None]*len(nomes)
-
-        self.simbolos    = simbolos        
-        if simbolos == None:
-            self.simbolos = [None]*len(nomes)
+            self.nomes = [None]*len(simbolos)
 
         self.unidades    = unidades
         if unidades == None:
-            self.unidades = [None]*len(nomes)
+            self.unidades = [None]*len(simbolos)
         
         self.label_latex = label_latex
         if label_latex == None:
-            self.label_latex = [None]*len(nomes)
-
+            self.label_latex = [None]*len(simbolos)
+        
         self.__ID = []
         self.__ID_disponivel = ['experimental','validacao','calculado','parametro','residuo']
+
+        # ------------------------------------------------------------------------------------
+        # VALIDAÇÂO referente ao tamanho das listas de simbolos, unidades, nomes e label_latex
+        # -------------------------------------------------------------------------------------
+        self.__validacaoEntrada()
     
-    def _experimental(self,estimativa,variancia,tipo):
+        # ---------------------------------------------------------------------
+        # Número de pontos experimentais e de variáveis
+        # ---------------------------------------------------------------------   
+        self.NV = len(simbolos)
+        
+    def __validacaoEntrada(self):
+        '''
+        Verificação:
+        - se os atributos de simbologia, nome, unidades e label_latex são Listas.
+        - se os tamanhos dos atributos de simbologia, nome, unidades e label_latex são os mesmos.
+        '''
+        for elemento in [self.nomes,self.unidades,self.label_latex]:
+            if not isinstance(elemento,list):
+                raise ValueError(u'A simbologia, nomes, unidades e label_latex de uma grandeza devem ser LISTAS.')        
+
+        for elemento in [self.nomes,self.unidades,self.label_latex]:
+            if len(elemento) != len(self.simbolos):
+                raise ValueError(u'A simbologia, nomes, unidades e label_latex de uma grandeza devem ser listas de MESMO tamanho.')        
+    
+    def _SETexperimental(self,estimativa,variancia,tipo):
         
         self.__ID.append('experimental')
         self.experimental = Organizador(estimativa,variancia,tipo)        
         
-    def _validacao(self,estimativa,variancia,tipo):
+    def _SETvalidacao(self,estimativa,variancia,tipo):
         
         self.__ID.append('validacao')
         self.validacao = Organizador(estimativa,variancia,tipo)
 
-    def _calculado(self,estimativa,variancia,tipo,NE):
+    def _SETcalculado(self,estimativa,variancia,tipo,NE):
         
         self.__ID.append('calculado')
         self.calculado = Organizador(estimativa,variancia,tipo,NE)     
  
-    def _parametro(self,estimativa,variancia,regiao):
+    def _SETparametro(self,estimativa,variancia,regiao):
         
         self.__ID.append('parametro')           
         self.estimativa         = estimativa
         self.matriz_covariancia = variancia
         self.regiao_abrangencia = regiao
 
-    def _residuos(self,estimativa,variancia,tipo):
+    def _SETresiduos(self,estimativa,variancia,tipo):
         
         self.__ID.append('residuo')
         self.residuos = Organizador(estimativa,variancia,tipo)           

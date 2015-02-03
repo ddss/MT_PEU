@@ -35,19 +35,19 @@ from Modelo import Modelo
 
 class Estimacao:
     
-    def __init__(self,FO,Modelo,Nomes_y,Nomes_x,Nomes_param,projeto=None,**kwargs):
+    def __init__(self,FO,Modelo,simbolos_y,simbolos_x,simbolos_param,projeto='Projeto',**kwargs):
         '''
         Classe para Executar a estimação de parâmetros        
         
         =======================
         Entradas (obrigatórias)
         =======================
-        * ``FO``          : função objetivo (Thread)
-        * ``Modelo``      : modelo (Thread). O modelo deve retornar um array com número de colunas igual ao número de y.
-        * ``Nomes_y``     : lista coms os nomes das variáveis y
-        * ``Nomes_x``     : lista com os nomes das variáveis x
-        * ``Nomes_param`` : lista com o nomes dos parâmetros
-        * ``projeto``     : nome do projeto
+        * ``FO``             : função objetivo (Thread)
+        * ``Modelo``         : modelo (Thread). O modelo deve retornar um array com número de colunas igual ao número de y.
+        * ``simbolos_y``     : lista com os simbolos das variáveis y (Não podem haver caracteres especiais)
+        * ``simbolos_x``     : lista com os simbolos das variáveis x (Não podem haver caracteres especiais)
+        * ``simbolos_param`` : lista com o simbolos dos parâmetros (Não podem haver caracteres especiais)
+        * ``projeto``        : nome do projeto
             
         Exemplo de função objetivo: ::
                 
@@ -76,45 +76,45 @@ class Estimacao:
         
         * ``simbolos_param`` (list): lista com os símbolos para os parâmetros (inclusive em formato LATEX)
         * ``unidades_param`` (list): lista com as unidades para os parâmetros (inclusive em formato LATEX)
-        * ``label_latex_param`` (list): lista com os símbolos d['residuo_y%d'%(i,) for i in xrange(self.NY)],['ry_%d'%(i,) for i in xrange(self.NY)],\
-                         self.y.unidades,[r'$res_y_%d$'%(i,) for i in xrange(self.NY)as variáveis em formato LATEX
+        * ``label_latex_param`` (list): lista com os símbolos d['residuo_y%d'%(i,) for i in xrange(self.y.NV)],['ry_%d'%(i,) for i in xrange(self.y.NV)],\
+                         self.y.unidades,[r'$res_y_%d$'%(i,) for i in xrange(self.y.NV)as variáveis em formato LATEX
         '''
+        # ---------------------------------------------------------------------
+        # VALIDAÇÕES GERAIS DE KEYWORDS
+        # ---------------------------------------------------------------------
         self.__validacaoArgumentosEntrada(kwargs,'init')
-        self.__validacaoSimbologiaUnidade(kwargs)
+        
+        # ---------------------------------------------------------------------
+        # VALIDAÇÃO ESPECÍFICA:
+        # ---------------------------------------------------------------------
+        # SÍMBOLOS
+        # Verificação se os símbolos possuem caracteres especiais
+        for simb in [simbolos_y,simbolos_x,simbolos_param]:
+            for elemento in simb:
+                if set('[~!@#$%^&*()_+{}":;\']+$').intersection(elemento):
+                    raise NameError('Os nomes das grandezas não podem ter caracteres especiais. Simbolo incorreto: '+elemento)       
+        
+        # PROJETO
+        # Verificação se o nome do projeto possui caracteres especiais
+        if set('[~!@#$%^&*()_+{}":;\']+$').intersection(projeto):
+            raise NameError('O nome do projeto não pode conter caracteres especiais')  
         
         # Inicialização das variáveis
-        self.x          = Grandeza(Nomes_x    ,kwargs.get(self.__keywordsEntrada[0]),kwargs.get(self.__keywordsEntrada[1]),kwargs.get(self.__keywordsEntrada[2]))
-        self.y          = Grandeza(Nomes_y    ,kwargs.get(self.__keywordsEntrada[3]),kwargs.get(self.__keywordsEntrada[4]),kwargs.get(self.__keywordsEntrada[5]))
-        #self.xval       = Grandeza(Nomes_x    ,kwargs.get(self.__keywordsEntrada[0]),kwargs.get(self.__keywordsEntrada[1]),kwargs.get(self.__keywordsEntrada[2]))
-        #self.yval       = Grandeza(Nomes_y    ,kwargs.get(self.__keywordsEntrada[3]),kwargs.get(self.__keywordsEntrada[4]),kwargs.get(self.__keywordsEntrada[5]))
-        self.parametros = Grandeza(Nomes_param,kwargs.get(self.__keywordsEntrada[6]),kwargs.get(self.__keywordsEntrada[7]),kwargs.get(self.__keywordsEntrada[8]))
-        
-        # Número de variáveis
-        self.NX  = size(self.x.nomes) # Número de variáveis independentes
-        self.NY  = size(self.y.nomes) # Número de variáveis dependentes
-        self.NP  = size(self.parametros.nomes) # Número de parâmetros
-    
-        # Criaçaão das variáveis internas
+        # Variável      = Grandeza(simbolos  , nomes                               , unidades                            , label_latex)
+        self.x          = Grandeza(simbolos_x,kwargs.get(self.__keywordsEntrada[0]),kwargs.get(self.__keywordsEntrada[1]),kwargs.get(self.__keywordsEntrada[2]))
+        self.y          = Grandeza(simbolos_y,kwargs.get(self.__keywordsEntrada[3]),kwargs.get(self.__keywordsEntrada[4]),kwargs.get(self.__keywordsEntrada[5]))
+        self.parametros = Grandeza(simbolos_param,kwargs.get(self.__keywordsEntrada[6]),kwargs.get(self.__keywordsEntrada[7]),kwargs.get(self.__keywordsEntrada[8]))
+            
+        # Criação das variáveis internas
         self.__FO        = FO
         self.__modelo    = Modelo
         self.__base_path = getcwd()+ sep +str(projeto)+sep
         
         # Controle interno das etapas do algoritmo (métodos executados)
         self.__etapasdisponiveis = ['__init__','gerarEntradas','otimizacao','incertezaParametros','regiaoAbrangencia','analiseResiduos'] # Lista de etapas que o algoritmo irá executar
-        self.__etapas     = [self.__etapasdisponiveis[0]] # Variável de armazenamento das etapas realizadas pelo algoritmo
-        
-    def __validacaoSimbologiaUnidade(self,keywargs):
-        '''
-        Método para validação da simbologia e das unidades, se entradas pelo usuário
-        
-        * Verificação se a simbologia de todas as varíaveis x, y, parametros foi definida, caso incluídas
-        * Verificação se a unidade de todas as varíaveis x, y, parametros foi definida, caso incluídas
-        '''
-        
-        if size(keywargs.get(self.__keywordsEntrada[0])) != size(keywargs.get(self.__keywordsEntrada[1])) and keywargs.get(self.__keywordsEntrada[1]) != None:
-            raise ValueError(u'Os nomes para as variáveis x e sua simbologia devem ter o mesmo tamanho')            
+        self.__etapas            = [self.__etapasdisponiveis[0]] # Variável de armazenamento das etapas realizadas pelo algoritmo
             
-    
+             
     def __validacaoArgumentosEntrada(self,keywargs,etapa,args=None):
         '''
         Validação para verificar se todos os argumentos das rotinas entrada foram definidos corretamente.
@@ -122,7 +122,7 @@ class Estimacao:
         * Se houve keyword erradas        
         '''
         # Keywords disponíveis        
-        self.__keywordsEntrada = ['simbolos_x','unidades_x','label_latex_x','simbolos_y','unidades_y','label_latex_y','simbolos_param','unidades_param','label_latex_param'] # Keywords disponíveis para a entrada
+        self.__keywordsEntrada = ['nomes_x','unidades_x','label_latex_x','nomes_y','unidades_y','label_latex_y','nomes_param','unidades_param','label_latex_param'] # Keywords disponíveis para a entrada
         self.__keywordsOtimizacao = {'PSO':['itmax','Num_particulas','sup','inf','posinit_sup', 'posinit_inf','w' ,'C1' ,'C2', 'Vmax','Vreinit' , 'otimo' , 'deltaw', 'k', 'gama'],'Nelder_Mead':[]}        
         self.__keywordsOtimizacaoObrigatorias = {'PSO':['sup','inf'],'Nelder_Mead':[]}  
 
@@ -131,7 +131,7 @@ class Estimacao:
             keyincorreta  = [key for key in keywargs.keys() if not key in self.__keywordsEntrada]
         
             if len(keyincorreta) != 0:
-                raise NameError(('keyword(s) incorretas: '+(len(keyincorreta)-1)*'%s, '+u'%s. Verifique documentação para keywords disponíveis.')%tuple(keyincorreta))
+                raise NameError('keyword(s) incorretas: '+', '.join(keyincorreta)+'.'+' Keywords disponíveis: '+', '.join(self.__keywordsEntrada)+'.')
     
         if etapa == 'otimizacao':
                     
@@ -219,19 +219,19 @@ class Estimacao:
         self.NE  = size(xe,0) # Número de observações
 
         # VALIDAÇÃO dos dados de entrada x, y, xval e yval
-        self.__validacaoDadosEntrada(xe,ux,self.NX,self.NE) 
-        self.__validacaoDadosEntrada(ye,uy,self.NY,self.NE)
-        self.__validacaoDadosEntrada(xval,uxval,self.NX,self.NE) 
-        self.__validacaoDadosEntrada(yval,uyval,self.NY,self.NE)
+        self.__validacaoDadosEntrada(xe,ux,self.x.NV,self.NE) 
+        self.__validacaoDadosEntrada(ye,uy,self.y.NV,self.NE)
+        self.__validacaoDadosEntrada(xval,uxval,self.x.NV,self.NE) 
+        self.__validacaoDadosEntrada(yval,uyval,self.y.NV,self.NE)
 
         
         # Salvando os dados experimentais nas variáveis.
-        self.x._experimental(xe,ux,{'estimativa':'matriz','incerteza':'incerteza'})
-        self.y._experimental(ye,uy,{'estimativa':'matriz','incerteza':'incerteza'}) 
+        self.x._SETexperimental(xe,ux,{'estimativa':'matriz','incerteza':'incerteza'})
+        self.y._SETexperimental(ye,uy,{'estimativa':'matriz','incerteza':'incerteza'}) 
         
         # Salvando os dados de validação.
-        self.x._validacao(xval,uxval,{'estimativa':'matriz','incerteza':'incerteza'})
-        self.y._validacao(yval,uyval,{'estimativa':'matriz','incerteza':'incerteza'}) 
+        self.x._SETvalidacao(xval,uxval,{'estimativa':'matriz','incerteza':'incerteza'})
+        self.y._SETvalidacao(yval,uyval,{'estimativa':'matriz','incerteza':'incerteza'}) 
      
         self.__etapas.append(self.__etapasdisponiveis[1]) # Inclusão desta etapa da lista de etapas
         
@@ -249,26 +249,26 @@ class Estimacao:
         '''
         grandeza = {}        
         for j,simbolo in enumerate(self.y.simbolos):
-            grandeza[simbolo] = Grandeza(self.y.nomes[j],simbolo,self.y.unidades[j],self.y.label_latex[j])
+            grandeza[simbolo] = Grandeza([simbolo],[self.y.nomes[j]],[self.y.unidades[j]],[self.y.label_latex[j]])
             if self.__etapasdisponiveis[1] in self.__etapas:
-                grandeza[simbolo]._experimental(self.y.experimental.matriz_estimativa[:,j:j+1],self.y.experimental.matriz_incerteza[:,j:j+1],{'estimativa':'matriz','incerteza':'incerteza'})
+                grandeza[simbolo]._SETexperimental(self.y.experimental.matriz_estimativa[:,j:j+1],self.y.experimental.matriz_incerteza[:,j:j+1],{'estimativa':'matriz','incerteza':'incerteza'})
             if self.__etapasdisponiveis[2] in self.__etapas:
-                grandeza[simbolo]._calculado(self.y.calculado.matriz_estimativa[:,j:j+1],None,{'estimativa':'matriz','incerteza':'variancia'},None)
+                grandeza[simbolo]._SETcalculado(self.y.calculado.matriz_estimativa[:,j:j+1],None,{'estimativa':'matriz','incerteza':'variancia'},None)
 
         for j,simbolo in enumerate(self.x.simbolos):
-            grandeza[simbolo] = Grandeza(self.x.nomes[j],simbolo,self.x.unidades[j],self.x.label_latex[j])
+            grandeza[simbolo] = Grandeza([simbolo],[self.x.nomes[j]],[self.x.unidades[j]],[self.x.label_latex[j]])
             if self.__etapasdisponiveis[1] in self.__etapas:            
-                grandeza[simbolo]._experimental(self.x.experimental.matriz_estimativa[:,j:j+1],self.x.experimental.matriz_incerteza[:,j:j+1],{'estimativa':'matriz','incerteza':'incerteza'})
+                grandeza[simbolo]._SETexperimental(self.x.experimental.matriz_estimativa[:,j:j+1],self.x.experimental.matriz_incerteza[:,j:j+1],{'estimativa':'matriz','incerteza':'incerteza'})
             if self.__etapasdisponiveis[2] in self.__etapas:            
-                grandeza[simbolo]._calculado(self.x.calculado.matriz_estimativa[:,j:j+1],None,{'estimativa':'matriz','incerteza':'variancia'},None)
+                grandeza[simbolo]._SETcalculado(self.x.calculado.matriz_estimativa[:,j:j+1],None,{'estimativa':'matriz','incerteza':'variancia'},None)
 
         for j,simbolo in enumerate(self.parametros.simbolos):
-            grandeza[simbolo] = Grandeza(self.parametros.nomes[j],simbolo,self.parametros.unidades[j],self.parametros.label_latex[j])
+            grandeza[simbolo] = Grandeza([simbolo],[self.parametros.nomes[j]],[self.parametros.unidades[j]],[self.parametros.label_latex[j]])
             if self.__etapasdisponiveis[2] in self.__etapas:
                 if self.parametros.matriz_covariancia == None:
-                    grandeza[simbolo]._parametro(self.parametros.estimativa[j],None,None)
+                    grandeza[simbolo]._SETparametro(self.parametros.estimativa[j],None,None)
                 else:
-                    grandeza[simbolo]._parametro(self.parametros.estimativa[j],self.parametros.matriz_covariancia[j,j],None)
+                    grandeza[simbolo]._SETparametro(self.parametros.estimativa[j],self.parametros.matriz_covariancia[j,j],None)
 
         return grandeza
     
@@ -311,17 +311,17 @@ class Estimacao:
             # Executar a otimização
             self.Otimizacao = PSO(kwargs.get('sup'),kwargs.get('inf'),Num_particulas=Num_particulas,itmax=itmax,args_model=self.__args_model)
             self.Otimizacao.Busca(self.__FO,printit=False)
-            self.parametros._parametro(self.Otimizacao.gbest,None,None) # Atribuindo o valor ótimo dos parâemetros
+            self.parametros._SETparametro(self.Otimizacao.gbest,None,None) # Atribuindo o valor ótimo dos parâemetros
 
 
         # O modelo é calculado para os dados de validação
-        aux = self.__modelo(self.parametros.estimativa,self.x.validacao.matriz_estimativa,args)
+        aux = self.__modelo(self.parametros.estimativa,self.x.validacao.matriz_estimativa,[args,self.x.simbolos,self.y.simbolos,self.parametros.simbolos])
         aux.start()
         aux.join()
                 
         # Salvando os resultados
-        self.y._calculado(aux.result,None,{'estimativa':'matriz','incerteza':'variancia'},None)
-        self.x._calculado(self.x.experimental.matriz_estimativa,self.x.experimental.matriz_incerteza,{'estimativa':'matriz','incerteza':'incerteza'},None)
+        self.y._SETcalculado(aux.result,None,{'estimativa':'matriz','incerteza':'variancia'},None)
+        self.x._SETcalculado(self.x.experimental.matriz_estimativa,self.x.experimental.matriz_incerteza,{'estimativa':'matriz','incerteza':'incerteza'},None)
 
         self.__etapas.append(self.__etapasdisponiveis[2]) # Inclusão desta etapa da lista de etapas
  
@@ -349,7 +349,7 @@ class Estimacao:
         except:
             matriz_covariancia = None
             
-        self.parametros._parametro(self.parametros.estimativa,matriz_covariancia,self.parametros.regiao_abrangencia)
+        self.parametros._SETparametro(self.parametros.estimativa,matriz_covariancia,self.parametros.regiao_abrangencia)
         
         self.regiaoAbrangencia(PA) # método para avaliação da região de abrangência
                 
@@ -387,12 +387,12 @@ class Estimacao:
                 
             return vetor
             
-        matriz_hessiana=[[1. for col in range(self.NP)] for row in range(self.NP)]
+        matriz_hessiana=[[1. for col in range(self.parametros.NV)] for row in range(self.parametros.NV)]
         
         FO_otimo = self.Otimizacao.best_fitness # Valor da função objetivo no ponto ótimo
 
-        for i in range(self.NP): 
-            for j in range(self.NP):
+        for i in range(self.parametros.NV): 
+            for j in range(self.parametros.NV):
                 
                 delta1 = (10**(floor(log10(abs(self.parametros.estimativa[i])))))*delta
                 delta2 = (10**(floor(log10(abs(self.parametros.estimativa[j])))))*delta
@@ -455,8 +455,8 @@ class Estimacao:
         Método para avaliação da região de abrangência
         '''
         
-        Fisher = f.ppf(PA,self.NP,(self.NE*self.NY-self.NP))            
-        Comparacao = self.Otimizacao.best_fitness*(1+float(self.NP)/(self.NE*self.NY-float(self.NP))*Fisher)
+        Fisher = f.ppf(PA,self.parametros.NV,(self.NE*self.y.NV-self.parametros.NV))            
+        Comparacao = self.Otimizacao.best_fitness*(1+float(self.parametros.NV)/(self.NE*self.y.NV-float(self.parametros.NV))*Fisher)
         
         Regiao = []; Hist_Posicoes = []; Hist_Fitness = []
         for it in xrange(self.Otimizacao.itmax):
@@ -466,7 +466,7 @@ class Estimacao:
                 Hist_Posicoes.append(self.Otimizacao.historico_posicoes[it][ID_particula])
                 Hist_Fitness.append(self.Otimizacao.historico_fitness[it][ID_particula])
             
-        self.parametros._parametro(self.parametros.estimativa,self.parametros.matriz_covariancia,Regiao)
+        self.parametros._SETparametro(self.parametros.estimativa,self.parametros.matriz_covariancia,Regiao)
         
         self.__etapas.append(self.__etapasdisponiveis[4]) # Inclusão desta etapa da lista de etapas
 
@@ -484,18 +484,14 @@ class Estimacao:
         * As grandezas resíduos possuem o atributo "estatisticas".
         '''
         # Criação dos resíduos como Grandezas
-        #self.residuos_x = Grandeza(nomes=['residuo_'+self.x.nomes[i] for i in xrange(self.NX)],simbolos=['res_'+self.x.simbolos[i] for i in xrange(self.NX)],\
-        #                 unidades = self.x.unidades,label_latex = [r'$res_x_%d$'%(i,) for i in xrange(self.NX)])
-        #self.residuos_y = Grandeza(nomes=['residuo_'+self.y.nomes[i] for i in xrange(self.NY)],simbolos=['res_'+self.y.simbolos[i] for i in xrange(self.NY)],\
-        #                 unidades = self.y.unidades,label_latex = [r'$res_y_%d$'%(i,) for i in xrange(self.NY)])
         
         # Calculos dos residuos (ou desvios) - estão baseados nos dados de validação
         residuo_y = self.y.validacao.matriz_estimativa - self.y.calculado.matriz_estimativa
         residuo_x = self.x.validacao.matriz_estimativa - self.x.calculado.matriz_estimativa
         
         # Attribuição dos valores nos objetos
-        self.x._residuos(residuo_x,None,{'estimativa':'matriz','incerteza':'incerteza'})
-        self.y._residuos(residuo_y,None,{'estimativa':'matriz','incerteza':'incerteza'})
+        self.x._SETresiduos(residuo_x,None,{'estimativa':'matriz','incerteza':'incerteza'})
+        self.y._SETresiduos(residuo_y,None,{'estimativa':'matriz','incerteza':'incerteza'})
         
         # DESCOMENTAR QUANDO RECONCILIAÇÃO !!
         #self.x.Graficos(self.__base_path + sep + 'Graficos'  + sep,ID=['residuo'])
@@ -609,8 +605,8 @@ class Estimacao:
             self.x.Graficos(base_path, ID = ['experimental','validacao'])
             self.y.Graficos(base_path, ID = ['experimental','validacao'])
 
-            for iy in xrange(self.NY):
-                for ix in xrange(self.NX):
+            for iy in xrange(self.y.NV):
+                for ix in xrange(self.x.NV):
                     x = self.x.experimental.matriz_estimativa[:,ix]
                     y = self.y.experimental.matriz_estimativa[:,iy]
                     ux = self.x.experimental.matriz_incerteza[:,ix]
@@ -631,14 +627,14 @@ class Estimacao:
             base_dir = sep + 'Estimacao' + sep
             Validacao_Diretorio(base_path,base_dir)
             
-            for i in xrange(self.NY):
+            for i in xrange(self.y.NV):
                 # Região de abrangência (método da verossimilhança)
                 Hist_Posicoes , Hist_Fitness = self.regiaoAbrangencia(PA)
                
-                if self.NP == 1:
+                if self.parametros.NV == 1:
                         
                     aux = []
-                    for it in xrange(size(self.parametros.regiao_abrangencia)/self.NP):     
+                    for it in xrange(size(self.parametros.regiao_abrangencia)/self.parametros.NV):     
                         aux.append(self.parametros.regiao_abrangencia[it][0])
                            
                     X = [Hist_Posicoes[it][0] for it in xrange(len(Hist_Posicoes))]
@@ -662,22 +658,22 @@ class Estimacao:
                 
                 else:
                     
-                    Combinacoes = int(factorial(self.NP)/(factorial(self.NP-2)*factorial(2)))
+                    Combinacoes = int(factorial(self.parametros.NV)/(factorial(self.parametros.NV-2)*factorial(2)))
                     p1 = 0; p2 = 1; cont = 0; passo = 1
                     
                     for pos in xrange(Combinacoes):
-                        if pos == (self.NP-1)+cont:
+                        if pos == (self.parametros.NV-1)+cont:
                             p1 +=1; p2 = p1+1; passo +=1
-                            cont += self.NP-passo
+                            cont += self.parametros.NV-passo
                         
                         fig = figure()
                         ax = fig.add_subplot(1,1,1)
                         
-                        for it in xrange(size(self.parametros.regiao_abrangencia)/self.NP):     
+                        for it in xrange(size(self.parametros.regiao_abrangencia)/self.parametros.NV):     
                             PSO, = plot(self.parametros.regiao_abrangencia[it][p1],self.parametros.regiao_abrangencia[it][p2],'bo',linewidth=2.0,zorder=1)
                         
-                        Fisher = f.ppf(PA,self.NP,(self.NE*self.NY-self.NP))            
-                        Comparacao = self.Otimizacao.best_fitness*(float(self.NP)/(self.NE*self.NY-float(self.NP))*Fisher)
+                        Fisher = f.ppf(PA,self.parametros.NV,(self.NE*self.y.NV-self.parametros.NV))            
+                        Comparacao = self.Otimizacao.best_fitness*(float(self.parametros.NV)/(self.NE*self.y.NV-float(self.parametros.NV))*Fisher)
                         cov = array([[self.parametros.matriz_covariancia[p1,p1],self.parametros.matriz_covariancia[p1,p2]],[self.parametros.matriz_covariancia[p2,p1],self.parametros.matriz_covariancia[p2,p2]]])
                         ellipse = plot_cov_ellipse(cov, [self.parametros.estimativa[p1],self.parametros.estimativa[p2]], Comparacao, fill = False, color = 'r', linewidth=2.0,zorder=2)
                         plot(self.parametros.estimativa[p1],self.parametros.estimativa[p2],'r*',markersize=10.0,zorder=2)
@@ -695,8 +691,8 @@ class Estimacao:
             self.x.Graficos(base_path, ID = ['calculado'])
             self.y.Graficos(base_path, ID = ['calculado'])
             
-            for iy in xrange(self.NY):
-                for ix in xrange(self.NX):
+            for iy in xrange(self.y.NV):
+                for ix in xrange(self.x.NV):
                     x = self.x.calculado.matriz_estimativa[:,ix]
                     y = self.y.calculado.matriz_estimativa[:,iy]
                     ux = self.x.calculado.matriz_incerteza[:,ix]
@@ -708,8 +704,8 @@ class Estimacao:
             
             base_dir = sep + 'Estimacao' + sep
             Validacao_Diretorio(base_path,base_dir)
-            for iy in xrange(self.NY):
-                for ix in xrange(self.NX):
+            for iy in xrange(self.y.NV):
+                for ix in xrange(self.x.NV):
                # Gráfico comparativo entre valores experimentais e calculados pelo modelo, sem variância         
                     y  = self.y.experimental.matriz_estimativa[:,i]
                     ym = self.y.calculado.matriz_estimativa[:,i]
@@ -758,7 +754,7 @@ if __name__ == "__main__":
         
     uy = ones((41,1))    
     
-    Estime = Estimacao(WLS,Modelo,Nomes_x = ['variavel teste x1','variavel teste 2'],simbolos_x=[r'te','T'],label_latex_x=[r'$t$','$T$'],Nomes_y=['y1'],simbolos_y=[r'y1'],Nomes_param=['theyta'+str(i) for i in xrange(2)],simbolos_param=[r'theta%d'%i for i in xrange(2)],label_latex_param=[r'$\theta_{%d}$'%i for i in xrange(2)])
+    Estime = Estimacao(WLS,Modelo,nomes_x = ['variavel teste x1','variavel teste 2'],simbolos_x=[r't','T'],label_latex_x=[r'$t$','$T$'],nomes_y=['y1'],simbolos_y=[r'y1'],nomes_param=['theyta'+str(i) for i in xrange(2)],simbolos_param=[r'theta%d'%i for i in xrange(2)],label_latex_param=[r'$\theta_{%d}$'%i for i in xrange(2)])
     sup=[1,30000]
     inf=[0,20000]
 
