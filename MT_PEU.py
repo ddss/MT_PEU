@@ -253,14 +253,14 @@ class Estimacao:
             if self.__etapasdisponiveis[1] in self.__etapas:
                 grandeza[simbolo]._experimental(self.y.experimental.matriz_estimativa[:,j:j+1],self.y.experimental.matriz_incerteza[:,j:j+1],{'estimativa':'matriz','incerteza':'incerteza'})
             if self.__etapasdisponiveis[2] in self.__etapas:
-                grandeza[simbolo]._modelo(self.y.modelo.matriz_estimativa[:,j:j+1],None,{'estimativa':'matriz','incerteza':'variancia'},None)
+                grandeza[simbolo]._calculado(self.y.calculado.matriz_estimativa[:,j:j+1],None,{'estimativa':'matriz','incerteza':'variancia'},None)
 
         for j,simbolo in enumerate(self.x.simbolos):
             grandeza[simbolo] = Grandeza(self.x.nomes[j],simbolo,self.x.unidades[j],self.x.label_latex[j])
             if self.__etapasdisponiveis[1] in self.__etapas:            
                 grandeza[simbolo]._experimental(self.x.experimental.matriz_estimativa[:,j:j+1],self.x.experimental.matriz_incerteza[:,j:j+1],{'estimativa':'matriz','incerteza':'incerteza'})
             if self.__etapasdisponiveis[2] in self.__etapas:            
-                grandeza[simbolo]._modelo(self.x.modelo.matriz_estimativa[:,j:j+1],None,{'estimativa':'matriz','incerteza':'variancia'},None)
+                grandeza[simbolo]._calculado(self.x.calculado.matriz_estimativa[:,j:j+1],None,{'estimativa':'matriz','incerteza':'variancia'},None)
 
         for j,simbolo in enumerate(self.parametros.simbolos):
             grandeza[simbolo] = Grandeza(self.parametros.nomes[j],simbolo,self.parametros.unidades[j],self.parametros.label_latex[j])
@@ -320,8 +320,8 @@ class Estimacao:
         aux.join()
                 
         # Salvando os resultados
-        self.y._modelo(aux.result,None,{'estimativa':'matriz','incerteza':'variancia'},None)
-        self.x._modelo(self.x.experimental.matriz_estimativa,self.x.experimental.matriz_incerteza,{'estimativa':'matriz','incerteza':'incerteza'},None)
+        self.y._calculado(aux.result,None,{'estimativa':'matriz','incerteza':'variancia'},None)
+        self.x._calculado(self.x.experimental.matriz_estimativa,self.x.experimental.matriz_incerteza,{'estimativa':'matriz','incerteza':'incerteza'},None)
 
         self.__etapas.append(self.__etapasdisponiveis[2]) # Inclusão desta etapa da lista de etapas
  
@@ -490,8 +490,8 @@ class Estimacao:
         #                 unidades = self.y.unidades,label_latex = [r'$res_y_%d$'%(i,) for i in xrange(self.NY)])
         
         # Calculos dos residuos (ou desvios) - estão baseados nos dados de validação
-        residuo_y = self.y.validacao.matriz_estimativa - self.y.modelo.matriz_estimativa
-        residuo_x = self.x.validacao.matriz_estimativa - self.x.modelo.matriz_estimativa
+        residuo_y = self.y.validacao.matriz_estimativa - self.y.calculado.matriz_estimativa
+        residuo_x = self.x.validacao.matriz_estimativa - self.x.calculado.matriz_estimativa
         
         # Attribuição dos valores nos objetos
         self.x._residuos(residuo_x,None,{'estimativa':'matriz','incerteza':'incerteza'})
@@ -566,8 +566,8 @@ class Estimacao:
             xlim(xmin,xmax)
             ylim(ymin,ymax)
             # Labels
-            xlabel(self.x.labelGraficos()[ix],fontsize=20)
-            ylabel(self.y.labelGraficos()[iy],fontsize=20)
+            xlabel(self.x.labelGraficos(info)[ix],fontsize=20)
+            ylabel(self.y.labelGraficos(info)[iy],fontsize=20)
             #Grades
             grid(b = 'on', which = 'major', axis = 'both')
             fig.savefig(base_path+base_dir+info+'_'+self.y.simbolos[iy]+'_funcao_de_'+self.x.simbolos[ix]+'_sem_incerteza')
@@ -594,8 +594,8 @@ class Estimacao:
             xlim(xmin,xmax)
             ylim(ymin,ymax)
             # Labels
-            xlabel(self.x.labelGraficos()[ix],fontsize=20)
-            ylabel(self.y.labelGraficos()[iy],fontsize=20)
+            xlabel(self.x.labelGraficos(info)[ix],fontsize=20)
+            ylabel(self.y.labelGraficos(info)[iy],fontsize=20)
             #Grades
             grid(b = 'on', which = 'major', axis = 'both')
             fig.savefig(base_path+base_dir+info+'_'+self.y.simbolos[iy]+'_funcao_de_'+self.x.simbolos[ix]+'_com_incerteza')
@@ -692,14 +692,17 @@ class Estimacao:
            
             base_dir = sep + 'Grandezas' + sep
             Validacao_Diretorio(base_path,base_dir)
+            self.x.Graficos(base_path, ID = ['calculado'])
+            self.y.Graficos(base_path, ID = ['calculado'])
+            
             for iy in xrange(self.NY):
                 for ix in xrange(self.NX):
-                    x = self.x.modelo.matriz_estimativa[:,ix]
-                    y = self.y.modelo.matriz_estimativa[:,iy]
-                    ux = self.x.modelo.matriz_incerteza[:,ix]
+                    x = self.x.calculado.matriz_estimativa[:,ix]
+                    y = self.y.calculado.matriz_estimativa[:,iy]
+                    ux = self.x.calculado.matriz_incerteza[:,ix]
                     #Falta a matriz incerteza do modelo, então está sendo usado a incerteza do pontos
                     #experimentais apenas para compilar
-        #           uy = self.y.modelo.matriz_incerteza[:,i]
+        #           uy = self.y.calculado.matriz_incerteza[:,i]
                     uy = self.y.experimental.matriz_incerteza[:,iy]                    
                     graficos_entrada_saida(x,y,ux,uy,ix,iy,base_dir,'calculado')
             
@@ -709,7 +712,7 @@ class Estimacao:
                 for ix in xrange(self.NX):
                # Gráfico comparativo entre valores experimentais e calculados pelo modelo, sem variância         
                     y  = self.y.experimental.matriz_estimativa[:,i]
-                    ym = self.y.modelo.matriz_estimativa[:,i]
+                    ym = self.y.calculado.matriz_estimativa[:,i]
                     diagonal = linspace(min(y),max(y))  
                     fig = figure()
                     ax = fig.add_subplot(1,1,1)

@@ -130,7 +130,8 @@ class Grandeza:
         Classe para organizar as características das Grandezas:
         
         * experimentais
-        * do modelo
+        * caculados
+        * validação
         * parâmetros
         * resíduos
         
@@ -147,7 +148,8 @@ class Grandeza:
         =======
         
         * _experimental: irá criar o atributo experimental. Deve ser usado se se tratar de dados experimentais
-        * _modelo      : irá criar o atributo experimental. Deve ser usado se se tratar de dados do modelo
+        * _calculado   : irá criar o atributo calculaod. Deve ser usado se se tratar de dados do modelo
+        * _validacao   :irá criar o atributo validacao. Deve ser usado se se tratar de dados de validação
         * _parametro   : irá criar os atributos estimativa, matriz_covariancia, regiao_abrangencia. Deve ser usado para os parâmetros
         * _residuo_x   : irá criar os atributos x. Deve ser usado para os resíduos de x
         * _residuo_y   : irá criar os atributos y. Deve ser usado para os resíduos de y
@@ -159,7 +161,7 @@ class Grandeza:
         * ``.nomes`` (list): lista com os nomes das variáveis
         * ``.simbolos`` (list): lista com os símbolos das variáveis (inclusive em código Latex)
         * ``.experimental`` (objeto): objeto Organizador (vide documentação do mesmo). **só exitirá após execução do método _experimental**
-        * ``.modelo`` (objeto): objeto Organizador (vide documentação do mesmo). **só exitirá após execução do método _modelo**
+        * ``.calculado`` (objeto): objeto Organizador (vide documentação do mesmo). **só exitirá após execução do método _calculado**
         * ``.estimativa`` (list): lista com estimativas. **só exitirá após execução do método _parametro**
         * ``.matriz_covariancia`` (array): array representando a matriz covariância. **só exitirá após execução do método _parametro**
         * ``.regiao_abrangencia`` (list): lista representando os pontos pertencentes à região de abrangência. **só exitirá após execução do método _parametro**
@@ -184,7 +186,7 @@ class Grandeza:
             self.label_latex = [None]*len(nomes)
 
         self.__ID = []
-        self.__ID_disponivel = ['experimental','validacao','modelo','parametro','residuo']
+        self.__ID_disponivel = ['experimental','validacao','calculado','parametro','residuo']
     
     def _experimental(self,estimativa,variancia,tipo):
         
@@ -196,10 +198,10 @@ class Grandeza:
         self.__ID.append('validacao')
         self.validacao = Organizador(estimativa,variancia,tipo)
 
-    def _modelo(self,estimativa,variancia,tipo,NE):
+    def _calculado(self,estimativa,variancia,tipo,NE):
         
-        self.__ID.append('modelo')
-        self.modelo = Organizador(estimativa,variancia,tipo,NE)     
+        self.__ID.append('calculado')
+        self.calculado = Organizador(estimativa,variancia,tipo,NE)     
  
     def _parametro(self,estimativa,variancia,regiao):
         
@@ -214,10 +216,19 @@ class Grandeza:
         self.residuos = Organizador(estimativa,variancia,tipo)           
 
 
-    def labelGraficos(self):
+    def labelGraficos(self,add=None):
         '''
         Método para definição do label dos gráficos relacionado às grandezas.
+        
+        =======
+        Entrada
+        =======
+        * add: texto que se deseja escrever antes da unidade. Deve ser um string
         '''
+        # VALIDAÇÃO Da variável add
+        if (add != None) and (not isinstance(add,str)):
+            raise TypeError(u'A variável add deve ser um string')
+            
         # Definição dos labels: latex ou nomes ou simbolos (nesta ordem)
         label = [None]*len(self.nomes)
         
@@ -229,10 +240,13 @@ class Grandeza:
                 label[z] = self.nomes[z]
             elif self.simbolos[z] != None:
                 label[z] = self.simbolos[z]
+
+            if add != None:
+                label[z] = label[z] +' '+ add
             
             # Caso seja definido uma unidade, esta será incluída no label
             if self.unidades[z] != None:
-                label[z] = label[z]+"/"+self.unidades[z]
+                label[z] = label[z]+' '+"/"+self.unidades[z]
             
         return label
 
@@ -321,7 +335,7 @@ class Grandeza:
             ax = fig.add_subplot(1,1,1)
             boxplot(self.residuos.matriz_estimativa)
             ax.set_xticklabels(self.simbolos)
-            fig.savefig(base_path+'residuos_boxplot'+'_'.join(self.simbolos))
+            fig.savefig(base_path+base_dir+'residuos_boxplot'+'_'.join(self.simbolos))
             close()
             
             base_path = base_path + base_dir
@@ -380,7 +394,7 @@ class Grandeza:
                 fig.savefig(base_path+base_dir+'residuos_probplot')
                 close()
                 
-        if ('experimental' in ID or 'validacao' in ID or 'modelo' in ID):
+        if ('experimental' in ID or 'validacao' in ID or 'calculado' in ID):
                 
                 if 'residuo' in ID: # remover de ID o resíduo, pois foi tratado separadamente
                     ID.remove('residuo')
@@ -417,7 +431,7 @@ class Grandeza:
                         ylim(ymin,ymax)
                         # Labels
                         xlabel(u'Número de pontos',fontsize=20)
-                        ylabel(self.labelGraficos()[i],fontsize=20)
+                        ylabel(self.labelGraficos(atributo)[i],fontsize=20)
                         #Grades
                         grid(b = 'on', which = 'major', axis = 'both')
                         savefig(base_path+base_dir+atributo+'_observacoes.png')
