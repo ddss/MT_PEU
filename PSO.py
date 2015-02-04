@@ -450,7 +450,7 @@ class Metodo:
 
 class PSO:    
 
-    def __init__(self,limite_superior, limite_inferior, metodo={'busca':'Otimo','algoritmo':'PSO','inercia':'TVIW-linear','aceleracao':'Constante','CFM':False,'restricao':True,'gbest':'Particula'}, Num_particulas=30, itmax=2000,**kwargs):
+    def __init__(self,limite_superior, limite_inferior, metodo={'busca':'Otimo','algoritmo':'PSO','inercia':'TVIW-linear','aceleracao':'Constante','CFM':False,'restricao':True,'gbest':'Particula'}, Num_particulas=30, itmax=500,**kwargs):
         """
         ************************************
         Partcle Swarm Optimization Algorithm 

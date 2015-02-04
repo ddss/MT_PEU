@@ -37,35 +37,22 @@ class Estimacao:
     
     def __init__(self,FO,Modelo,simbolos_y,simbolos_x,simbolos_param,projeto='Projeto',**kwargs):
         '''
-        Classe para Executar a estimação de parâmetros        
+        Classe para executar a estimação de parâmetros        
         
         =======================
         Entradas (obrigatórias)
         =======================
-        * ``FO``             : função objetivo (Thread)
-        * ``Modelo``         : modelo (Thread). O modelo deve retornar um array com número de colunas igual ao número de y.
-        * ``simbolos_y``     : lista com os simbolos das variáveis y (Não podem haver caracteres especiais)
-        * ``simbolos_x``     : lista com os simbolos das variáveis x (Não podem haver caracteres especiais)
-        * ``simbolos_param`` : lista com o simbolos dos parâmetros (Não podem haver caracteres especiais)
-        * ``projeto``        : nome do projeto
-            
-        Exemplo de função objetivo: ::
-                
-            from threading import Thread
-            
-            class FO(Thread):
-                result = 0
-                def __init__(self,param,args):
-                    Thread.__init__(self)
-                    self.x = param
-    
-                def run(self):
-                    
-                    self.result =  self.x**2            
+        * ``FO`` (Thread)           : objeto função objetivo
+        * ``Modelo`` (Thread)       : objeto modelo. O modelo deve retornar um array com número de colunas igual ao número de y.
+        * ``simbolos_y`` (list)     : lista com os simbolos das variáveis y (Não podem haver caracteres especiais)
+        * ``simbolos_x`` (list)     : lista com os simbolos das variáveis x (Não podem haver caracteres especiais)
+        * ``simbolos_param`` (list) : lista com o simbolos dos parâmetros (Não podem haver caracteres especiais)
+        * ``projeto`` (string)      : nome do projeto (Náo podem haver caracteres especiais)
         
-        =========
-        Keywords:
-        =========
+        ==============================
+        Keywords (Entradas opcionais):
+        ==============================
+        
         * ``simbolos_x``     (list): lista com os símbolos para x 
         * ``unidades_x``     (list): lista com as unidades para x (inclusive em formato LATEX)
         * ``label_latex_x``  (list): lista com os símbolos das variáveis em formato LATEX
@@ -76,83 +63,188 @@ class Estimacao:
         
         * ``simbolos_param`` (list): lista com os símbolos para os parâmetros (inclusive em formato LATEX)
         * ``unidades_param`` (list): lista com as unidades para os parâmetros (inclusive em formato LATEX)
-        * ``label_latex_param`` (list): lista com os símbolos d['residuo_y%d'%(i,) for i in xrange(self.y.NV)],['ry_%d'%(i,) for i in xrange(self.y.NV)],\
-                         self.y.unidades,[r'$res_y_%d$'%(i,) for i in xrange(self.y.NV)as variáveis em formato LATEX
+        * ``label_latex_param`` (list): lista com os símbolos das variáveis em formato LATEX
+        
+        =======        
+        Métodos
+        =======
+        
+        Para a realização da estimação de parâmetros de um certo modelo faz-se necessário executar \
+        alguns métodos, na ordem indicada:
+        
+        * ``gerarEntradas``        : método para incluir os dados experimentais (Vide documentação do método)
+        * ``otimiza``              : método para realizar a otimização, com base nos dados fornecidos em gerarEntradas. \
+        Após a execução deste método, o valor as grandezas de saída são avaliadas para os pontos de validação. (Vide documentação do método)
+        * ``incertezaParametros``  : método que avalia a incerteza dos parâmetros (Vide documentação do método)   
+        * ``analiseResiduos``      : método para executar a análise de resíduos (Vide documentação do método)
+        * ``graficos``             : método para criação dos gráficos (Vide documentação do método)
+        * ``_armazenarDicionario`` : método que returna as grandezas sob a forma de um dicionário (Vide documentação do método)
+        
+        ======      
+        Saídas
+        ======
+        
+        As saídas deste motor de cálculo estão, principalmente, sob a forma de atributos e gráficos.
+        Os principais atributos de uma variável Estimacao, são:
+                
+        * ``x`` : objeto Grandeza que contém todas as informações referentes às grandezas \
+        independentes sob a forma de atributos:
+            * ``experimental`` : referente aos dados experimentais. Principais atributos: ``matriz_estimativa``, ``matriz_covariancia``
+            * ``calculado``    : referente aos dados calculados pelo modelo. Principais atributos: ``matriz_estimativa``, ``matriz_covariancia``
+            * ``validacao``    : referente aos dados de validação. Principais atributos: ``matriz_estimativa``, ``matriz_covariancia``
+            * ``residuos``     : referente aos resíduos de regressão. Principais atributos: ``matriz_estimativa``, ``estatisticas``
+            
+        * ``y``          : objeto Grandeza que contém todas as informações referentes às grandezas \
+        dependentes sob a forma de atributos. Os atributos são os mesmos de x.
+
+        * ``parametros`` : objeto Grandeza que contém todas as informações referentes aos parâmetros sob a forma de atributos.
+            * ``estimativa``         : estimativa para os parâmetros
+            * ``matriz_covariancia`` : matriz de covariância
+            * ``regiao_abrangencia`` : pontos contidos na região de abrangência
+        
+        Obs.: Para informações mais detalhadas, consultar os Atributos da classe Grandeza.        
+        
+        ===============
+        Função objetivo
+        ===============
+        
+        A função objetivo deve ser um objeto com uma estrutura específica, conforme detalha \
+        o exemplo: ::
+                
+            class WLS(Thread):
+                result = 0
+                def __init__(self,p,argumentos):
+                    Thread.__init__(self)
+            
+                    self.param  = p
+                    
+                    self.y      = argumentos[0]
+                    self.x      = argumentos[1]
+                    self.Vy     = argumentos[2]
+                    self.Vx     = argumentos[3]        
+                    self.args   = argumentos[4]
+                    
+                def run(self):
+            
+                    ym = Modelo(self.param,self.x,self.args)
+                    ym.start()
+                    ym.join()
+                    ym = matriz2vetor(ym.result)
+                    d     = self.y - ym
+                    self.result =  float(dot(dot(transpose(d),linalg.inv(self.Vy)),d))            
+        
+        O Motor de cálculo sempre irá enviar como uma lista argumentos para a função objetivo \
+        nesta ordem: 
+        
+        * vetor com as variáveis dependentes
+        * vetor com as variáveis independentes
+        * incerteza das variáveis dependentes
+        * incerteza das variáveis independentes
+        * argumentos extras para o modelo
         '''
         # ---------------------------------------------------------------------
         # VALIDAÇÕES GERAIS DE KEYWORDS
         # ---------------------------------------------------------------------
-        self.__validacaoArgumentosEntrada(kwargs,'init')
+        self.__etapasdisponiveis = ['__init__','gerarEntradas','otimizacao','incertezaParametros','regiaoAbrangencia','analiseResiduos','armazenarDicionario'] # Lista de etapas que o algoritmo irá executar
+        self.__validacaoArgumentosEntrada('__init__',kwargs)
         
         # ---------------------------------------------------------------------
         # VALIDAÇÃO ESPECÍFICA:
-        # ---------------------------------------------------------------------
-        # SÍMBOLOS
-        # Verificação se os símbolos possuem caracteres especiais
-        for simb in [simbolos_y,simbolos_x,simbolos_param]:
-            for elemento in simb:
-                if set('[~!@#$%^&*()_+{}":;\']+$').intersection(elemento):
-                    raise NameError('Os nomes das grandezas não podem ter caracteres especiais. Simbolo incorreto: '+elemento)       
-        
+        # ---------------------------------------------------------------------        
         # PROJETO
+        # Verificação de projeto é um string
+        if not isinstance(projeto,str):
+            raise TypeError('O nome do projeto deve ser um string.')
+        
         # Verificação se o nome do projeto possui caracteres especiais
         if set('[~!@#$%^&*()_+{}":;\']+$').intersection(projeto):
             raise NameError('O nome do projeto não pode conter caracteres especiais')  
         
-        # Inicialização das variáveis
-        # Variável      = Grandeza(simbolos  , nomes                               , unidades                            , label_latex)
-        self.x          = Grandeza(simbolos_x,kwargs.get(self.__keywordsEntrada[0]),kwargs.get(self.__keywordsEntrada[1]),kwargs.get(self.__keywordsEntrada[2]))
-        self.y          = Grandeza(simbolos_y,kwargs.get(self.__keywordsEntrada[3]),kwargs.get(self.__keywordsEntrada[4]),kwargs.get(self.__keywordsEntrada[5]))
+        # ---------------------------------------------------------------------
+        # Inicialização das Grandezas
+        # ---------------------------------------------------------------------
+        # Variável      = Grandeza(simbolos      ,nomes                                ,unidades                             ,label_latex)
+        self.x          = Grandeza(simbolos_x    ,kwargs.get(self.__keywordsEntrada[0]),kwargs.get(self.__keywordsEntrada[1]),kwargs.get(self.__keywordsEntrada[2]))
+        self.y          = Grandeza(simbolos_y    ,kwargs.get(self.__keywordsEntrada[3]),kwargs.get(self.__keywordsEntrada[4]),kwargs.get(self.__keywordsEntrada[5]))
         self.parametros = Grandeza(simbolos_param,kwargs.get(self.__keywordsEntrada[6]),kwargs.get(self.__keywordsEntrada[7]),kwargs.get(self.__keywordsEntrada[8]))
             
-        # Criação das variáveis internas
+        # ---------------------------------------------------------------------
+        # Criação de variáveis internas
+        # ---------------------------------------------------------------------
+        # Função objetivo
         self.__FO        = FO
+        # Modelo
         self.__modelo    = Modelo
+        # Caminho base para os arquivos
         self.__base_path = getcwd()+ sep +str(projeto)+sep
         
         # Controle interno das etapas do algoritmo (métodos executados)
-        self.__etapasdisponiveis = ['__init__','gerarEntradas','otimizacao','incertezaParametros','regiaoAbrangencia','analiseResiduos'] # Lista de etapas que o algoritmo irá executar
         self.__etapas            = [self.__etapasdisponiveis[0]] # Variável de armazenamento das etapas realizadas pelo algoritmo
             
              
-    def __validacaoArgumentosEntrada(self,keywargs,etapa,args=None):
+    def __validacaoArgumentosEntrada(self,etapa,keywargs,args=None):
         '''
         Validação para verificar se todos os argumentos das rotinas entrada foram definidos corretamente.
+        Inclusive se a rotina pode ser executada.
         
-        * Se houve keyword erradas        
+        * Se houve keyword erradas      
+        * Se houveram keywords obrigatórias não definidas
         '''
+        # ---------------------------------------------------------------------
+        # INICIALIZAÇÃO
+        # --------------------------------------------------------------------- 
         # Keywords disponíveis        
-        self.__keywordsEntrada = ['nomes_x','unidades_x','label_latex_x','nomes_y','unidades_y','label_latex_y','nomes_param','unidades_param','label_latex_param'] # Keywords disponíveis para a entrada
-        self.__keywordsOtimizacao = {'PSO':['itmax','Num_particulas','sup','inf','posinit_sup', 'posinit_inf','w' ,'C1' ,'C2', 'Vmax','Vreinit' , 'otimo' , 'deltaw', 'k', 'gama'],'Nelder_Mead':[]}        
-        self.__keywordsOtimizacaoObrigatorias = {'PSO':['sup','inf'],'Nelder_Mead':[]}  
-
-        if etapa =='init':
+        self.__keywordsEntrada  = ['nomes_x','unidades_x','label_latex_x','nomes_y','unidades_y','label_latex_y','nomes_param','unidades_param','label_latex_param'] # Keywords disponíveis para a entrada
+        if etapa == self.__etapasdisponiveis[0]:
             # Validação se houve keywords digitadas incorretamente:
             keyincorreta  = [key for key in keywargs.keys() if not key in self.__keywordsEntrada]
         
             if len(keyincorreta) != 0:
                 raise NameError('keyword(s) incorretas: '+', '.join(keyincorreta)+'.'+' Keywords disponíveis: '+', '.join(self.__keywordsEntrada)+'.')
-    
-        if etapa == 'otimizacao':
-                    
-            if (not args in self.__keywordsOtimizacao.keys()) and  args != None:
-                raise NameError((u'A opção de algoritmo não está correta. Escolha entre as opções: '+(len(self.__keywordsOtimizacao.keys())-1)*' %s,'+' %s')%tuple(self.__keywordsOtimizacao.keys()))
+
+        # ---------------------------------------------------------------------
+        # OTIMIZAÇÃO
+        # --------------------------------------------------------------------- 
+        # Keywords disponíveis        
+        self.__AlgoritmosOtimizacao = ['PSO']        
+        self.__keywordsOtimizacaoObrigatorias = {'PSO':['sup','inf'],'Nelder_Mead':[]}  
+
+        if etapa == self.__etapasdisponiveis[2]:
             
-            if  args == 'PSO':
-                keyincorreta  = [key for key in keywargs.keys() if not key in self.__keywordsOtimizacao['PSO']]
-    
-            if len(keyincorreta) != 0:
-                raise NameError(('keyword(s) incorretas: '+(len(keyincorreta)-1)*'%s, '+u'%s. Verifique documentação para keywords disponíveis.')%tuple(keyincorreta))
-    
-            # Validação das keywords obrigatórias por método
+            if self.__etapasdisponiveis[1] not in self.__etapas:
+                raise TypeError(u'Para executar a otimização, faz-se necessário primeiro executar método %s.'%(self.__etapasdisponiveis[1],))
+                
+            # verificação de o algoritmo está disponível
+            if (not args in self.__AlgoritmosOtimizacao) and  args != None:
+                raise NameError(u'A opção de algoritmo não está correta. Algoritmos disponíveis: '+', '.join(self.__AlgoritmosOtimizacao)+'.')
+            
+            # Validação das keywords obrigatórias por algoritmo
             keyobrigatoria = [key for key in self.__keywordsOtimizacaoObrigatorias[args] if not key in keywargs.keys()]
                 
             if len(keyobrigatoria) != 0:
-                aux = [args]
-                aux.extend(keyobrigatoria)
-                raise NameError((u'Para o método de %s a(s) keyword(s) obrigatória(s) não foram (foi) definida(s): '+(len(keyobrigatoria)-1)*'%s, '+u'%s.')%tuple(aux))
-    
-    
+                raise NameError(u'Para o método de %s a(s) keyword(s) obrigatória(s) não foram (foi) definida(s): '%(args,)+', '.join(keyobrigatoria)+'.')
+        
+        # ---------------------------------------------------------------------
+        # INCERTEZA NOS PARÂMETROS
+        # --------------------------------------------------------------------- 
+        if etapa == self.__etapasdisponiveis[3]:
+            if self.__etapasdisponiveis[2] not in self.__etapas:
+                raise TypeError(u'Para executar a avaliação da incerteza dos parâmetros, faz-se necessário primeiro executar método %s.'%(self.__etapasdisponiveis[2],))
+        
+        # ---------------------------------------------------------------------
+        # ANÁLISE RESÍDUOS
+        # --------------------------------------------------------------------- 
+        if etapa == self.__etapasdisponiveis[5]:
+            if self.__etapasdisponiveis[2] not in self.__etapas:
+                raise TypeError(u'Para executar o método de análise de resíduos, faz-se necessário primeiro executar método %s.'%(self.__etapasdisponiveis[2],))
+        
+        # ---------------------------------------------------------------------
+        # ARMAZENAR DICIONÁRIO
+        # --------------------------------------------------------------------- 
+        if etapa == self.__etapasdisponiveis[6]:
+            if self.__etapasdisponiveis[1] not in self.__etapas:
+                raise TypeError(u'Para executar o método armazenarDicionario, faz-se necessário primeiro executar método %s.'%(self.__etapasdisponiveis[1],))
+           
     def __validacaoDadosEntrada(self,dados,udados,Ndados,NE):
         '''
         Validação dos dados de entrada 
@@ -172,19 +264,7 @@ class Estimacao:
         if size(udados,1) != Ndados: 
             raise ValueError(u'O número de variáveis definidas foi %s, mas foram inseridas incertezas para %s.'%(Ndados,size(udados,1)))
  
-                
-    def __defaults(self,kwargs,algoritmo):
-        '''
-        Definição dos valores dos paramêmtros para os métodos, inclusive os valores default
-        '''
-        
-        if algoritmo == 'PSO':
-            
-            itmax          = 500 if kwargs.get('itmax')          == None else kwargs.get('itmax')
-            Num_particulas = 30  if kwargs.get('Num_particulas') == None else kwargs.get('Num_particulas')
-        
-            return (itmax, Num_particulas)
-   
+
     def gerarEntradas(self,xe,ye,ux,uy,xval=None,yval=None,uxval=None,uyval=None,uxy=None):
         '''
         Método para incluir os dados de entrada da estimação
@@ -201,7 +281,9 @@ class Estimacao:
         * yval      : array com os dados de validação para as variáveis dependentes na forma de colunas
         * uxy       : covariância entre x e y
         '''
-        # DEFAULT
+        # ---------------------------------------------------------------------
+        # ATRIBUIÇÃO DE DEFAULT
+        # ---------------------------------------------------------------------
         # Caso não definidos dados de validação, será assumido os valores experimentais
         if xval == None:
             xval = xe
@@ -214,17 +296,20 @@ class Estimacao:
             
         if uyval == None:
             uyval = uy        
-        
-        # QUANTIDADE DE PONTOS EXPERIMENTAIS
-        self.NE  = size(xe,0) # Número de observações
 
-        # VALIDAÇÃO dos dados de entrada x, y, xval e yval
-        self.__validacaoDadosEntrada(xe,ux,self.x.NV,self.NE) 
-        self.__validacaoDadosEntrada(ye,uy,self.y.NV,self.NE)
-        self.__validacaoDadosEntrada(xval,uxval,self.x.NV,self.NE) 
-        self.__validacaoDadosEntrada(yval,uyval,self.y.NV,self.NE)
+        # ---------------------------------------------------------------------
+        # VALIDAÇÃO
+        # ---------------------------------------------------------------------
+        # Validação dos dados de entrada x, y, xval e yval - É tomado como referência
+        # a quantidade de observações das variáveis x.
+        self.__validacaoDadosEntrada(xe,ux,self.x.NV,size(xe,0)) 
+        self.__validacaoDadosEntrada(ye,uy,self.y.NV,size(xe,0))
+        self.__validacaoDadosEntrada(xval,uxval,self.x.NV,size(xval,0)) 
+        self.__validacaoDadosEntrada(yval,uyval,self.y.NV,size(xval,0))
 
-        
+        # ---------------------------------------------------------------------
+        # ATRIBUIÇÃO A GRANDEZAS
+        # ---------------------------------------------------------------------
         # Salvando os dados experimentais nas variáveis.
         self.x._SETexperimental(xe,ux,{'estimativa':'matriz','incerteza':'incerteza'})
         self.y._SETexperimental(ye,uy,{'estimativa':'matriz','incerteza':'incerteza'}) 
@@ -232,8 +317,12 @@ class Estimacao:
         # Salvando os dados de validação.
         self.x._SETvalidacao(xval,uxval,{'estimativa':'matriz','incerteza':'incerteza'})
         self.y._SETvalidacao(yval,uyval,{'estimativa':'matriz','incerteza':'incerteza'}) 
-     
-        self.__etapas.append(self.__etapasdisponiveis[1]) # Inclusão desta etapa da lista de etapas
+
+        # ---------------------------------------------------------------------
+        # VARIÁVEIS INTERNAS
+        # ---------------------------------------------------------------------         
+        # Inclusão desta etapa da lista de etapas
+        self.__etapas.append(self.__etapasdisponiveis[1]) 
         
     def _armazenarDicionario(self):
         '''
@@ -247,6 +336,15 @@ class Estimacao:
         * grandeza: dicionário cujas chaves são os símbolos das grandezas e respectivos
         conteúdos objetos da classe Grandezas.
         '''
+        # ---------------------------------------------------------------------
+        # VALIDAÇÃO
+        # ---------------------------------------------------------------------         
+        self.__validacaoArgumentosEntrada('armazenarDicionario',None,None)       
+
+
+        # ---------------------------------------------------------------------
+        # GERANDO O DICIONÁRIO
+        # ---------------------------------------------------------------------         
         grandeza = {}        
         for j,simbolo in enumerate(self.y.simbolos):
             grandeza[simbolo] = Grandeza([simbolo],[self.y.nomes[j]],[self.y.unidades[j]],[self.y.label_latex[j]])
@@ -284,37 +382,65 @@ class Estimacao:
         * algoritmo : string informando o algoritmo de otimização a ser utilizado. Cada algoritmo tem suas próprias keywords
         * args      : argumentos extras a serem passados para o modelo
         
-        =======================================
-        Keywords (alguns dependem do algoritmo)
-        =======================================
+        =======================
+        Keywords (Obrigatórias)
+        =======================
         
         algoritmo = PSO
         
         * sup           : limite superior de busca
         * inf           : limite inferior de busca
-        * Num_particulas: número de particulas
-        * itmax         : número máximo de iterações
-        '''
         
-        # Validação dos keywords do método de otimização
-        self.__validacaoArgumentosEntrada(kwargs,'otimizacao',algoritmo)       
-
-    
+        Obs.: Para outros argumentos de entrada do PSO e keywords, verifique a documentação do método
+        '''
+        # ---------------------------------------------------------------------
+        # VALIDAÇÃO
+        # ---------------------------------------------------------------------
+        if not isinstance(algoritmo,str):
+            raise TypeError(u'O algoritmo precisa ser uma string.')
+            
+        # Validação das keywords obrigatórias para o método de otimização
+        self.__validacaoArgumentosEntrada('otimizacao',kwargs,algoritmo)       
+ 
+        # ---------------------------------------------------------------------
+        # DEFINIÇÃO DOS ARGUMENTOS EXTRAS PARA FUNÇÃO OBJETIVO
+        # ---------------------------------------------------------------------
         self.__args_model = [self.y.experimental.vetor_estimativa,self.x.experimental.matriz_estimativa,\
         self.y.experimental.matriz_covariancia,self.x.experimental.matriz_covariancia,\
-        args,self.x.simbolos,self.y.simbolos,self.parametros.simbolos] # Argumentos extras a serem passados para a função objetivo
+        args,self.x.simbolos,self.y.simbolos,self.parametros.simbolos]
         
-        if algoritmo == 'PSO': # Obtençao das valores e definiçaão dos valores default
-
-            itmax, Num_particulas = self.__defaults(kwargs,algoritmo)
-
-            # Executar a otimização
-            self.Otimizacao = PSO(kwargs.get('sup'),kwargs.get('inf'),Num_particulas=Num_particulas,itmax=itmax,args_model=self.__args_model)
-            self.Otimizacao.Busca(self.__FO,printit=False)
+        # ---------------------------------------------------------------------
+        # ALGORITMOS DE OTIMIZAÇÃO
+        # ---------------------------------------------------------------------        
+        if algoritmo == 'PSO':
+            # ---------------------------------------------------------------------
+            # KEYWORDS
+            # ---------------------------------------------------------------------
+            # Atributos obrigatórios
+            sup = kwargs.get('sup')
+            inf = kwargs.get('inf')
+            # Exclusão dos atributos obrigatórios da listas de keywords, mantendo somente
+            # os opcionais
+            del kwargs['sup']
+            del kwargs['inf']
+            # Separação de keywords para os diferentes métodos
+            # keywarg para a etapa de busca:
+            kwargsbusca = {}
+            if kwargs.get('printit')  != None:
+                kwargsbusca['printit'] = kwargs.get('printit')
+                del kwargs['printit']
+            # ---------------------------------------------------------------------
+            # EXECUÇÃO OTIMIZAÇÃO
+            # ---------------------------------------------------------------------
+            # OS argumentos extras (kwargs e kwrsbusca) são passados diretamente para o algoritmo
+            self.Otimizacao = PSO(sup,inf,args_model=self.__args_model,**kwargs)
+            self.Otimizacao.Busca(self.__FO,**kwargsbusca)
             self.parametros._SETparametro(self.Otimizacao.gbest,None,None) # Atribuindo o valor ótimo dos parâemetros
 
-
-        # O modelo é calculado para os dados de validação
+        # ---------------------------------------------------------------------
+        # PREDIÇÃO
+        # ---------------------------------------------------------------------     
+        # A predição é calculada com base nos dados de validação   
         aux = self.__modelo(self.parametros.estimativa,self.x.validacao.matriz_estimativa,[args,self.x.simbolos,self.y.simbolos,self.parametros.simbolos])
         aux.start()
         aux.join()
@@ -323,16 +449,18 @@ class Estimacao:
         self.y._SETcalculado(aux.result,None,{'estimativa':'matriz','incerteza':'variancia'},None)
         self.x._SETcalculado(self.x.experimental.matriz_estimativa,self.x.experimental.matriz_incerteza,{'estimativa':'matriz','incerteza':'incerteza'},None)
 
+        # ---------------------------------------------------------------------
+        # VARIÁVEIS INTERNAS
+        # ---------------------------------------------------------------------         
+        # Inclusão desta etapa da lista de etapas
         self.__etapas.append(self.__etapasdisponiveis[2]) # Inclusão desta etapa da lista de etapas
- 
-        self.incertezaParametros(.95,1e-6)
-        
+         
     def incertezaParametros(self,PA=0.95,delta=1e-5):       
         '''
         Método para avaliação da matriz covariãncia dos parâmetros.
         
         =======================
-        Entradas (Obrigatórias)
+        Entradas (opcionais)
         =======================
         * PA         : probabilidade de abrangência para gerar a região de abrangência
         * delta      : incremento para o cálculo das derivadas (derivada numérica)
@@ -342,7 +470,14 @@ class Estimacao:
         ======
         * a matriz de covariância é salva na Grandeza parâmetros
         '''
-        
+        # ---------------------------------------------------------------------
+        # VALIDAÇÃO
+        # ---------------------------------------------------------------------         
+        self.__validacaoArgumentosEntrada('incertezaParametros',None,None)       
+
+        # ---------------------------------------------------------------------
+        # Cálculo da matriz de covariância
+        # ---------------------------------------------------------------------         
         # Except temporário
         try:
             matriz_covariancia = 2*inv(self.__Hessiana_FO_Param(delta))
@@ -454,9 +589,8 @@ class Estimacao:
         '''
         Método para avaliação da região de abrangência
         '''
-        
-        Fisher = f.ppf(PA,self.parametros.NV,(self.NE*self.y.NV-self.parametros.NV))            
-        Comparacao = self.Otimizacao.best_fitness*(1+float(self.parametros.NV)/(self.NE*self.y.NV-float(self.parametros.NV))*Fisher)
+        Fisher = f.ppf(PA,self.parametros.NV,(self.y.experimental.NE*self.y.NV-self.parametros.NV))            
+        Comparacao = self.Otimizacao.best_fitness*(1+float(self.parametros.NV)/(self.y.experimental.NE*self.y.NV-float(self.parametros.NV))*Fisher)
         
         Regiao = []; Hist_Posicoes = []; Hist_Fitness = []
         for it in xrange(self.Otimizacao.itmax):
@@ -483,6 +617,11 @@ class Estimacao:
         * Saídas na forma de gráficos
         * As grandezas resíduos possuem o atributo "estatisticas".
         '''
+        # ---------------------------------------------------------------------
+        # VALIDAÇÃO
+        # ---------------------------------------------------------------------         
+        self.__validacaoArgumentosEntrada('analiseResiduos',None,None)       
+
         # Criação dos resíduos como Grandezas
         
         # Calculos dos residuos (ou desvios) - estão baseados nos dados de validação
@@ -672,8 +811,8 @@ class Estimacao:
                         for it in xrange(size(self.parametros.regiao_abrangencia)/self.parametros.NV):     
                             PSO, = plot(self.parametros.regiao_abrangencia[it][p1],self.parametros.regiao_abrangencia[it][p2],'bo',linewidth=2.0,zorder=1)
                         
-                        Fisher = f.ppf(PA,self.parametros.NV,(self.NE*self.y.NV-self.parametros.NV))            
-                        Comparacao = self.Otimizacao.best_fitness*(float(self.parametros.NV)/(self.NE*self.y.NV-float(self.parametros.NV))*Fisher)
+                        Fisher = f.ppf(PA,self.parametros.NV,(self.y.experimental.NE*self.y.NV-self.parametros.NV))            
+                        Comparacao = self.Otimizacao.best_fitness*(float(self.parametros.NV)/(self.y.experimental.NE*self.y.NV-float(self.parametros.NV))*Fisher)
                         cov = array([[self.parametros.matriz_covariancia[p1,p1],self.parametros.matriz_covariancia[p1,p2]],[self.parametros.matriz_covariancia[p2,p1],self.parametros.matriz_covariancia[p2,p2]]])
                         ellipse = plot_cov_ellipse(cov, [self.parametros.estimativa[p1],self.parametros.estimativa[p2]], Comparacao, fill = False, color = 'r', linewidth=2.0,zorder=2)
                         plot(self.parametros.estimativa[p1],self.parametros.estimativa[p2],'r*',markersize=10.0,zorder=2)
@@ -781,6 +920,7 @@ if __name__ == "__main__":
     
     # Otimização
     Estime.otimiza(sup=sup,inf=inf,algoritmo='PSO',itmax=300,Num_particulas=30)
+    Estime.incertezaParametros(.95,1e-5)
     grandeza = Estime._armazenarDicionario()
     Estime.analiseResiduos()
     lista_de_etapas = ['entrada','otimizacao','estimacao']

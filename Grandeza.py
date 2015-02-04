@@ -153,7 +153,7 @@ class Grandeza:
         
         * _SETexperimental: irá criar o atributo experimental. Deve ser usado se se tratar de dados experimentais
         * _SETmodelo      : irá criar o atributo modelo. Deve ser usado se se tratar de dados do modelo
-        * _SETvalidacao   :irá criar o atributo validacao. Deve ser usado se se tratar de dados de validação
+        * _SETvalidacao   : irá criar o atributo validacao. Deve ser usado se se tratar de dados de validação
         * _SETparametro   : irá criar os atributos estimativa, matriz_covariancia, regiao_abrangencia. Deve ser usado para os parâmetros
         * _SETresiduos    : irá criar o atributo resíduos. Deve ser usado para os resíduos de x
 
@@ -207,13 +207,20 @@ class Grandeza:
         - se os atributos de simbologia, nome, unidades e label_latex são Listas.
         - se os tamanhos dos atributos de simbologia, nome, unidades e label_latex são os mesmos.
         '''
+        # Verificação se nomes, unidade e label_latex são listas
         for elemento in [self.nomes,self.unidades,self.label_latex]:
             if not isinstance(elemento,list):
-                raise ValueError(u'A simbologia, nomes, unidades e label_latex de uma grandeza devem ser LISTAS.')        
-
+                raise TypeError(u'A simbologia, nomes, unidades e label_latex de uma grandeza devem ser LISTAS.')        
+       
+       # Verificação se nomes, unidade e label_latex possuem mesmo tamanho
         for elemento in [self.nomes,self.unidades,self.label_latex]:
             if len(elemento) != len(self.simbolos):
                 raise ValueError(u'A simbologia, nomes, unidades e label_latex de uma grandeza devem ser listas de MESMO tamanho.')        
+        
+        # Verificação se os símbolos possuem caracteres especiais
+        for simb in self.simbolos:
+            if set('[~!@#$%^&*()_+{}":;\']+$').intersection(simb):
+                raise NameError('Os nomes das grandezas não podem ter caracteres especiais. Simbolo incorreto: '+simb)       
     
     def _SETexperimental(self,estimativa,variancia,tipo):
         
@@ -230,6 +237,11 @@ class Grandeza:
         self.__ID.append('calculado')
         self.calculado = Organizador(estimativa,variancia,tipo,NE)     
  
+    def _SETresiduos(self,estimativa,variancia,tipo):
+        
+        self.__ID.append('residuo')
+        self.residuos = Organizador(estimativa,variancia,tipo)  
+
     def _SETparametro(self,estimativa,variancia,regiao):
         
         self.__ID.append('parametro')           
@@ -237,12 +249,7 @@ class Grandeza:
         self.matriz_covariancia = variancia
         self.regiao_abrangencia = regiao
 
-    def _SETresiduos(self,estimativa,variancia,tipo):
         
-        self.__ID.append('residuo')
-        self.residuos = Organizador(estimativa,variancia,tipo)           
-
-
     def labelGraficos(self,add=None):
         '''
         Método para definição do label dos gráficos relacionado às grandezas.
@@ -313,15 +320,15 @@ class Grandeza:
                 # Lista que contém as chamadas das funções de teste:
                 if size(dados) < 20: # Se for menor do que 20 não será realizado no normaltest, pois ele só é válido a partir dste número de dados
                     pnormal=[None, shapiro(dados), anderson(dados, dist='norm'),kstest(dados,'norm',args=(mean(dados),std(dados,ddof=1)))]                
-                    pvalor[nome]['Normalidade'] = {'normaltest':None, 'shapiro':pnormal[1][1], 'anderson':[[pnormal[2][0]], pnormal[2][1][1]],'kstest':pnormal[3][1]}
+                    pvalor[nome]['residuo-Normalidade'] = {'normaltest':None, 'shapiro':pnormal[1][1], 'anderson':[[pnormal[2][0]], pnormal[2][1][1]],'kstest':pnormal[3][1]}
                 else:
                     pnormal=[normaltest(dados), shapiro(dados), anderson(dados, dist='norm'),kstest(dados,'norm',args=(mean(dados),std(dados,ddof=1)))]                
-                    pvalor[nome]['Normalidade'] = {'normaltest':pnormal[0][1], 'shapiro':pnormal[1][1], 'anderson':[[pnormal[2][0]], pnormal[2][1][1]],'kstest':pnormal[3][1]}
+                    pvalor[nome]['residuo-Normalidade'] = {'normaltest':pnormal[0][1], 'shapiro':pnormal[1][1], 'anderson':[[pnormal[2][0]], pnormal[2][1][1]],'kstest':pnormal[3][1]}
 
                 # Dicionário para salvar os resultados                
                 # Testes para a média:
                 pmedia = [ttest_1samp(dados,0.), ttest_ind(dados,norm.rvs(loc=0.,scale=std(dados,ddof=1),size=size(dados)))]
-                pvalor[nome]['Media'] = {'ttest':pmedia[0][1],'ttest_ind':pmedia[1][1]}
+                pvalor[nome]['residuo-Media'] = {'ttest':pmedia[0][1],'ttest_ind':pmedia[1][1]}
                 
         else:
             raise NameError(u'Os testes estatísticos são válidos apenas para o resíduos')
