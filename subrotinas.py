@@ -5,7 +5,7 @@ Created on Tue Oct 21 10:36:09 2014
 @author: Daniel
 """
 
-from numpy import concatenate, size, arctan2, degrees, sqrt
+from numpy import concatenate, size, arctan2, degrees, sqrt, copy
 from numpy.linalg import eigh
 from os import path, makedirs
 
@@ -155,3 +155,15 @@ def plot_cov_ellipse(cov, pos, c2=2, ax=None, **kwargs):
     
     ax.add_artist(ellip)
     return ellip
+    
+def vetor_delta(entrada_vetor,posicao,delta):
+            
+    vetor = copy(entrada_vetor)
+
+    if isinstance(posicao,list):
+        vetor[posicao[0]] = vetor[posicao[0]]+delta[0]
+        vetor[posicao[1]] = vetor[posicao[1]]+delta[1]
+    else:
+        vetor[posicao] = vetor[posicao]+delta
+                
+    return vetor

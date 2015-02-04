@@ -14,23 +14,27 @@ class Modelo(Thread):
 
     def run(self):
         
-        #x = self.x
+        x1 = self.x[:,0:1]
+        x2 = self.x[:,1:]
 
-        #alpha = self.param[0]
-        #beta  = self.param[1]
+        alpha1 = self.param[0]
+        beta1  = self.param[1]
+        alpha2 = self.param[2]
+        beta2  = self.param[3]
+
+        y1 = alpha1*(x1**beta1)        
+        y2 = alpha2*x2/(1+beta2*x2)        
         
-        #y1 = alpha*(x**beta)
-        #y1 = alpha*x/(1+beta*x)
+        y1 = concatenate((y1,y2),axis=1)
 
-
-        tempo = self.x[:,0:1]
-        T     = self.x[:,1:2]
+        #tempo = self.x[:,0:1]
+        #T     = self.x[:,1:2]
         
-        ko = self.param[0]
-        E  = self.param[1]
+        #ko = self.param[0]
+        #E  = self.param[1]
         
         #y1 = exp(-(ko*10**17)*tempo*exp(-E/T))
         #y1 = exp(-tempo*exp(ko-E/T)) 
-        y1 = exp(-ko*tempo*exp(-E*(1/T-1./630.)))
+        #y1 = exp(-ko*tempo*exp(-E*(1/T-1./630.)))
 
         self.result = y1

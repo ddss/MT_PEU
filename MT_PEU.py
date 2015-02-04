@@ -27,7 +27,7 @@ from os import getcwd, sep
 
 # Subrotinas próprias e adaptações (desenvolvidas pelo GI-UFBA)
 from Grandeza import Grandeza
-from subrotinas import Validacao_Diretorio, plot_cov_ellipse
+from subrotinas import Validacao_Diretorio, plot_cov_ellipse, vetor_delta
 from PSO import PSO
 from Funcao_Objetivo import WLS
 from Modelo import Modelo
@@ -518,20 +518,6 @@ class Estimacao:
         
         Retorna a matriz Hessiana
         '''
- 
-        def Vetor_delta(posicao,delta):
-            '''
-            Subrotina para somar "delta" a uma posicao do vetor.
-            '''
-            vetor = copy(self.parametros.estimativa)
-
-            if isinstance(posicao,list):
-                vetor[posicao[0]] = vetor[posicao[0]]+delta[0]
-                vetor[posicao[1]] = vetor[posicao[1]]+delta[1]
-            else:
-                vetor[posicao] = vetor[posicao]+delta
-                
-            return vetor
             
         matriz_hessiana=[[1. for col in range(self.parametros.NV)] for row in range(self.parametros.NV)]
         
@@ -545,8 +531,8 @@ class Estimacao:
                 
                 if i==j:
                     # Incrementos
-                    vetor_parametro_delta_positivo = Vetor_delta(i,delta1) # Vetor que irá conter o incremento no parâmetro i
-                    vetor_parametro_delta_negativo = Vetor_delta(j,-delta2)  # Vetor que irá conter o incremento no parâmetro j
+                    vetor_parametro_delta_positivo = vetor_delta(self.parametros.estimativa,i,delta1) # Vetor que irá conter o incremento no parâmetro i
+                    vetor_parametro_delta_negativo = vetor_delta(self.parametros.estimativa,j,-delta2)  # Vetor que irá conter o incremento no parâmetro j
 
                     # Cálculo da função objetivo
                     FO_delta_positivo=self.__FO(vetor_parametro_delta_positivo,self.__args_model)
@@ -563,23 +549,22 @@ class Estimacao:
                      
                 else:
                     
-                    vetor_parametro_delta_ipositivo_jpositivo = Vetor_delta([i,j],[delta1,delta2])
+                    vetor_parametro_delta_ipositivo_jpositivo = vetor_delta(self.parametros.estimativa,[i,j],[delta1,delta2])
                     
                     FO_ipositivo_jpositivo=self.__FO(vetor_parametro_delta_ipositivo_jpositivo,self.__args_model)
                     FO_ipositivo_jpositivo.start()
                     
-                    vetor_parametro_delta_inegativo_jpositivo=Vetor_delta([i,j],[-delta1,delta2])
+                    vetor_parametro_delta_inegativo_jpositivo=vetor_delta(self.parametros.estimativa,[i,j],[-delta1,delta2])
  
                     FO_inegativo_jpositivo=self.__FO(vetor_parametro_delta_inegativo_jpositivo,self.__args_model)
                     FO_inegativo_jpositivo.start()
 
-                    vetor_parametro_delta_ipositivo_jnegativo=Vetor_delta([i,j],[delta1,-delta2])
+                    vetor_parametro_delta_ipositivo_jnegativo=vetor_delta(self.parametros.estimativa,[i,j],[delta1,-delta2])
    
                     FO_ipositivo_jnegativo=self.__FO(vetor_parametro_delta_ipositivo_jnegativo,self.__args_model)
                     FO_ipositivo_jnegativo.start()
 
-                    vetor_parametro_delta_inegativo_jnegativo=Vetor_delta([i,j],[-delta1,-delta2])
-
+                    vetor_parametro_delta_inegativo_jnegativo=vetor_delta(self.parametros.estimativa,[i,j],[-delta1,-delta2])
                     
                     FO_inegativo_jnegativo=self.__FO(vetor_parametro_delta_inegativo_jnegativo,self.__args_model)
                     FO_inegativo_jnegativo.start()
@@ -803,7 +788,7 @@ class Estimacao:
                     ax.xaxis.grid(color='gray', linestyle='dashed')
                     ylabel(r"$\quad \Phi $",fontsize = 20)
                     xlabel(self.parametros.labelGraficos()[0],fontsize=20)
-                    fig.savefig(base_path+base_dir+'regiao_verossimilhanca_'+str(self.parametros.nomes[0])+'_'+str(self.parametros.nomes[0])+'.png')
+                    fig.savefig(base_path+base_dir+'regiao_verossimilhanca_'+str(self.parametros.simbolos[0])+'_'+str(self.parametros.simbolos[0])+'.png')
                     close()
                 
                 else:
@@ -832,7 +817,7 @@ class Estimacao:
                         xlabel(self.parametros.labelGraficos()[p1],fontsize=20)
                         ylabel(self.parametros.labelGraficos()[p2],fontsize=20)
                         legend([ellipse,PSO],[u"Ellipse",u"Verossimilhança"])
-                        fig.savefig(base_path+base_dir+'Regiao_verossimilhanca_'+str(self.parametros.nomes[p1])+'_'+str(self.parametros.nomes[p2])+'.png')
+                        fig.savefig(base_path+base_dir+'Regiao_verossimilhanca_'+str(self.parametros.simbolos[p1])+'_'+str(self.parametros.simbolos[p2])+'.png')
                         close()
                         p2+=1            
            
@@ -872,8 +857,8 @@ class Estimacao:
                     ymax   = max(ym) + tamanho_tick_x
                     xlim((ymin,ymax))
                     ylim((ymin,ymax))                
-                    xlabel(self.y.nomes[i]+' experimental')
-                    ylabel(self.y.nomes[i]+' calculado')
+                    xlabel(self.y.labelGraficos('experimental')[i])
+                    ylabel(self.y.labelGraficos('calculado')[i])
                     fig.savefig(base_path+base_dir+'grafico_'+str(self.y.nomes[i])+'_ye_ym_sem_var.png')
                     close()
                     
@@ -882,41 +867,51 @@ if __name__ == "__main__":
 
     # Exemplo validação: Exemplo resolvido 5.11, 5.12, 5.13 (capítulo 5) (Análise de Dados experimentais I)
     #Tempo
-    x1 = transpose(array([120.0,60.0,60.0,120.0,120.0,60.0,60.0,30.0,15.0,60.0,\
-    45.1,90.0,150.0,60.0,60.0,60.0,30.0,90.0,150.0,90.4,120.0,\
-    60.0,60.0,60.0,60.0,60.0,60.0,30.0,45.1,30.0,30.0,45.0,15.0,30.0,90.0,25.0,\
-    60.1,60.0,30.0,30.0,60.0],ndmin=2))
-    
-    #Temperatura
-    x2 = transpose(array([600.0,600.0,612.0,612.0,612.0,612.0,620.0,620.0,620.0,\
-    620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,\
-    620.0,620.0,620.0,620.0,620.0,620.0,631.0,631.0,631.0,631.0,631.0,639.0,639.0,\
-    639.0,639.0,639.0,639.0,639.0,639.0,639.0],ndmin=2))
-    
-    x = concatenate((x1,x2),axis=1)
-
-    ux = ones((41,2))
-    
-    y = transpose(array([0.9,0.949,0.886,0.785,0.791,0.890,0.787,0.877,0.938,\
-    0.782,0.827,0.696,0.582,0.795,0.800,0.790,0.883,0.712,0.576,0.715,0.673,\
-    0.802,0.802,0.804,0.794,0.804,0.799,0.764,0.688,0.717,0.802,0.695,0.808,\
-    0.655,0.309,0.689,0.437,0.425,0.638,.659,0.449],ndmin=2))
-        
-    uy = ones((41,1))    
-    
-    Estime = Estimacao(WLS,Modelo,nomes_x = ['variavel teste x1','variavel teste 2'],simbolos_x=[r't','T'],label_latex_x=[r'$t$','$T$'],nomes_y=['y1'],simbolos_y=[r'y1'],nomes_param=['theyta'+str(i) for i in xrange(2)],simbolos_param=[r'theta%d'%i for i in xrange(2)],label_latex_param=[r'$\theta_{%d}$'%i for i in xrange(2)])
-    sup=[1,30000]
-    inf=[0,20000]
+#    x1 = transpose(array([120.0,60.0,60.0,120.0,120.0,60.0,60.0,30.0,15.0,60.0,\
+#    45.1,90.0,150.0,60.0,60.0,60.0,30.0,90.0,150.0,90.4,120.0,\
+#    60.0,60.0,60.0,60.0,60.0,60.0,30.0,45.1,30.0,30.0,45.0,15.0,30.0,90.0,25.0,\
+#    60.1,60.0,30.0,30.0,60.0],ndmin=2))
+#    
+#    #Temperatura
+#    x2 = transpose(array([600.0,600.0,612.0,612.0,612.0,612.0,620.0,620.0,620.0,\
+#    620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,\
+#    620.0,620.0,620.0,620.0,620.0,620.0,631.0,631.0,631.0,631.0,631.0,639.0,639.0,\
+#    639.0,639.0,639.0,639.0,639.0,639.0,639.0],ndmin=2))
+#    
+#    x = concatenate((x1,x2),axis=1)
+#
+#    ux = ones((41,2))
+#    
+#    y = transpose(array([0.9,0.949,0.886,0.785,0.791,0.890,0.787,0.877,0.938,\
+#    0.782,0.827,0.696,0.582,0.795,0.800,0.790,0.883,0.712,0.576,0.715,0.673,\
+#    0.802,0.802,0.804,0.794,0.804,0.799,0.764,0.688,0.717,0.802,0.695,0.808,\
+#    0.655,0.309,0.689,0.437,0.425,0.638,.659,0.449],ndmin=2))
+#        
+#    uy = ones((41,1))    
+#    
+#    Estime = Estimacao(WLS,Modelo,nomes_x = ['variavel teste x1','variavel teste 2'],simbolos_x=[r't','T'],label_latex_x=[r'$t$','$T$'],nomes_y=['y1'],simbolos_y=[r'y1'],nomes_param=['theyta'+str(i) for i in xrange(2)],simbolos_param=[r'theta%d'%i for i in xrange(2)],label_latex_param=[r'$\theta_{%d}$'%i for i in xrange(2)])
+#    sup=[1,30000]
+#    inf=[0,20000]
 
     # Exemplo de validacao Exemplo resolvido 5.2 (capitulo 6) (Análise de dados experimentais 1)
-#    x = transpose(array([1.,2.,3.,5.,10,15.,20.,30.,40.,50.],ndmin=2))
-#    y = transpose(array([1.66,6.07,7.55,9.72,15.24,18.79,19.33,22.38,24.27,25.51],ndmin=2))
-#    ux = ones((10,1))
-#    uy = ones((10,1))    
+    x1 = transpose(array([1.,2.,3.,5.,10,15.,20.,30.,40.,50.],ndmin=2))
+    y1 = transpose(array([1.66,6.07,7.55,9.72,15.24,18.79,19.33,22.38,24.27,25.51],ndmin=2))
+    x2 = transpose(array([1.,2.,3.,5.,10,15.,20.,30.,40.,50.],ndmin=2))
+    y2 = transpose(array([1.66,6.07,7.55,9.72,15.24,18.79,19.33,22.38,24.27,25.51],ndmin=2))
     
-#    Estime = Estimacao(WLS,Modelo,Nomes_x = ['variavel teste x1'],simbolos_x=[r'x'],label_latex_x=[r'$x$'],Nomes_y=['y1'],simbolos_y=[r'y1'],Nomes_param=['theyta'+str(i) for i in xrange(2)],simbolos_param=[r'theta%d'%i for i in xrange(2)],label_latex_param=[r'$\theta_{%d}$'%i for i in xrange(2)])
-#    sup = [10,10]
-#    inf = [-10,-10]
+    ux1 = ones((10,1))
+    ux2 = ones((10,1))
+    uy1 = ones((10,1))    
+    uy2 = ones((10,1))
+    
+    x  = concatenate((x1,x2),axis=1)
+    y  = concatenate((y1,y2),axis=1)    
+    ux = concatenate((ux1,ux2),axis=1)
+    uy = concatenate((uy1,uy2),axis=1)
+
+    Estime = Estimacao(WLS,Modelo,simbolos_x=['x1','x2'],simbolos_y=['y1','y2'],simbolos_param=[r'theta%d'%i for i in xrange(4)],label_latex_param=[r'$\theta_{%d}$'%i for i in xrange(4)])
+    sup = [10  ,10  ,10  ,10]
+    inf = [-10,-10 ,-10  ,-10]
     
     # Continuacao
     Estime.gerarEntradas(x,y,ux,uy)    
@@ -930,9 +925,9 @@ if __name__ == "__main__":
 #    grandeza = Estime._armazenarDicionario() # ETAPA PARA CRIAÇÃO DOS DICIONÁRIOS - Grandeza é uma variável que retorna as grandezas na forma de dicionário
     
     # Otimização
-    Estime.otimiza(sup=sup,inf=inf,algoritmo='PSO',itmax=300,Num_particulas=30)
+    Estime.otimiza(sup=sup,inf=inf,algoritmo='PSO',itmax=500,Num_particulas=30,metodo={'busca':'Otimo','algoritmo':'PSO','inercia':'TVIW-linear','aceleracao':'TVAC'})
     Estime.incertezaParametros(.95,1e-5)
-    grandeza = Estime._armazenarDicionario()
-    Estime.analiseResiduos()
-    lista_de_etapas = ['entrada','otimizacao','estimacao']
-    Estime.graficos(lista_de_etapas,0.95)       
+    #grandeza = Estime._armazenarDicionario()
+    #Estime.analiseResiduos()
+    #lista_de_etapas = ['entrada','otimizacao','estimacao']
+    #Estime.graficos(lista_de_etapas,0.95)       
