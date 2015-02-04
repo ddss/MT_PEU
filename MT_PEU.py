@@ -184,11 +184,12 @@ class Estimacao:
              
     def __validacaoArgumentosEntrada(self,etapa,keywargs,args=None):
         '''
-        Validação para verificar se todos os argumentos das rotinas entrada foram definidos corretamente.
-        Inclusive se a rotina pode ser executada.
+        Método para verificação dos argumentos de entrada dos métodos de inicialização, otimização, incerteza dos parâmetros, \
+        análise de resíduos, armazenar dicionário:
         
-        * Se houve keyword erradas      
-        * Se houveram keywords obrigatórias não definidas
+        * verificar se keywords foram corretamente definidas
+        * verficar se keywords obtigatórias foram definidas
+        * verificar se o método pode ser executado, validando as etapas predecessoras 
         '''
         # ---------------------------------------------------------------------
         # INICIALIZAÇÃO
@@ -214,7 +215,7 @@ class Estimacao:
             if self.__etapasdisponiveis[1] not in self.__etapas:
                 raise TypeError(u'Para executar a otimização, faz-se necessário primeiro executar método %s.'%(self.__etapasdisponiveis[1],))
                 
-            # verificação de o algoritmo está disponível
+            # verificação se o algoritmo está disponível
             if (not args in self.__AlgoritmosOtimizacao) and  args != None:
                 raise NameError(u'A opção de algoritmo não está correta. Algoritmos disponíveis: '+', '.join(self.__AlgoritmosOtimizacao)+'.')
             
@@ -224,8 +225,17 @@ class Estimacao:
             if len(keyobrigatoria) != 0:
                 raise NameError(u'Para o método de %s a(s) keyword(s) obrigatória(s) não foram (foi) definida(s): '%(args,)+', '.join(keyobrigatoria)+'.')
         
+            # validação se as keywords foram corretamente definidas
+            if args == self.__AlgoritmosOtimizacao[0]:
+                # verificação de os tamanhos das listas sup e inf são iguais ao número de parâmetros
+                if (not isinstance(keywargs.get('sup'),list)) or (not isinstance(keywargs.get('inf'),list)):
+                    raise TypeError(u'As keywords sup e inf devem ser LISTAS.')
+                    
+                if (len(keywargs.get('sup')) != self.parametros.NV) or (len(keywargs.get('inf')) != self.parametros.NV):
+                    raise ValueError(u'As keywords sup e inf devem ter o mesmo tamanho do número de parâmetros, definido pelos símbolos. Número de parâmetros: %d'%(self.parametros.NV,))
+                    
         # ---------------------------------------------------------------------
-        # INCERTEZA NOS PARÂMETROS
+        # INCERTEZA DOS PARÂMETROS
         # --------------------------------------------------------------------- 
         if etapa == self.__etapasdisponiveis[3]:
             if self.__etapasdisponiveis[2] not in self.__etapas:
@@ -282,28 +292,29 @@ class Estimacao:
         * uxy       : covariância entre x e y
         '''
         # ---------------------------------------------------------------------
-        # ATRIBUIÇÃO DE DEFAULT
+        # VALIDAÇÃO DOS DADOS DE VALIDAÇÃO
         # ---------------------------------------------------------------------
-        # Caso não definidos dados de validação, será assumido os valores experimentais
-        if xval == None:
-            xval = xe
-        
-        if yval == None:
-            yval = ye
-        
-        if uxval == None:
-            uxval = ux
-            
-        if uyval == None:
-            uyval = uy        
+        # Se forem definidos dados de validação, eles devem estar completos com xval ,yval, uxval, uyval
+        if (xval != None or yval != None)   and (uxval == None or uyval == None):
+            raise ValueError(u'Caso seja definido dados de validação, é necessário fazê-lo para todas as grandezas. Assim, xval, yval, uxval e uyval devem ser definidos')
 
+        if  (uxval != None or uyval != None) and (xval == None or yval == None):
+            raise ValueError(u'Caso seja definido dados de validação, é necessário fazê-lo para todas as grandezas. Assim, xval, yval, uxval e uyval devem ser definidos')
+
+        # Caso não definidos dados de validação, será assumido os valores experimentais                    
+        if xval == None and yval == None:
+            xval  = xe
+            yval  = ye
+            uxval = ux
+            uyval = uy    
+        
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------
         # Validação dos dados de entrada x, y, xval e yval - É tomado como referência
         # a quantidade de observações das variáveis x.
-        self.__validacaoDadosEntrada(xe,ux,self.x.NV,size(xe,0)) 
-        self.__validacaoDadosEntrada(ye,uy,self.y.NV,size(xe,0))
+        self.__validacaoDadosEntrada(xe  ,ux   ,self.x.NV,size(xe,0)) 
+        self.__validacaoDadosEntrada(ye  ,uy   ,self.y.NV,size(xe,0))
         self.__validacaoDadosEntrada(xval,uxval,self.x.NV,size(xval,0)) 
         self.__validacaoDadosEntrada(yval,uyval,self.y.NV,size(xval,0))
 

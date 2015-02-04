@@ -6,7 +6,7 @@ Created on Mon Feb  2 11:05:02 2015
 """
 # Importação de pacotes de terceiros
 from numpy import array, transpose ,size, diag, linspace, min, max, \
- mean,  std, amin, amax
+ mean,  std, amin, amax, ndarray
 
 from scipy.stats import normaltest, anderson, shapiro, ttest_1samp, kstest,\
  norm, probplot, ttest_ind
@@ -84,6 +84,13 @@ class Organizador:
         if tipos['incerteza'] not in tiposIncerteza:
             raise NameError(('Os conteúdos disponíveis para a chave incerteza do dicionário tipos são: '\
             +'%s, '*(len(tiposIncerteza)-1)+'%s.')%tiposIncerteza)
+        
+        if not isinstance(estimativa,ndarray):
+                raise TypeError(u'Os dados de entrada precisam ser arrays.')
+        
+        if incerteza != None:        
+            if not isinstance(incerteza,ndarray):
+                    raise TypeError(u'Os dados de entrada precisam ser arrays.')            
         
         # ---------------------------------------------------------------------
         # CRIAÇÃO dos atributos na forma de ARRAYS
