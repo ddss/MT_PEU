@@ -6,7 +6,7 @@ Created on Mon Feb  2 11:05:02 2015
 """
 # Importação de pacotes de terceiros
 from numpy import array, transpose ,size, diag, linspace, min, max, \
- mean,  std, amin, amax, ndarray
+ mean,  std, amin, amax, ndarray, ones, sqrt
 
 from scipy.stats import normaltest, anderson, shapiro, ttest_1samp, kstest,\
  norm, probplot, ttest_ind
@@ -255,6 +255,12 @@ class Grandeza:
         self.estimativa         = estimativa
         self.matriz_covariancia = variancia
         self.regiao_abrangencia = regiao
+        # Cálculo da matriz de correlação
+        if variancia != None:
+            self.matriz_correlacao  = ones((self.NV,self.NV))    
+            for i in xrange(self.NV):
+                for j in xrange(self.NV):
+                    self.matriz_correlacao[i,j]  = self.matriz_covariancia[i,j]/sqrt(self.matriz_covariancia[i,i]*self.matriz_covariancia[j,j])
 
         
     def labelGraficos(self,add=None):
