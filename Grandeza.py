@@ -18,7 +18,7 @@ from os import getcwd, sep
 
 
 # Subrotinas próprias (desenvolvidas pelo GI-UFBA)
-from subrotinas import matriz2vetor, vetor2matriz, Validacao_Diretorio 
+from subrotinas import matriz2vetor, vetor2matriz, Validacao_Diretorio, matrizcorrelacao
 
 class Organizador:
     
@@ -137,50 +137,73 @@ class Organizador:
 class Grandeza:
     
     def __init__(self,simbolos,nomes=None,unidades=None,label_latex=None):
-        '''
+        u'''
         Classe para organizar as características das Grandezas:
-        
-        * experimentais
-        * do modelo
-        * validação
-        * parâmetros
-        * resíduos
-        
+                
         =======
         Entrada
         =======
-        OBRIGATÓRIO:
-        * simbolos (list)   : deve ser uma lista contendo os símbolos, na ordem de entrada de cada variável   
         
-        OPCIONAL:
-        * nomes (list)      : deve ser uma lisra contendo o nome das variáveis
-        * unidades (list)   : deve ser uma lista contendo as unidades das variáveis
-        * label_latex(list) : de ser uma lista contendo os símbolos em formato LATEX
+        **OBRIGATÓRIO**:
+        
+        * ``simbolos`` (list)   : deve ser uma lista contendo os símbolos, na ordem de entrada de cada variável   
+        
+        **OPCIONAL**:
+        
+        * ``nomes``       (list) : deve ser uma lisra contendo o nome das variáveis
+        * ``unidades``    (list) : deve ser uma lista contendo as unidades das variáveis
+        * ``label_latex`` (list) : deve ser uma lista contendo os símbolos em formato LATEX
         
         =======
         Métodos        
         =======
+
+        **DEFINICIONAIS**:
         
-        * _SETexperimental: irá criar o atributo experimental. Deve ser usado se se tratar de dados experimentais
-        * _SETmodelo      : irá criar o atributo modelo. Deve ser usado se se tratar de dados do modelo
-        * _SETvalidacao   : irá criar o atributo validacao. Deve ser usado se se tratar de dados de validação
-        * _SETparametro   : irá criar os atributos estimativa, matriz_covariancia, regiao_abrangencia. Deve ser usado para os parâmetros
-        * _SETresiduos    : irá criar o atributo resíduos. Deve ser usado para os resíduos de x
+        * ``_SETexperimental`` : irá criar o atributo experimental. Deve ser usado se se tratar de dados experimentais
+        * ``_SETmodelo``       : irá criar o atributo modelo. Deve ser usado se se tratar de dados do modelo
+        * ``_SETvalidacao``    : irá criar o atributo validacao. Deve ser usado se se tratar de dados de validação
+        * ``_SETparametro``    : irá criar os atributos estimativa, matriz_covariancia, regiao_abrangencia. Deve ser usado para os parâmetros
+        * ``_SETresiduos``     : irá criar o atributo resíduos. Deve ser usado para os resíduos de x
+
+        **OUTROS**:
+        
+        * ``labelGraficos``       : método que retorna os títulos de eixos de gráficos com base nas informações disponíveis
+        * ``_testesEstatisticos`` : método para realizar testes estatísticos na variável
+        * ``Graficos``            : método para criar gráficos que dependem exclusivamente da grandeza
 
         =========
         Atributos
         =========
         
-        * ``.nomes`` (list): lista com os nomes das variáveis
-        * ``.simbolos`` (list): lista com os símbolos das variáveis (inclusive em código Latex)
-        * ``.experimental`` (objeto): objeto Organizador (vide documentação do mesmo). **só exitirá após execução do método _experimental**
-        * ``.calculado`` (objeto): objeto Organizador (vide documentação do mesmo). **só exitirá após execução do método _calculado**
-        * ``.estimativa`` (list): lista com estimativas. **só exitirá após execução do método _parametro**
-        * ``.matriz_covariancia`` (array): array representando a matriz covariância. **só exitirá após execução do método _parametro**
-        * ``.regiao_abrangencia`` (list): lista representando os pontos pertencentes à região de abrangência. **só exitirá após execução do método _parametro**
-        * ``.x`` (objeto): objeto Organizador (vide documentação do mesmo). **só exitirá após execução do método _residuo_x**
-        * ``.y`` (objeto): objeto Organizador (vide documentação do mesmo). **só exitirá após execução do método _residuo_y**
+        **ATRIBUTOS GERAIS**:
+        
+        * ``.simbolos``    (list): lista com os símbolos das variáveis (inclusive em código Latex)
+        * ``.nomes``       (list): lista com os nomes das variáveis
+        * ``.unidades``    (list): lista com as unidades das variáveis
+        * ``.label_latex`` (list): lista com o label_latex das variáveis
+        * ``.NV``         (float): número de variáveis na grandeza
+        
+        **GRANDEZAS DEPENDENTES E INDEPENDENTES**:
+
+        * ``.experimental`` (objeto): objeto Organizador que armazena os valores e incertezas dos dados experimentais \
+        (vide documentação do mesmo). **só exitirá após execução do método _SETexperimental**
+        * ``.validacao``    (objeto): objeto Organizador que armazena os valores e incertezas dos dados de validação \
+        (vide documentação do mesmo). **só exitirá após execução do método _SETvalidacao**
+        * ``.calculado``    (objeto): objeto Organizador que armazena os valores e incertezas dos dados calculado pelo modelo \
+        (vide documentação do mesmo). **só exitirá após execução do método _SETcalculado**
+        * ``.residuos``     (objeto): objeto Organizador que armazena os valores e incertezas dos resíduos \
+        (vide documentação do mesmo). **só exitirá após execução do método _SETcalculado**
+
+        **PARÂMETROS**
+        (atributos só existiram após a execução do método _SETparametro)
+        
+        * ``.estimativa`` (list): lista com estimativas. 
+        * ``.matriz_covariancia`` (array): array representando a matriz covariância. 
+        * ``.matriz_correlcao``   (array): array representando a matriz dos coeficientes de correlação. 
+        * ``.regiao_abrangencia`` (list): lista representando os pontos pertencentes à região de abrangência.
         '''
+        
         if simbolos == None:
             raise NameError('Os símbolos das grandezas são obrigatórios')
 
@@ -198,9 +221,6 @@ class Grandeza:
         if label_latex == None:
             self.label_latex = [None]*len(simbolos)
         
-        self.__ID = []
-        self.__ID_disponivel = ['experimental','validacao','calculado','parametro','residuo']
-
         # ------------------------------------------------------------------------------------
         # VALIDAÇÂO referente ao tamanho das listas de simbolos, unidades, nomes e label_latex
         # -------------------------------------------------------------------------------------
@@ -211,11 +231,18 @@ class Grandeza:
         # ---------------------------------------------------------------------   
         self.NV = len(simbolos)
         
+        # ---------------------------------------------------------------------
+        # Identificação da grandeza
+        # ---------------------------------------------------------------------   
+        self.__ID = []
+        self.__ID_disponivel = ['experimental','validacao','calculado','parametro','residuo']
+
     def __validacaoEntrada(self):
-        '''
+        u'''
         Verificação:
-        - se os atributos de simbologia, nome, unidades e label_latex são Listas.
-        - se os tamanhos dos atributos de simbologia, nome, unidades e label_latex são os mesmos.
+        
+        * se os atributos de simbologia, nome, unidades e label_latex são Listas.
+        * se os tamanhos dos atributos de simbologia, nome, unidades e label_latex são os mesmos.
         '''
         # Verificação se nomes, unidade e label_latex são listas
         for elemento in [self.nomes,self.unidades,self.label_latex]:
@@ -258,21 +285,17 @@ class Grandeza:
             if not isinstance(variancia,ndarray):
                     raise TypeError(u'Os dados de entrada precisam ser arrays.')                  
         
-        
         self.__ID.append('parametro')           
         self.estimativa         = estimativa
         self.matriz_covariancia = variancia
-        self.regiao_abrangencia = regiao
         # Cálculo da matriz de correlação
         if variancia != None:
-            self.matriz_correlacao  = ones((self.NV,self.NV))    
-            for i in xrange(self.NV):
-                for j in xrange(self.NV):
-                    self.matriz_correlacao[i,j]  = self.matriz_covariancia[i,j]/sqrt(self.matriz_covariancia[i,i]*self.matriz_covariancia[j,j])
-
-        
+            self.matriz_correlacao  = matrizcorrelacao(self.matriz_covariancia)    
+ 
+        self.regiao_abrangencia = regiao
+ 
     def labelGraficos(self,add=None):
-        '''
+        u'''
         Método para definição do label dos gráficos relacionado às grandezas.
         
         =======
@@ -306,13 +329,14 @@ class Grandeza:
         return label
 
     def _testesEstatisticos(self):
-        '''
+        u'''
         Subrotina para realizar testes estatísticos nos resíduos
         
         =================
         Testes realizados
         =================
-        NORMALIDADE:
+        
+        **NORMALIDADE**:
         
         * normaltest: Retorna o pvalor do teste de normalidade. Hipótese nula: a amostra vem de distribuição normal
         * shapiro   : Retorna o valor de normalidade. Hipótese nula: a amostra vem de uma distribuição normal
@@ -320,10 +344,12 @@ class Grandeza:
         * probplot  : Gera um gráfico de probabilidade de dados de exemplo contra os quantis de uma distribuição teórica especificado (a distribuição normal por padrão).
                       Calcula uma linha de melhor ajuste para os dados se "encaixar" é verdadeiro e traça os resultados usando Matplotlib.
                       tornar um conjunto de dados positivos transformados por uma transformação Box-Cox power.
-        MÉDIA:
+        **MÉDIA**:
+        
         * ttest_1sam: Retorna o pvalor para média determinada. Hipótese nula: a amostra tem a média determinada
       
-        SAÍDA (sobe a forma de ATRIBUTO)
+        **SAÍDA** (sobe a forma de ATRIBUTO)
+        
         * estatisticas (float):  Valor das hipóteses testadas. Para a hipótese nula tida como verdadeira, um valor abaixo de 0.05 nos diz que para 95% de confiança pode-se rejeitar essa hipótese
         '''
     
@@ -357,15 +383,15 @@ class Grandeza:
         self.estatisticas = pvalor
             
     def Graficos(self,base_path=None,ID=None):
-        '''
+        u'''
         Método para gerar os gráficos das grandezas, cujas informações só dependam dela.
         
         =======
         Entrada
         =======
         
-        * base_path = caminho onde os gráficos deverão ser salvos
-        * ID        = Identificação da grandeza. Este ID é útil apenas para as grandezas \
+        * ``base_path`` : caminho onde os gráficos deverão ser salvos
+        * ``ID``        : Identificação da grandeza. Este ID é útil apenas para as grandezas \
         dependentes e independentes, ele identifica para qual atributo os gráficos devem ser avaliados. \
         Caso seja None, será feito os gráficos para TODOS os atributos disponíveis.
         '''

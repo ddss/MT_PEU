@@ -34,7 +34,7 @@ from PSO import PSO
 class Estimacao:
     
     def __init__(self,FO,Modelo,simbolos_y,simbolos_x,simbolos_param,projeto='Projeto',**kwargs):
-        '''
+        u'''
         Classe para executar a estimação de parâmetros        
         
         =======================
@@ -184,7 +184,7 @@ class Estimacao:
             
              
     def __validacaoArgumentosEntrada(self,etapa,keywargs,args=None):
-        '''
+        u'''
         Método para verificação dos argumentos de entrada dos métodos de inicialização, otimização, incerteza dos parâmetros, \
         análise de resíduos, armazenar dicionário:
         
@@ -260,7 +260,7 @@ class Estimacao:
                 raise TypeError(u'Para executar o método armazenarDicionario, faz-se necessário primeiro executar método %s.'%(self.__etapasdisponiveis[1],))
            
     def __validacaoDadosEntrada(self,dados,udados,Ndados,NE):
-        '''
+        u'''
         Validação dos dados de entrada 
         
         * verificar se as colunas dos arrays de entrada são iguais aos nomes das variáveis definidas (y, x)
@@ -280,7 +280,7 @@ class Estimacao:
  
 
     def gerarEntradas(self,xe,ye,ux,uy,xval=None,yval=None,uxval=None,uyval=None,uxy=None):
-        '''
+        u'''
         Método para incluir os dados de entrada da estimação
         
         =======================
@@ -340,7 +340,7 @@ class Estimacao:
         self.__etapas.append(self.__etapasdisponiveis[1]) 
         
     def _armazenarDicionario(self):
-        '''
+        u'''
         Método opcional para armazenar as Grandezas (x,y e parãmetros) na
         forma de um dicionário, cujas chaves são os símbolos.
         
@@ -356,40 +356,49 @@ class Estimacao:
         # ---------------------------------------------------------------------         
         self.__validacaoArgumentosEntrada('armazenarDicionario',None,None)       
 
-
         # ---------------------------------------------------------------------
         # GERANDO O DICIONÁRIO
-        # ---------------------------------------------------------------------         
+        # ---------------------------------------------------------------------    
+     
         grandeza = {}        
         for j,simbolo in enumerate(self.y.simbolos):
             grandeza[simbolo] = Grandeza([simbolo],[self.y.nomes[j]],[self.y.unidades[j]],[self.y.label_latex[j]])
             if self.__etapasdisponiveis[1] in self.__etapas:
+                # Salvando dados experimentais
                 grandeza[simbolo]._SETexperimental(self.y.experimental.matriz_estimativa[:,j:j+1],self.y.experimental.matriz_incerteza[:,j:j+1],{'estimativa':'matriz','incerteza':'incerteza'})
             if self.__etapasdisponiveis[2] in self.__etapas:
+                # Salvando dados calculados
                 grandeza[simbolo]._SETcalculado(self.y.calculado.matriz_estimativa[:,j:j+1],None,{'estimativa':'matriz','incerteza':'variancia'},None)
+            if self.__etapasdisponiveis[5] in self.__etapas:
+                # Salvando os resíduos
+                grandeza[simbolo]._SETresiduos(self.y.residuos.matriz_estimativa[:,j:j+1],None,{'estimativa':'matriz','incerteza':'variancia'})
 
         for j,simbolo in enumerate(self.x.simbolos):
             grandeza[simbolo] = Grandeza([simbolo],[self.x.nomes[j]],[self.x.unidades[j]],[self.x.label_latex[j]])
-            if self.__etapasdisponiveis[1] in self.__etapas:            
+            if self.__etapasdisponiveis[1] in self.__etapas:
+                # Salvando dados experimentais
                 grandeza[simbolo]._SETexperimental(self.x.experimental.matriz_estimativa[:,j:j+1],self.x.experimental.matriz_incerteza[:,j:j+1],{'estimativa':'matriz','incerteza':'incerteza'})
-            if self.__etapasdisponiveis[2] in self.__etapas:            
+            if self.__etapasdisponiveis[2] in self.__etapas:
+                # Salvando dados calculados
                 grandeza[simbolo]._SETcalculado(self.x.calculado.matriz_estimativa[:,j:j+1],None,{'estimativa':'matriz','incerteza':'variancia'},None)
+            if self.__etapasdisponiveis[5] in self.__etapas:
+                # Salvando os resíduos
+                grandeza[simbolo]._SETresiduos(self.x.residuos.matriz_estimativa[:,j:j+1],None,{'estimativa':'matriz','incerteza':'variancia'})
 
         for j,simbolo in enumerate(self.parametros.simbolos):
             grandeza[simbolo] = Grandeza([simbolo],[self.parametros.nomes[j]],[self.parametros.unidades[j]],[self.parametros.label_latex[j]])
             if self.__etapasdisponiveis[2] in self.__etapas:
+                # Salvando as informações dos parãmetros
                 if self.parametros.matriz_covariancia == None:
                     grandeza[simbolo]._SETparametro(self.parametros.estimativa[j],None,None)
                 else:
                     grandeza[simbolo]._SETparametro(self.parametros.estimativa[j],array([self.parametros.matriz_covariancia[j,j]],ndmin=2),None)
 
-        # TO DO: RESÍDUOS
-
         return grandeza
     
 
     def otimiza(self,algoritmo='PSO',args=None,**kwargs):
-        '''
+        u'''
         Método para realização da otimização        
         
         =======================
@@ -473,7 +482,7 @@ class Estimacao:
         self.__etapas.append(self.__etapasdisponiveis[2]) # Inclusão desta etapa da lista de etapas
          
     def incertezaParametros(self,PA=0.95,delta=1e-5,metodo='2InvHessiana'):       
-        '''
+        u'''
         Método para avaliação da matriz covariãncia dos parâmetros.
         
         =======================
@@ -493,26 +502,43 @@ class Estimacao:
         self.__validacaoArgumentosEntrada('incertezaParametros',None,metodo)       
 
         # ---------------------------------------------------------------------
-        # Cálculo da matriz de covariância
+        # CÁLCULO DA MATRIZ DE COVARIÂNCIA
         # ---------------------------------------------------------------------     
         if metodo == self.__metodosIncerteza[0]:      
-            # Método: 2*inv(Hess)
+            # Método: 2InvHessiana - >  2*inv(Hess)
             matriz_covariancia = 2*inv(self.__Hessiana_FO_Param(delta))
         
         elif metodo == self.__metodosIncerteza[1]:
-            # Método: inv(H)*Gy*Uyy*GyT*inv(H)
+            # Método: geral - > inv(H)*Gy*Uyy*GyT*inv(H)
+            # Inverso da matriz hessiana
             invHess             = inv(self.__Hessiana_FO_Param(delta))
+            # Gy: derivadas parciais segundas da função objetivo em relação aos parâmetros e 
+            # dados experimentais
             Gy                  = self.__Matriz_Gy(delta) 
+            # cálculo da matriz de covariância
             matriz_covariancia  = invHess.dot(Gy).dot(self.y.experimental.matriz_covariancia).dot(Gy.transpose()).dot(invHess)
 
-        self.parametros._SETparametro(self.parametros.estimativa,matriz_covariancia,self.parametros.regiao_abrangencia)
+
+        Regiao, Hist_Posicoes, Hist_Fitness = self.regiaoAbrangencia(PA) # método para avaliação da região de abrangência
+
+        # ---------------------------------------------------------------------
+        # ATRIBUIÇÃO A GRANDEZAS
+        # ---------------------------------------------------------------------
+        self.parametros._SETparametro(self.parametros.estimativa,matriz_covariancia,Regiao)
         
-        self.regiaoAbrangencia(PA) # método para avaliação da região de abrangência
-                
-        self.__etapas.append(self.__etapasdisponiveis[3]) # Inclusão desta etapa da lista de etapas
+        # ---------------------------------------------------------------------
+        # ATRIBUIÇÃO A GRANDEZAS
+        # ---------------------------------------------------------------------
+        self.parametros._SETparametro(self.parametros.estimativa,self.parametros.matriz_covariancia,Regiao)
+
+        # ---------------------------------------------------------------------
+        # VARIÁVEIS INTERNAS
+        # ---------------------------------------------------------------------         
+        # Inclusão desta etapa da lista de etapas                
+        self.__etapas.append(self.__etapasdisponiveis[3])
         
     def __Hessiana_FO_Param(self,delta=1e-5):
-        '''
+        u'''
         Método para calcular a matriz Hessiana da função objetivo em relaçao aos parâmetros.
         
         Está disponível o método de derivada central.
@@ -591,7 +617,7 @@ class Estimacao:
         return array(matriz_hessiana)
         
     def __Matriz_Gy(self,delta=1e-5):
-        '''
+        u'''
         Método para calcular a matriz Gy(derivada segunda da Fobj em relação aos parâmetros e y).
         
         Método de derivada central.
@@ -627,7 +653,7 @@ class Estimacao:
                 
                 vetor_parametro_delta_inegativo = vetor_delta(self.parametros.estimativa,i,-delta1)
  
-                FO_inegativo_jpositivo           = self.__FO(vetor_parametro_delta_inegativo,args)
+                FO_inegativo_jpositivo          = self.__FO(vetor_parametro_delta_inegativo,args)
                 FO_inegativo_jpositivo.start()
                 
                 vetor_y_delta_jnegativo         = vetor_delta(self.y.experimental.vetor_estimativa,j,-delta2) 
@@ -654,7 +680,7 @@ class Estimacao:
         return array(matriz_Gy)
 
     def regiaoAbrangencia(self,PA=0.95):
-        '''
+        u'''
         Método para avaliação da região de abrangência
         '''
         Fisher = f.ppf(PA,self.parametros.NV,(self.y.experimental.NE*self.y.NV-self.parametros.NV))            
@@ -667,15 +693,13 @@ class Estimacao:
                     Regiao.append(self.Otimizacao.historico_posicoes[it][ID_particula])
                 Hist_Posicoes.append(self.Otimizacao.historico_posicoes[it][ID_particula])
                 Hist_Fitness.append(self.Otimizacao.historico_fitness[it][ID_particula])
-            
-        self.parametros._SETparametro(self.parametros.estimativa,self.parametros.matriz_covariancia,Regiao)
-        
+                
         self.__etapas.append(self.__etapasdisponiveis[4]) # Inclusão desta etapa da lista de etapas
 
-        return (Hist_Posicoes, Hist_Fitness)
+        return (Regiao, Hist_Posicoes, Hist_Fitness)
         
     def analiseResiduos(self):
-        '''
+        u'''
         Método para realização da análise de resíduos.
         
         ======
@@ -690,16 +714,23 @@ class Estimacao:
         # ---------------------------------------------------------------------         
         self.__validacaoArgumentosEntrada('analiseResiduos',None,None)       
 
-        # Criação dos resíduos como Grandezas
-        
+        # ---------------------------------------------------------------------
+        # CÁLCULO DOS RESÍDUOS
+        # ---------------------------------------------------------------------          
         # Calculos dos residuos (ou desvios) - estão baseados nos dados de validação
         residuo_y = self.y.validacao.matriz_estimativa - self.y.calculado.matriz_estimativa
         residuo_x = self.x.validacao.matriz_estimativa - self.x.calculado.matriz_estimativa
         
+        # ---------------------------------------------------------------------
+        # ATRIBUIÇÃO A GRANDEZAS
+        # ---------------------------------------------------------------------       
         # Attribuição dos valores nos objetos
         self.x._SETresiduos(residuo_x,None,{'estimativa':'matriz','incerteza':'incerteza'})
         self.y._SETresiduos(residuo_y,None,{'estimativa':'matriz','incerteza':'incerteza'})
-        
+
+        # ---------------------------------------------------------------------
+        # EXECUÇÃO DE GRÁFICOS E TESTES ESTATÍSTICOS
+        # ---------------------------------------------------------------------             
         # DESCOMENTAR QUANDO RECONCILIAÇÃO !!
         #self.x.Graficos(self.__base_path + sep + 'Graficos'  + sep,ID=['residuo'])
         #self.x._testesEstatisticos()
@@ -731,7 +762,7 @@ class Estimacao:
         self.__etapas.append(self.__etapasdisponiveis[5]) # Inclusão desta etapa na lista de etapas
 
     def graficos(self,lista_de_etapas,PA):
-        '''
+        u'''
         Métodos para gerar e salvar os gráficos
         =======================
         Entradas (obrigatórias)
@@ -745,7 +776,6 @@ class Estimacao:
         '''
         self.__etapas.append(self.__etapasdisponiveis[5]) # Inclusão desta etapa da lista de etapas
            
-#        base_path = os.sep + ' Graficos '+ os.sep
         base_path  = self.__base_path + sep +'Graficos'+ sep
         
         #Sub-rotina que geram os gráficos de entrada e saída
@@ -833,11 +863,12 @@ class Estimacao:
             # Gráficos da estimação
             base_dir = sep + 'Estimacao' + sep
             Validacao_Diretorio(base_path,base_dir)
-        
-            # Região de abrangência (método da verossimilhança)
-            Hist_Posicoes , Hist_Fitness = self.regiaoAbrangencia(PA)
-           
+
+
             if self.parametros.NV == 1:
+                
+                # Região de abrangência (método da verossimilhança)
+                Regiao, Hist_Posicoes, Hist_Fitness = self.regiaoAbrangencia(PA)
                     
                 aux = []
                 for it in xrange(size(self.parametros.regiao_abrangencia)/self.parametros.NV):     
@@ -1019,3 +1050,4 @@ if __name__ == "__main__":
     Estime.analiseResiduos()
     lista_de_etapas = ['entrada','otimizacao','estimacao'] 
     Estime.graficos(lista_de_etapas,0.95)       
+    grandeza2 = Estime._armazenarDicionario()

@@ -5,7 +5,7 @@ Created on Tue Oct 21 10:36:09 2014
 @author: Daniel
 """
 
-from numpy import concatenate, size, arctan2, degrees, sqrt, copy
+from numpy import concatenate, size, arctan2, degrees, sqrt, copy, ones
 from numpy.linalg import eigh
 from os import path, makedirs
 
@@ -14,7 +14,7 @@ from matplotlib.patches import Ellipse
 
 
 def matriz2vetor(matriz):
-    '''
+    u'''
     Subrotina para converter uma matriz (array com várias colunas) em um vetor (array com uma coluna)
     =======
     Entrada
@@ -47,7 +47,7 @@ def matriz2vetor(matriz):
 
 
 def vetor2matriz(vetor,NE):
-    '''
+    u'''
     Subrotina para converter um vetor (array com uma coluna) em um vetor (array com uma coluna)
 
     =======
@@ -167,3 +167,17 @@ def vetor_delta(entrada_vetor,posicao,delta):
         vetor[posicao] = vetor[posicao]+delta
                 
     return vetor
+    
+def matrizcorrelacao(matriz_covariancia):
+    u'''
+    Calcula a matriz de correlação de determinada matriz covariância
+    '''
+    if size(matriz_covariancia,0) != size(matriz_covariancia,1):
+        raise ValueError(u'A matriz precisa ser quadrada para calcular a matriz dos coeficientes de correlação.')
+    
+    matriz_correlacao  = ones((size(matriz_covariancia,0),size(matriz_covariancia,0)))    
+    for i in xrange(size(matriz_covariancia,0)):
+        for j in xrange(size(matriz_covariancia,0)):
+            matriz_correlacao[i,j]  = matriz_covariancia[i,j]/sqrt(matriz_covariancia[i,i]*matriz_covariancia[j,j])
+
+    return matriz_correlacao
