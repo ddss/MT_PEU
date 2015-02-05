@@ -53,16 +53,16 @@ class Estimacao:
         Keywords (Entradas opcionais):
         ==============================
         
-        * ``simbolos_x``     (list): lista com os símbolos para x 
+        * ``nomes_x``        (list): lista com os nomes para x 
         * ``unidades_x``     (list): lista com as unidades para x (inclusive em formato LATEX)
         * ``label_latex_x``  (list): lista com os símbolos das variáveis em formato LATEX
         
-        * ``simbolos_y``     (list): lista com os símbolos para y
+        * ``nomes_y``        (list): lista com os nomes para y
         * ``unidades_y``     (list): lista com as unidades para y (inclusive em formato LATEX)
         * ``label_latex_y``  (list): lista com os símbolos das variáveis em formato LATEX
         
-        * ``simbolos_param`` (list): lista com os símbolos para os parâmetros (inclusive em formato LATEX)
-        * ``unidades_param`` (list): lista com as unidades para os parâmetros (inclusive em formato LATEX)
+        * ``nomes_param``       (list): lista com os nomes para os parâmetros (inclusive em formato LATEX)
+        * ``unidades_param``    (list): lista com as unidades para os parâmetros (inclusive em formato LATEX)
         * ``label_latex_param`` (list): lista com os símbolos das variáveis em formato LATEX
         
         =======        
@@ -175,8 +175,11 @@ class Estimacao:
         self.__FO        = FO
         # Modelo
         self.__modelo    = Modelo
-        # Caminho base para os arquivos
-        self.__base_path = getcwd()+ sep +str(projeto)+sep
+        # Caminho base para os arquivos, caso seja definido a keyword base_path ela será utilizada.
+        if kwargs.get(self.__keywordsEntrada[9]) == None:
+            self.__base_path = getcwd()+ sep +str(projeto)+sep
+        else:
+            self.__base_path = kwargs.get(self.__keywordsEntrada[9]) 
         
         # Controle interno das etapas do algoritmo (métodos executados)
         self.__etapas            = [self.__etapasdisponiveis[0]] # Variável de armazenamento das etapas realizadas pelo algoritmo
@@ -195,7 +198,7 @@ class Estimacao:
         # INICIALIZAÇÃO
         # --------------------------------------------------------------------- 
         # Keywords disponíveis        
-        self.__keywordsEntrada  = ['nomes_x','unidades_x','label_latex_x','nomes_y','unidades_y','label_latex_y','nomes_param','unidades_param','label_latex_param'] # Keywords disponíveis para a entrada
+        self.__keywordsEntrada  = ['nomes_x','unidades_x','label_latex_x','nomes_y','unidades_y','label_latex_y','nomes_param','unidades_param','label_latex_param','base_path'] # Keywords disponíveis para a entrada
         if etapa == self.__etapasdisponiveis[0]:
             # Validação se houve keywords digitadas incorretamente:
             keyincorreta  = [key for key in keywargs.keys() if not key in self.__keywordsEntrada]
@@ -377,7 +380,9 @@ class Estimacao:
                 if self.parametros.matriz_covariancia == None:
                     grandeza[simbolo]._SETparametro(self.parametros.estimativa[j],None,None)
                 else:
-                    grandeza[simbolo]._SETparametro(self.parametros.estimativa[j],self.parametros.matriz_covariancia[j,j],None)
+                    grandeza[simbolo]._SETparametro(self.parametros.estimativa[j],array([self.parametros.matriz_covariancia[j,j]],ndmin=2),None)
+
+        # TO DO: RESÍDUOS
 
         return grandeza
     
@@ -532,7 +537,7 @@ class Estimacao:
                 if i==j:
                     # Incrementos
                     vetor_parametro_delta_positivo = vetor_delta(self.parametros.estimativa,i,delta1) # Vetor que irá conter o incremento no parâmetro i
-                    vetor_parametro_delta_negativo = vetor_delta(self.parametros.estimativa,j,-delta2)  # Vetor que irá conter o incremento no parâmetro j
+                    vetor_parametro_delta_negativo = vetor_delta(self.parametros.estimativa,j,-delta2) # Vetor que irá conter o incremento no parâmetro j
 
                     # Cálculo da função objetivo
                     FO_delta_positivo=self.__FO(vetor_parametro_delta_positivo,self.__args_model)
@@ -786,6 +791,7 @@ class Estimacao:
                     ax.text(max(aux),max(Y_sort)/4,u'%.2e'%(max(aux),), fontsize=8, horizontalalignment='center')
                     ax.yaxis.grid(color='gray', linestyle='dashed')
                     ax.xaxis.grid(color='gray', linestyle='dashed')
+                    xlim((self.parametros.estimativa[0]-2.5*self.parametros.matriz_covariancia[0,0],self.parametros.estimativa[0]+2.5*self.parametros.matriz_covariancia[0,0]))
                     ylabel(r"$\quad \Phi $",fontsize = 20)
                     xlabel(self.parametros.labelGraficos()[0],fontsize=20)
                     fig.savefig(base_path+base_dir+'regiao_verossimilhanca_'+str(self.parametros.simbolos[0])+'_'+str(self.parametros.simbolos[0])+'.png')
@@ -810,12 +816,14 @@ class Estimacao:
                         Fisher = f.ppf(PA,self.parametros.NV,(self.y.experimental.NE*self.y.NV-self.parametros.NV))            
                         Comparacao = self.Otimizacao.best_fitness*(float(self.parametros.NV)/(self.y.experimental.NE*self.y.NV-float(self.parametros.NV))*Fisher)
                         cov = array([[self.parametros.matriz_covariancia[p1,p1],self.parametros.matriz_covariancia[p1,p2]],[self.parametros.matriz_covariancia[p2,p1],self.parametros.matriz_covariancia[p2,p2]]])
-                        ellipse = plot_cov_ellipse(cov, [self.parametros.estimativa[p1],self.parametros.estimativa[p2]], Comparacao, fill = False, color = 'r', linewidth=2.0,zorder=2)
+                        ellipse, width, height = plot_cov_ellipse(cov, [self.parametros.estimativa[p1],self.parametros.estimativa[p2]], Comparacao, fill = False, color = 'r', linewidth=2.0,zorder=2)
                         plot(self.parametros.estimativa[p1],self.parametros.estimativa[p2],'r*',markersize=10.0,zorder=2)
                         ax.yaxis.grid(color='gray', linestyle='dashed')                        
                         ax.xaxis.grid(color='gray', linestyle='dashed')
                         xlabel(self.parametros.labelGraficos()[p1],fontsize=20)
                         ylabel(self.parametros.labelGraficos()[p2],fontsize=20)
+                        xlim((self.parametros.estimativa[p1] - width ,self.parametros.estimativa[p1]+ width))
+                        ylim((self.parametros.estimativa[p2] - height,self.parametros.estimativa[p2]+ height))
                         legend([ellipse,PSO],[u"Ellipse",u"Verossimilhança"])
                         fig.savefig(base_path+base_dir+'Regiao_verossimilhanca_'+str(self.parametros.simbolos[p1])+'_'+str(self.parametros.simbolos[p2])+'.png')
                         close()
@@ -925,9 +933,9 @@ if __name__ == "__main__":
 #    grandeza = Estime._armazenarDicionario() # ETAPA PARA CRIAÇÃO DOS DICIONÁRIOS - Grandeza é uma variável que retorna as grandezas na forma de dicionário
     
     # Otimização
-    Estime.otimiza(sup=sup,inf=inf,algoritmo='PSO',itmax=500,Num_particulas=30,metodo={'busca':'Otimo','algoritmo':'PSO','inercia':'TVIW-linear','aceleracao':'TVAC'})
+    Estime.otimiza(sup=sup,inf=inf,algoritmo='PSO',itmax=100,Num_particulas=30,metodo={'busca':'Otimo','algoritmo':'PSO','inercia':'TVIW-linear','aceleracao':'TVAC'})
     Estime.incertezaParametros(.95,1e-5)
-    #grandeza = Estime._armazenarDicionario()
-    #Estime.analiseResiduos()
-    #lista_de_etapas = ['entrada','otimizacao','estimacao']
-    #Estime.graficos(lista_de_etapas,0.95)       
+    grandeza = Estime._armazenarDicionario()
+    Estime.analiseResiduos()
+    lista_de_etapas = ['entrada','otimizacao','estimacao']
+    Estime.graficos(lista_de_etapas,0.95)       

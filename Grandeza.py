@@ -125,7 +125,10 @@ class Organizador:
         if incerteza != None:        
             self.lista_incerteza  = self.matriz_incerteza.transpose().tolist()
             self.lista_variancia  = diag(self.matriz_covariancia).tolist()
-
+        else:
+            self.lista_incerteza  = None
+            self.lista_variancia  = None
+            
         # ---------------------------------------------------------------------
         # Número de pontos experimentais e de variáveis
         # ---------------------------------------------------------------------
@@ -250,6 +253,11 @@ class Grandeza:
         self.residuos = Organizador(estimativa,variancia,tipo)  
 
     def _SETparametro(self,estimativa,variancia,regiao):
+        
+        if variancia != None:        
+            if not isinstance(variancia,ndarray):
+                    raise TypeError(u'Os dados de entrada precisam ser arrays.')                  
+        
         
         self.__ID.append('parametro')           
         self.estimativa         = estimativa
