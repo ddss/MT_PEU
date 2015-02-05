@@ -22,8 +22,8 @@ class Modelo(Thread):
         alpha2 = self.param[2]
         beta2  = self.param[3]
 
-        y1 = alpha1*(x1**beta1)        
-        y2 = alpha2*x2/(1+beta2*x2)        
+        y1 = alpha1*x1/(1+beta1*x1)        
+        y2 = alpha2*(x2**beta2)        
         
         y1 = concatenate((y1,y2),axis=1)
 

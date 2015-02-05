@@ -29,8 +29,6 @@ from os import getcwd, sep
 from Grandeza import Grandeza
 from subrotinas import Validacao_Diretorio, plot_cov_ellipse, vetor_delta
 from PSO import PSO
-from Funcao_Objetivo import WLS
-from Modelo import Modelo
 
 
 class Estimacao:
@@ -240,10 +238,13 @@ class Estimacao:
         # ---------------------------------------------------------------------
         # INCERTEZA DOS PARÂMETROS
         # --------------------------------------------------------------------- 
+        self.__metodosIncerteza = ['2InvHessiana','geral']
         if etapa == self.__etapasdisponiveis[3]:
             if self.__etapasdisponiveis[2] not in self.__etapas:
                 raise TypeError(u'Para executar a avaliação da incerteza dos parâmetros, faz-se necessário primeiro executar método %s.'%(self.__etapasdisponiveis[2],))
         
+            if args not in self.__metodosIncerteza:
+                raise NameError(u'O método solicitado para cálculo da incerteza dos parâmetros %s'%(args,)+' não está disponível. Métodos disponíveis '+', '.join(self.__metodosIncerteza)+'.')
         # ---------------------------------------------------------------------
         # ANÁLISE RESÍDUOS
         # --------------------------------------------------------------------- 
@@ -471,7 +472,7 @@ class Estimacao:
         # Inclusão desta etapa da lista de etapas
         self.__etapas.append(self.__etapasdisponiveis[2]) # Inclusão desta etapa da lista de etapas
          
-    def incertezaParametros(self,PA=0.95,delta=1e-5):       
+    def incertezaParametros(self,PA=0.95,delta=1e-5,metodo='2InvHessiana'):       
         '''
         Método para avaliação da matriz covariãncia dos parâmetros.
         
@@ -480,7 +481,7 @@ class Estimacao:
         =======================
         * PA         : probabilidade de abrangência para gerar a região de abrangência
         * delta      : incremento para o cálculo das derivadas (derivada numérica)
-
+        * Métodos disponíveis: 2InvHessiana, geral
         ======
         Saídas
         ======
@@ -489,17 +490,21 @@ class Estimacao:
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------         
-        self.__validacaoArgumentosEntrada('incertezaParametros',None,None)       
+        self.__validacaoArgumentosEntrada('incertezaParametros',None,metodo)       
 
         # ---------------------------------------------------------------------
         # Cálculo da matriz de covariância
-        # ---------------------------------------------------------------------         
-        # Except temporário
-        try:
+        # ---------------------------------------------------------------------     
+        if metodo == self.__metodosIncerteza[0]:      
+            # Método: 2*inv(Hess)
             matriz_covariancia = 2*inv(self.__Hessiana_FO_Param(delta))
-        except:
-            matriz_covariancia = None
-            
+        
+        elif metodo == self.__metodosIncerteza[1]:
+            # Método: inv(H)*Gy*Uyy*GyT*inv(H)
+            invHess             = inv(self.__Hessiana_FO_Param(delta))
+            Gy                  = self.__Matriz_Gy(delta) 
+            matriz_covariancia  = invHess.dot(Gy).dot(self.y.experimental.matriz_covariancia).dot(Gy.transpose()).dot(invHess)
+
         self.parametros._SETparametro(self.parametros.estimativa,matriz_covariancia,self.parametros.regiao_abrangencia)
         
         self.regiaoAbrangencia(PA) # método para avaliação da região de abrangência
@@ -585,6 +590,68 @@ class Estimacao:
  
         return array(matriz_hessiana)
         
+    def __Matriz_Gy(self,delta=1e-5):
+        '''
+        Método para calcular a matriz Gy(derivada segunda da Fobj em relação aos parâmetros e y).
+        
+        Método de derivada central.
+        
+        ========
+        Entradas
+        ========
+        * delta: valor do incremento relativo para o cálculo da derivada. Incremento relativo à ordem de grandeza do parâmetro.
+
+        =====
+        Saída
+        ===== 
+        Retorna a matriz Gy.
+        '''
+        
+        matriz_Gy = [[1. for col in xrange(self.y.NV*self.y.experimental.NE)] for row in xrange(self.parametros.NV)]
+
+        for i in xrange(self.parametros.NV): 
+            for j in xrange(self.y.NV*self.y.experimental.NE):
+                                
+                delta1 = (10**(floor(log10(abs(self.parametros.estimativa[i])))))*delta #varia os elementos do vetor de thetas.
+                delta2 = (10**(floor(log10(abs(self.y.experimental.vetor_estimativa[j])))))*delta #varia os elementos do vetor dos y experimentais.
+                
+                vetor_parametro_delta_ipositivo = vetor_delta(self.parametros.estimativa,i,delta1) #Vetor alterado dos parâmetros para entrada na função objetivo
+                vetor_y_delta_jpositivo         = vetor_delta(self.y.experimental.vetor_estimativa,j,delta2)
+                
+                args                            = copy(self.__args_model).tolist()
+                args[0]                         = vetor_y_delta_jpositivo
+                
+                FO_ipositivo_jpositivo          = self.__FO(vetor_parametro_delta_ipositivo,args) # Valor da _FO para vetor de parâmetros e Yexperimentais alterados.
+                FO_ipositivo_jpositivo.start()
+                
+                
+                vetor_parametro_delta_inegativo = vetor_delta(self.parametros.estimativa,i,-delta1)
+ 
+                FO_inegativo_jpositivo           = self.__FO(vetor_parametro_delta_inegativo,args)
+                FO_inegativo_jpositivo.start()
+                
+                vetor_y_delta_jnegativo         = vetor_delta(self.y.experimental.vetor_estimativa,j,-delta2) 
+                args                            = copy(self.__args_model).tolist()
+                args[0]                         = vetor_y_delta_jnegativo
+   
+                FO_ipositivo_jnegativo          = self.__FO(vetor_parametro_delta_ipositivo,args)
+                FO_ipositivo_jnegativo.start()
+                
+                    
+                FO_inegativo_jnegativo          = self.__FO(vetor_parametro_delta_inegativo,args)
+                FO_inegativo_jnegativo.start()
+                    
+                FO_ipositivo_jpositivo.join()
+                FO_inegativo_jpositivo.join()
+                FO_ipositivo_jnegativo.join()
+                FO_inegativo_jnegativo.join()
+                    
+                # Referẽncia???
+                matriz_Gy[i][j]=((FO_ipositivo_jpositivo.result-FO_inegativo_jpositivo.result)/(2*delta1)\
+                -(FO_ipositivo_jnegativo.result-FO_inegativo_jnegativo.result)/(2*delta1))/(2*delta2)
+         
+        
+        return array(matriz_Gy)
 
     def regiaoAbrangencia(self,PA=0.95):
         '''
@@ -884,7 +951,8 @@ class Estimacao:
                     
 if __name__ == "__main__":
     from numpy import ones
-
+    from Funcao_Objetivo import WLS
+    from Modelo import Modelo
     # Exemplo validação: Exemplo resolvido 5.11, 5.12, 5.13 (capítulo 5) (Análise de Dados experimentais I)
     #Tempo
 #    x1 = transpose(array([120.0,60.0,60.0,120.0,120.0,60.0,60.0,30.0,15.0,60.0,\
@@ -930,8 +998,8 @@ if __name__ == "__main__":
     uy = concatenate((uy1,uy2),axis=1)
 
     Estime = Estimacao(WLS,Modelo,simbolos_x=['x1','x2'],simbolos_y=['y1','y2'],simbolos_param=[r'theta%d'%i for i in xrange(4)],label_latex_param=[r'$\theta_{%d}$'%i for i in xrange(4)])
-    sup = [10  ,10  ,10  ,10]
-    inf = [-10,-10 ,-10  ,-10]
+    sup = [6.  ,.3  ,8.  ,0.7]
+    inf = [1.  , 0  ,1.  ,0.]
     
     # Continuacao
     Estime.gerarEntradas(x,y,ux,uy)    
@@ -945,8 +1013,8 @@ if __name__ == "__main__":
 #    grandeza = Estime._armazenarDicionario() # ETAPA PARA CRIAÇÃO DOS DICIONÁRIOS - Grandeza é uma variável que retorna as grandezas na forma de dicionário
     
     # Otimização
-    Estime.otimiza(sup=sup,inf=inf,algoritmo='PSO',itmax=100,Num_particulas=30,metodo={'busca':'Otimo','algoritmo':'PSO','inercia':'TVIW-linear','aceleracao':'TVAC'})
-    Estime.incertezaParametros(.95,1e-5)
+    Estime.otimiza(sup=sup,inf=inf,algoritmo='PSO',itmax=100,Num_particulas=30,metodo={'busca':'Otimo','algoritmo':'PSO','inercia':'TVIW-Adaptative-VI'})
+    Estime.incertezaParametros(.95,1e-5,metodo='geral')
     grandeza = Estime._armazenarDicionario()
     Estime.analiseResiduos()
     lista_de_etapas = ['entrada','otimizacao','estimacao'] 
