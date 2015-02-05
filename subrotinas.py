@@ -154,7 +154,7 @@ def plot_cov_ellipse(cov, pos, c2=2, ax=None, **kwargs):
     ellip = Ellipse(xy=pos, width=width, height=height, angle=theta, **kwargs)
     
     ax.add_artist(ellip)
-    return (ellip, width, height)
+    return (ellip, width, height, theta)
     
 def vetor_delta(entrada_vetor,posicao,delta):
             

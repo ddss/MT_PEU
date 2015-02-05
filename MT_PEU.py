@@ -9,7 +9,7 @@ Principais classes do motor de cálculo do PEU
 
 # Importação de pacotes de terceiros
 from numpy import array, transpose, concatenate,size, diag, linspace, min, max, \
-sort, argsort, mean,  std, amin, amax, copy
+sort, argsort, mean,  std, amin, amax, copy, cos, sin, radians
 
 from scipy.stats import f
 
@@ -766,69 +766,82 @@ class Estimacao:
             # Gráficos da estimação
             base_dir = sep + 'Estimacao' + sep
             Validacao_Diretorio(base_path,base_dir)
+        
+            # Região de abrangência (método da verossimilhança)
+            Hist_Posicoes , Hist_Fitness = self.regiaoAbrangencia(PA)
+           
+            if self.parametros.NV == 1:
+                    
+                aux = []
+                for it in xrange(size(self.parametros.regiao_abrangencia)/self.parametros.NV):     
+                    aux.append(self.parametros.regiao_abrangencia[it][0])
+                       
+                X = [Hist_Posicoes[it][0] for it in xrange(len(Hist_Posicoes))]
+                Y = Hist_Fitness
+                X_sort   = sort(X)
+                Y_sort   = [Y[i] for i in argsort(X)]    
+                fig = figure()
+                ax = fig.add_subplot(1,1,1)
+                plot(X_sort,Y_sort,'bo',markersize=4)
+                plot(self.parametros.estimativa[0],self.Otimizacao.best_fitness,'ro',markersize=8)
+                plot([min(aux),min(aux)],[min(Y_sort),max(Y_sort)/4],'r-')
+                plot([max(aux),max(aux)],[min(Y_sort),max(Y_sort)/4],'r-')
+                ax.text(min(aux),max(Y_sort)/4,u'%.2e'%(min(aux),), fontsize=8, horizontalalignment='center')
+                ax.text(max(aux),max(Y_sort)/4,u'%.2e'%(max(aux),), fontsize=8, horizontalalignment='center')
+                ax.yaxis.grid(color='gray', linestyle='dashed')
+                ax.xaxis.grid(color='gray', linestyle='dashed')
+                xlim((self.parametros.estimativa[0]-2.5*self.parametros.matriz_covariancia[0,0],self.parametros.estimativa[0]+2.5*self.parametros.matriz_covariancia[0,0]))
+                ylabel(r"$\quad \Phi $",fontsize = 20)
+                xlabel(self.parametros.labelGraficos()[0],fontsize=20)
+                fig.savefig(base_path+base_dir+'regiao_verossimilhanca_'+str(self.parametros.simbolos[0])+'_'+str(self.parametros.simbolos[0])+'.png')
+                close()
             
-            for i in xrange(self.y.NV):
-                # Região de abrangência (método da verossimilhança)
-                Hist_Posicoes , Hist_Fitness = self.regiaoAbrangencia(PA)
-               
-                if self.parametros.NV == 1:
-                        
-                    aux = []
-                    for it in xrange(size(self.parametros.regiao_abrangencia)/self.parametros.NV):     
-                        aux.append(self.parametros.regiao_abrangencia[it][0])
-                           
-                    X = [Hist_Posicoes[it][0] for it in xrange(len(Hist_Posicoes))]
-                    Y = Hist_Fitness
-                    X_sort   = sort(X)
-                    Y_sort   = [Y[i] for i in argsort(X)]    
+            else:
+                
+                Combinacoes = int(factorial(self.parametros.NV)/(factorial(self.parametros.NV-2)*factorial(2)))
+                p1 = 0; p2 = 1; cont = 0; passo = 1
+                
+                for pos in xrange(Combinacoes):
+                    if pos == (self.parametros.NV-1)+cont:
+                        p1 +=1; p2 = p1+1; passo +=1
+                        cont += self.parametros.NV-passo
+                    
                     fig = figure()
                     ax = fig.add_subplot(1,1,1)
-                    plot(X_sort,Y_sort,'bo',markersize=4)
-                    plot(self.parametros.estimativa[0],self.Otimizacao.best_fitness,'ro',markersize=8)
-                    plot([min(aux),min(aux)],[min(Y_sort),max(Y_sort)/4],'r-')
-                    plot([max(aux),max(aux)],[min(Y_sort),max(Y_sort)/4],'r-')
-                    ax.text(min(aux),max(Y_sort)/4,u'%.2e'%(min(aux),), fontsize=8, horizontalalignment='center')
-                    ax.text(max(aux),max(Y_sort)/4,u'%.2e'%(max(aux),), fontsize=8, horizontalalignment='center')
-                    ax.yaxis.grid(color='gray', linestyle='dashed')
+                    
+                    for it in xrange(size(self.parametros.regiao_abrangencia)/self.parametros.NV):     
+                        PSO, = plot(self.parametros.regiao_abrangencia[it][p1],self.parametros.regiao_abrangencia[it][p2],'bo',linewidth=2.0,zorder=1)
+                    
+                    Fisher = f.ppf(PA,self.parametros.NV,(self.y.experimental.NE*self.y.NV-self.parametros.NV))            
+                    Comparacao = self.Otimizacao.best_fitness*(float(self.parametros.NV)/(self.y.experimental.NE*self.y.NV-float(self.parametros.NV))*Fisher)
+                    cov = array([[self.parametros.matriz_covariancia[p1,p1],self.parametros.matriz_covariancia[p1,p2]],[self.parametros.matriz_covariancia[p2,p1],self.parametros.matriz_covariancia[p2,p2]]])
+                    ellipse, width, height, theta = plot_cov_ellipse(cov, [self.parametros.estimativa[p1],self.parametros.estimativa[p2]], Comparacao, fill = False, color = 'r', linewidth=2.0,zorder=2)
+                    plot(self.parametros.estimativa[p1],self.parametros.estimativa[p2],'r*',markersize=10.0,zorder=2)
+                    ax.yaxis.grid(color='gray', linestyle='dashed')                        
                     ax.xaxis.grid(color='gray', linestyle='dashed')
-                    xlim((self.parametros.estimativa[0]-2.5*self.parametros.matriz_covariancia[0,0],self.parametros.estimativa[0]+2.5*self.parametros.matriz_covariancia[0,0]))
-                    ylabel(r"$\quad \Phi $",fontsize = 20)
-                    xlabel(self.parametros.labelGraficos()[0],fontsize=20)
-                    fig.savefig(base_path+base_dir+'regiao_verossimilhanca_'+str(self.parametros.simbolos[0])+'_'+str(self.parametros.simbolos[0])+'.png')
+                    xlabel(self.parametros.labelGraficos()[p1],fontsize=20)
+                    ylabel(self.parametros.labelGraficos()[p2],fontsize=20)
+                    if abs(theta)>=179.9:
+                        hx = width / 2.
+                        hy = height /2.
+                    elif abs(theta) >= 89.9 and abs(theta) <= 90.1:
+                        hx = height / 2.
+                        hy=  width  / 2.
+                    else:
+                        hx = abs(width*cos(radians(theta))/2.)
+                        hy = max(abs(width*sin(radians(theta))/2.),abs(height*sin(radians(theta))/2.,))
+
+                    xauto = [ax.get_xticks()[0],ax.get_xticks()[-1]]
+                    yauto = [ax.get_yticks()[0],ax.get_yticks()[-1]]
+                    xlim((min([self.parametros.estimativa[p1] - 1.15*hx,xauto[0]]), \
+                          max([self.parametros.estimativa[p1] + 1.15*hx,xauto[-1]])))
+                    ylim((min([self.parametros.estimativa[p2] - 1.15*hy,yauto[0]]),\
+                          max([self.parametros.estimativa[p2] + 1.15*hy,yauto[-1]])))
+                    legend([ellipse,PSO],[u"Ellipse",u"Verossimilhança"])
+                    fig.savefig(base_path+base_dir+'Regiao_verossimilhanca_'+str(self.parametros.simbolos[p1])+'_'+str(self.parametros.simbolos[p2])+'.png')
                     close()
-                
-                else:
-                    
-                    Combinacoes = int(factorial(self.parametros.NV)/(factorial(self.parametros.NV-2)*factorial(2)))
-                    p1 = 0; p2 = 1; cont = 0; passo = 1
-                    
-                    for pos in xrange(Combinacoes):
-                        if pos == (self.parametros.NV-1)+cont:
-                            p1 +=1; p2 = p1+1; passo +=1
-                            cont += self.parametros.NV-passo
-                        
-                        fig = figure()
-                        ax = fig.add_subplot(1,1,1)
-                        
-                        for it in xrange(size(self.parametros.regiao_abrangencia)/self.parametros.NV):     
-                            PSO, = plot(self.parametros.regiao_abrangencia[it][p1],self.parametros.regiao_abrangencia[it][p2],'bo',linewidth=2.0,zorder=1)
-                        
-                        Fisher = f.ppf(PA,self.parametros.NV,(self.y.experimental.NE*self.y.NV-self.parametros.NV))            
-                        Comparacao = self.Otimizacao.best_fitness*(float(self.parametros.NV)/(self.y.experimental.NE*self.y.NV-float(self.parametros.NV))*Fisher)
-                        cov = array([[self.parametros.matriz_covariancia[p1,p1],self.parametros.matriz_covariancia[p1,p2]],[self.parametros.matriz_covariancia[p2,p1],self.parametros.matriz_covariancia[p2,p2]]])
-                        ellipse, width, height = plot_cov_ellipse(cov, [self.parametros.estimativa[p1],self.parametros.estimativa[p2]], Comparacao, fill = False, color = 'r', linewidth=2.0,zorder=2)
-                        plot(self.parametros.estimativa[p1],self.parametros.estimativa[p2],'r*',markersize=10.0,zorder=2)
-                        ax.yaxis.grid(color='gray', linestyle='dashed')                        
-                        ax.xaxis.grid(color='gray', linestyle='dashed')
-                        xlabel(self.parametros.labelGraficos()[p1],fontsize=20)
-                        ylabel(self.parametros.labelGraficos()[p2],fontsize=20)
-                        xlim((self.parametros.estimativa[p1] - width ,self.parametros.estimativa[p1]+ width))
-                        ylim((self.parametros.estimativa[p2] - height,self.parametros.estimativa[p2]+ height))
-                        legend([ellipse,PSO],[u"Ellipse",u"Verossimilhança"])
-                        fig.savefig(base_path+base_dir+'Regiao_verossimilhanca_'+str(self.parametros.simbolos[p1])+'_'+str(self.parametros.simbolos[p2])+'.png')
-                        close()
-                        p2+=1            
-           
+                    p2+=1            
+       
             base_dir = sep + 'Grandezas' + sep
             Validacao_Diretorio(base_path,base_dir)
             self.x.Graficos(base_path, ID = ['calculado'])
@@ -848,10 +861,9 @@ class Estimacao:
             base_dir = sep + 'Estimacao' + sep
             Validacao_Diretorio(base_path,base_dir)
             for iy in xrange(self.y.NV):
-                for ix in xrange(self.x.NV):
                # Gráfico comparativo entre valores experimentais e calculados pelo modelo, sem variância         
-                    y  = self.y.experimental.matriz_estimativa[:,i]
-                    ym = self.y.calculado.matriz_estimativa[:,i]
+                    y  = self.y.experimental.matriz_estimativa[:,iy]
+                    ym = self.y.calculado.matriz_estimativa[:,iy]
                     diagonal = linspace(min(y),max(y))  
                     fig = figure()
                     ax = fig.add_subplot(1,1,1)
@@ -865,9 +877,9 @@ class Estimacao:
                     ymax   = max(ym) + tamanho_tick_x
                     xlim((ymin,ymax))
                     ylim((ymin,ymax))                
-                    xlabel(self.y.labelGraficos('experimental')[i])
-                    ylabel(self.y.labelGraficos('calculado')[i])
-                    fig.savefig(base_path+base_dir+'grafico_'+str(self.y.nomes[i])+'_ye_ym_sem_var.png')
+                    xlabel(self.y.labelGraficos('experimental')[iy])
+                    ylabel(self.y.labelGraficos('calculado')[iy])
+                    fig.savefig(base_path+base_dir+'grafico_'+str(self.y.simbolos[iy])+'_ye_ym_sem_var.png')
                     close()
                     
 if __name__ == "__main__":
@@ -937,5 +949,5 @@ if __name__ == "__main__":
     Estime.incertezaParametros(.95,1e-5)
     grandeza = Estime._armazenarDicionario()
     Estime.analiseResiduos()
-    lista_de_etapas = ['entrada','otimizacao','estimacao']
+    lista_de_etapas = ['entrada','otimizacao','estimacao'] 
     Estime.graficos(lista_de_etapas,0.95)       
