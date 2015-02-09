@@ -243,6 +243,7 @@ class Grandeza:
         
         * se os atributos de simbologia, nome, unidades e label_latex são Listas.
         * se os tamanhos dos atributos de simbologia, nome, unidades e label_latex são os mesmos.
+        * se os simbolos são distintos
         '''
         # Verificação se nomes, unidade e label_latex são listas
         for elemento in [self.nomes,self.unidades,self.label_latex]:
@@ -258,6 +259,11 @@ class Grandeza:
         for simb in self.simbolos:
             if set('[~!@#$%^&*()_+{}":;\']+$').intersection(simb):
                 raise NameError('Os nomes das grandezas não podem ter caracteres especiais. Simbolo incorreto: '+simb)       
+    
+        # Verificação se os símbolos são distintos
+        # set: conjunto de elementos distintos não ordenados (trabalha com teoria de conjuntos)
+        if len(set(self.simbolos)) != len(self.simbolos):
+            raise NameError('Os símbolos de cada grandeza devem ser distintos.')
     
     def _SETexperimental(self,estimativa,variancia,tipo):
         

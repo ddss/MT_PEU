@@ -9,7 +9,7 @@ Principais classes do motor de cálculo do PEU
 
 # Importação de pacotes de terceiros
 from numpy import array, transpose, concatenate,size, diag, linspace, min, max, \
-sort, argsort, mean,  std, amin, amax, copy, cos, sin, radians
+sort, argsort, mean,  std, amin, amax, copy, cos, sin, radians, mean
 
 from scipy.stats import f
 
@@ -143,31 +143,26 @@ class Estimacao:
         # ---------------------------------------------------------------------
         # VALIDAÇÕES GERAIS DE KEYWORDS
         # ---------------------------------------------------------------------
-        self.__etapasdisponiveis = ['__init__','gerarEntradas','otimizacao','incertezaParametros','regiaoAbrangencia','analiseResiduos','armazenarDicionario'] # Lista de etapas que o algoritmo irá executar
-        self.__validacaoArgumentosEntrada('__init__',kwargs)
+        self.__etapasdisponiveis = ['__init__','gerarEntradas','otimizacao',\
+                                    'incertezaParametros','regiaoAbrangencia',\
+                                    'analiseResiduos','armazenarDicionario'] # Lista de etapas que o algoritmo irá executar
+        self.__validacaoArgumentosEntrada('__init__',kwargs,projeto)
         
         # ---------------------------------------------------------------------
-        # VALIDAÇÃO ESPECÍFICA:
-        # ---------------------------------------------------------------------        
-        # PROJETO
-        # Verificação de projeto é um string
-        if not isinstance(projeto,str):
-            raise TypeError('O nome do projeto deve ser um string.')
-        
-        # Verificação se o nome do projeto possui caracteres especiais
-        if set('[~!@#$%^&*()_+{}":;\']+$').intersection(projeto):
-            raise NameError('O nome do projeto não pode conter caracteres especiais')  
-        
-        # ---------------------------------------------------------------------
-        # Inicialização das Grandezas
+        # INICIALIZAÇÃO DAS GRANDEZAS
         # ---------------------------------------------------------------------
         # Variável      = Grandeza(simbolos      ,nomes                                ,unidades                             ,label_latex)
         self.x          = Grandeza(simbolos_x    ,kwargs.get(self.__keywordsEntrada[0]),kwargs.get(self.__keywordsEntrada[1]),kwargs.get(self.__keywordsEntrada[2]))
         self.y          = Grandeza(simbolos_y    ,kwargs.get(self.__keywordsEntrada[3]),kwargs.get(self.__keywordsEntrada[4]),kwargs.get(self.__keywordsEntrada[5]))
         self.parametros = Grandeza(simbolos_param,kwargs.get(self.__keywordsEntrada[6]),kwargs.get(self.__keywordsEntrada[7]),kwargs.get(self.__keywordsEntrada[8]))
+        
+        # Verificação se os símbolos são distintos
+        # set: conjunto de elementos distintos não ordenados (trabalha com teoria de conjuntos)
+        if len(set(self.y.simbolos).intersection(self.x.simbolos)) != 0 or len(set(self.y.simbolos).intersection(self.parametros.simbolos)) != 0 or len(set(self.x.simbolos).intersection(self.parametros.simbolos)) != 0:
+            raise NameError('Os símbolos das grandezas devem ser diferentes.')
             
         # ---------------------------------------------------------------------
-        # Criação de variáveis internas
+        # CRIAÇÃO DAS VARIÁVEIS INTERNAS
         # ---------------------------------------------------------------------
         # Função objetivo
         self.__FO        = FO
@@ -191,6 +186,7 @@ class Estimacao:
         * verificar se keywords foram corretamente definidas
         * verficar se keywords obtigatórias foram definidas
         * verificar se o método pode ser executado, validando as etapas predecessoras 
+        * outras verificações
         '''
         # ---------------------------------------------------------------------
         # INICIALIZAÇÃO
@@ -203,7 +199,17 @@ class Estimacao:
         
             if len(keyincorreta) != 0:
                 raise NameError('keyword(s) incorretas: '+', '.join(keyincorreta)+'.'+' Keywords disponíveis: '+', '.join(self.__keywordsEntrada)+'.')
-
+    
+            # Verificação se o nome do projeto é um string
+            # args[0] = projeto
+            if not isinstance(args,str):
+                raise TypeError('O nome do projeto deve ser um string.')
+            
+            # Verificação se o nome do projeto possui caracteres especiais
+            # set: conjunto de elementos distintos não ordenados (trabalha com teoria de conjuntos)
+            if set('[~!@#$%^&*()_+{}":;\']+$').intersection(args):
+                raise NameError('O nome do projeto não pode conter caracteres especiais')  
+            
         # ---------------------------------------------------------------------
         # OTIMIZAÇÃO
         # --------------------------------------------------------------------- 
@@ -510,7 +516,7 @@ class Estimacao:
         
         elif metodo == self.__metodosIncerteza[1]:
             # Método: geral - > inv(H)*Gy*Uyy*GyT*inv(H)
-            # Inverso da matriz hessiana
+            # Inversa da matriz hessiana
             invHess             = inv(self.__Hessiana_FO_Param(delta))
             # Gy: derivadas parciais segundas da função objetivo em relação aos parâmetros e 
             # dados experimentais
@@ -728,6 +734,28 @@ class Estimacao:
         self.x._SETresiduos(residuo_x,None,{'estimativa':'matriz','incerteza':'incerteza'})
         self.y._SETresiduos(residuo_y,None,{'estimativa':'matriz','incerteza':'incerteza'})
 
+        # ---------------------------------------------------------------------
+        # CÁLCULO DE R2 e R2 ajustado
+        # ---------------------------------------------------------------------   
+        self.R2         = {}
+        self.R2ajustado = {}
+        # Para y:
+        for i,symb in enumerate(self.y.simbolos):
+            SSE = sum(self.y.residuos.matriz_estimativa[:,i]**2)
+            SST = sum((self.y.experimental.matriz_estimativa[:,i]-\
+                  mean(self.y.experimental.matriz_estimativa[:,i]))**2)
+            self.R2[symb]         = 1 - SSE/SST
+            self.R2ajustado[symb] = 1 - (SSE/(self.y.experimental.NE-self.parametros.NV))\
+                                       /(SST/(self.y.experimental.NE - 1))
+        # Para x:                                           
+#        for i,symb in enumerate(self.x.simbolos):
+#            SSEx = sum(self.x.residuos.matriz_estimativa[:,i]**2)
+#            SSTx = sum((self.x.experimental.matriz_estimativa[:,i]-\
+#                  mean(self.x.experimental.matriz_estimativa[:,i]))**2)
+#            self.R2[symb]         = 1 - SSEx/SSTx
+#            self.R2ajustado[symb] = 1 - (SSEx/(self.x.experimental.NE-self.parametros.NV))\
+#                                       /(SSTx/(self.x.experimental.NE - 1))
+                                       
         # ---------------------------------------------------------------------
         # EXECUÇÃO DE GRÁFICOS E TESTES ESTATÍSTICOS
         # ---------------------------------------------------------------------             
