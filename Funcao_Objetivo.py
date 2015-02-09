@@ -51,22 +51,21 @@ class WLS(Thread):
         self.x      = argumentos[1]
         self.Vy     = argumentos[2]
         self.Vx     = argumentos[3]        
-        self.simb_x = argumentos[4]
-        self.simb_y = argumentos[5]
+        self.args   = argumentos[4]
+        # Simbologia (especificidade do PEU)
+        self.simb_x     = argumentos[5]
+        self.simb_y     = argumentos[6]
+        self.simb_param = argumentos[7]
         
-        self.args   = argumentos[6]
         
     def run(self):
 
-        ym = Modelo(self.param,self.x,self.args)
+        ym = Modelo(self.param,self.x,[self.args,self.simb_x,self.simb_y,self.simb_param])
         ym.start()
         ym.join()
-        
         ym = matriz2vetor(ym.result)
-
         #print '-------------'
         #print ym
         #print '-------------'
-
         d     = self.y - ym
         self.result =  float(dot(dot(transpose(d),linalg.inv(self.Vy)),d))

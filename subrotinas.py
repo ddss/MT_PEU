@@ -5,11 +5,16 @@ Created on Tue Oct 21 10:36:09 2014
 @author: Daniel
 """
 
-from numpy import array, transpose, concatenate, size
+from numpy import concatenate, size, arctan2, degrees, sqrt, copy, ones
+from numpy.linalg import eigh
 from os import path, makedirs
 
+from matplotlib.pyplot import gca
+from matplotlib.patches import Ellipse
+
+
 def matriz2vetor(matriz):
-    '''
+    u'''
     Subrotina para converter uma matriz (array com várias colunas) em um vetor (array com uma coluna)
     =======
     Entrada
@@ -42,7 +47,7 @@ def matriz2vetor(matriz):
 
 
 def vetor2matriz(vetor,NE):
-    '''
+    u'''
     Subrotina para converter um vetor (array com uma coluna) em um vetor (array com uma coluna)
 
     =======
@@ -108,3 +113,71 @@ def Coef_R2(residuo,yexp):
 
 def CovarianciaXY(matriz_cov_x,matriz_cov_y):
     matriz_cov_xy = concatenate((matriz_cov_x,matriz_cov_y))
+    
+    
+    
+def plot_cov_ellipse(cov, pos, c2=2, ax=None, **kwargs):
+    """
+    Plots an `nstd` sigma error ellipse based on the specified covariance
+    matrix (`cov`). Additional keyword arguments are passed on to the 
+    ellipse patch artist.
+
+    Parameters
+    ----------
+        cov : The 2x2 covariance matrix to base the ellipse on
+        pos : The location of the center of the ellipse. Expects a 2-element
+            sequence of [x0, y0].
+        nstd : The radius of the ellipse in numbers of standard deviations.
+            Defaults to 2 standard deviations.
+        ax : The axis that the ellipse will be plotted on. Defaults to the 
+            current axis.
+        Additional keyword arguments are pass on to the ellipse patch.
+
+    Returns
+    -------
+        A matplotlib ellipse artist
+        # Código é adaptado e obtigo de terceiros: https://github.com/joferkington/oost_paper_code/blob/master/error_ellipse.py
+    """
+    def eigsorted(cov):
+        vals, vecs = eigh(cov)
+        order = vals.argsort()[::-1]
+        return vals[order], vecs[:,order]
+
+    if ax is None:
+        ax = gca()
+
+    vals, vecs = eigsorted(cov)
+    theta = degrees(arctan2(*vecs[:,0][::-1]))
+
+    # Width and height are "full" widths, not radius
+    width, height = 2 * sqrt(c2*vals)
+    ellip = Ellipse(xy=pos, width=width, height=height, angle=theta, **kwargs)
+    
+    ax.add_artist(ellip)
+    return (ellip, width, height, theta)
+    
+def vetor_delta(entrada_vetor,posicao,delta):
+            
+    vetor = copy(entrada_vetor)
+
+    if isinstance(posicao,list):
+        vetor[posicao[0]] = vetor[posicao[0]]+delta[0]
+        vetor[posicao[1]] = vetor[posicao[1]]+delta[1]
+    else:
+        vetor[posicao] = vetor[posicao]+delta
+                
+    return vetor
+    
+def matrizcorrelacao(matriz_covariancia):
+    u'''
+    Calcula a matriz de correlação de determinada matriz covariância
+    '''
+    if size(matriz_covariancia,0) != size(matriz_covariancia,1):
+        raise ValueError(u'A matriz precisa ser quadrada para calcular a matriz dos coeficientes de correlação.')
+    
+    matriz_correlacao  = ones((size(matriz_covariancia,0),size(matriz_covariancia,0)))    
+    for i in xrange(size(matriz_covariancia,0)):
+        for j in xrange(size(matriz_covariancia,0)):
+            matriz_correlacao[i,j]  = matriz_covariancia[i,j]/sqrt(matriz_covariancia[i,i]*matriz_covariancia[j,j])
+
+    return matriz_correlacao

@@ -1,199 +1,63 @@
 # -*- coding: utf-8 -*-
 """
-Material para o PSO
+@title : Particle Swarm Optimization (PSO)
+@author: Daniel Diniz Santana
+@group: GI-UFBA (Grupo de Pesquisa em Incerteza da UFBA) (www.gi.ufba.br)
+
+Algortimos de otimização suportados (Optimization Algorithms supported):
+- PSO                 - Particle swarm optimization
+- HPSO                - Self-Organizing Hierarchical Particle Swarm Optimizer
+
+Fatores de inércia suportados (Inertia weight supported):
+- Constante           
+- TVIW-linear         - time variating inertia weight (linear)
+- TVIW-random         - time variating inertia weight (random)
+- TVIW-Adaptative-VI  - time variating inertia weight with adaptive parameter tuning of particle swarm optimization based on velocity information 
+
+Fatores de aceleração suportados (Acceleration factors supported):
+- Constante
+- TVAC                - time variating acceleration coefficientes (linear)
+
+- Constriction factor method:
+- CFM                 - constriction factor method
+
+Reinitialization velocity for HPSO:
+- TVVr-linear         - time variating reinitialization velocity (linear)
+- Constante
 """
 
+#-------------------------------------------------------------------------------
+# IMPORTAÇÃO DE PACOTES (packages import)
+#-------------------------------------------------------------------------------
+
+# Importação de pacotes para cálculos
 import os
 from time import sleep, ctime, time
 import sys
 from threading import Thread, Lock, BoundedSemaphore
-import Queue
+
 from numpy import random, min, argmin, copy, matrix, multiply, random, size, min,\
 max, copysign, ones, mean, std, sqrt, cos, pi, sort, argsort, savetxt
 from scipy.misc import factorial
 from math import isnan
 import codecs
 
-# Import para gráficos
-from matplotlib import use, cm, ticker
-use('Agg')
+# Importação de pacotes para gráficos
+from matplotlib import cm, ticker
+#use('Agg')
 
 
 from matplotlib.pyplot import figure, axes, plot, subplot, xlabel, ylabel,\
-    title, legend, savefig,  xlim, ylim, close, gca
+    title, legend, savefig,  xlim, ylim, close, gca, hist
 from mpl_toolkits.mplot3d import Axes3D, proj3d
 from matplotlib.patches import Ellipse, FancyArrowPatch
 
-# Índice de Revisões:
-    # Rev01: Código bruto do algoritmo sem utilizar Threads
-        # FOCO: Algoritmo
-        # Aviso: Algoritmo não validado
-        
-    # Rev02 à Rev05: Descontinuadas. Tentativas de converter Rev01 para processamento em Threads, sem sucesso.
-        # FOCO: Threads
-        # Aviso: Algoritmo não validado
-        
-    # Rev06: Rev01 do algoritmo utilizando Threads, através de listas (Queue), uso da Função Objetivo e Modelo como Threads.
-        # FOCO: Threads
-        # Problema conhecido: Threads finalizadas apenas no fim do programa principal. Gerenciamento ruim de Threads
-        # Aviso: Algoritmo não validado
-        
-    # Rev07: Modificação da Rev06 para substituição de Queue por Semáforos e Chaves (Locks), solucionando o problema conhecido da revsisão anterior.
-        # FOCO: Threads
-        # Ponto negativo: a inicialização possui um tempo superior à Rev06, devido ao uso de uma estrutura não "otimizada" (while)
-        # Aviso: Algoritmo não validado
-    
-    # Rev08: Modificação da Rev07 para implementação do PSO - simples, conforme apresentado por [1] e [4] (não fielmente)
-        # FOCO: Algoritmo
-        # Ponto negativo: a inicialização possui um tempo superior à Rev06, devido ao uso de uma estrutura não "otimizada" (while)
-        # Implementações futuras: w descrescente com o número de iterações, Melhoria na entrada de dados, APSO, Critérios de convergência. 
-        # Aviso: Algoritmo não validado
+#-------------------------------------------------------------------------------
+# Subrotinas e classes auxiliares
+#-------------------------------------------------------------------------------
 
-    # Rev09: Modificação da Rev08 para implementaçã do PSO, conforme apresentado por [1] e [4], sem incluir o CFM
-    #        inclusão de critérios de avaliação (adaptado de [8]):
-        # FOCO: Algoritmo
-        # Ponto negativo: a inicialização possui um tempo superior à Rev06, devido ao uso de uma estrutura não "otimizada" (while)
-        # Implementações futuras: Melhoria na entrada de dados, APSO, Critérios de convergência, implementação de gráfico (iteraçao x, particula y, fitness z) + best_fitness, escrita em arquivo do resultado
-        # Validação:
-        #           Função exponencial [8]  - Sucesso! (min F.O = -1, gbest = 0)
-        #           Função Rosenbrock [8]   - Aceitável (min F.O = 0, gbest = 1) | Encontrado (min F.O = 2.27, gbest = 1.00322741  1.00509453  1.01234107  1.02858094  1.05942463  1.12106265 1.24324002  1.54016721  2.36994972  5.61815896)
-        #           Função Shaffer's f6 [7] - Sucesso! (min F.O = 0, gbest = 0)
-   
-    # Rev10: Modificação da Rev09 para inclusão do def gráficos:
-        # FOCO: Gráficos
-        # Ponto negativo: a inicialização possui um tempo superior à Rev06, devido ao uso de uma estrutura não "otimizada" (while)
-        # Implementações futuras: CFM, APSO, Adaptação para o algortimo de [9], Critérios de convergência, Restrição, Melhoria na entrada de dados, escrita em arquivo do resultado
-        # Validação:
-        #           Função exponencial [8]  - Sucesso! (min F.O = -1, gbest = 0)
-        #           Função Rosenbrock [8]   - Aceitável (min F.O = 0, gbest = 1) | Encontrado (min F.O = 2.27, gbest = 1.00322741  1.00509453  1.01234107  1.02858094  1.05942463  1.12106265 1.24324002  1.54016721  2.36994972  5.61815896)
-        #           Função Shaffer's f6 [7] - Sucesso! (min F.O = 0, gbest = 0)
-        #           Função Rastringin [7,8] - Aceitável (NP = 50, itmax = 2000) (min F.O = 0, gbest = 0) | Encontrado (min F.O = 2.98, gbest = -1.51112464e-10  -4.87950214e-10   9.94958639e-01  -3.69342507e-10  -6.38312558e-10  -9.94958638e-01  -1.17942699e-09   9.94958637e-01  8.33905155e-11  -5.28144270e-10)
-        #           Função Ackley[7,8]      - Sucesso! (NP = 30, itmax = 2000) ((min F.O = 0, gbest = 0)
-        
-    # Rev 11: Modificação da Rev10 para inclusãodo CFM, conforme [7], w pelo método Constante e TVIW-random \ inclusão da classe métodos :
-        # FOCO: Algoritmo
-        # Ponto negativo: a inicialização possui um tempo superior à Rev06, devido ao uso de uma estrutura não "otimizada" (while)
-        # Implementações futuras: TVAC, GLBEst, APSO, Adaptação para o algortimo de [9], Critérios de convergência, Restrição, Melhoria na entrada de dados, escrita em arquivo do resultado
-        # Validação:
-        #           Função exponencial [8]  - 100 iterações: PSO-sem TVIW-linear não encontra mínimo | PSO-sem TVIW-linear-CFM encontra mínimo
-        #           Função Rosenbrock [8]   -
-        #           Função Shaffer's f6 [7] - 
-        #           Função Rastringin [7,8] - 
-        #           Função Ackley[7,8]      -
-        
-    # Rev12: Modificação da Rev11 para inclusão do método TVAC para a aceleração e do HPSO, conforme [10]
-        # FOCO: Algoritmo
-        # Ponto negativo: a inicialização possui um tempo superior à Rev06, devido ao uso de uma estrutura não "otimizada" (while)
-        # Implementações futuras: GLBEst, Adaptação para o algortimo de [9], Critérios de convergência, Restrição, Melhoria na entrada de dados, escrita em arquivo do resultado
-        # Validação:
-        #           Função exponencial [8]  - 
-        #           Função Rosenbrock [8]   -
-        #           Função Shaffer's f6 [7] - 
-        #           Função Rastringin [7,8] - 
-        #           Função Ackley[7,8]      - Sucesso!
-
-    # Rev13: Modificação da Rev12 para adequação ao contexto da estimação de parâmetros (Modelo, Função objetivo)
-        # FOCO: Estrutura
-        # Ponto negativo: a inicialização possui um tempo superior à Rev06, devido ao uso de uma estrutura não "otimizada" (while)
-        # Implementações futuras: GLBEst, Adaptação para o algortimo de [9], Critérios de convergência, Restrição, Melhoria na entrada de dados, escrita em arquivo do resultado
-    
-    # Rev14: Modificação da Rev13 para incluir a restrição do tipo caixa e método PSO-HPSO => tentativa de melhoria da região de abrangência
-    #       Gráfico da região de abrangência
-        # FOCO: Estrutura
-        # Ponto negativo: a inicialização possui um tempo superior à Rev06, devido ao uso de uma estrutura não "otimizada" (while)
-        # Implementações futuras: GLBEst, Adaptação para o algortimo de [9], Critérios de convergência, Restrição de igualdade e desigualdade, Melhoria na entrada de dados, escrita em arquivo do resultado
-    
-    # Rev15: Modificação da Rev15 para incluir definição de método para cálculo de gbest (Enxame e Partícula)
-        # FOCO: Estrutura
-        # Ponto negativo: a inicialização possui um tempo superior à Rev06, devido ao uso de uma estrutura não "otimizada" (while)
-        # Implementações futuras: GLBEst, Adaptação para o algortimo de [9], Critérios de convergência, Restrição de igualdade e desigualdade, Melhoria na entrada de dados, escrita em arquivo do resultado
-
-    # Rev16: Modificação da Rev15 para inclusão do APSO (conforme [8]), gráficos da velocidade média (forma de visualizar o APSO) e gráficos para vídeos
-        # FOCO: Algoritmo
-        # Ponto negativo: a inicialização possui um tempo superior à Rev06, devido ao uso de uma estrutura não "otimizada" (while)
-        # Implementações futuras: GLBEst, Critérios de convergência, Restrição de igualdade e desigualdade, Melhoria na entrada de dados
-    
-    # Rev17: Modificação da Rev16 para diferenciar região de inicialização (posinit_sup e posinit_inf) e restrição
-        # FOCO: Algoritmo
-        # Ponto negativo: a inicialização possui um tempo superior à Rev06, devido ao uso de uma estrutura não "otimizada" (while)
-        # Implementações futuras: GLBEst, Critérios de convergência, Restrição de igualdade e desigualdade, Melhoria na entrada de dados
-
-    # Rev18: Modificacção do código do algoritmo de HPSO, para correção de um erro que fazia-o ignorar restrições. Alteração de como a velocidade no Execução_PSO é tratada,
-    #        quando há restrições.
-        # FOCO: Algoritmo
-        # Ponto negativo: a inicialização possui um tempo superior à Rev06, devido ao uso de uma estrutura não "otimizada" (while)
-        # Implementações futuras: GLBEst, Critérios de convergência, Restrição de igualdade e desigualdade, Melhoria na entrada de dados
-
-    # Rev19: Inclusão do controle das sementes (seeds) que geram os números aleatórios na inicialização.
-        # FOCO: Algoritmo
-        # Ponto negativo: a inicialização possui um tempo superior à Rev06, devido ao uso de uma estrutura não "otimizada" (while)
-        # Implementações futuras: GLBEst, Critérios de convergência, Restrição de igualdade e desigualdade, Melhoria na entrada de dados
-
-    # Rev20: A velocidade de reinicialização do algoritmo de HPSO decresce linearmente com as iterações
-        # FOCO: Algoritmo
-        # Ponto negativo: a inicialização possui um tempo superior à Rev06, devido ao uso de uma estrutura não "otimizada" (while)
-        # Implementações futuras: LBest, Critérios de convergência, Restrição de igualdade e desigualdade, Melhoria na entrada de dados, melhoria da validação
-
-    # Rev21: Alterar a forma que a classe PSO (__init__) recebe as informações (inclusão de *kwargs), inclusão de FO | incluir o gráfico da função objetivo
-            #e capacidade de alterar as legendas deste gráfico, azim e elev | exclusão do PSO-HPSO
-        # FOCO: Estrutura
-        # Ponto negativo: a inicialização possui um tempo superior à Rev06, devido ao uso de uma estrutura não "otimizada" (while)
-        # Implementações futuras: LBest, Critérios de convergência, Restrição de igualdade e desigualdade, Melhoria na entrada de dados, melhoria da validação
-
-    # Rev22: Correção de erro que impedia o algoritmo ser executado para o cálculo de funções objetivo com apenas 1 parâmetro
-        # Foco: Estrutura
-        # Ponto negativo: a inicialização possui um tempo superior à Rev06, devido ao uso de uma estrutura não "otimizada" (while)
-        # Implementações futuras: LBest, Critérios de convergência, Restrição de igualdade e desigualdade, Melhoria na entrada de dados, melhoria da validação
-
-    # Rev23: Organização da Estrutura da Classe PSO, para incluir o def default e def inicializacao, incluir validação de keywords, incluir método Vreinit (para variar a velocidade de reinicialização do algoritmo de HPSO),
-    #	     inclusão de historico_fitness e historico_posicoes na saída de dados de texto, inclusão do resumo do estimação
-        # Foco: Estrutura
-        # Ponto negativo: a inicialização possui um tempo superior à Rev06, devido ao uso de uma estrutura não "otimizada" (while)
-        # Implementações futuras: LBest, Critérios de convergência, Restrição de igualdade e desigualdade, Melhoria na entrada de dados, melhoria da validação
-
-    # Rev24: inclusão do resumo do estimação, substituição da variável self.metodo.w por self.metodo.inercia
-        # Foco: Estrutura
-	# Ponto negativo: a inicialização possui um tempo superior à Rev06, devido ao uso de uma estrutura não "otimizada" (while)
-        # Implementações futuras: LBest, Critérios de convergência, Restrição de igualdade e desigualdade, Melhoria na entrada de dados, melhoria da validação
-
-    # Rev25: correçao de um erro que impedia o algoritmo ser executado quando era utilizado posinit_sup e posinit_inf (inclusão deles como variáveis self. na inicialização)
-	# Foco: Estrutura
-        # Ponto negativo: a inicialização possui um tempo superior à Rev06, devido ao uso de uma estrutura não "otimizada" (while)
-	# Implementações futuras: LBest, Critérios de convergência, Restrição de igualdade e desigualdade, Melhoria na entrada de dados, melhoria da validação
-
-    # Rev 26: correção de um erro que impedia gerar o arquivo de texto quando o w aleatório era utilizado, mudança em como o matplotlib.use é importado, inclusão do atributo foca (ponto focal para o algoritmo de melhoria de uma região, quando o método de busca é ``Regiao``)
-        # inclusão de erro para impedir apenas 1 iteração quando TVIW-linear e TVAC são utilizados, implementado geração gráfico das projeções da função objetivo em relaçao aos parâmetros de decisão.
-	# inclusão de variável para realizar gráfico da função objetivo 2a2, apenas quando solicitado.
-	# inclusão de teste para validar se o limite inferior é menor do que o superior
-	# Foco: Estrutura
-	# Ponto negativo: a inicialização possui um tempo superior à Rev06, devido ao uso de uma estrutura não "otimizada" (while)
-	# Implementações futuras: carregar histórico, LBest, Critérios de convergência, Restrição de igualdade e desigualdade, Melhoria na entrada de dados, melhoria da validação, transformar a funçao objetivo em def
-# Algortimos/Siglas--------------------------------------------------------------------------------------------------------------------------------
-
-# Algortimos de otimização suportados:
-# PSO                 - Particle swarm optimization
-# HPSO                - Self-Organizing Hierarchical Particle Swarm Optimizer
-
-# Fatores de inércia suportados:
-# Constante           
-# TVIW-linear         - time variating inertia weight (linear)
-# TVIW-random         - time variating inertia weight (random)
-# TVIW-Adaptative-VI  - time variating inertia weight with adaptative parameter tuning of particle swarm optimization based on velocity information 
-
-# Fatores de aceleração suportados:
-# Constante
-# TVAC                - time variating acceleration coefficientes (linear)
-
-# Constriction factor:
-# CFM                 - constriction factor method (on, off)
-
-# Reinitialization velocity
-# TVVr-linear         - time variating reinitialization velocity (linear)
-# Constante
-
-#--------------------------------------------------Início do Algoritmo------------------------------------------------------------------
 def Validacao_Diretorio(diretorio):
-    # Basedo em códigos de terceiros: 
+    # Basedo em códigos de terceiros (Based on interne: 
     # Validação da existência de diretório
     directory = os.path.split(diretorio+"Teste.txt")[0]
 
@@ -203,6 +67,24 @@ def Validacao_Diretorio(diretorio):
     # Se o diretório não existir, crie
     if not os.path.exists(directory):
         os.makedirs(directory)
+
+
+class Arrow3D(FancyArrowPatch):
+# Seta em gráfico 3D
+# http://stackoverflow.com/questions/11140163/python-matplotlib-plotting-a-3d-cube-a-sphere-and-a-vector
+    def __init__(self, xs, ys, zs, *args, **kwargs):
+        FancyArrowPatch.__init__(self, (0,0), (0,0), *args, **kwargs)
+        self._verts3d = xs, ys, zs
+		
+    def draw(self, renderer):
+        xs3d, ys3d, zs3d = self._verts3d
+        xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
+        self.set_positions((xs[0],ys[0]),(xs[1],ys[1]))
+        FancyArrowPatch.draw(self, renderer)
+
+#-------------------------------------------------------------------------------
+# ÍNICIO (beginning)
+#-------------------------------------------------------------------------------
 
 class Particula(Thread):
     # Classe que define a partícula, cada partícula é definida como uma Thread
@@ -554,7 +436,7 @@ class Metodo:
 	    raise NameError, u'Vreinit method is only applied with HPSO algorithm, please set Vreinit method to None'
 	
         if self.restricao == None:
-            self.restricao == True
+            self.restricao = True
         elif (self.restricao != True) and (self.restricao != False):
             raise NameError, u'A restrição assume valores lógicos True ou False'
         
@@ -568,7 +450,7 @@ class Metodo:
 
 class PSO:    
 
-    def __init__(self,limite_superior, limite_inferior, metodo={'busca':'Otimo','algoritmo':'PSO','inercia':'TVIW-linear','aceleracao':'Constante','CFM':False,'restricao':True,'gbest':'Particula'}, Num_particulas=30, itmax=2000,**kwargs):
+    def __init__(self,limite_superior, limite_inferior, metodo={'busca':'Otimo','algoritmo':'PSO','inercia':'TVIW-linear','aceleracao':'Constante','CFM':False,'restricao':True,'gbest':'Particula'}, Num_particulas=30, itmax=500,**kwargs):
         """
         ************************************
         Partcle Swarm Optimization Algorithm 
@@ -1136,7 +1018,34 @@ class PSO:
 	self.Vstart = abs((max(self.limite_superior) - min(self.limite_inferior))/2.0)
 	self.Tend   = 0.95*self.itmax
 
-    def Busca(self,FO):        
+    def Busca(self,FO,printit=False):
+	'''
+	Método para realizar a etapa de busca na função objetivo
+	
+	===================
+	Entrada obrigatória
+	===================
+	
+	* ``FO`` : função objetivo no formato de Thread com atributo de resposta ``result`` (sendo um float). Exemplo: ::
+	
+	    from threading import Thread
+            
+            class FO(Thread):
+                result = 0
+                def __init__(self,param,args):
+                    Thread.__init__(self)
+                    self.x = param
+    
+                def run(self):
+                    
+                    self.result =  self.x**2
+	
+	================
+	Entrada opcional
+	================
+	
+	* ``printit`` (bool: True ou False): se True o número das iterações, ao decorrer da busca, são apresentadas em tela.
+	'''
         global Controle_FO, Controle_Particula, Controle_Iteracao, Controle_variaveis, total_particulas_atendidas, Controle_Total_Threads
         global vetor_posicoes, vetor_fitness, vetor_velocidades, best_fitness, gbest # Apenas para o método de gbest Enxame
         
@@ -1278,8 +1187,9 @@ class PSO:
             
             # Aquisição de Controle_Iteração, para iniciar a iteração
             Controle_Iteracao.acquire()
-            sys.stdout.write('ITERACAO: '+str(it)+'\n')
-            sys.stdout.flush()
+	    if printit == True:
+		sys.stdout.write('ITERACAO: '+str(it)+'\n')
+		sys.stdout.flush()
             
 	    # Atualização de w, C1, C2 e Vreinit
             if self.metodo.inercia == 'Constante':
@@ -1341,17 +1251,17 @@ class PSO:
  
             # Liberação da proxima iteração
             Controle_Iteracao.release()
-        
-	for it in xrange(self.itmax):
-	    for ID_particula in xrange(self.Num_particulas):
-		if isnan(vetor_fitness[it][ID_particula]):
-		    raise NameError, u'Existe NaN como valor de função objetivo. Verificar.'
-		
+    
         # Armazenamento das informações em variáveis da classe (disponíveis para o Programa Principal)
         self.historico_fitness  = vetor_fitness    
         self.historico_posicoes = vetor_posicoes
         self.gbest              = gbest
         self.best_fitness       = best_fitness
+
+	for it in xrange(self.itmax):
+	    for ID_particula in xrange(self.Num_particulas):
+		if isnan(self.historico_fitness[it][ID_particula]):
+		    raise NameError, u'Existe NaN como valor de função objetivo. Verificar.'
     
     def Result_txt(self,base_path=None):
         '''
@@ -1390,8 +1300,6 @@ class PSO:
         * **historico_fitness.txt**: contém o histórico de avaliação da função objetivo para cada particula a cada iteração.
         * **Resumo.txt** : contém um resumo da otimização realizada
         '''        
-        
-        
         
         if base_path == None:
             base_path = os.getcwd()+"/PSO/Result_txt/"
@@ -1665,20 +1573,6 @@ class PSO:
             fig.savefig(base_path+'W_inertia_weight.png')
             close()
 
-	# Gráfico da função objetivo-----------------------------------------------
-	# Seta em gráfico 3D
-	class Arrow3D(FancyArrowPatch):
-	    # http://stackoverflow.com/questions/11140163/python-matplotlib-plotting-a-3d-cube-a-sphere-and-a-vector
-	    def __init__(self, xs, ys, zs, *args, **kwargs):
-		FancyArrowPatch.__init__(self, (0,0), (0,0), *args, **kwargs)
-		self._verts3d = xs, ys, zs
-		
-	    def draw(self, renderer):
-		xs3d, ys3d, zs3d = self._verts3d
-		xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
-		self.set_positions((xs[0],ys[0]),(xs[1],ys[1]))
-		FancyArrowPatch.draw(self, renderer)
-
 	# Transformação do histórico das posições e do fitness
 	hist_posicoes = []; hist_fitness = []
 	for it in xrange(self.itmax):
@@ -1686,6 +1580,19 @@ class PSO:
 		hist_posicoes.append(self.historico_posicoes[it][ID_particula])
 		hist_fitness.append(self.historico_fitness[it][ID_particula])
 
+	
+	# Histograma das posições
+	for D in xrange(self.Num_parametros):
+	    aux = [hist_posicoes[it][D] for it in xrange(self.itmax+1)] # obtenção das posições para a dimensão D
+	    
+	    fig = figure()
+	    ax = fig.add_subplot(1,1,1)
+	    hist(aux,normed=True,histtype='stepfilled',color='b')
+	    ylabel(u'Frequência normalizada')
+	    xlabel(u'Valores dos parâmetros')
+	    fig.savefig(base_path+'Histograma_parametros_%d'%(D+1)+'.png')
+	    
+	# Gráfico da função objetivo----------------------------------------------
 	for ix in xrange(self.Num_parametros):
 	    # Gráfico unidimensional da função objetivo
 	    # Desenvolvimento das Iterações - Velocidades
@@ -1780,15 +1687,54 @@ class PSO:
 		p2+=1
 
 
-    def Movie(self,base_path=None):
+    def Movie(self,base_path=None,tipos=['evolucao','projecao','funcao'],**kwargs):
         '''
-        Método para criação dos gráficos de desenvolvimento do algoritmo a cada iteração. 
-        
-        
-        
-        
+        Método para criação dos gráficos de desenvolvimento do algoritmo a cada iteração.
+	Cada gráfico representa um frame
+        =========
+        Entradas
+        =========
+     
+         * ``base_path`` (string, opcional): caminho completo onde os gráficos serão criados.
+         * ``tipos´´ (lista,opcional): lista contendo os tipos de gráficos a serem criados: evolucao (gráfico 3d contendo a iteraçao, partícula e funcao objetivo), projecao (gráfico 2d contendo as posiçoes de cada particula), funcao (gráfico 3d contendo a posiçao das particulas e o valor da funçao objetivo)
+         
+        ========
+        Keywargs
+        ========
+     
+        * ``azim`` (lista): define a rotação horizontal para os gráficos da função objetivo. Se tiver apenas um elemento, será utilizado o valor para todos os gráficos.  O valor default é ``[45]``
+        * ``elev`` (lista): define a rotação vertical para os gráfico da função objetivo. O valor default é ``[45]``.
+        * ``Nome_param`` (lista): define o nome dos parâmetros, na ordem que incluidos nos limites. Valor default ``[x1,x2,...,xn]``. Pode ser utilizado os códigos em LATEX, só utilizar: r'$codigo$'
+        * ``Unid_param`` (lista): define o nome dos parâmetros, na ordem que incluidos nos limites. Valor default ``[adim,adim,...,adim]``. Pode ser utilizado os códigos em LATEX, só utilizar: r'$codigo$
         '''
-
+        # Atribuição de valores default
+        azim = [45] # Define a rotação horizontal no gráfico da função objetivo
+        elev = [45] # Define a rotação vertical no gráfico da função objetivo
+        Nome_param = []
+        Unid_param = []
+        
+        # Sobrescrevendo valores default
+	
+        if 'azim' in kwargs.keys():
+            azim = kwargs['azim']
+	
+        if 'elev' in kwargs.keys():
+            elev = kwargs['elev']
+	
+        if 'Nome_param' in kwargs.keys():
+            Nome_param = kwargs['Nome_param']
+            if Nome_param != None:
+                if len(Nome_param) != self.Num_parametros and len(Nome_param) != 0 :
+                    raise NameError, u'Nome_param deve conter o nome para todos os parâmetros'
+	    
+        if 'Unid_param' in kwargs.keys():
+            Unid_param = kwargs['Unid_param']
+            if Unid_param != None:
+                if len(Unid_param) != self.Num_parametros and len(Unid_param) != 0:
+                    raise NameError, u'Unid_param deve conter as unidades para todos os parâmetros'
+                    
+        if isinstance(azim, int) or isinstance(azim, float) or isinstance(elev, int) or isinstance(elev,float):
+            raise NameError, u'keywords azim e elev devem ser listas'
 
         len_itmax = len(str(self.itmax))
         # Verificação da existência de diretório do diretório
@@ -1796,122 +1742,142 @@ class PSO:
             base_path = os.getcwd()+"/PSO/"
         dir1 = base_path+"/Evolucao/"
         Validacao_Diretorio(dir1)
+ 
+        # Formatação dos gráficos
+        formatter = ticker.ScalarFormatter(useMathText=True)
+        formatter.set_scientific(True)
+        formatter.set_powerlimits((-2,2))
         
-        # Desenvolvimento das iterações:
-        for i in xrange(self.itmax):
-            
-            fig = figure()
-            ax = fig.add_subplot(111, projection='3d')
-            xs = [i]*self.Num_particulas
-            ys = range(0,self.Num_particulas)
-            zs = self.historico_fitness[i]
-            ax.scatter(xs, ys, zs, c='b', marker='o')
-            ax.set_xlabel(u'Iteração')
-            ax.set_ylabel(u'ID_Partícula')
-            ax.set_zlabel(u'Fitness / u.m')
-            xlim((0.0,self.itmax))
-            len_it = len(str(i))
-            numeracao = '0'*(len_itmax - len_it) + str(i)
-            fig.savefig(dir1+'Evolucao_algoritmo_'+numeracao+'.png')
-            close()
+        if 'evolucao' in tipos:
+            # Desenvolvimento das iterações:
+            for i in xrange(self.itmax):
+                
+                fig = figure()
+                ax = fig.add_subplot(111, projection='3d')
+                xs = [i]*self.Num_particulas
+                ys = range(0,self.Num_particulas)
+                zs = self.historico_fitness[i]
+                ax.scatter(xs, ys, zs, c='b', marker='o')
+                ax.set_xlabel(u'Iteração')
+                ax.set_ylabel(u'ID_Partícula')
+                ax.set_zlabel(u'Fitness / u.m')
+                xlim((0.0,self.itmax))
+                len_it = len(str(i))
+                numeracao = '0'*(len_itmax - len_it) + str(i)
+                fig.savefig(dir1+'Evolucao_algoritmo_'+numeracao+'.png')
+                close()
         
-        if self.Num_parametros>=2:
+        if self.Num_parametros>=2 and (('projecao' in tipos) or ('funcao' in tipos)):
             
             Combinacoes = int(factorial(self.Num_parametros)/(factorial(self.Num_parametros-2)*factorial(2)))
             
             for it in xrange(self.itmax):
                 p1 = 0; p2 = 1; cont = 0; passo = 1
                 for pos in xrange(Combinacoes):
-                    dir2 = base_path+"/Combinacoes_"+str(pos)+"/"
+                    dir2 = base_path+"/Projecao_Combinacoes_"+str(pos)+"/"
                     Validacao_Diretorio(dir2)
+                    dir3 = base_path+"/Funcao_Combinacoes_"+str(pos)+"/"
+                    Validacao_Diretorio(dir3)
                     if pos == (self.Num_parametros-1)+cont:
                         p1 +=1
                         p2 = p1+1
                         passo +=1
                         cont += self.Num_parametros-passo
                     
-                    fig = figure()
-                    ax = fig.add_subplot(1,1,1)
-                    
-                    for ID in xrange(self.Num_particulas):
-                        plot(self.historico_posicoes[it][ID][p1],self.historico_posicoes[it][ID][p2],'bo',linewidth=2.0)
-    
-                    plot(self.gbest[p1],self.gbest[p2],'r*',markersize=10.0)
-                    ax.yaxis.grid(color='gray', linestyle='dashed')                        
-                    ax.xaxis.grid(color='gray', linestyle='dashed')        
-                    ylabel(u"Parâmetro "+str(p2+1))
-                    xlabel(u"Parâmetro "+str(p1+1))
-     
-                    xlim((self.limite_inferior[p1],self.limite_superior[p1]))
-                    ylim((self.limite_inferior[p2],self.limite_superior[p2]))
                     len_it = len(str(it))
                     numeracao = '0'*(len_itmax - len_it) + str(it)
-                    fig.savefig(dir2+'Parametros'+'_p'+str(p1+1)+'_p'+str(p2+1)+'_it'+numeracao+'.png')
-                    close()
+
+                    if 'projecao' in tipos:
+                        fig = figure()
+                        ax = fig.add_subplot(1,1,1)
+                        
+                        for ID in xrange(self.Num_particulas):
+                            plot(self.historico_posicoes[it][ID][p1],self.historico_posicoes[it][ID][p2],'bo',linewidth=2.0)
+        
+                        plot(self.gbest[p1],self.gbest[p2],'r*',markersize=10.0)
+                        ax.yaxis.grid(color='gray', linestyle='dashed')                        
+                        ax.xaxis.grid(color='gray', linestyle='dashed')        
+                        
+                        if  isinstance(Nome_param, list):
+                		    if len(Nome_param) == 0:
+                			ax.set_ylabel(r"$x_{%0.0f}$ "%(p2+1), fontsize = 20)
+                			ax.set_xlabel(r"$x_{%0.0f}$ "%(p1+1), fontsize = 20)
+                		    elif isinstance(Unid_param,list):
+                			if len(Unid_param) == 0:
+                			    ax.set_ylabel(Nome_param[p2], fontsize = 20)
+                			    ax.set_xlabel(Nome_param[p1], fontsize = 20)
+                		    elif Unid_param == None:
+                			ax.set_ylabel(Nome_param[p2], fontsize = 20)
+                			ax.set_xlabel(Nome_param[p1], fontsize = 20)
+                		    else:    
+                			ax.set_ylabel(Nome_param[p2] + u'/' + Unid_param[p2], fontsize = 20)
+                			ax.set_xlabel(Nome_param[p1] + u'/' + Unid_param[p1], fontsize = 20)
+                        else:
+                		    ax.set_ylabel(r"$x_{%0.0f}$ "%(p2+1), fontsize = 20)
+                		    ax.set_xlabel(r"$x_{%0.0f}$ "%(p1+1), fontsize = 20)		                        
+                      
+                        xlim((self.limite_inferior[p1],self.limite_superior[p1]))
+                        ylim((self.limite_inferior[p2],self.limite_superior[p2]))
+
+                        fig.savefig(dir2+'Parametros'+'_p'+str(p1+1)+'_p'+str(p2+1)+'_it'+numeracao+'.png')
+                        close()
+
+                    if 'funcao' in tipos:
+            		hist_posicoes = []; hist_fitness = []
+            		for ID_particula in xrange(self.Num_particulas):
+                    		hist_posicoes.append(self.historico_posicoes[it][ID_particula])
+                    		hist_fitness.append(self.historico_fitness[it][ID_particula])
+            		
+            		X = [hist_posicoes[it][p1] for it in xrange(len(hist_posicoes))]
+            		Y = [hist_posicoes[it][p2] for it in xrange(len(hist_posicoes))]
+            		Z = hist_fitness
+                        
+            		Z_sort   = sort(Z)
+            		Y_sort   = [Y[i] for i in argsort(Z)]
+            		X_sort   = [X[i] for i in argsort(Z)]    
+                
+            		fig = figure()
+            		ax = fig.add_subplot(111, projection='3d')
+            		ax.scatter(X_sort,Y_sort,Z_sort,c=Z_sort,cmap=cm.coolwarm,zorder=1)
+            		arrow = Arrow3D([self.gbest[p1],self.gbest[p1]],[self.gbest[p2],self.gbest[p2]],[max(self.historico_fitness)/4,min(self.historico_fitness)], mutation_scale=20, lw=1, arrowstyle="-|>", color="r")
+            		ax.add_artist(arrow)
+            		ax.yaxis.grid(color='gray', linestyle='dashed')                        
+            		ax.xaxis.grid(color='gray', linestyle='dashed')
+            		ax.set_zlabel(r"$\quad \Phi $ ",rotation = 180, fontsize = 20)
+
+            		ax.set_zlim([min(self.historico_fitness), max(self.historico_fitness)])
+            		ax.set_ylim([self.limite_inferior[p2],self.limite_superior[p2]])
+            		ax.set_xlim([self.limite_inferior[p1],self.limite_superior[p1]])
+
+            		if  isinstance(Nome_param, list):
+            		    if len(Nome_param) == 0:
+            			ax.set_ylabel(r"$x_{%0.0f}$ "%(p2+1), fontsize = 20)
+            			ax.set_xlabel(r"$x_{%0.0f}$ "%(p1+1), fontsize = 20)
+            		    elif isinstance(Unid_param,list):
+            			if len(Unid_param) == 0:
+            			    ax.set_ylabel(Nome_param[p2], fontsize = 20)
+            			    ax.set_xlabel(Nome_param[p1], fontsize = 20)
+            		    elif Unid_param == None:
+            			ax.set_ylabel(Nome_param[p2], fontsize = 20)
+            			ax.set_xlabel(Nome_param[p1], fontsize = 20)
+            		    else:    
+            			ax.set_ylabel(Nome_param[p2] + u'/' + Unid_param[p2], fontsize = 20)
+            			ax.set_xlabel(Nome_param[p1] + u'/' + Unid_param[p1], fontsize = 20)
+            		else:
+            		    ax.set_ylabel(r"$x_{%0.0f}$ "%(p2+1), fontsize = 20)
+            		    ax.set_xlabel(r"$x_{%0.0f}$ "%(p1+1), fontsize = 20)		
+            		
+            		if len(azim) == 1:
+            		    ax.azim = azim[0]
+            		else:
+            		    ax.azim = azim[pos]    
+            		
+            		if len(elev) == 1:
+            		    ax.elev = elev[0]
+            		else:
+            		    ax.elev = elev[pos]	    
+            		ax.w_zaxis.set_major_formatter(formatter)
+            		fig.savefig(dir3+'Funcao_objetivo'+'_x'+str(p1+1)+'_x'+str(p2+1)+'_it'+numeracao+'.png')
+            		close()
 
                     p2+=1
-            
-
-#--------------------------------------------------Fim do Algoritmo------------------------------------------------------------------
-
-# Referências:
-#
-#   [1] - KENNEDY, J.; EBERHART, R. Particle swarm optimization. Proceedings of ICNN’95 - International
-#   Conference on Neural Networks. Anais... [S.l.]: IEEE. , 1995
-#   -> Artigo que primeiro apresentou o algoritmo
-#
-#   [2] - EBERHART, R.; KENNEDY, J. A new optimizer using particle swarm theory. MHS’95.
-#   Proceedings of the Sixth International Symposium on Micro Machine and Human Science. Anais... [S.l.]: IEEE., 1995
-#   -> Apresenta os métodos gbest (conforme [1])  e um lbest. Este programa trabalha sobre a abordagem gbest
-#   -> Uso de Vmax
-#
-#   [3] - SHI, Y.; EBERHART, R. A modified particle swarm optimizer. 1998 IEEE International Conference on Evolutionary
-#   Computation Proceedings. IEEE World Congress on Computational Intelligence (Cat. No.98TH8360). Anais... [S.l.]: IEEE., 1998
-#   -> Apresenta o fator de inércia na equação da velocidade.
-#   -> w entre [0,8,0,9 e 1,2]. w<0,8 = busca local, w>1,2 = busca global
-#   -> w função linear decrescente do tempo variando entre 1,4 e 0.
-#   -> Uso de Vmáx
-#   -> c1 e c2 = 2.
-#
-#   [4] - EBERHART, R. C. Particle swarm optimization: developments, applications and resources. Proceedings of the 2001
-#   Congress on Evolutionary Computation (IEEE Cat. No.01TH8546). Anais... [S.l.]: IEEE. , 2001
-#   -> Revisão sobre o método, incluindo um algortimo
-#   -> c1 e c2 = 2
-#   -> Vmax de 10% a 20% do range dinâmico (faixa de valores das posições), caso não use w
-#   -> Populações mais comuns, entre 20 e 50 partículas
-#   -> w decresce linearmente de 0,9 a 0,4
-#   -> Vmax igual a Xmax.
-#   -> Apresenta uma abordagem simplificado do método CFM (constriction factor method), apresentado por [5]
-#   -> Comenta sobre o uso do algoritmo para sistemas dinâmicos, incluindo correções para w.
-#
-#   [5] - CLERC, M. The swarm and the queen: towards a deterministic and adaptive particle swarm optimization.
-#   Proceedings of the 1999 Congress on Evolutionary Computation-CEC99 (Cat. No. 99TH8406). Anais... [S.l.]: IEEE. , 1999
-#   -> Apresenta um novo algoritmo para o enxame. Este com "garantia de convergência" para um mínimo local
-#   -> Alguns autores, como [3], afirmar que este incluiu o CFM (constriction factor method)
-#
-#   [6] - CLERC, M.; KENNEDY, J. The particle swarm - explosion, stability, and convergence in a multidimensional complex space.
-#   IEEE Transactions on Evolutionary Computation, v. 6, n. 1, p. 58–73, 2002.
-#   -> Apresenta um desenvolvimento matemático sobre "como" o enxame de partículas funciona.
-#   -> Descreve detalhadamente o método CFM
-#
-#   [7] - ZHANG, L.; YU, H.; HU, S. Optimal choice of parameters for particle swarm optimization.
-#   Journal of Zhejiang University SCIENCE, v. 6A, n. 6, p. 528–534, jun 2005.
-#   -> Apresenta um estudo sobre os parâmetros ótimos para se utilizar no método CFM "simplificado", conforme apresentado por [4], inspirado em [6]
-#   -> Inclusão dos parâmetros chi, phi, k e gama
-#   -> phi: [4,05 a 4,3], 4,05 - multimodal e 4,1 para unimodal
-#   -> gama: [0,01 a 1], 0,5 - multimodal e 0,05 para unimodal
-#   -> Num_particulas: 50 - muitas dimensões, [20, 50] - pequenas dimensões, recomendado 30
-#   -> c1 e c2 iguais. Ou c1/c2 = 2,8/1,3 (conforme Carlisle A. Dozier, 2001)
-#
-#   [8] - XU, G. An adaptive parameter tuning of particle swarm optimization algorithm. Applied Mathematics and Computation,
-#   v. 219, n. 9, p. 4560–4569, jan 2013.
-#   -> TVIW - Adaptative-VI
-#
-#   [9] SCHWAAB, M.; BISCAIA, J. . E. C.; MONTEIRO, J. L.; PINTO, J. C. Nonlinear parameter estimation through particle swarm
-#   optimization. Chemical Engineering Science, v. 63, n. 6, p. 1542–1552, mar 2008. 
-#   -> Regiões de Abrangência
-#
-#   [10] RATNAWEERA, A.; HALGAMUGE, S. K.; WATSON, H. C. Self-Organizing Hierarchical Particle Swarm Optimizer With Time-Varying Acceleration Coefficients.
-#   IEEE Transactions on Evolutionary Computation, v. 8, n. 3, p. 240–255, jun. 2004.
-#   -> PSO - TVAC
-#   -> HPSO-TVAC
