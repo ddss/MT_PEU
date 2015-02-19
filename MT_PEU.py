@@ -955,7 +955,7 @@ class Estimacao:
                         hy=  width  / 2.
                     else:
                         hx = abs(width*cos(radians(theta))/2.)
-                        hy = max(abs(width*sin(radians(theta))/2.),abs(height*sin(radians(theta))/2.,))
+                        hy = max([abs(width*sin(radians(theta))/2.),abs(height*sin(radians(theta))/2.)])
 
                     xauto = [ax.get_xticks()[0],ax.get_xticks()[-1]]
                     yauto = [ax.get_yticks()[0],ax.get_yticks()[-1]]
