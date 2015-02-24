@@ -804,8 +804,7 @@ class Estimacao:
         ==========
                 
         '''
-        self.__etapas.append(self.__etapasdisponiveis[5]) # Inclusão desta etapa da lista de etapas
-           
+          
         base_path  = self.__base_path + sep +'Graficos'+ sep
         
         #Sub-rotina que geram os gráficos de entrada e saída

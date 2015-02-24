@@ -181,3 +181,11 @@ def matrizcorrelacao(matriz_covariancia):
             matriz_correlacao[i,j]  = matriz_covariancia[i,j]/sqrt(matriz_covariancia[i,i]*matriz_covariancia[j,j])
 
     return matriz_correlacao
+
+def lista2matriz(lista):
+    res = array(lista[0],ndmin=2).transpose()
+    for i in lista[1:]:
+        aux = array(i,ndmin=2).transpose()
+        res = concatenate((res,aux),1)
+    
+    return res
