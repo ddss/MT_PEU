@@ -63,6 +63,8 @@ class Estimacao:
         * ``unidades_param``    (list): lista com as unidades para os parâmetros (inclusive em formato LATEX)
         * ``label_latex_param`` (list): lista com os símbolos das variáveis em formato LATEX
         
+        * ``base_path`` (string): String que define o diretório pai que serão criados/salvos os arquivos gerados pelo motor de cálculo
+        
         =======        
         Métodos
         =======
