@@ -24,6 +24,7 @@ from matplotlib.pyplot import figure, axes, axis, plot, errorbar, subplot, xlabe
     title, legend, savefig, xlim, ylim, close, grid, text, hist, boxplot
 
 from os import getcwd, sep
+from warnings import warn
 
 # Subrotinas próprias e adaptações (desenvolvidas pelo GI-UFBA)
 from Grandeza import Grandeza
@@ -526,8 +527,10 @@ class Estimacao:
             # cálculo da matriz de covariância
             matriz_covariancia  = invHess.dot(Gy).dot(self.y.experimental.matriz_covariancia).dot(Gy.transpose()).dot(invHess)
 
-
-        Regiao, Hist_Posicoes, Hist_Fitness = self.regiaoAbrangencia(PA) # método para avaliação da região de abrangência
+        # ---------------------------------------------------------------------
+        # CÁLCULO DA REGIÃO DE ABRANGÊNCIA
+        # ---------------------------------------------------------------------  
+        Regiao, Hist_Posicoes, Hist_Fitness = self.regiaoAbrangencia(PA)
 
         # ---------------------------------------------------------------------
         # ATRIBUIÇÃO A GRANDEZAS
@@ -766,30 +769,12 @@ class Estimacao:
         #self.x._testesEstatisticos()
         self.y.Graficos(self.__base_path + sep + 'Graficos'  + sep,ID=['residuo'])
         self.y._testesEstatisticos()
-        
-        # Gráficos que dependem de informações da estimação (y)
-        # TO DO: RELOCAR PARA A SESSÃO DE GRÁFICOS
 
-        base_path  = self.__base_path + sep + 'Graficos'  + sep
-  
-        for i,simb in enumerate(self.y.simbolos):         
-            base_dir =  sep + 'Grandezas' + sep + self.y.simbolos[i] + sep
-            # Gráficos da otimização
-            Validacao_Diretorio(base_path,base_dir)  
-        
-            ymodelo = self.y.experimental.matriz_estimativa[:,i]
-            fig = figure()
-            ax = fig.add_subplot(1,1,1)
-            plot(ymodelo,self.y.residuos.matriz_estimativa[:,i], 'o')
-            xlabel(u'Valores Ajustados '+self.y.labelGraficos()[i])
-            ylabel(u'Resíduos '+self.y.labelGraficos()[i])
-            ax.yaxis.grid(color='gray', linestyle='dashed')                        
-            ax.xaxis.grid(color='gray', linestyle='dashed')
-            ax.axhline(0, color='black', lw=2)
-            fig.savefig(base_path+base_dir+'residuos_versus_ycalculado.png')
-            close()
-
-        self.__etapas.append(self.__etapasdisponiveis[5]) # Inclusão desta etapa na lista de etapas
+        # ---------------------------------------------------------------------
+        # VARIÁVEIS INTERNAS
+        # ---------------------------------------------------------------------   
+        # Inclusão desta etapa na lista de etapas
+        self.__etapas.append(self.__etapasdisponiveis[5]) 
 
     def graficos(self,lista_de_etapas,PA):
         u'''
@@ -863,8 +848,9 @@ class Estimacao:
             fig.savefig(base_path+base_dir+info+'_'+self.y.simbolos[iy]+'_funcao_de_'+self.x.simbolos[ix]+'_com_incerteza')
             close()
             
-        #If para gerar os gráficos das grandezas de entrada (x e y)        
-        if('entrada' in lista_de_etapas) and('gerarEntradas'in self.__etapas):
+        #If para gerar os gráficos das grandezas de entrada (x e y)       
+        # gerarEntradas deve ser executado
+        if ('entrada' in lista_de_etapas) and (self.__etapasdisponiveis[1] in self.__etapas):
             base_dir = sep + 'Grandezas' + sep
             Validacao_Diretorio(base_path,base_dir)
 
@@ -878,17 +864,21 @@ class Estimacao:
                     ux = self.x.experimental.matriz_incerteza[:,ix]
                     uy = self.y.experimental.matriz_incerteza[:,iy]                    
                     graficos_entrada_saida(x,y,ux,uy,ix,iy,base_dir,'experimental')
+        else:
+            warn(u'Os gráficos de entrada não puderam ser criados, pois o método %s'%(self.__etapasdisponiveis[1],)+' não foi executado.')
 
-
-        if('otimizacao' in lista_de_etapas) and('otimizacao' in self.__etapas):
+        if ('otimizacao' in lista_de_etapas) and (self.__etapasdisponiveis[2] in self.__etapas):
             # Gráficos da otimização
             base_dir = sep+'PSO'+ sep
             Validacao_Diretorio(base_path,base_dir)
     
             self.Otimizacao.Graficos(base_path+base_dir,Nome_param=self.parametros.simbolos,Unid_param=self.parametros.unidades,FO2a2=True)
 
+        else:
+            warn(u'Os gráficos de otimizacao não puderam ser criados, pois o método %s'%(self.__etapasdisponiveis[2],)+' não foi executado.')
+            
 
-        if('estimacao' in lista_de_etapas) and('regiaoAbrangencia' in self.__etapas) and('analiseResiduos' in self.__etapas):
+        if ('estimacao' in lista_de_etapas) and (self.__etapasdisponiveis[3] in self.__etapas):
             # Gráficos da estimação
             base_dir = sep + 'Estimacao' + sep
             Validacao_Diretorio(base_path,base_dir)
@@ -976,8 +966,8 @@ class Estimacao:
             
             for iy in xrange(self.y.NV):
                 for ix in xrange(self.x.NV):
-                    x = self.x.calculado.matriz_estimativa[:,ix]
-                    y = self.y.calculado.matriz_estimativa[:,iy]
+                    x  = self.x.calculado.matriz_estimativa[:,ix]
+                    y  = self.y.calculado.matriz_estimativa[:,iy]
                     ux = self.x.calculado.matriz_incerteza[:,ix]
                     #Falta a matriz incerteza do modelo, então está sendo usado a incerteza do pontos
                     #experimentais apenas para compilar
@@ -1008,7 +998,31 @@ class Estimacao:
                     ylabel(self.y.labelGraficos('calculado')[iy])
                     fig.savefig(base_path+base_dir+'grafico_'+str(self.y.simbolos[iy])+'_ye_ym_sem_var.png')
                     close()
-                    
+            
+            if (self.__etapasdisponiveis[5] in self.__etapas):
+                
+                for i,simb in enumerate(self.y.simbolos):         
+                    base_dir =  sep + 'Grandezas' + sep + self.y.simbolos[i] + sep
+                    # Gráficos da otimização
+                    Validacao_Diretorio(base_path,base_dir)  
+                
+                    ymodelo = self.y.experimental.matriz_estimativa[:,i]
+                    fig = figure()
+                    ax = fig.add_subplot(1,1,1)
+                    plot(ymodelo,self.y.residuos.matriz_estimativa[:,i], 'o')
+                    xlabel(u'Valores Ajustados '+self.y.labelGraficos()[i])
+                    ylabel(u'Resíduos '+self.y.labelGraficos()[i])
+                    ax.yaxis.grid(color='gray', linestyle='dashed')                        
+                    ax.xaxis.grid(color='gray', linestyle='dashed')
+                    ax.axhline(0, color='black', lw=2)
+                    fig.savefig(base_path+base_dir+'residuos_versus_ycalculado.png')
+                    close()      
+            else:
+                warn(u'Os gráficos envolvendo os resíduos não puderam ser criados, pois o método %s'%(self.__etapasdisponiveis[5],)+' não foi executado.')
+
+        else:
+            warn(u'Os gráficos de estimacao não puderam ser criados, pois o método %s'%(self.__etapasdisponiveis[3],)+' não foi executado.')
+
 if __name__ == "__main__":
     from numpy import ones
     from Funcao_Objetivo import WLS
@@ -1063,7 +1077,7 @@ if __name__ == "__main__":
     
     # Continuacao
     Estime.gerarEntradas(x,y,ux,uy)    
-    #print Estime.x.labelGraficos()
+    
  #   Estime.otimiza(sup=[2,2,2,2],inf=[-2,-2,-2,-2],algoritmo='PSO',itmax=5)
  #   Estime.graficos(0.95)
 #    saida = concatenate((Estime.x.experimental.matriz_estimativa[:,0:1],Estime.x.experimental.matriz_incerteza[:,0:1]),axis=1)
@@ -1074,9 +1088,8 @@ if __name__ == "__main__":
     
     # Otimização
     Estime.otimiza(sup=sup,inf=inf,algoritmo='PSO',itmax=100,Num_particulas=30,metodo={'busca':'Otimo','algoritmo':'PSO','inercia':'TVIW-Adaptative-VI'})
-    Estime.incertezaParametros(.95,1e-5,metodo='geral')
+    Estime.incertezaParametros(.95,1e-5,metodo='geral')  
     grandeza = Estime._armazenarDicionario()
     Estime.analiseResiduos()
     lista_de_etapas = ['entrada','otimizacao','estimacao'] 
-    Estime.graficos(lista_de_etapas,0.95)       
-    grandeza2 = Estime._armazenarDicionario()
+    Estime.graficos(lista_de_etapas,0.95)
