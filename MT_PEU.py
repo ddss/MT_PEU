@@ -210,7 +210,7 @@ class Estimacao:
             
             # Verificação se o nome do projeto possui caracteres especiais
             # set: conjunto de elementos distintos não ordenados (trabalha com teoria de conjuntos)
-            if set('[~!@#$%^&*()_+{}":;\']+$').intersection(args):
+            if set('[~!@#$%^&*()+{}":;\']+$').intersection(args):
                 raise NameError('O nome do projeto não pode conter caracteres especiais')  
             
         # ---------------------------------------------------------------------
@@ -573,8 +573,9 @@ class Estimacao:
         for i in range(self.parametros.NV): 
             for j in range(self.parametros.NV):
                 
-                delta1 = (10**(floor(log10(abs(self.parametros.estimativa[i])))))*delta
-                delta2 = (10**(floor(log10(abs(self.parametros.estimativa[j])))))*delta
+                # incrementos para as derivadas dos parâmetros
+                delta1 = (10**(floor(log10(abs(self.parametros.estimativa[i])))))*delta if self.parametros.estimativa[i] != 0 else delta
+                delta2 = (10**(floor(log10(abs(self.parametros.estimativa[j])))))*delta if self.parametros.estimativa[j] != 0 else delta
                 
                 if i==j:
                     # Incrementos
@@ -648,9 +649,11 @@ class Estimacao:
 
         for i in xrange(self.parametros.NV): 
             for j in xrange(self.y.NV*self.y.experimental.NE):
-                                
-                delta1 = (10**(floor(log10(abs(self.parametros.estimativa[i])))))*delta #varia os elementos do vetor de thetas.
-                delta2 = (10**(floor(log10(abs(self.y.experimental.vetor_estimativa[j])))))*delta #varia os elementos do vetor dos y experimentais.
+                
+                # incremento para a derivada nos parâmetros
+                delta1 = (10**(floor(log10(abs(self.parametros.estimativa[i])))))*delta           if self.parametros.estimativa[i]           != 0 else delta 
+                # incremento para a derivada nos valores de y
+                delta2 = (10**(floor(log10(abs(self.y.experimental.vetor_estimativa[j])))))*delta if self.y.experimental.vetor_estimativa[j] != 0 else delta 
                 
                 vetor_parametro_delta_ipositivo = vetor_delta(self.parametros.estimativa,i,delta1) #Vetor alterado dos parâmetros para entrada na função objetivo
                 vetor_y_delta_jpositivo         = vetor_delta(self.y.experimental.vetor_estimativa,j,delta2)
@@ -865,7 +868,7 @@ class Estimacao:
                     uy = self.y.experimental.matriz_incerteza[:,iy]                    
                     graficos_entrada_saida(x,y,ux,uy,ix,iy,base_dir,'experimental')
         else:
-            warn(u'Os gráficos de entrada não puderam ser criados, pois o método %s'%(self.__etapasdisponiveis[1],)+' não foi executado.')
+            warn(u'Os gráficos de entrada não puderam ser criados, pois o método %s'%(self.__etapasdisponiveis[1],)+' não foi executado.',UserWarning)
 
         if ('otimizacao' in lista_de_etapas) and (self.__etapasdisponiveis[2] in self.__etapas):
             # Gráficos da otimização
@@ -875,7 +878,7 @@ class Estimacao:
             self.Otimizacao.Graficos(base_path+base_dir,Nome_param=self.parametros.simbolos,Unid_param=self.parametros.unidades,FO2a2=True)
 
         else:
-            warn(u'Os gráficos de otimizacao não puderam ser criados, pois o método %s'%(self.__etapasdisponiveis[2],)+' não foi executado.')
+            warn(u'Os gráficos de otimizacao não puderam ser criados, pois o método %s'%(self.__etapasdisponiveis[2],)+' não foi executado.',UserWarning)
             
 
         if ('estimacao' in lista_de_etapas) and (self.__etapasdisponiveis[3] in self.__etapas):
@@ -1018,10 +1021,10 @@ class Estimacao:
                     fig.savefig(base_path+base_dir+'residuos_versus_ycalculado.png')
                     close()      
             else:
-                warn(u'Os gráficos envolvendo os resíduos não puderam ser criados, pois o método %s'%(self.__etapasdisponiveis[5],)+' não foi executado.')
+                warn(u'Os gráficos envolvendo os resíduos não puderam ser criados, pois o método %s'%(self.__etapasdisponiveis[5],)+' não foi executado.',UserWarning)
 
         else:
-            warn(u'Os gráficos de estimacao não puderam ser criados, pois o método %s'%(self.__etapasdisponiveis[3],)+' não foi executado.')
+            warn(u'Os gráficos de estimacao não puderam ser criados, pois o método %s'%(self.__etapasdisponiveis[3],)+' não foi executado.',UserWarning)
 
 if __name__ == "__main__":
     from numpy import ones
@@ -1074,7 +1077,7 @@ if __name__ == "__main__":
     Estime = Estimacao(WLS,Modelo,simbolos_x=['x1','x2'],simbolos_y=['y1','y2'],simbolos_param=[r'theta%d'%i for i in xrange(4)],label_latex_param=[r'$\theta_{%d}$'%i for i in xrange(4)])
     sup = [6.  ,.3  ,8.  ,0.7]
     inf = [1.  , 0  ,1.  ,0.]
-    
+
     # Continuacao
     Estime.gerarEntradas(x,y,ux,uy)    
     
