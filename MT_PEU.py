@@ -763,7 +763,7 @@ class Estimacao:
         #self.x.Graficos(self.__base_path + sep + 'Graficos'  + sep,ID=['residuo'])
         #self.x._testesEstatisticos()
         self.y.Graficos(self.__base_path + sep + 'Graficos'  + sep,ID=['residuo'])
-        self.y._testesEstatisticos()
+        self.y._testesEstatisticos(self.x.experimental.matriz_estimativa)
         
         # Gráficos que dependem de informações da estimação (y)
         # TO DO: RELOCAR PARA A SESSÃO DE GRÁFICOS

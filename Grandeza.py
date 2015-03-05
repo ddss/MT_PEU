@@ -6,7 +6,7 @@ Created on Mon Feb  2 11:05:02 2015
 """
 # Importação de pacotes de terceiros
 from numpy import array, transpose ,size, diag, linspace, min, max, \
- mean,  std, amin, amax, ndarray, ones, sqrt
+ mean,  std, amin, amax, ndarray, ones, sqrt, insert
 
 from scipy.stats import normaltest, anderson, shapiro, ttest_1samp, kstest,\
  norm, probplot, ttest_ind
@@ -15,6 +15,8 @@ from matplotlib.pyplot import figure, axes, axis, plot, errorbar, subplot, xlabe
     title, legend, savefig, xlim, ylim, close, grid, text, hist, boxplot
 
 from os import getcwd, sep
+from statsmodels.stats.diagnostic import acorr_breush_godfrey, acorr_ljungbox, het_breushpagan, het_white
+from statsmodels.stats.stattools import durbin_watson
 
 
 # Subrotinas próprias (desenvolvidas pelo GI-UFBA)
@@ -334,7 +336,7 @@ class Grandeza:
             
         return label
 
-    def _testesEstatisticos(self):
+    def _testesEstatisticos(self,x):
         u'''
         Subrotina para realizar testes estatísticos nos resíduos
         
@@ -353,7 +355,30 @@ class Grandeza:
         **MÉDIA**:
         
         * ttest_1sam: Retorna o pvalor para média determinada. Hipótese nula: a amostra tem a média determinada
-      
+       
+        **AUTOCORRELAÇÃO**:
+        
+        *durbin_watson, podemos tomar a decisão comparando o valor de dw com os valores críticos dL e dU da Tabela de Durbin-Watson (hhttps://www.google.com.br/url?sa=t&rct=j&q=&esrc=s&source=web&cd=1&cad=rja&uact=8&ved=0CB0QFjAA&url=https%3A%2F%2Fwww3.nd.edu%2F~wevans1%2Fecon30331%2FDurbin_Watson_tables.pdf&ei=62P3VImiMPHksATf74HIBQ&usg=AFQjCNHDagBaOLazvei8S2FeJKsc_Vh7eg&sig2=uLw2VfKsPyneQQXhOhkKdA&bvm=bv.87519884,d.cWc) .
+        Assim,
+        se 0 ≤ dw < dL então rejeitamos H0 (dependência); 
+        se dL ≤ dw ≤ dU então o teste é inconclusivo;
+        se dU < dw < 4-dU então não rejeitamos H0 (independência);
+        se 4-dU ≤ dw ≤ 4-dL então o teste é inconclusivo;
+        se 4-dL < dw ≤ 4 então rejeitamos H0 (dependência).
+ 
+        Quando 0<= dw < dL temos evidência de uma correlação positiva. Já quando 4-dL <= dw <= 4 , a correlação é negativa. No caso em que não rejeitamos H0,
+        temos que não existe autocorrelação, ou seja, os resíduos são independentes.
+        
+        A estatística de teste é aproximadamente igual a 2 * (1-r) em que r é a autocorrelação das amostras residuais. 
+        Assim, por r == 0, indicando que não há correlação serial, a estatística de teste é igual a 2. Esta estatística será sempre entre 0 e 4. 
+        Quanto mais próximo de 0 a estatística, o mais evidências para correlação serial positiva. Quanto mais próximo de 4, mais evidências de correlação serial negativa.
+        
+        **HOMOCEDÁSTICIDADE**:
+        *het_white testa se os residuos são homocedásticos, foi proposto por Halbert White em 1980.
+         Para este teste, a hipótese nula é de que todas as observações têm a mesma variância do erro, ou seja, os erros são homocedásticas.
+       
+        *White, H. (1980). "A Heteroskedasticity-Consistente Covariance Matrix Estimador e um teste direto para Heteroskedasticity". Econometrica 48 (4):. 817-838 JSTOR 1.912.934 . MR 575027 .
+        
         **SAÍDA** (sobe a forma de ATRIBUTO)
         
         * estatisticas (float):  Valor das hipóteses testadas. Para a hipótese nula tida como verdadeira, um valor abaixo de 0.05 nos diz que para 95% de confiança pode-se rejeitar essa hipótese
@@ -380,9 +405,14 @@ class Grandeza:
 
                 # Dicionário para salvar os resultados                
                 # Testes para a média:
-                pmedia = [ttest_1samp(dados,0.), ttest_ind(dados,norm.rvs(loc=0.,scale=std(dados,ddof=1),size=size(dados)))]
-                pvalor[nome]['residuo-Media'] = {'ttest':pmedia[0][1],'ttest_ind':pmedia[1][1]}
+                pmedia = [ttest_1samp(dados,0.)]#, ttest_ind(dados,norm.rvs(loc=0.,scale=std(dados,ddof=1),size=100000))]
+                pvalor[nome][u'residuo-Media'] = {'ttest':pmedia[0][1]}#,'ttest_ind':pmedia[1][1]}
                 
+                pacorr= [durbin_watson(dados)]
+                pvalor[nome][u'residuo-Autocorrelacao'] = {'test durbin watson':pacorr[0]}
+                
+                pheter= [het_white(dados,insert(x, 0, 1, axis=1))]
+                pvalor[nome][u'residuo-Homocedasticidade'] = {'test white':{'p-value of lagrange multiplier test':pheter[0][1], 'p-value for the f-statistic':pheter[0][3]}}
         else:
             raise NameError(u'Os testes estatísticos são válidos apenas para o resíduos')
 
