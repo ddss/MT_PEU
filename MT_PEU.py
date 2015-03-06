@@ -28,9 +28,8 @@ from warnings import warn
 
 # Subrotinas próprias e adaptações (desenvolvidas pelo GI-UFBA)
 from Grandeza import Grandeza
-from subrotinas import Validacao_Diretorio, plot_cov_ellipse, vetor_delta
+from subrotinas import Validacao_Diretorio, plot_cov_ellipse, vetor_delta, ThreadExceptionHandling
 from PSO import PSO
-
 
 class Estimacao:
     
@@ -464,6 +463,15 @@ class Estimacao:
             if kwargs.get('printit')  != None:
                 kwargsbusca['printit'] = kwargs.get('printit')
                 del kwargs['printit']
+
+            # ---------------------------------------------------------------------
+            # VALIDAÇÃO DO MODELO
+            # ---------------------------------------------------------------------            
+            # Verificação se o modelo é executável nos limites de busca
+            
+            ThreadExceptionHandling(self.__modelo,sup,self.x.validacao.matriz_estimativa,[args,self.x.simbolos,self.y.simbolos,self.parametros.simbolos])
+            ThreadExceptionHandling(self.__modelo,inf,self.x.validacao.matriz_estimativa,[args,self.x.simbolos,self.y.simbolos,self.parametros.simbolos])
+            
             # ---------------------------------------------------------------------
             # EXECUÇÃO OTIMIZAÇÃO
             # ---------------------------------------------------------------------
