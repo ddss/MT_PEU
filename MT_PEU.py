@@ -76,7 +76,7 @@ class Estimacao:
         * ``gerarEntradas``        : método para incluir os dados experimentais (Vide documentação do método)
         * ``otimiza``              : método para realizar a otimização, com base nos dados fornecidos em gerarEntradas. \
         Após a execução deste método, o valor as grandezas de saída são avaliadas para os pontos de validação. (Vide documentação do método)
-        * ``incertezaParametros``  : método que avalia a incerteza dos parâmetros (Vide documentação do método)   
+        * ``avaliacaoIncerteza``   : método que avalia a incerteza dos parâmetros e predição do modelo (Vide documentação do método)   
         * ``analiseResiduos``      : método para executar a análise de resíduos (Vide documentação do método)
         * ``graficos``             : método para criação dos gráficos (Vide documentação do método)
         * ``_armazenarDicionario`` : método que returna as grandezas sob a forma de um dicionário (Vide documentação do método)
@@ -147,7 +147,7 @@ class Estimacao:
         # VALIDAÇÕES GERAIS DE KEYWORDS
         # ---------------------------------------------------------------------
         self.__etapasdisponiveis = ['__init__','gerarEntradas','otimizacao',\
-                                    'incertezaParametros','regiaoAbrangencia',\
+                                    'avaliacaoIncerteza','regiaoAbrangencia',\
                                     'analiseResiduos','armazenarDicionario'] # Lista de etapas que o algoritmo irá executar
         self.__validacaoArgumentosEntrada('__init__',kwargs,projeto)
         
@@ -245,9 +245,9 @@ class Estimacao:
                     raise ValueError(u'As keywords sup e inf devem ter o mesmo tamanho do número de parâmetros, definido pelos símbolos. Número de parâmetros: %d'%(self.parametros.NV,))
                     
         # ---------------------------------------------------------------------
-        # INCERTEZA DOS PARÂMETROS
+        # INCERTEZA DOS PARÂMETROS E PREDIÇÃO
         # --------------------------------------------------------------------- 
-        self.__metodosIncerteza = ['2InvHessiana','geral']
+        self.__metodosIncerteza = ['2InvHessiana','Geral','SensibilidadeModelo']
         if etapa == self.__etapasdisponiveis[3]:
             if self.__etapasdisponiveis[2] not in self.__etapas:
                 raise TypeError(u'Para executar a avaliação da incerteza dos parâmetros, faz-se necessário primeiro executar método %s.'%(self.__etapasdisponiveis[2],))
@@ -315,11 +315,15 @@ class Estimacao:
             raise ValueError(u'Caso seja definido dados de validação, é necessário fazê-lo para todas as grandezas. Assim, xval, yval, uxval e uyval devem ser definidos')
 
         # Caso não definidos dados de validação, será assumido os valores experimentais                    
+        self.__flag_validacao = True # Variável que define se os dados de validação são
+                                     # diferentes dos experimentais.
         if xval == None and yval == None:
             xval  = xe
             yval  = ye
             uxval = ux
-            uyval = uy    
+            uyval = uy
+            self.__flag_validacao = False # Variável que define se os dados de validação são
+                                          # diferentes dos experimentais
         
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
@@ -486,7 +490,7 @@ class Estimacao:
         
         # Salvando os resultados
         self.y._SETcalculado(aux.result,None,{'estimativa':'matriz','incerteza':'variancia'},None)
-        self.x._SETcalculado(self.x.experimental.matriz_estimativa,self.x.experimental.matriz_incerteza,{'estimativa':'matriz','incerteza':'incerteza'},None)
+        self.x._SETcalculado(self.x.validacao.matriz_estimativa,self.x.validacao.matriz_incerteza,{'estimativa':'matriz','incerteza':'incerteza'},None)
 
         #print self.y.calculado.vetor_estimativa
 
@@ -496,137 +500,105 @@ class Estimacao:
         # Inclusão desta etapa da lista de etapas
         self.__etapas.append(self.__etapasdisponiveis[2]) # Inclusão desta etapa da lista de etapas
         
-
-
-        '''
-        000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-        '''        
         
-        delta= 1e-5
-        matriz_B1 = ones((self.y.NV*self.y.experimental.NE/2,self.parametros.NV/2))
-        matriz_B2 = ones((self.y.NV*self.y.experimental.NE/2,self.parametros.NV/2))
-        
-        for i in range(self.y.NV*self.y.experimental.NE): 
-            for j in range(self.parametros.NV):
-                
-                delta_alpha = (10**(floor(log10(abs(self.parametros.estimativa[j])))))*delta if self.parametros.estimativa[j] != 0 else delta
-                    
-                vetor_parametro_delta_j_positivo = vetor_delta(self.parametros.estimativa,j,delta_alpha) #Vetor alterado dos parâmetros para entrada na função objetivo
-                vetor_parametro_delta_j_negativo = vetor_delta(self.parametros.estimativa,j,-delta_alpha)
-                
-                vetor_parametros                = copy(self.parametros.estimativa)
-                vetor_parametros                = vetor_parametro_delta_j_positivo    #Vetor com com parametros somados ao delta
-                
-                Yc_jpositivo          = self.__modelo(vetor_parametros,self.x.validacao.matriz_estimativa,\
-                                        [self.__args_model[4],self.x.simbolos,self.y.simbolos,self.parametros.simbolos])
-                
-                Yc_jpositivo.start()
-                
-                vetor_parametros                = copy(self.parametros.estimativa)
-                vetor_parametros                = vetor_parametro_delta_j_negativo  #Vetor com com parametros subtraidos em delta
-                
-                Yc_jnegativo         = self.__modelo(vetor_parametros,self.x.validacao.matriz_estimativa,\
-                                        [self.__args_model[4],self.x.simbolos,self.y.simbolos,self.parametros.simbolos])
-                
-                Yc_jnegativo.start()
-                
-                
-                Yc_jpositivo.join()
-                Yc_jnegativo.join()
-                
-                
-                if i< self.y.NV*self.y.experimental.NE/2 and j<self.parametros.NV/2:
-                    
-                    matriz_B1[i][j]= (matriz2vetor(Yc_jpositivo.result)[i]-matriz2vetor(Yc_jnegativo.result)[i])/2*delta_alpha
-                    #MATRIZ DE COVARIÂNCIA DOS PARÂMETROS DO MODELO 1
-                else:
-                    matriz_B2[i-self.y.NV*self.y.experimental.NE/2][j-self.parametros.NV/2]=\
-                    (matriz2vetor(Yc_jpositivo.result)[i]-matriz2vetor(Yc_jnegativo.result)[i])/2*delta_alpha
-                    #MATRIZ DE COVARIÂNCIA DOS PARÂMETROS DO MODELO 1
-        
-        
-        m_covar1= diag(ones(self.y.NV*self.y.experimental.NE/2))
-        m_covar2= diag(ones(self.y.NV*self.y.experimental.NE/2))        
-    
-        m_covar_para1= inv(dot(dot(transpose(matriz_B1),inv(m_covar1)),matriz_B1))
-        m_covar_para2= inv(dot(dot(transpose(matriz_B2),inv(m_covar2)),matriz_B2))
-        
-        print m_covar_para1
-        print (m_covar_para1[0][0]**0.5)/1e10
-        print (m_covar_para1[1][1]**0.5)/1e12
-        
-        print m_covar_para2
-        print (m_covar_para2[0][0]**0.5)/1e10
-        print (m_covar_para2[1][1]**0.5)/1e12
-        
-        '''
-        000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-        '''        
-        
-    def incertezaParametros(self,PA=0.95,delta=1e-5,metodo='2InvHessiana'):       
+    def avaliacaoIncerteza(self,PA=0.95,delta=1e-5,metodo_parametros='2InvHessiana'):       
         u'''
-        Método para avaliação da matriz covariãncia dos parâmetros.
+        Método para avaliação da matriz covariãncia dos parâmetros da matriz de covariância
+        dos valores preditos pelo modelo.
         
         =======================
         Entradas (opcionais)
         =======================
         * PA         : probabilidade de abrangência para gerar a região de abrangência
         * delta      : incremento para o cálculo das derivadas (derivada numérica)
-        * Métodos disponíveis: 2InvHessiana, geral
+        * metodo_parametros (string): método para cálculo da matriz de covariãncia dos
+        parâmetros. Métodos disponíveis: 2InvHessiana, Geral, SensibilidadeModelo
+        
         ======
         Saídas
         ======
-        * a matriz de covariância é salva na Grandeza parâmetros
+        * a matriz de covariância dos parâmetros é salva na Grandeza parâmetros
+        * a matriz de covariência da predição é salva na Grandeza y
         '''
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------         
-        self.__validacaoArgumentosEntrada('incertezaParametros',None,metodo) 
+        self.__validacaoArgumentosEntrada('avaliacaoIncerteza',None,metodo_parametros) 
         
-                
         # ---------------------------------------------------------------------
-        # CÁLCULO DA MATRIZ DE COVARIÂNCIA
+        # AVALIAÇÃO DAS MATRIZES AUXILIARES
         # ---------------------------------------------------------------------     
-        if metodo == self.__metodosIncerteza[0]:      
-            # Método: 2InvHessiana - >  2*inv(Hess)
-            matriz_covariancia = 2*inv(self.__Hessiana_FO_Param(delta))
+        # Matriz Hessiana da função objetivo em relação aos parâmetros
+        Hess   = self.__Hessiana_FO_Param(delta)
         
-        elif metodo == self.__metodosIncerteza[1]:
+        # Inversa da matriz hessiana a função objetivo em relação aos parâmetros
+        invHess = inv(Hess)
+
+        # Gy: derivadas parciais segundas da função objetivo em relação aos parâmetros e 
+        # dados experimentais
+        Gy  = self.__Matriz_Gy(delta) 
+        
+        # Matriz de sensibilidade do modelo em relação aos parâmetros
+        S   = self.__Matriz_S(delta) 
+       
+        # ---------------------------------------------------------------------
+        # AVALIAÇÃO DA INCERTEZA DOS PARÂMETROS
+        # ---------------------------------------------------------------------     
+                
+        # MATRIZ DE COVARIÂNCIA
+        if metodo_parametros == self.__metodosIncerteza[0]:      
+            # Método: 2InvHessiana ->  2*inv(Hess)
+            matriz_covariancia = 2*invHess
+        
+        elif metodo_parametros == self.__metodosIncerteza[1]:
             # Método: geral - > inv(H)*Gy*Uyy*GyT*inv(H)
-            # Inversa da matriz hessiana
-            invHess             = inv(self.__Hessiana_FO_Param(delta))
-            # Gy: derivadas parciais segundas da função objetivo em relação aos parâmetros e 
-            # dados experimentais
-            Gy                  = self.__Matriz_Gy(delta) 
+
             # cálculo da matriz de covariância
             matriz_covariancia  = invHess.dot(Gy).dot(self.y.experimental.matriz_covariancia).dot(Gy.transpose()).dot(invHess)
 
-        # ---------------------------------------------------------------------
-        # CÁLCULO DA REGIÃO DE ABRANGÊNCIA
-        # ---------------------------------------------------------------------  
+        elif metodo_parametros == self.__metodosIncerteza[2]:
+            # Método: simplificado -> inv(trans(S)*inv(Uyy)*S)
+            # cálculo da matriz de covariânica
+            matriz_covariancia = inv(S.transpose().dot(inv(self.y.experimental.matriz_covariancia)).dot(S))
+
+        # REGIÃO DE ABRANGÊNCIA
         Regiao, Hist_Posicoes, Hist_Fitness = self.regiaoAbrangencia(PA)
 
-        # ---------------------------------------------------------------------
-        # ATRIBUIÇÃO A GRANDEZAS
-        # ---------------------------------------------------------------------
+        # ATRIBUIÇÃO A GRANDEZA
         self.parametros._SETparametro(self.parametros.estimativa,matriz_covariancia,Regiao)
-        
-        # ---------------------------------------------------------------------
-        # ATRIBUIÇÃO A GRANDEZAS
-        # ---------------------------------------------------------------------
-        self.parametros._SETparametro(self.parametros.estimativa,self.parametros.matriz_covariancia,Regiao)
 
+        # ---------------------------------------------------------------------
+        # AVALIAÇÃO DA PREDIÇÃO (Y CALCULADO PELO MODELO)
+        # ---------------------------------------------------------------------    
+        
+        # MATRIZ DE COVARIÃNCIA DE Y
+        # Se os dados de validação forem diferentes dos experimentais, será desconsiderado
+        # a covariância entre os parâmetros e dados experimentais
+        if self.__flag_validacao == True:
+            Uyycalculado = S.dot(self.parametros.matriz_covariancia).dot(S.transpose()) + self.y.validacao.matriz_covariancia
+        else:
+            # Neste caso, os dados de validação são os dados experimentais e será considerada
+            # a covariância entre os parâmetros e dados experimentais
+            # COVARIÃNCIA ENTRE PARÂMETROS E DADOS EXPERIMENTAIS
+            Covar_param_y_experimental = -invHess.dot(Gy).dot(self.y.validacao.matriz_covariancia)
+            # PRIMEIRA PARCELA
+            Uyycalculado_1 = S.dot(self.parametros.matriz_covariancia).dot(S.transpose())
+            # SEGUNDA PARCELA            
+            Uyycalculado_2 = S.dot(Covar_param_y_experimental)
+            # TERCEIRA PARCELA
+            Uyycalculado_3 = Covar_param_y_experimental.transpose().dot(S.transpose())
+            # MATRIZ DE COVARIÃNCIA DE Y
+            Uyycalculado   = Uyycalculado_1 + Uyycalculado_2 + Uyycalculado_3 + self.y.validacao.matriz_covariancia
+            
+        # ATRIBUIÇÃO A GRANDEZA
+        self.y._SETcalculado(self.y.calculado.matriz_estimativa,Uyycalculado,{'estimativa':'matriz','incerteza':'variancia'},self.y.validacao.NE)
+        
         # ---------------------------------------------------------------------
         # VARIÁVEIS INTERNAS
         # ---------------------------------------------------------------------         
         # Inclusão desta etapa da lista de etapas                
         self.__etapas.append(self.__etapasdisponiveis[3])
-        
-        #print self.y.NV
-        #print self.y.experimental.NE
-        #print self.y.calculado.vetor_estimativa
-        #print self.y.experimental.vetor_estimativa
-    
+            
     def __Hessiana_FO_Param(self,delta=1e-5):
         u'''
         Método para calcular a matriz Hessiana da função objetivo em relaçao aos parâmetros.
@@ -771,6 +743,36 @@ class Estimacao:
          
         return array(matriz_Gy)
 
+
+    def __Matriz_S(self,delta=1e-5):
+
+        matriz_S = ones((self.y.NV*self.y.experimental.NE,self.parametros.NV))
+        
+        for i in xrange(self.parametros.NV): 
+               
+                delta_alpha = (10**(floor(log10(abs(self.parametros.estimativa[i])))))*delta if self.parametros.estimativa[i] != 0 else delta
+                    
+                vetor_parametro_delta_i_positivo = vetor_delta(self.parametros.estimativa,i,delta_alpha) #Vetor alterado dos parâmetros para entrada na função objetivo
+                vetor_parametro_delta_i_negativo = vetor_delta(self.parametros.estimativa,i,-delta_alpha)
+                
+                ycalculado_delta_positivo       = self.__modelo(vetor_parametro_delta_i_positivo,self.x.validacao.matriz_estimativa,\
+                                        [self.__args_model[4],self.x.simbolos,self.y.simbolos,self.parametros.simbolos])
+                
+                ycalculado_delta_positivo.start()
+                
+                
+                ycalculado_delta_negativo       = self.__modelo(vetor_parametro_delta_i_negativo,self.x.validacao.matriz_estimativa,\
+                                        [self.__args_model[4],self.x.simbolos,self.y.simbolos,self.parametros.simbolos])
+                
+                ycalculado_delta_negativo.start()
+                
+                ycalculado_delta_positivo.join()
+                ycalculado_delta_negativo.join()
+                
+                matriz_S[:,i:i+1] =  (matriz2vetor(ycalculado_delta_positivo.result) - matriz2vetor(ycalculado_delta_negativo.result))/(2*delta_alpha)
+                
+        return matriz_S
+ 
     def regiaoAbrangencia(self,PA=0.95):
         u'''
         Método para avaliação da região de abrangência
@@ -1050,10 +1052,7 @@ class Estimacao:
                     x  = self.x.calculado.matriz_estimativa[:,ix]
                     y  = self.y.calculado.matriz_estimativa[:,iy]
                     ux = self.x.calculado.matriz_incerteza[:,ix]
-                    #Falta a matriz incerteza do modelo, então está sendo usado a incerteza do pontos
-                    #experimentais apenas para compilar
-        #           uy = self.y.calculado.matriz_incerteza[:,i]
-                    uy = self.y.experimental.matriz_incerteza[:,iy]                    
+                    uy = self.y.calculado.matriz_incerteza[:,ix]
                     graficos_entrada_saida(x,y,ux,uy,ix,iy,base_dir,'calculado')
             
             base_dir = sep + 'Estimacao' + sep
@@ -1167,9 +1166,9 @@ if __name__ == "__main__":
 #    grandeza = Estime._armazenarDicionario() # ETAPA PARA CRIAÇÃO DOS DICIONÁRIOS - Grandeza é uma variável que retorna as grandezas na forma de dicionário
     
     # Otimização
-    Estime.otimiza(sup=sup,inf=inf,algoritmo='PSO',itmax=500,Num_particulas=30,metodo={'busca':'Otimo','algoritmo':'PSO','inercia':'TVIW-Adaptative-VI'})
-    Estime.incertezaParametros(.95,1e-5,metodo='geral')  
-    grandeza = Estime._armazenarDicionario()
+    Estime.otimiza(sup=sup,inf=inf,algoritmo='PSO',itmax=300,Num_particulas=30,metodo={'busca':'Otimo','algoritmo':'PSO','inercia':'TVIW-Adaptative-VI'})
+    Estime.avaliacaoIncerteza(.95,1e-5,metodo_parametros='Geral')  
+    #grandeza = Estime._armazenarDicionario()
     Estime.analiseResiduos()
     lista_de_etapas = ['entrada','otimizacao','estimacao'] 
     Estime.graficos(lista_de_etapas,0.95)
