@@ -117,7 +117,8 @@ class Organizador:
             if incerteza != None:        
                 self.matriz_covariancia = incerteza     
                 self.matriz_incerteza   = vetor2matriz(array(diag(self.matriz_covariancia)**0.5,ndmin=2).transpose(),NE)
-                
+                self.matriz_correlacao  = matrizcorrelacao(self.matriz_covariancia)
+
         # ---------------------------------------------------------------------
         # Criação dos atributos na forma de LISTAS
         # ---------------------------------------------------------------------

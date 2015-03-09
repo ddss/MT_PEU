@@ -244,3 +244,121 @@ def ThreadExceptionHandling(Thread,argumento1,argumento2,argumento3):
             continue
         else:
             break
+
+class flag:
+    
+    def __init__(self):
+        u'''Classe para padronizar o uso de flags no motor de cálculo.
+        
+        =========
+        Atributos
+        =========
+
+        * **info**: dicionário que informa a situação atual das flags. As chaves são 'status' (TRUE ou FALSE) e 'descrição' (o que está ocorrendo)
+        
+        * **resumo**: apresenta um resumo completo de todas as possibilidades de status das flags e seus respectivos significados
+                    
+        =======
+        Métodos
+        =======
+        
+        * **ToggleActive(caracteristica)** : muda o status da caracteristica da flag para TRUE
+        * **ToggleInactive(caracteristica)**: muda o status da caracteristica da flag para FALSE
+        
+        É necessário informar característica que está sendo modificada. Características disponíveis: 'dadosvalidacao' e 'reconciliacao'.
+        '''               
+        # ---------------------------------------------------------------------
+        # VALIDAÇÃO
+        # ---------------------------------------------------------------------
+        self._caracteristicas_disponiveis = ['dadosvalidacao','reconciliacao']
+
+        # ---------------------------------------------------------------------
+        # VARIÁVEL
+        # ---------------------------------------------------------------------    
+        self.info = {}
+        for elemento in self._caracteristicas_disponiveis:
+            self.info[elemento] = {'status':None,'descricao':None}
+        
+        self.resumo = {self._caracteristicas_disponiveis[0]:\
+        {True:u'Os dados de validação são DIFERENTES dos dados experimentais. A matriz de covariância da predição '+\
+        u'NÃO considera a covariância entre os parâmetros e dados experimentais',\
+        False:u'Os dados de validação são IGUAIS aos dados experimentais. A matriz de covariância da predição '+\
+        u'CONSIDERA a covariância entre os parâmetros e dados experimentais'},\
+        self._caracteristicas_disponiveis[1]:\
+        {True:u'Está sendo realizada a reconciliação de dados',\
+        False:u'Não está sendo utilizada a reconciliação de dados'}}
+        
+    def __validacao(self,caracteristica):
+        u'''Validação das entradas
+        '''
+        # ---------------------------------------------------------------------
+        # VALIDAÇÃO
+        # ---------------------------------------------------------------------
+        if isinstance(caracteristica,str):
+            
+            if caracteristica not in self._caracteristicas_disponiveis:
+                raise NameError(u'A caracteristica "'+str(caracteristica)+'" não está disponível. Características disponíveis: '+', '.join(self._caracteristicas_disponiveis)+'.')
+        
+        elif isinstance(caracteristica,list):
+        
+            teste = [isinstance(elemento,str) for elemento in caracteristica]
+            
+            if False in teste:
+                raise TypeError('As características devem ser strings.')
+            
+            diferenca = set(caracteristica).difference(set(self._caracteristicas_disponiveis))
+            if len(diferenca) != 0:
+                raise NameError(u'Característica(s) indisponível(is): '+', '.join(diferenca) +'. Características disponíveis: '+', '.join(self._caracteristicas_disponiveis)+'.')
+                
+        else:            
+            raise TypeError(u'A caracteristica deve ser uma lista ou um string.')
+                    
+        # ---------------------------------------------------------------------
+        # AÇÃO
+        # ---------------------------------------------------------------------      
+        if not isinstance(caracteristica,list):
+            caracteristica = [caracteristica]
+         
+        self.__caracteristica = caracteristica
+        
+    def __Toggle(self):
+        u''' Método interno para realizar ação de mudança de status
+        
+        '''
+        for elemento in self.__caracteristica:
+            self.info[elemento]['status']    = self.__togglestatus 
+            self.info[elemento]['descricao'] = self.resumo[elemento][self.__togglestatus]
+    
+    def ToggleActive(self,caracteristica):
+        '''
+        Irá marcar a flag como TRUE
+        =======
+        Entrada
+        =======
+        
+        * característica (lista de strings ou string): o que a flag está indicando
+        '''
+        # ---------------------------------------------------------------------
+        # VALIDAÇÃO
+        # ---------------------------------------------------------------------         
+        self.__validacao(caracteristica)
+
+        self.__togglestatus = True
+        self.__Toggle()
+
+    def ToggleInactive(self,caracteristica):
+        '''
+        Irá marcar a flag como FALSE
+        =======
+        Entrada
+        =======
+        
+        * característica (lista de strings ou string): o que a flag está indicando
+        '''
+        # ---------------------------------------------------------------------
+        # VALIDAÇÃO
+        # ---------------------------------------------------------------------         
+        self.__validacao(caracteristica)
+
+        self.__togglestatus = False
+        self.__Toggle()

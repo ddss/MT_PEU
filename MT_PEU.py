@@ -28,7 +28,8 @@ from warnings import warn
 
 # Subrotinas próprias e adaptações (desenvolvidas pelo GI-UFBA)
 from Grandeza import Grandeza
-from subrotinas import Validacao_Diretorio, plot_cov_ellipse, vetor_delta, ThreadExceptionHandling, vetor2matriz, matriz2vetor
+from subrotinas import Validacao_Diretorio, plot_cov_ellipse, vetor_delta,\
+ ThreadExceptionHandling, matriz2vetor, flag
 from PSO import PSO
 
 class Estimacao:
@@ -110,7 +111,9 @@ class Estimacao:
         
         A função objetivo deve ser um objeto com uma estrutura específica, conforme detalha \
         o exemplo: ::
-                
+            
+            from threading import Thread
+
             class WLS(Thread):
                 result = 0
                 def __init__(self,p,argumentos):
@@ -118,12 +121,12 @@ class Estimacao:
             
                     self.param  = p
                     
-                    self.y      = argumentos[0]
-                    self.x      = argumentos[1]
-                    self.Vy     = argumentos[2]
-                    self.Vx     = argumentos[3]        
-                    self.args   = argumentos[4]
-                    
+                    self.y     = argumentos[0]
+                    self.x     = argumentos[1]
+                    self.Vy    = argumentos[2]
+                    self.Vx    = argumentos[3]
+                    self.args  = argumentos[4]                    
+
                 def run(self):
             
                     ym = Modelo(self.param,self.x,self.args)
@@ -133,14 +136,57 @@ class Estimacao:
                     d     = self.y - ym
                     self.result =  float(dot(dot(transpose(d),linalg.inv(self.Vy)),d))            
         
+        OBSERVAÇÃO:
         O Motor de cálculo sempre irá enviar como uma lista argumentos para a função objetivo \
         nesta ordem: 
+       
+        * vetor com os pontos experimentais das grandezas dependentes
+        * matriz com os pontos experimentais das grandezas independentes (cada coluna representa uma grandeza independente)
+        * matriz covariância das grandezas dependentes
+        * matriz covariância das grandezas independentes
+        * argumentos extras a serem passados para o modelo (entrada de usuário)
+        * lista com os símbolos das grandezas independentes
+        * lista com os símbolos das grandezas dependentes
+        * lista com os símbolos dos parâmetros
         
-        * vetor com as variáveis dependentes
-        * vetor com as variáveis independentes
-        * incerteza das variáveis dependentes
-        * incerteza das variáveis independentes
-        * argumentos extras para o modelo
+        =======
+        Modelo
+        ======
+
+        O modelo deve ser um objeto com uma estrutura específica, conforme detalha \
+        o exemplo abaixo: ::
+        
+            from threading import Thread
+            from sys import exc_info
+    
+            class Modelo(Thread):
+                result = 0
+                def __init__(self,param,x,args,**kwargs):
+                    Thread.__init__(self)
+                    self.param  = param
+                    self.x      = x
+                    
+                    self.args  = args
+            
+                    # LIDAR COM EXCEPTIONS THREAD
+                    self.bucket = kwargs.get('bucket')
+                    
+                def runEquacoes(self):
+                    
+                    # Conjunto de equaçoes
+            
+                    self.result = # matriz em que cada coluna representa uma grandeza dependente
+                    
+                    
+                def run(self):
+                
+                    if self.bucket == None:
+                        self.runEquacoes()
+                    else:
+                        try:
+                            self.runEquacoes()
+                        except:
+                            self.bucket.put(exc_info())
         '''
         # ---------------------------------------------------------------------
         # VALIDAÇÕES GERAIS DE KEYWORDS
@@ -179,6 +225,8 @@ class Estimacao:
         # Controle interno das etapas do algoritmo (métodos executados)
         self.__etapas            = [self.__etapasdisponiveis[0]] # Variável de armazenamento das etapas realizadas pelo algoritmo
             
+        # Flags para controle
+        self.__flag = flag()
              
     def __validacaoArgumentosEntrada(self,etapa,keywargs,args=None):
         u'''
@@ -314,14 +362,13 @@ class Estimacao:
             raise ValueError(u'Caso seja definido dados de validação, é necessário fazê-lo para todas as grandezas. Assim, xval, yval, uxval e uyval devem ser definidos')
 
         # Caso não definidos dados de validação, será assumido os valores experimentais                    
-        self.__flag_validacao = True # Variável que define se os dados de validação são
-                                     # diferentes dos experimentais.
+        self.__flag.ToggleActive('dadosvalidacao') # Flag para definir se os dados de validacao são iguais aos experimentais
         if xval == None and yval == None:
             xval  = xe
             yval  = ye
             uxval = ux
             uyval = uy
-            self.__flag_validacao = False # Variável que define se os dados de validação são
+            self.__flag.ToggleInactive('dadosvalidacao') # Variável que define se os dados de validação são
                                           # diferentes dos experimentais
         
         # ---------------------------------------------------------------------
@@ -372,7 +419,8 @@ class Estimacao:
         # GERANDO O DICIONÁRIO
         # ---------------------------------------------------------------------    
      
-        grandeza = {}        
+        grandeza = {}      
+        # GRANDEZAS DEPENDENTES (y)
         for j,simbolo in enumerate(self.y.simbolos):
             grandeza[simbolo] = Grandeza([simbolo],[self.y.nomes[j]],[self.y.unidades[j]],[self.y.label_latex[j]])
             if self.__etapasdisponiveis[1] in self.__etapas:
@@ -380,11 +428,12 @@ class Estimacao:
                 grandeza[simbolo]._SETexperimental(self.y.experimental.matriz_estimativa[:,j:j+1],self.y.experimental.matriz_incerteza[:,j:j+1],{'estimativa':'matriz','incerteza':'incerteza'})
             if self.__etapasdisponiveis[2] in self.__etapas:
                 # Salvando dados calculados
-                grandeza[simbolo]._SETcalculado(self.y.calculado.matriz_estimativa[:,j:j+1],None,{'estimativa':'matriz','incerteza':'variancia'},None)
+                grandeza[simbolo]._SETcalculado(self.y.calculado.matriz_estimativa[:,j:j+1],self.y.calculado.matriz_incerteza[:,j:j+1],{'estimativa':'matriz','incerteza':'incerteza'},None)
             if self.__etapasdisponiveis[5] in self.__etapas:
                 # Salvando os resíduos
                 grandeza[simbolo]._SETresiduos(self.y.residuos.matriz_estimativa[:,j:j+1],None,{'estimativa':'matriz','incerteza':'variancia'})
 
+        # GRANDEZAS INDEPENDENTES (x)
         for j,simbolo in enumerate(self.x.simbolos):
             grandeza[simbolo] = Grandeza([simbolo],[self.x.nomes[j]],[self.x.unidades[j]],[self.x.label_latex[j]])
             if self.__etapasdisponiveis[1] in self.__etapas:
@@ -392,11 +441,12 @@ class Estimacao:
                 grandeza[simbolo]._SETexperimental(self.x.experimental.matriz_estimativa[:,j:j+1],self.x.experimental.matriz_incerteza[:,j:j+1],{'estimativa':'matriz','incerteza':'incerteza'})
             if self.__etapasdisponiveis[2] in self.__etapas:
                 # Salvando dados calculados
-                grandeza[simbolo]._SETcalculado(self.x.calculado.matriz_estimativa[:,j:j+1],None,{'estimativa':'matriz','incerteza':'variancia'},None)
+                grandeza[simbolo]._SETcalculado(self.x.calculado.matriz_estimativa[:,j:j+1],self.x.calculado.matriz_incerteza[:,j:j+1],{'estimativa':'matriz','incerteza':'incerteza'},None)
             if self.__etapasdisponiveis[5] in self.__etapas:
                 # Salvando os resíduos
                 grandeza[simbolo]._SETresiduos(self.x.residuos.matriz_estimativa[:,j:j+1],None,{'estimativa':'matriz','incerteza':'variancia'})
 
+        # PARÂMETROS
         for j,simbolo in enumerate(self.parametros.simbolos):
             grandeza[simbolo] = Grandeza([simbolo],[self.parametros.nomes[j]],[self.parametros.unidades[j]],[self.parametros.label_latex[j]])
             if self.__etapasdisponiveis[2] in self.__etapas:
@@ -440,6 +490,7 @@ class Estimacao:
         # Validação das keywords obrigatórias para o método de otimização
         self.__validacaoArgumentosEntrada('otimizacao',kwargs,algoritmo)       
  
+        self.__flag.ToggleInactive('reconciliacao')
         # ---------------------------------------------------------------------
         # DEFINIÇÃO DOS ARGUMENTOS EXTRAS PARA FUNÇÃO OBJETIVO
         # ---------------------------------------------------------------------
@@ -495,12 +546,9 @@ class Estimacao:
         aux.start()
         aux.join()
     
-        
         # Salvando os resultados
         self.y._SETcalculado(aux.result,None,{'estimativa':'matriz','incerteza':'variancia'},None)
         self.x._SETcalculado(self.x.validacao.matriz_estimativa,self.x.validacao.matriz_incerteza,{'estimativa':'matriz','incerteza':'incerteza'},None)
-
-        
 
         # ---------------------------------------------------------------------
         # VARIÁVEIS INTERNAS
@@ -560,13 +608,10 @@ class Estimacao:
         
         elif metodo_parametros == self.__metodosIncerteza[1]:
             # Método: geral - > inv(H)*Gy*Uyy*GyT*inv(H)
-
-            # cálculo da matriz de covariância
             matriz_covariancia  = invHess.dot(Gy).dot(self.y.experimental.matriz_covariancia).dot(Gy.transpose()).dot(invHess)
 
         elif metodo_parametros == self.__metodosIncerteza[2]:
             # Método: simplificado -> inv(trans(S)*inv(Uyy)*S)
-            # cálculo da matriz de covariânica
             matriz_covariancia = inv(S.transpose().dot(inv(self.y.experimental.matriz_covariancia)).dot(S))
 
         # REGIÃO DE ABRANGÊNCIA
@@ -582,7 +627,7 @@ class Estimacao:
         # MATRIZ DE COVARIÃNCIA DE Y
         # Se os dados de validação forem diferentes dos experimentais, será desconsiderado
         # a covariância entre os parâmetros e dados experimentais
-        if self.__flag_validacao == True:
+        if self.__flag.info['dadosvalidacao']['status'] == True:
             Uyycalculado = S.dot(self.parametros.matriz_covariancia).dot(S.transpose()) + self.y.validacao.matriz_covariancia
         else:
             # Neste caso, os dados de validação são os dados experimentais e será considerada
@@ -838,26 +883,33 @@ class Estimacao:
         # Para y:
         for i,symb in enumerate(self.y.simbolos):
             SSE = sum(self.y.residuos.matriz_estimativa[:,i]**2)
-            SST = sum((self.y.experimental.matriz_estimativa[:,i]-\
-                  mean(self.y.experimental.matriz_estimativa[:,i]))**2)
+            SST = sum((self.y.validacao.matriz_estimativa[:,i]-\
+                  mean(self.y.validacao.matriz_estimativa[:,i]))**2)
             self.R2[symb]         = 1 - SSE/SST
-            self.R2ajustado[symb] = 1 - (SSE/(self.y.experimental.NE-self.parametros.NV))\
-                                       /(SST/(self.y.experimental.NE - 1))
+            self.R2ajustado[symb] = 1 - (SSE/(self.y.validacao.NE-self.parametros.NV))\
+                                       /(SST/(self.y.validacao.NE - 1))
         # Para x:                                           
-#        for i,symb in enumerate(self.x.simbolos):
-#            SSEx = sum(self.x.residuos.matriz_estimativa[:,i]**2)
-#            SSTx = sum((self.x.experimental.matriz_estimativa[:,i]-\
-#                  mean(self.x.experimental.matriz_estimativa[:,i]))**2)
-#            self.R2[symb]         = 1 - SSEx/SSTx
-#            self.R2ajustado[symb] = 1 - (SSEx/(self.x.experimental.NE-self.parametros.NV))\
-#                                       /(SSTx/(self.x.experimental.NE - 1))
-                                       
+        for i,symb in enumerate(self.x.simbolos):
+            if self.__flag.info['reconciliacao']['status'] == True:
+                SSEx = sum(self.x.residuos.matriz_estimativa[:,i]**2)
+                SSTx = sum((self.x.validacao.matriz_estimativa[:,i]-\
+                      mean(self.x.validacao.matriz_estimativa[:,i]))**2)
+                self.R2[symb]         = 1 - SSEx/SSTx
+                self.R2ajustado[symb] = 1 - (SSEx/(self.x.validacao.NE-self.parametros.NV))\
+                                           /(SSTx/(self.x.validacao.NE - 1))
+            else:
+                self.R2[symb]         = None
+                self.R2ajustado[symb] = None
+                
         # ---------------------------------------------------------------------
         # EXECUÇÃO DE GRÁFICOS E TESTES ESTATÍSTICOS
         # ---------------------------------------------------------------------             
-        # DESCOMENTAR QUANDO RECONCILIAÇÃO !!
-        #self.x.Graficos(self.__base_path + sep + 'Graficos'  + sep,ID=['residuo'])
-        #self.x._testesEstatisticos()
+        # Grandezas independentes
+        if self.__flag.info['reconciliacao']['status'] == True:
+            self.x.Graficos(self.__base_path + sep + 'Graficos'  + sep,ID=['residuo'])
+            self.x._testesEstatisticos()
+ 
+        # Grandezas dependentes            
         self.y.Graficos(self.__base_path + sep + 'Graficos'  + sep,ID=['residuo'])
         self.y._testesEstatisticos()
 
@@ -884,7 +936,7 @@ class Estimacao:
         base_path  = self.__base_path + sep +'Graficos'+ sep
         
         #Sub-rotina que geram os gráficos de entrada e saída
-        def graficos_entrada_saida(x,y,ux,uy,ix,iy,base_dir,info):            
+        def graficos_x_y(x,y,ux,uy,ix,iy,base_dir,info):            
             #Gráfico apenas com os pontos experimentais
             fig = figure()
             ax = fig.add_subplot(1,1,1)
@@ -954,7 +1006,7 @@ class Estimacao:
                     y = self.y.experimental.matriz_estimativa[:,iy]
                     ux = self.x.experimental.matriz_incerteza[:,ix]
                     uy = self.y.experimental.matriz_incerteza[:,iy]                    
-                    graficos_entrada_saida(x,y,ux,uy,ix,iy,base_dir,'experimental')
+                    graficos_x_y(x,y,ux,uy,ix,iy,base_dir,'experimental')
         else:
             warn(u'Os gráficos de entrada não puderam ser criados, pois o método %s'%(self.__etapasdisponiveis[1],)+' não foi executado.',UserWarning)
 
@@ -1060,16 +1112,17 @@ class Estimacao:
                     x  = self.x.calculado.matriz_estimativa[:,ix]
                     y  = self.y.calculado.matriz_estimativa[:,iy]
                     ux = self.x.calculado.matriz_incerteza[:,ix]
-                    uy = self.y.calculado.matriz_incerteza[:,ix]
-                    graficos_entrada_saida(x,y,ux,uy,ix,iy,base_dir,'calculado')
+                    uy = self.y.calculado.matriz_incerteza[:,iy]
+                    graficos_x_y(x,y,ux,uy,ix,iy,base_dir,'calculado')
             
             base_dir = sep + 'Estimacao' + sep
             Validacao_Diretorio(base_path,base_dir)
             for iy in xrange(self.y.NV):
-               # Gráfico comparativo entre valores experimentais e calculados pelo modelo, sem variância         
+                    # Gráfico comparativo entre valores experimentais e calculados pelo modelo, sem variância         
                     y  = self.y.experimental.matriz_estimativa[:,iy]
-                    ym = self.y.calculado.matriz_estimativa[:,iy]
+                    ym = self.y.calculado.matriz_estimativa[:,iy]                   
                     diagonal = linspace(min(y),max(y))  
+
                     fig = figure()
                     ax = fig.add_subplot(1,1,1)
                     plot(y,ym,'bo',linewidth=2.0)
@@ -1084,8 +1137,34 @@ class Estimacao:
                     ylim((ymin,ymax))                
                     xlabel(self.y.labelGraficos('experimental')[iy])
                     ylabel(self.y.labelGraficos('calculado')[iy])
-                    fig.savefig(base_path+base_dir+'grafico_'+str(self.y.simbolos[iy])+'_ye_ym_sem_var.png')
+                    fig.savefig(base_path+base_dir+'grafico_'+str(self.y.simbolos[iy])+'exp_vs_'+str(self.y.simbolos[iy])+'calc_sem_var.png')
                     close()
+            
+                    # Gráfico comparativo entre valores experimentais e calculados pelo modelo, com variância    
+                    yerr_experimental = 2.*self.y.experimental.matriz_incerteza[:,iy]
+                    yerr_calculado    = 2.*self.y.calculado.matriz_incerteza[:,iy]
+
+                    fig = figure()
+                    ax = fig.add_subplot(1,1,1)
+                    errorbar(y,ym,xerr=yerr_experimental,yerr=yerr_calculado,marker='o',color='b',linestyle='None')
+                    plot(diagonal,diagonal,'k-',linewidth=2.0)
+                    
+                    ax.yaxis.grid(color='gray', linestyle='dashed')                        
+                    ax.xaxis.grid(color='gray', linestyle='dashed')
+                                        
+                    label_tick_y   = ax.get_yticks().tolist() 
+                    tamanho_tick_y = (label_tick_y[1] - label_tick_y[0])/2
+
+                    ymin   = min(ym - yerr_calculado) - tamanho_tick_y
+                    ymax   = max(ym + yerr_calculado) + tamanho_tick_y
+                    
+                    xlim((ymin,ymax))
+                    ylim((ymin,ymax))                
+                    xlabel(self.y.labelGraficos('experimental')[iy])
+                    ylabel(self.y.labelGraficos('calculado')[iy])
+                    fig.savefig(base_path+base_dir+'grafico_'+str(self.y.simbolos[iy])+'exp_vs_'+str(self.y.simbolos[iy])+'calc_com_var.png')
+                    close()           
+
             
             if (self.__etapasdisponiveis[5] in self.__etapas):
                 
@@ -1164,7 +1243,6 @@ if __name__ == "__main__":
 
     # Continuacao
     Estime.gerarEntradas(x,y,ux,uy)    
-    
  #   Estime.otimiza(sup=[2,2,2,2],inf=[-2,-2,-2,-2],algoritmo='PSO',itmax=5)
  #   Estime.graficos(0.95)
 #    saida = concatenate((Estime.x.experimental.matriz_estimativa[:,0:1],Estime.x.experimental.matriz_incerteza[:,0:1]),axis=1)
