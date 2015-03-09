@@ -9,7 +9,7 @@ Principais classes do motor de cálculo do PEU
 
 # Importação de pacotes de terceiros
 from numpy import array, transpose, concatenate,size, diag, linspace, min, max, \
-sort, argsort, mean,  std, amin, amax, copy, cos, sin, radians, mean
+sort, argsort, mean,  std, amin, amax, copy, cos, sin, radians, mean, dot, ones
 
 from scipy.stats import f
 
@@ -24,10 +24,11 @@ from matplotlib.pyplot import figure, axes, axis, plot, errorbar, subplot, xlabe
     title, legend, savefig, xlim, ylim, close, grid, text, hist, boxplot
 
 from os import getcwd, sep
+from warnings import warn
 
 # Subrotinas próprias e adaptações (desenvolvidas pelo GI-UFBA)
 from Grandeza import Grandeza
-from subrotinas import Validacao_Diretorio, plot_cov_ellipse, vetor_delta
+from subrotinas import Validacao_Diretorio, plot_cov_ellipse, vetor_delta, matriz2vetor, vetor2matriz
 from PSO import PSO
 
 
@@ -62,6 +63,8 @@ class Estimacao:
         * ``nomes_param``       (list): lista com os nomes para os parâmetros (inclusive em formato LATEX)
         * ``unidades_param``    (list): lista com as unidades para os parâmetros (inclusive em formato LATEX)
         * ``label_latex_param`` (list): lista com os símbolos das variáveis em formato LATEX
+        
+        * ``base_path`` (string): String que define o diretório pai que serão criados/salvos os arquivos gerados pelo motor de cálculo
         
         =======        
         Métodos
@@ -207,7 +210,7 @@ class Estimacao:
             
             # Verificação se o nome do projeto possui caracteres especiais
             # set: conjunto de elementos distintos não ordenados (trabalha com teoria de conjuntos)
-            if set('[~!@#$%^&*()_+{}":;\']+$').intersection(args):
+            if set('[~!@#$%^&*()+{}":;\']+$').intersection(args):
                 raise NameError('O nome do projeto não pode conter caracteres especiais')  
             
         # ---------------------------------------------------------------------
@@ -472,21 +475,94 @@ class Estimacao:
         # ---------------------------------------------------------------------
         # PREDIÇÃO
         # ---------------------------------------------------------------------     
-        # A predição é calculada com base nos dados de validação   
-        aux = self.__modelo(self.parametros.estimativa,self.x.validacao.matriz_estimativa,[args,self.x.simbolos,self.y.simbolos,self.parametros.simbolos])
+        # A predição é calculada com base nos dados de validação  
+        
+        aux = self.__modelo(self.parametros.estimativa,self.x.validacao.matriz_estimativa,\
+        [args,self.x.simbolos,self.y.simbolos,self.parametros.simbolos])
+        
         aux.start()
         aux.join()
-                
+    
+        
         # Salvando os resultados
         self.y._SETcalculado(aux.result,None,{'estimativa':'matriz','incerteza':'variancia'},None)
         self.x._SETcalculado(self.x.experimental.matriz_estimativa,self.x.experimental.matriz_incerteza,{'estimativa':'matriz','incerteza':'incerteza'},None)
+
+        #print self.y.calculado.vetor_estimativa
 
         # ---------------------------------------------------------------------
         # VARIÁVEIS INTERNAS
         # ---------------------------------------------------------------------         
         # Inclusão desta etapa da lista de etapas
         self.__etapas.append(self.__etapasdisponiveis[2]) # Inclusão desta etapa da lista de etapas
-         
+        
+
+
+        '''
+        000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+        '''        
+        
+        delta= 1e-5
+        matriz_B1 = ones((self.y.NV*self.y.experimental.NE/2,self.parametros.NV/2))
+        matriz_B2 = ones((self.y.NV*self.y.experimental.NE/2,self.parametros.NV/2))
+        
+        for i in range(self.y.NV*self.y.experimental.NE): 
+            for j in range(self.parametros.NV):
+                
+                delta_alpha = (10**(floor(log10(abs(self.parametros.estimativa[j])))))*delta if self.parametros.estimativa[j] != 0 else delta
+                    
+                vetor_parametro_delta_j_positivo = vetor_delta(self.parametros.estimativa,j,delta_alpha) #Vetor alterado dos parâmetros para entrada na função objetivo
+                vetor_parametro_delta_j_negativo = vetor_delta(self.parametros.estimativa,j,-delta_alpha)
+                
+                vetor_parametros                = copy(self.parametros.estimativa)
+                vetor_parametros                = vetor_parametro_delta_j_positivo    #Vetor com com parametros somados ao delta
+                
+                Yc_jpositivo          = self.__modelo(vetor_parametros,self.x.validacao.matriz_estimativa,\
+                                        [self.__args_model[4],self.x.simbolos,self.y.simbolos,self.parametros.simbolos])
+                
+                Yc_jpositivo.start()
+                
+                vetor_parametros                = copy(self.parametros.estimativa)
+                vetor_parametros                = vetor_parametro_delta_j_negativo  #Vetor com com parametros subtraidos em delta
+                
+                Yc_jnegativo         = self.__modelo(vetor_parametros,self.x.validacao.matriz_estimativa,\
+                                        [self.__args_model[4],self.x.simbolos,self.y.simbolos,self.parametros.simbolos])
+                
+                Yc_jnegativo.start()
+                
+                
+                Yc_jpositivo.join()
+                Yc_jnegativo.join()
+                
+                
+                if i< self.y.NV*self.y.experimental.NE/2 and j<self.parametros.NV/2:
+                    
+                    matriz_B1[i][j]= (matriz2vetor(Yc_jpositivo.result)[i]-matriz2vetor(Yc_jnegativo.result)[i])/2*delta_alpha
+                    #MATRIZ DE COVARIÂNCIA DOS PARÂMETROS DO MODELO 1
+                else:
+                    matriz_B2[i-self.y.NV*self.y.experimental.NE/2][j-self.parametros.NV/2]=\
+                    (matriz2vetor(Yc_jpositivo.result)[i]-matriz2vetor(Yc_jnegativo.result)[i])/2*delta_alpha
+                    #MATRIZ DE COVARIÂNCIA DOS PARÂMETROS DO MODELO 1
+        
+        
+        m_covar1= diag(ones(self.y.NV*self.y.experimental.NE/2))
+        m_covar2= diag(ones(self.y.NV*self.y.experimental.NE/2))        
+    
+        m_covar_para1= inv(dot(dot(transpose(matriz_B1),inv(m_covar1)),matriz_B1))
+        m_covar_para2= inv(dot(dot(transpose(matriz_B2),inv(m_covar2)),matriz_B2))
+        
+        print m_covar_para1
+        print (m_covar_para1[0][0]**0.5)/1e10
+        print (m_covar_para1[1][1]**0.5)/1e12
+        
+        print m_covar_para2
+        print (m_covar_para2[0][0]**0.5)/1e10
+        print (m_covar_para2[1][1]**0.5)/1e12
+        
+        '''
+        000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+        '''        
+        
     def incertezaParametros(self,PA=0.95,delta=1e-5,metodo='2InvHessiana'):       
         u'''
         Método para avaliação da matriz covariãncia dos parâmetros.
@@ -505,8 +581,9 @@ class Estimacao:
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------         
-        self.__validacaoArgumentosEntrada('incertezaParametros',None,metodo)       
-
+        self.__validacaoArgumentosEntrada('incertezaParametros',None,metodo) 
+        
+                
         # ---------------------------------------------------------------------
         # CÁLCULO DA MATRIZ DE COVARIÂNCIA
         # ---------------------------------------------------------------------     
@@ -524,8 +601,10 @@ class Estimacao:
             # cálculo da matriz de covariância
             matriz_covariancia  = invHess.dot(Gy).dot(self.y.experimental.matriz_covariancia).dot(Gy.transpose()).dot(invHess)
 
-
-        Regiao, Hist_Posicoes, Hist_Fitness = self.regiaoAbrangencia(PA) # método para avaliação da região de abrangência
+        # ---------------------------------------------------------------------
+        # CÁLCULO DA REGIÃO DE ABRANGÊNCIA
+        # ---------------------------------------------------------------------  
+        Regiao, Hist_Posicoes, Hist_Fitness = self.regiaoAbrangencia(PA)
 
         # ---------------------------------------------------------------------
         # ATRIBUIÇÃO A GRANDEZAS
@@ -543,6 +622,11 @@ class Estimacao:
         # Inclusão desta etapa da lista de etapas                
         self.__etapas.append(self.__etapasdisponiveis[3])
         
+        #print self.y.NV
+        #print self.y.experimental.NE
+        #print self.y.calculado.vetor_estimativa
+        #print self.y.experimental.vetor_estimativa
+    
     def __Hessiana_FO_Param(self,delta=1e-5):
         u'''
         Método para calcular a matriz Hessiana da função objetivo em relaçao aos parâmetros.
@@ -568,8 +652,9 @@ class Estimacao:
         for i in range(self.parametros.NV): 
             for j in range(self.parametros.NV):
                 
-                delta1 = (10**(floor(log10(abs(self.parametros.estimativa[i])))))*delta
-                delta2 = (10**(floor(log10(abs(self.parametros.estimativa[j])))))*delta
+                # incrementos para as derivadas dos parâmetros
+                delta1 = (10**(floor(log10(abs(self.parametros.estimativa[i])))))*delta if self.parametros.estimativa[i] != 0 else delta
+                delta2 = (10**(floor(log10(abs(self.parametros.estimativa[j])))))*delta if self.parametros.estimativa[j] != 0 else delta
                 
                 if i==j:
                     # Incrementos
@@ -643,9 +728,11 @@ class Estimacao:
 
         for i in xrange(self.parametros.NV): 
             for j in xrange(self.y.NV*self.y.experimental.NE):
-                                
-                delta1 = (10**(floor(log10(abs(self.parametros.estimativa[i])))))*delta #varia os elementos do vetor de thetas.
-                delta2 = (10**(floor(log10(abs(self.y.experimental.vetor_estimativa[j])))))*delta #varia os elementos do vetor dos y experimentais.
+                
+                # incremento para a derivada nos parâmetros
+                delta1 = (10**(floor(log10(abs(self.parametros.estimativa[i])))))*delta           if self.parametros.estimativa[i]           != 0 else delta 
+                # incremento para a derivada nos valores de y
+                delta2 = (10**(floor(log10(abs(self.y.experimental.vetor_estimativa[j])))))*delta if self.y.experimental.vetor_estimativa[j] != 0 else delta 
                 
                 vetor_parametro_delta_ipositivo = vetor_delta(self.parametros.estimativa,i,delta1) #Vetor alterado dos parâmetros para entrada na função objetivo
                 vetor_y_delta_jpositivo         = vetor_delta(self.y.experimental.vetor_estimativa,j,delta2)
@@ -658,7 +745,7 @@ class Estimacao:
                 
                 
                 vetor_parametro_delta_inegativo = vetor_delta(self.parametros.estimativa,i,-delta1)
- 
+                
                 FO_inegativo_jpositivo          = self.__FO(vetor_parametro_delta_inegativo,args)
                 FO_inegativo_jpositivo.start()
                 
@@ -682,7 +769,6 @@ class Estimacao:
                 matriz_Gy[i][j]=((FO_ipositivo_jpositivo.result-FO_inegativo_jpositivo.result)/(2*delta1)\
                 -(FO_ipositivo_jnegativo.result-FO_inegativo_jnegativo.result)/(2*delta1))/(2*delta2)
          
-        
         return array(matriz_Gy)
 
     def regiaoAbrangencia(self,PA=0.95):
@@ -764,30 +850,12 @@ class Estimacao:
         #self.x._testesEstatisticos()
         self.y.Graficos(self.__base_path + sep + 'Graficos'  + sep,ID=['residuo'])
         self.y._testesEstatisticos()
-        
-        # Gráficos que dependem de informações da estimação (y)
-        # TO DO: RELOCAR PARA A SESSÃO DE GRÁFICOS
 
-        base_path  = self.__base_path + sep + 'Graficos'  + sep
-  
-        for i,simb in enumerate(self.y.simbolos):         
-            base_dir =  sep + 'Grandezas' + sep + self.y.simbolos[i] + sep
-            # Gráficos da otimização
-            Validacao_Diretorio(base_path,base_dir)  
-        
-            ymodelo = self.y.experimental.matriz_estimativa[:,i]
-            fig = figure()
-            ax = fig.add_subplot(1,1,1)
-            plot(ymodelo,self.y.residuos.matriz_estimativa[:,i], 'o')
-            xlabel(u'Valores Ajustados '+self.y.labelGraficos()[i])
-            ylabel(u'Resíduos '+self.y.labelGraficos()[i])
-            ax.yaxis.grid(color='gray', linestyle='dashed')                        
-            ax.xaxis.grid(color='gray', linestyle='dashed')
-            ax.axhline(0, color='black', lw=2)
-            fig.savefig(base_path+base_dir+'residuos_versus_ycalculado.png')
-            close()
-
-        self.__etapas.append(self.__etapasdisponiveis[5]) # Inclusão desta etapa na lista de etapas
+        # ---------------------------------------------------------------------
+        # VARIÁVEIS INTERNAS
+        # ---------------------------------------------------------------------   
+        # Inclusão desta etapa na lista de etapas
+        self.__etapas.append(self.__etapasdisponiveis[5]) 
 
     def graficos(self,lista_de_etapas,PA):
         u'''
@@ -802,8 +870,7 @@ class Estimacao:
         ==========
                 
         '''
-        self.__etapas.append(self.__etapasdisponiveis[5]) # Inclusão desta etapa da lista de etapas
-           
+          
         base_path  = self.__base_path + sep +'Graficos'+ sep
         
         #Sub-rotina que geram os gráficos de entrada e saída
@@ -862,8 +929,9 @@ class Estimacao:
             fig.savefig(base_path+base_dir+info+'_'+self.y.simbolos[iy]+'_funcao_de_'+self.x.simbolos[ix]+'_com_incerteza')
             close()
             
-        #If para gerar os gráficos das grandezas de entrada (x e y)        
-        if('entrada' in lista_de_etapas) and('gerarEntradas'in self.__etapas):
+        #If para gerar os gráficos das grandezas de entrada (x e y)       
+        # gerarEntradas deve ser executado
+        if ('entrada' in lista_de_etapas) and (self.__etapasdisponiveis[1] in self.__etapas):
             base_dir = sep + 'Grandezas' + sep
             Validacao_Diretorio(base_path,base_dir)
 
@@ -877,17 +945,21 @@ class Estimacao:
                     ux = self.x.experimental.matriz_incerteza[:,ix]
                     uy = self.y.experimental.matriz_incerteza[:,iy]                    
                     graficos_entrada_saida(x,y,ux,uy,ix,iy,base_dir,'experimental')
+        else:
+            warn(u'Os gráficos de entrada não puderam ser criados, pois o método %s'%(self.__etapasdisponiveis[1],)+' não foi executado.',UserWarning)
 
-
-        if('otimizacao' in lista_de_etapas) and('otimizacao' in self.__etapas):
+        if ('otimizacao' in lista_de_etapas) and (self.__etapasdisponiveis[2] in self.__etapas):
             # Gráficos da otimização
             base_dir = sep+'PSO'+ sep
             Validacao_Diretorio(base_path,base_dir)
     
             self.Otimizacao.Graficos(base_path+base_dir,Nome_param=self.parametros.simbolos,Unid_param=self.parametros.unidades,FO2a2=True)
 
+        else:
+            warn(u'Os gráficos de otimizacao não puderam ser criados, pois o método %s'%(self.__etapasdisponiveis[2],)+' não foi executado.',UserWarning)
+            
 
-        if('estimacao' in lista_de_etapas) and('regiaoAbrangencia' in self.__etapas) and('analiseResiduos' in self.__etapas):
+        if ('estimacao' in lista_de_etapas) and (self.__etapasdisponiveis[3] in self.__etapas):
             # Gráficos da estimação
             base_dir = sep + 'Estimacao' + sep
             Validacao_Diretorio(base_path,base_dir)
@@ -955,7 +1027,7 @@ class Estimacao:
                         hy=  width  / 2.
                     else:
                         hx = abs(width*cos(radians(theta))/2.)
-                        hy = max(abs(width*sin(radians(theta))/2.),abs(height*sin(radians(theta))/2.,))
+                        hy = max([abs(width*sin(radians(theta))/2.),abs(height*sin(radians(theta))/2.)])
 
                     xauto = [ax.get_xticks()[0],ax.get_xticks()[-1]]
                     yauto = [ax.get_yticks()[0],ax.get_yticks()[-1]]
@@ -975,8 +1047,8 @@ class Estimacao:
             
             for iy in xrange(self.y.NV):
                 for ix in xrange(self.x.NV):
-                    x = self.x.calculado.matriz_estimativa[:,ix]
-                    y = self.y.calculado.matriz_estimativa[:,iy]
+                    x  = self.x.calculado.matriz_estimativa[:,ix]
+                    y  = self.y.calculado.matriz_estimativa[:,iy]
                     ux = self.x.calculado.matriz_incerteza[:,ix]
                     #Falta a matriz incerteza do modelo, então está sendo usado a incerteza do pontos
                     #experimentais apenas para compilar
@@ -1007,9 +1079,32 @@ class Estimacao:
                     ylabel(self.y.labelGraficos('calculado')[iy])
                     fig.savefig(base_path+base_dir+'grafico_'+str(self.y.simbolos[iy])+'_ye_ym_sem_var.png')
                     close()
-                    
+            
+            if (self.__etapasdisponiveis[5] in self.__etapas):
+                
+                for i,simb in enumerate(self.y.simbolos):         
+                    base_dir =  sep + 'Grandezas' + sep + self.y.simbolos[i] + sep
+                    # Gráficos da otimização
+                    Validacao_Diretorio(base_path,base_dir)  
+                
+                    ymodelo = self.y.experimental.matriz_estimativa[:,i]
+                    fig = figure()
+                    ax = fig.add_subplot(1,1,1)
+                    plot(ymodelo,self.y.residuos.matriz_estimativa[:,i], 'o')
+                    xlabel(u'Valores Ajustados '+self.y.labelGraficos()[i])
+                    ylabel(u'Resíduos '+self.y.labelGraficos()[i])
+                    ax.yaxis.grid(color='gray', linestyle='dashed')                        
+                    ax.xaxis.grid(color='gray', linestyle='dashed')
+                    ax.axhline(0, color='black', lw=2)
+                    fig.savefig(base_path+base_dir+'residuos_versus_ycalculado.png')
+                    close()      
+            else:
+                warn(u'Os gráficos envolvendo os resíduos não puderam ser criados, pois o método %s'%(self.__etapasdisponiveis[5],)+' não foi executado.',UserWarning)
+
+        else:
+            warn(u'Os gráficos de estimacao não puderam ser criados, pois o método %s'%(self.__etapasdisponiveis[3],)+' não foi executado.',UserWarning)
+
 if __name__ == "__main__":
-    from numpy import ones
     from Funcao_Objetivo import WLS
     from Modelo import Modelo
     # Exemplo validação: Exemplo resolvido 5.11, 5.12, 5.13 (capítulo 5) (Análise de Dados experimentais I)
@@ -1059,10 +1154,10 @@ if __name__ == "__main__":
     Estime = Estimacao(WLS,Modelo,simbolos_x=['x1','x2'],simbolos_y=['y1','y2'],simbolos_param=[r'theta%d'%i for i in xrange(4)],label_latex_param=[r'$\theta_{%d}$'%i for i in xrange(4)])
     sup = [6.  ,.3  ,8.  ,0.7]
     inf = [1.  , 0  ,1.  ,0.]
-    
+
     # Continuacao
     Estime.gerarEntradas(x,y,ux,uy)    
-    #print Estime.x.labelGraficos()
+    
  #   Estime.otimiza(sup=[2,2,2,2],inf=[-2,-2,-2,-2],algoritmo='PSO',itmax=5)
  #   Estime.graficos(0.95)
 #    saida = concatenate((Estime.x.experimental.matriz_estimativa[:,0:1],Estime.x.experimental.matriz_incerteza[:,0:1]),axis=1)
@@ -1072,10 +1167,9 @@ if __name__ == "__main__":
 #    grandeza = Estime._armazenarDicionario() # ETAPA PARA CRIAÇÃO DOS DICIONÁRIOS - Grandeza é uma variável que retorna as grandezas na forma de dicionário
     
     # Otimização
-    Estime.otimiza(sup=sup,inf=inf,algoritmo='PSO',itmax=100,Num_particulas=30,metodo={'busca':'Otimo','algoritmo':'PSO','inercia':'TVIW-Adaptative-VI'})
-    Estime.incertezaParametros(.95,1e-5,metodo='geral')
+    Estime.otimiza(sup=sup,inf=inf,algoritmo='PSO',itmax=500,Num_particulas=30,metodo={'busca':'Otimo','algoritmo':'PSO','inercia':'TVIW-Adaptative-VI'})
+    Estime.incertezaParametros(.95,1e-5,metodo='geral')  
     grandeza = Estime._armazenarDicionario()
     Estime.analiseResiduos()
     lista_de_etapas = ['entrada','otimizacao','estimacao'] 
-    Estime.graficos(lista_de_etapas,0.95)       
-    grandeza2 = Estime._armazenarDicionario()
+    Estime.graficos(lista_de_etapas,0.95)
