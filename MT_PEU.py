@@ -28,9 +28,9 @@ from warnings import warn
 
 # Subrotinas próprias e adaptações (desenvolvidas pelo GI-UFBA)
 from Grandeza import Grandeza
-from subrotinas import Validacao_Diretorio, plot_cov_ellipse, vetor_delta, matriz2vetor, vetor2matriz
+from subrotinas import Validacao_Diretorio, plot_cov_ellipse, vetor_delta,\
+ ThreadExceptionHandling, matriz2vetor, flag
 from PSO import PSO
-
 
 class Estimacao:
     
@@ -111,7 +111,9 @@ class Estimacao:
         
         A função objetivo deve ser um objeto com uma estrutura específica, conforme detalha \
         o exemplo: ::
-                
+            
+            from threading import Thread
+
             class WLS(Thread):
                 result = 0
                 def __init__(self,p,argumentos):
@@ -119,12 +121,12 @@ class Estimacao:
             
                     self.param  = p
                     
-                    self.y      = argumentos[0]
-                    self.x      = argumentos[1]
-                    self.Vy     = argumentos[2]
-                    self.Vx     = argumentos[3]        
-                    self.args   = argumentos[4]
-                    
+                    self.y     = argumentos[0]
+                    self.x     = argumentos[1]
+                    self.Vy    = argumentos[2]
+                    self.Vx    = argumentos[3]
+                    self.args  = argumentos[4]                    
+
                 def run(self):
             
                     ym = Modelo(self.param,self.x,self.args)
@@ -134,14 +136,57 @@ class Estimacao:
                     d     = self.y - ym
                     self.result =  float(dot(dot(transpose(d),linalg.inv(self.Vy)),d))            
         
+        OBSERVAÇÃO:
         O Motor de cálculo sempre irá enviar como uma lista argumentos para a função objetivo \
         nesta ordem: 
+       
+        * vetor com os pontos experimentais das grandezas dependentes
+        * matriz com os pontos experimentais das grandezas independentes (cada coluna representa uma grandeza independente)
+        * matriz covariância das grandezas dependentes
+        * matriz covariância das grandezas independentes
+        * argumentos extras a serem passados para o modelo (entrada de usuário)
+        * lista com os símbolos das grandezas independentes
+        * lista com os símbolos das grandezas dependentes
+        * lista com os símbolos dos parâmetros
         
-        * vetor com as variáveis dependentes
-        * vetor com as variáveis independentes
-        * incerteza das variáveis dependentes
-        * incerteza das variáveis independentes
-        * argumentos extras para o modelo
+        =======
+        Modelo
+        ======
+
+        O modelo deve ser um objeto com uma estrutura específica, conforme detalha \
+        o exemplo abaixo: ::
+        
+            from threading import Thread
+            from sys import exc_info
+    
+            class Modelo(Thread):
+                result = 0
+                def __init__(self,param,x,args,**kwargs):
+                    Thread.__init__(self)
+                    self.param  = param
+                    self.x      = x
+                    
+                    self.args  = args
+            
+                    # LIDAR COM EXCEPTIONS THREAD
+                    self.bucket = kwargs.get('bucket')
+                    
+                def runEquacoes(self):
+                    
+                    # Conjunto de equaçoes
+            
+                    self.result = # matriz em que cada coluna representa uma grandeza dependente
+                    
+                    
+                def run(self):
+                
+                    if self.bucket == None:
+                        self.runEquacoes()
+                    else:
+                        try:
+                            self.runEquacoes()
+                        except:
+                            self.bucket.put(exc_info())
         '''
         # ---------------------------------------------------------------------
         # VALIDAÇÕES GERAIS DE KEYWORDS
@@ -180,6 +225,8 @@ class Estimacao:
         # Controle interno das etapas do algoritmo (métodos executados)
         self.__etapas            = [self.__etapasdisponiveis[0]] # Variável de armazenamento das etapas realizadas pelo algoritmo
             
+        # Flags para controle
+        self.__flag = flag()
              
     def __validacaoArgumentosEntrada(self,etapa,keywargs,args=None):
         u'''
@@ -315,14 +362,13 @@ class Estimacao:
             raise ValueError(u'Caso seja definido dados de validação, é necessário fazê-lo para todas as grandezas. Assim, xval, yval, uxval e uyval devem ser definidos')
 
         # Caso não definidos dados de validação, será assumido os valores experimentais                    
-        self.__flag_validacao = True # Variável que define se os dados de validação são
-                                     # diferentes dos experimentais.
+        self.__flag.ToggleActive('dadosvalidacao') # Flag para definir se os dados de validacao são iguais aos experimentais
         if xval == None and yval == None:
             xval  = xe
             yval  = ye
             uxval = ux
             uyval = uy
-            self.__flag_validacao = False # Variável que define se os dados de validação são
+            self.__flag.ToggleInactive('dadosvalidacao') # Variável que define se os dados de validação são
                                           # diferentes dos experimentais
         
         # ---------------------------------------------------------------------
@@ -373,7 +419,8 @@ class Estimacao:
         # GERANDO O DICIONÁRIO
         # ---------------------------------------------------------------------    
      
-        grandeza = {}        
+        grandeza = {}      
+        # GRANDEZAS DEPENDENTES (y)
         for j,simbolo in enumerate(self.y.simbolos):
             grandeza[simbolo] = Grandeza([simbolo],[self.y.nomes[j]],[self.y.unidades[j]],[self.y.label_latex[j]])
             if self.__etapasdisponiveis[1] in self.__etapas:
@@ -381,11 +428,12 @@ class Estimacao:
                 grandeza[simbolo]._SETexperimental(self.y.experimental.matriz_estimativa[:,j:j+1],self.y.experimental.matriz_incerteza[:,j:j+1],{'estimativa':'matriz','incerteza':'incerteza'})
             if self.__etapasdisponiveis[2] in self.__etapas:
                 # Salvando dados calculados
-                grandeza[simbolo]._SETcalculado(self.y.calculado.matriz_estimativa[:,j:j+1],None,{'estimativa':'matriz','incerteza':'variancia'},None)
+                grandeza[simbolo]._SETcalculado(self.y.calculado.matriz_estimativa[:,j:j+1],self.y.calculado.matriz_incerteza[:,j:j+1],{'estimativa':'matriz','incerteza':'incerteza'},None)
             if self.__etapasdisponiveis[5] in self.__etapas:
                 # Salvando os resíduos
                 grandeza[simbolo]._SETresiduos(self.y.residuos.matriz_estimativa[:,j:j+1],None,{'estimativa':'matriz','incerteza':'variancia'})
 
+        # GRANDEZAS INDEPENDENTES (x)
         for j,simbolo in enumerate(self.x.simbolos):
             grandeza[simbolo] = Grandeza([simbolo],[self.x.nomes[j]],[self.x.unidades[j]],[self.x.label_latex[j]])
             if self.__etapasdisponiveis[1] in self.__etapas:
@@ -393,11 +441,12 @@ class Estimacao:
                 grandeza[simbolo]._SETexperimental(self.x.experimental.matriz_estimativa[:,j:j+1],self.x.experimental.matriz_incerteza[:,j:j+1],{'estimativa':'matriz','incerteza':'incerteza'})
             if self.__etapasdisponiveis[2] in self.__etapas:
                 # Salvando dados calculados
-                grandeza[simbolo]._SETcalculado(self.x.calculado.matriz_estimativa[:,j:j+1],None,{'estimativa':'matriz','incerteza':'variancia'},None)
+                grandeza[simbolo]._SETcalculado(self.x.calculado.matriz_estimativa[:,j:j+1],self.x.calculado.matriz_incerteza[:,j:j+1],{'estimativa':'matriz','incerteza':'incerteza'},None)
             if self.__etapasdisponiveis[5] in self.__etapas:
                 # Salvando os resíduos
                 grandeza[simbolo]._SETresiduos(self.x.residuos.matriz_estimativa[:,j:j+1],None,{'estimativa':'matriz','incerteza':'variancia'})
 
+        # PARÂMETROS
         for j,simbolo in enumerate(self.parametros.simbolos):
             grandeza[simbolo] = Grandeza([simbolo],[self.parametros.nomes[j]],[self.parametros.unidades[j]],[self.parametros.label_latex[j]])
             if self.__etapasdisponiveis[2] in self.__etapas:
@@ -441,6 +490,7 @@ class Estimacao:
         # Validação das keywords obrigatórias para o método de otimização
         self.__validacaoArgumentosEntrada('otimizacao',kwargs,algoritmo)       
  
+        self.__flag.ToggleInactive('reconciliacao')
         # ---------------------------------------------------------------------
         # DEFINIÇÃO DOS ARGUMENTOS EXTRAS PARA FUNÇÃO OBJETIVO
         # ---------------------------------------------------------------------
@@ -468,6 +518,15 @@ class Estimacao:
             if kwargs.get('printit')  != None:
                 kwargsbusca['printit'] = kwargs.get('printit')
                 del kwargs['printit']
+
+            # ---------------------------------------------------------------------
+            # VALIDAÇÃO DO MODELO
+            # ---------------------------------------------------------------------            
+            # Verificação se o modelo é executável nos limites de busca
+            
+            ThreadExceptionHandling(self.__modelo,sup,self.x.validacao.matriz_estimativa,[args,self.x.simbolos,self.y.simbolos,self.parametros.simbolos])
+            ThreadExceptionHandling(self.__modelo,inf,self.x.validacao.matriz_estimativa,[args,self.x.simbolos,self.y.simbolos,self.parametros.simbolos])
+            
             # ---------------------------------------------------------------------
             # EXECUÇÃO OTIMIZAÇÃO
             # ---------------------------------------------------------------------
@@ -487,12 +546,9 @@ class Estimacao:
         aux.start()
         aux.join()
     
-        
         # Salvando os resultados
         self.y._SETcalculado(aux.result,None,{'estimativa':'matriz','incerteza':'variancia'},None)
         self.x._SETcalculado(self.x.validacao.matriz_estimativa,self.x.validacao.matriz_incerteza,{'estimativa':'matriz','incerteza':'incerteza'},None)
-
-        #print self.y.calculado.vetor_estimativa
 
         # ---------------------------------------------------------------------
         # VARIÁVEIS INTERNAS
@@ -503,6 +559,7 @@ class Estimacao:
         
     def avaliacaoIncerteza(self,PA=0.95,delta=1e-5,metodo_parametros='2InvHessiana'):       
         u'''
+        
         Método para avaliação da matriz covariãncia dos parâmetros da matriz de covariância
         dos valores preditos pelo modelo.
         
@@ -518,12 +575,13 @@ class Estimacao:
         Saídas
         ======
         * a matriz de covariância dos parâmetros é salva na Grandeza parâmetros
-        * a matriz de covariência da predição é salva na Grandeza y
+        * a matriz de covariância da predição é salva na Grandeza y
         '''
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
-        # ---------------------------------------------------------------------         
-        self.__validacaoArgumentosEntrada('avaliacaoIncerteza',None,metodo_parametros) 
+        # ---------------------------------------------------------------------   
+        
+        self.__validacaoArgumentosEntrada('avaliacaoIncerteza',None,metodo_parametros)
         
         # ---------------------------------------------------------------------
         # AVALIAÇÃO DAS MATRIZES AUXILIARES
@@ -539,26 +597,27 @@ class Estimacao:
         Gy  = self.__Matriz_Gy(delta) 
         
         # Matriz de sensibilidade do modelo em relação aos parâmetros
+        
         S   = self.__Matriz_S(delta) 
+        
+        print type(S)
        
         # ---------------------------------------------------------------------
         # AVALIAÇÃO DA INCERTEZA DOS PARÂMETROS
         # ---------------------------------------------------------------------     
                 
         # MATRIZ DE COVARIÂNCIA
+                
         if metodo_parametros == self.__metodosIncerteza[0]:      
             # Método: 2InvHessiana ->  2*inv(Hess)
             matriz_covariancia = 2*invHess
         
         elif metodo_parametros == self.__metodosIncerteza[1]:
             # Método: geral - > inv(H)*Gy*Uyy*GyT*inv(H)
-
-            # cálculo da matriz de covariância
             matriz_covariancia  = invHess.dot(Gy).dot(self.y.experimental.matriz_covariancia).dot(Gy.transpose()).dot(invHess)
 
         elif metodo_parametros == self.__metodosIncerteza[2]:
             # Método: simplificado -> inv(trans(S)*inv(Uyy)*S)
-            # cálculo da matriz de covariânica
             matriz_covariancia = inv(S.transpose().dot(inv(self.y.experimental.matriz_covariancia)).dot(S))
 
         # REGIÃO DE ABRANGÊNCIA
@@ -574,7 +633,7 @@ class Estimacao:
         # MATRIZ DE COVARIÃNCIA DE Y
         # Se os dados de validação forem diferentes dos experimentais, será desconsiderado
         # a covariância entre os parâmetros e dados experimentais
-        if self.__flag_validacao == True:
+        if self.__flag.info['dadosvalidacao']['status'] == True:
             Uyycalculado = S.dot(self.parametros.matriz_covariancia).dot(S.transpose()) + self.y.validacao.matriz_covariancia
         else:
             # Neste caso, os dados de validação são os dados experimentais e será considerada
@@ -603,49 +662,71 @@ class Estimacao:
         u'''
         Método para calcular a matriz Hessiana da função objetivo em relaçao aos parâmetros.
         
-        Está disponível o método de derivada central.
+        Está disponível o método de derivada central de segunda ordem.
         
         ========
         Entradas
         ========
-        * delta: valor do incremento relativo para o cálculo da derivada. Incremento relativo à ordem de grandeza do parâmetro.
+        * delta(float): valor do incremento relativo para o cálculo da derivada. Incremento relativo à ordem de grandeza do parâmetro.
 
         =====
         Saída
         =====
         
-        Retorna a matriz Hessiana
+        Retorna a matriz Hessiana(array) 
         '''
-            
+        
+        #----------------------------------------------------------------------
+        # DEFINIÇÃO DA MATRIZ DE DRIVADAS PARCIAIS DA FUNÇÃO OBJETIVO EM RELAÇÃO AOS PARÂMETROS
+        #----------------------------------------------------------------------
+        
+        #Criação de matriz de ones com dimenção:(número de parâmetrosXnúmero de parâmetros) a\
+        #qual terá seus elementos substituidos pelo resultado da derivada das  funçâo em relação aos\
+        #parâmetros i e j de acordo determinação do for.
         matriz_hessiana=[[1. for col in range(self.parametros.NV)] for row in range(self.parametros.NV)]
         
-        FO_otimo = self.Otimizacao.best_fitness # Valor da função objetivo no ponto ótimo
-
+        # Valor da função objetivo nos argumentos determinados pela otmização, ou seja, valor no ponto ótimo.
+        FO_otimo = self.Otimizacao.best_fitness
+        
+        #Estrutura iterativa para deslocamento pela matriz Hessiana anteriormente definida.
         for i in range(self.parametros.NV): 
             for j in range(self.parametros.NV):
                 
-                # incrementos para as derivadas dos parâmetros
+                # Incrementos para as derivadas dos parâmetros, tendo delta1 e delta2 aplicados a qual parãmetro está ocorrendo a alteração\
+                #no vetor de parâmetros que é argumento da FO.
+                #--------------------------------------------------------------
+                #OBS.: SE O VALOR DO PARÂMETRO FOR ZERO, APLICA-SE OS VALORES DE ''delta'' para ''delta1'' e/ou ''delta2'', pois não existe log de zero, causando erro.
+                #--------------------------------------------------------------
                 delta1 = (10**(floor(log10(abs(self.parametros.estimativa[i])))))*delta if self.parametros.estimativa[i] != 0 else delta
                 delta2 = (10**(floor(log10(abs(self.parametros.estimativa[j])))))*delta if self.parametros.estimativa[j] != 0 else delta
                 
+                #--------------------------------------------------------------
+                #Aplicação da derivada numérica de segunda ordem para os elementos da diagonal principal.
+                #--------------------------------------------------------------
+                
                 if i==j:
-                    # Incrementos
-                    vetor_parametro_delta_positivo = vetor_delta(self.parametros.estimativa,i,delta1) # Vetor que irá conter o incremento no parâmetro i
-                    vetor_parametro_delta_negativo = vetor_delta(self.parametros.estimativa,j,-delta2) # Vetor que irá conter o incremento no parâmetro j
+                    
+                    # Vetor que irá conter o incremento no parâmetro i
+                    vetor_parametro_delta_positivo = vetor_delta(self.parametros.estimativa,i,delta1)
+                    # Vetor que irá conter o incremento no parâmetro j.
+                    vetor_parametro_delta_negativo = vetor_delta(self.parametros.estimativa,j,-delta2) 
 
-                    # Cálculo da função objetivo
+                    # Cálculo da função objetivo para seu respectivo vetor alterado para utilização na derivação numérica.
                     FO_delta_positivo=self.__FO(vetor_parametro_delta_positivo,self.__args_model)
                     FO_delta_positivo.start()
                                      
                     FO_delta_negativo=self.__FO(vetor_parametro_delta_negativo,self.__args_model)
                     FO_delta_negativo.start()
                      
-                    FO_delta_positivo.join()
+                    FO_delta_positivo.join() #método de funcionamento da FO
                     FO_delta_negativo.join()                    
                     
-                    # Fórmula de diferença finita para i=j (REF????)
+                    # Fórmula de diferença finita para i=j. (Disponível em, Gilat, Amos; MATLAB Com Aplicação em Engenharia, 2a ed, Bookman, 2006.)
                     matriz_hessiana[i][j]=(FO_delta_positivo.result-2*FO_otimo+FO_delta_negativo.result)/(delta1*delta2)
-                     
+                    
+                #--------------------------------------------------------------    
+                #Aplicação da derivada numérica de segunda ordem para os demais elementos da matriz.     
+                #--------------------------------------------------------------
                 else:
                     
                     vetor_parametro_delta_ipositivo_jpositivo = vetor_delta(self.parametros.estimativa,[i,j],[delta1,delta2])
@@ -673,71 +754,90 @@ class Estimacao:
                     FO_ipositivo_jnegativo.join()
                     FO_inegativo_jnegativo.join()
                     
-                    # Referẽncia???
+                    # Fórmula de diferença finita para i=~j. Dedução do próprio autor, baseado em intruções da bibliografia:\
+                    #(Gilat, Amos; MATLAB Com Aplicação em Engenharia, 2a ed, Bookman, 2006.)
                     matriz_hessiana[i][j]=((FO_ipositivo_jpositivo.result-FO_inegativo_jpositivo.result)/(2*delta1)\
                     -(FO_ipositivo_jnegativo.result-FO_inegativo_jnegativo.result)/(2*delta1))/(2*delta2)
  
         return array(matriz_hessiana)
         
     def __Matriz_Gy(self,delta=1e-5):
-        u'''
-        Método para calcular a matriz Gy(derivada segunda da Fobj em relação aos parâmetros e y).
         
-        Método de derivada central.
+        u'''
+        Método para calcular a matriz Gy(derivada segunda da Fobj em relação aos parâmetros e y_experimentais).
+        
+        Método de derivada central dada na forma parcial, em relação as variáveis\
+        dependentes distintas.
         
         ========
         Entradas
         ========
-        * delta: valor do incremento relativo para o cálculo da derivada. Incremento relativo à ordem de grandeza do parâmetro.
+        
+        * delta(float): valor do incremento relativo para o cálculo da derivada.\ 
+        Incremento relativo à ordem de grandeza do parâmetro ou da variável dependente.
 
         =====
         Saída
         ===== 
-        Retorna a matriz Gy.
+        
+        Retorna a matriz Gy(array).
         '''
+        #Criação de matriz de ones com dimenção:(número de var. independentes* NE X número de parâmetros) a\
+        #qual terá seus elementos substituidos pelo resultado da derivada das  funçâo em relação aos\
+        #parâmetros i e Ys j de acordo determinação do for.
         
         matriz_Gy = [[1. for col in xrange(self.y.NV*self.y.experimental.NE)] for row in xrange(self.parametros.NV)]
-
+        
+        #Estrutura iterativa para deslocamento pela matriz Gy anteriormente definida.
         for i in xrange(self.parametros.NV): 
             for j in xrange(self.y.NV*self.y.experimental.NE):
                 
-                # incremento para a derivada nos parâmetros
+                # Incremento no vetor de parâetros
+                #--------------------------------------------------------------
+                #OBS.: SE O VALOR DO PARÂMETRO e/ou DO Y FOR ZERO, APLICA-SE OS VALORES DE ''delta'' para ''delta1'' e/ou ''delta2'', pois não existe log de zero, causando erro.
+                #--------------------------------------------------------------
                 delta1 = (10**(floor(log10(abs(self.parametros.estimativa[i])))))*delta           if self.parametros.estimativa[i]           != 0 else delta 
                 # incremento para a derivada nos valores de y
                 delta2 = (10**(floor(log10(abs(self.y.experimental.vetor_estimativa[j])))))*delta if self.y.experimental.vetor_estimativa[j] != 0 else delta 
                 
-                vetor_parametro_delta_ipositivo = vetor_delta(self.parametros.estimativa,i,delta1) #Vetor alterado dos parâmetros para entrada na função objetivo
+                #Vetor alterado dos parâmetros para entrada na função objetivo
+                vetor_parametro_delta_ipositivo = vetor_delta(self.parametros.estimativa,i,delta1) 
                 vetor_y_delta_jpositivo         = vetor_delta(self.y.experimental.vetor_estimativa,j,delta2)
                 
+                #Agumentos extras a serem passados para a FO.  
                 args                            = copy(self.__args_model).tolist()
-                args[0]                         = vetor_y_delta_jpositivo
+                #Posição [0] da lista de argumantos contem o vetor das variáveis dependentes que será alterado.
+                args[0]                         = vetor_y_delta_jpositivo 
                 
-                FO_ipositivo_jpositivo          = self.__FO(vetor_parametro_delta_ipositivo,args) # Valor da _FO para vetor de parâmetros e Yexperimentais alterados.
+                FO_ipositivo_jpositivo          = self.__FO(vetor_parametro_delta_ipositivo,args) # Valor da _FO para vetores de Ys e parametros alterados.
                 FO_ipositivo_jpositivo.start()
                 
-                
+                #Processo similar ao anterior. Uso de subrrotina vetor_delta.               
                 vetor_parametro_delta_inegativo = vetor_delta(self.parametros.estimativa,i,-delta1)
                 
-                FO_inegativo_jpositivo          = self.__FO(vetor_parametro_delta_inegativo,args)
+                FO_inegativo_jpositivo          = self.__FO(vetor_parametro_delta_inegativo,args) # Valor da _FO para vetores de Ys e parametros alterados.
                 FO_inegativo_jpositivo.start()
                 
                 vetor_y_delta_jnegativo         = vetor_delta(self.y.experimental.vetor_estimativa,j,-delta2) 
                 args                            = copy(self.__args_model).tolist()
                 args[0]                         = vetor_y_delta_jnegativo
    
-                FO_ipositivo_jnegativo          = self.__FO(vetor_parametro_delta_ipositivo,args)
+                FO_ipositivo_jnegativo          = self.__FO(vetor_parametro_delta_ipositivo,args) #Mesma ideia, fazendo isso para aplicar a equação de derivada central de segunda ordem.
                 FO_ipositivo_jnegativo.start()
                 
                     
-                FO_inegativo_jnegativo          = self.__FO(vetor_parametro_delta_inegativo,args)
+                FO_inegativo_jnegativo          = self.__FO(vetor_parametro_delta_inegativo,args) #Idem
                 FO_inegativo_jnegativo.start()
-                    
+                
+                # Método para fazer a função objetivo funcionar(start(), join(), .result).
+                
                 FO_ipositivo_jpositivo.join()
                 FO_inegativo_jpositivo.join()
                 FO_ipositivo_jnegativo.join()
                 FO_inegativo_jnegativo.join()
                     
-                # Referẽncia???
+                # Fórmula de diferença finita para i=~j. Dedução do próprio autor, baseado em intruções da bibliografia:\
+                #(Gilat, Amos; MATLAB Com Aplicação em Engenharia, 2a ed, Bookman, 2006.)
                 matriz_Gy[i][j]=((FO_ipositivo_jpositivo.result-FO_inegativo_jpositivo.result)/(2*delta1)\
                 -(FO_ipositivo_jnegativo.result-FO_inegativo_jnegativo.result)/(2*delta1))/(2*delta2)
          
@@ -745,30 +845,65 @@ class Estimacao:
 
 
     def __Matriz_S(self,delta=1e-5):
+        
+        u'''
+        Método para calcular a matriz S(derivadas primeiras da função do modelo em relação aos parâmetros).
+        
+        Método de derivada central de primeira ordem em relação aos parâmetros(considera os parâmetros como variáveis do modelo).
+        
+        ========
+        Entradas
+        ========
+        
+        * delta(float): valor do incremento relativo para o cálculo da derivada. Incremento relativo à ordem de grandeza do parâmetro.
 
+        =====
+        Saída
+        ===== 
+        
+        Retorna a matriz S(array).
+        '''
+        
+        #Criação de matriz de ones com dimenção:(número de Y*NE X número de parâmetros) a\
+        #qual terá seus elementos substituidos pelo resultado da derivada das  função em relação aos\
+        #parâmetros i de acordo o seguinte ''for''.
+        
         matriz_S = ones((self.y.NV*self.y.experimental.NE,self.parametros.NV))
         
         for i in xrange(self.parametros.NV): 
-               
+            
+                # Incrementos para as derivadas dos parâmetros, tendo delta_alpha aplicados a qual parâmetro está ocorrendo a alteração\
+                #no vetor de parâmetros que é argumento da FO.
+                
+                #--------------------------------------------------------------
+                #OBS.: SE O VALOR DO PARÂMETRO FOR ZERO, APLICA-SE OS VALORES DE ''delta'' para delta_alpha, pois não existe log de zero, causando erro.
+                #--------------------------------------------------------------
                 delta_alpha = (10**(floor(log10(abs(self.parametros.estimativa[i])))))*delta if self.parametros.estimativa[i] != 0 else delta
-                    
-                vetor_parametro_delta_i_positivo = vetor_delta(self.parametros.estimativa,i,delta_alpha) #Vetor alterado dos parâmetros para entrada na função objetivo
+                
+                #Vetores alterados dos parâmetros para entrada na função do modelo
+                vetor_parametro_delta_i_positivo = vetor_delta(self.parametros.estimativa,i,delta_alpha) 
                 vetor_parametro_delta_i_negativo = vetor_delta(self.parametros.estimativa,i,-delta_alpha)
                 
+                #Valores para o modelo com os parâmetros acrescidos (matriz na foma de array).                
                 ycalculado_delta_positivo       = self.__modelo(vetor_parametro_delta_i_positivo,self.x.validacao.matriz_estimativa,\
                                         [self.__args_model[4],self.x.simbolos,self.y.simbolos,self.parametros.simbolos])
                 
                 ycalculado_delta_positivo.start()
                 
-                
+                #Valores para o modelo com os parâmetros decrescidos (matriz na foma de array).
                 ycalculado_delta_negativo       = self.__modelo(vetor_parametro_delta_i_negativo,self.x.validacao.matriz_estimativa,\
                                         [self.__args_model[4],self.x.simbolos,self.y.simbolos,self.parametros.simbolos])
                 
                 ycalculado_delta_negativo.start()
                 
+                # Método para fazer a função do modelo funcionar(start(), join(), .result).
+                
                 ycalculado_delta_positivo.join()
                 ycalculado_delta_negativo.join()
                 
+                
+                # Fórmula de diferença finita de primeira ordem. Fonte bibliográfica bibliográfia:\
+                #(Gilat, Amos; MATLAB Com Aplicação em Engenharia, 2a ed, Bookman, 2006.)
                 matriz_S[:,i:i+1] =  (matriz2vetor(ycalculado_delta_positivo.result) - matriz2vetor(ycalculado_delta_negativo.result))/(2*delta_alpha)
                 
         return matriz_S
@@ -830,26 +965,33 @@ class Estimacao:
         # Para y:
         for i,symb in enumerate(self.y.simbolos):
             SSE = sum(self.y.residuos.matriz_estimativa[:,i]**2)
-            SST = sum((self.y.experimental.matriz_estimativa[:,i]-\
-                  mean(self.y.experimental.matriz_estimativa[:,i]))**2)
+            SST = sum((self.y.validacao.matriz_estimativa[:,i]-\
+                  mean(self.y.validacao.matriz_estimativa[:,i]))**2)
             self.R2[symb]         = 1 - SSE/SST
-            self.R2ajustado[symb] = 1 - (SSE/(self.y.experimental.NE-self.parametros.NV))\
-                                       /(SST/(self.y.experimental.NE - 1))
+            self.R2ajustado[symb] = 1 - (SSE/(self.y.validacao.NE-self.parametros.NV))\
+                                       /(SST/(self.y.validacao.NE - 1))
         # Para x:                                           
-#        for i,symb in enumerate(self.x.simbolos):
-#            SSEx = sum(self.x.residuos.matriz_estimativa[:,i]**2)
-#            SSTx = sum((self.x.experimental.matriz_estimativa[:,i]-\
-#                  mean(self.x.experimental.matriz_estimativa[:,i]))**2)
-#            self.R2[symb]         = 1 - SSEx/SSTx
-#            self.R2ajustado[symb] = 1 - (SSEx/(self.x.experimental.NE-self.parametros.NV))\
-#                                       /(SSTx/(self.x.experimental.NE - 1))
-                                       
+        for i,symb in enumerate(self.x.simbolos):
+            if self.__flag.info['reconciliacao']['status'] == True:
+                SSEx = sum(self.x.residuos.matriz_estimativa[:,i]**2)
+                SSTx = sum((self.x.validacao.matriz_estimativa[:,i]-\
+                      mean(self.x.validacao.matriz_estimativa[:,i]))**2)
+                self.R2[symb]         = 1 - SSEx/SSTx
+                self.R2ajustado[symb] = 1 - (SSEx/(self.x.validacao.NE-self.parametros.NV))\
+                                           /(SSTx/(self.x.validacao.NE - 1))
+            else:
+                self.R2[symb]         = None
+                self.R2ajustado[symb] = None
+                
         # ---------------------------------------------------------------------
         # EXECUÇÃO DE GRÁFICOS E TESTES ESTATÍSTICOS
         # ---------------------------------------------------------------------             
-        # DESCOMENTAR QUANDO RECONCILIAÇÃO !!
-        #self.x.Graficos(self.__base_path + sep + 'Graficos'  + sep,ID=['residuo'])
-        #self.x._testesEstatisticos()
+        # Grandezas independentes
+        if self.__flag.info['reconciliacao']['status'] == True:
+            self.x.Graficos(self.__base_path + sep + 'Graficos'  + sep,ID=['residuo'])
+            self.x._testesEstatisticos()
+ 
+        # Grandezas dependentes            
         self.y.Graficos(self.__base_path + sep + 'Graficos'  + sep,ID=['residuo'])
         self.y._testesEstatisticos()
 
@@ -876,7 +1018,7 @@ class Estimacao:
         base_path  = self.__base_path + sep +'Graficos'+ sep
         
         #Sub-rotina que geram os gráficos de entrada e saída
-        def graficos_entrada_saida(x,y,ux,uy,ix,iy,base_dir,info):            
+        def graficos_x_y(x,y,ux,uy,ix,iy,base_dir,info):            
             #Gráfico apenas com os pontos experimentais
             fig = figure()
             ax = fig.add_subplot(1,1,1)
@@ -946,7 +1088,7 @@ class Estimacao:
                     y = self.y.experimental.matriz_estimativa[:,iy]
                     ux = self.x.experimental.matriz_incerteza[:,ix]
                     uy = self.y.experimental.matriz_incerteza[:,iy]                    
-                    graficos_entrada_saida(x,y,ux,uy,ix,iy,base_dir,'experimental')
+                    graficos_x_y(x,y,ux,uy,ix,iy,base_dir,'experimental')
         else:
             warn(u'Os gráficos de entrada não puderam ser criados, pois o método %s'%(self.__etapasdisponiveis[1],)+' não foi executado.',UserWarning)
 
@@ -1052,16 +1194,17 @@ class Estimacao:
                     x  = self.x.calculado.matriz_estimativa[:,ix]
                     y  = self.y.calculado.matriz_estimativa[:,iy]
                     ux = self.x.calculado.matriz_incerteza[:,ix]
-                    uy = self.y.calculado.matriz_incerteza[:,ix]
-                    graficos_entrada_saida(x,y,ux,uy,ix,iy,base_dir,'calculado')
+                    uy = self.y.calculado.matriz_incerteza[:,iy]
+                    graficos_x_y(x,y,ux,uy,ix,iy,base_dir,'calculado')
             
             base_dir = sep + 'Estimacao' + sep
             Validacao_Diretorio(base_path,base_dir)
             for iy in xrange(self.y.NV):
-               # Gráfico comparativo entre valores experimentais e calculados pelo modelo, sem variância         
+                    # Gráfico comparativo entre valores experimentais e calculados pelo modelo, sem variância         
                     y  = self.y.experimental.matriz_estimativa[:,iy]
-                    ym = self.y.calculado.matriz_estimativa[:,iy]
+                    ym = self.y.calculado.matriz_estimativa[:,iy]                   
                     diagonal = linspace(min(y),max(y))  
+
                     fig = figure()
                     ax = fig.add_subplot(1,1,1)
                     plot(y,ym,'bo',linewidth=2.0)
@@ -1076,8 +1219,34 @@ class Estimacao:
                     ylim((ymin,ymax))                
                     xlabel(self.y.labelGraficos('experimental')[iy])
                     ylabel(self.y.labelGraficos('calculado')[iy])
-                    fig.savefig(base_path+base_dir+'grafico_'+str(self.y.simbolos[iy])+'_ye_ym_sem_var.png')
+                    fig.savefig(base_path+base_dir+'grafico_'+str(self.y.simbolos[iy])+'exp_vs_'+str(self.y.simbolos[iy])+'calc_sem_var.png')
                     close()
+            
+                    # Gráfico comparativo entre valores experimentais e calculados pelo modelo, com variância    
+                    yerr_experimental = 2.*self.y.experimental.matriz_incerteza[:,iy]
+                    yerr_calculado    = 2.*self.y.calculado.matriz_incerteza[:,iy]
+
+                    fig = figure()
+                    ax = fig.add_subplot(1,1,1)
+                    errorbar(y,ym,xerr=yerr_experimental,yerr=yerr_calculado,marker='o',color='b',linestyle='None')
+                    plot(diagonal,diagonal,'k-',linewidth=2.0)
+                    
+                    ax.yaxis.grid(color='gray', linestyle='dashed')                        
+                    ax.xaxis.grid(color='gray', linestyle='dashed')
+                                        
+                    label_tick_y   = ax.get_yticks().tolist() 
+                    tamanho_tick_y = (label_tick_y[1] - label_tick_y[0])/2
+
+                    ymin   = min(ym - yerr_calculado) - tamanho_tick_y
+                    ymax   = max(ym + yerr_calculado) + tamanho_tick_y
+                    
+                    xlim((ymin,ymax))
+                    ylim((ymin,ymax))                
+                    xlabel(self.y.labelGraficos('experimental')[iy])
+                    ylabel(self.y.labelGraficos('calculado')[iy])
+                    fig.savefig(base_path+base_dir+'grafico_'+str(self.y.simbolos[iy])+'exp_vs_'+str(self.y.simbolos[iy])+'calc_com_var.png')
+                    close()           
+
             
             if (self.__etapasdisponiveis[5] in self.__etapas):
                 
@@ -1156,7 +1325,6 @@ if __name__ == "__main__":
 
     # Continuacao
     Estime.gerarEntradas(x,y,ux,uy)    
-    
  #   Estime.otimiza(sup=[2,2,2,2],inf=[-2,-2,-2,-2],algoritmo='PSO',itmax=5)
  #   Estime.graficos(0.95)
 #    saida = concatenate((Estime.x.experimental.matriz_estimativa[:,0:1],Estime.x.experimental.matriz_incerteza[:,0:1]),axis=1)
@@ -1168,7 +1336,7 @@ if __name__ == "__main__":
     # Otimização
     Estime.otimiza(sup=sup,inf=inf,algoritmo='PSO',itmax=300,Num_particulas=30,metodo={'busca':'Otimo','algoritmo':'PSO','inercia':'TVIW-Adaptative-VI'})
     Estime.avaliacaoIncerteza(.95,1e-5,metodo_parametros='Geral')  
-    #grandeza = Estime._armazenarDicionario()
+    grandeza = Estime._armazenarDicionario()
     Estime.analiseResiduos()
     lista_de_etapas = ['entrada','otimizacao','estimacao'] 
     Estime.graficos(lista_de_etapas,0.95)
