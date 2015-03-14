@@ -270,23 +270,11 @@ class flag:
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------
-        self._caracteristicas_disponiveis = ['dadosvalidacao','reconciliacao']
+        self._caracteristicas_disponiveis = ['dadosexperimentais','dadosvalidacao','reconciliacao']
 
-        # ---------------------------------------------------------------------
-        # VARIÁVEL
-        # ---------------------------------------------------------------------    
         self.info = {}
         for elemento in self._caracteristicas_disponiveis:
-            self.info[elemento] = {'status':None,'descricao':None}
-        
-        self.resumo = {self._caracteristicas_disponiveis[0]:\
-        {True:u'Os dados de validação são DIFERENTES dos dados experimentais. A matriz de covariância da predição '+\
-        u'NÃO considera a covariância entre os parâmetros e dados experimentais',\
-        False:u'Os dados de validação são IGUAIS aos dados experimentais. A matriz de covariância da predição '+\
-        u'CONSIDERA a covariância entre os parâmetros e dados experimentais'},\
-        self._caracteristicas_disponiveis[1]:\
-        {True:u'Está sendo realizada a reconciliação de dados',\
-        False:u'Não está sendo utilizada a reconciliação de dados'}}
+            self.info[elemento] = False
         
     def __validacao(self,caracteristica):
         u'''Validação das entradas
@@ -326,8 +314,7 @@ class flag:
         
         '''
         for elemento in self.__caracteristica:
-            self.info[elemento]['status']    = self.__togglestatus 
-            self.info[elemento]['descricao'] = self.resumo[elemento][self.__togglestatus]
+            self.info[elemento]    = self.__togglestatus 
     
     def ToggleActive(self,caracteristica):
         '''
