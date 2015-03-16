@@ -161,6 +161,37 @@ def plot_cov_ellipse(cov, pos, c2=2, ax=None, **kwargs):
     return (ellip, width, height, theta)
     
 def vetor_delta(entrada_vetor,posicao,delta):
+    
+    u'''
+    Subrotina para alterar o(s) elementos de um vetor, acrescentando ou retirando um determinado ''delta''.
+    =======
+    Entrada
+    =======
+    
+    *``entrada_vetor´´(array, ndmi=1): Vetor ao qual a posição i e j ou apenas i será alterada.
+    *``posicao´´(list ou float)= posição a ser repassada pela estrutura 'for'.
+    *``delta´´(float): valor do incremento, proporcional a grandeza que será acrescida ou decrescida.
+    
+    
+    =====
+    Saída
+    =====
+    * ``vetor`` (array): array com uma linha.
+    
+    =======
+    Exemplo
+    =======
+    Exemplo: ::
+        
+        >>>from numpy import array
+        >>>from subrotinas import vetor_delta
+        
+        >>> x1 =(array([1,2,3,4,5]))
+        
+        print vetor_delta(x1,3,5)
+        
+        >>> array([1, 2, 3, 9, 5])
+    '''
             
     vetor = copy(entrada_vetor)
 

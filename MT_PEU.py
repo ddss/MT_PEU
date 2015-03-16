@@ -510,6 +510,9 @@ class Estimacao:
             if self.__flag.info['dadosexperimentais']==True:
                 # Salvando dados experimentais
                 grandeza[simbolo]._SETexperimental(self.y.experimental.matriz_estimativa[:,j:j+1],self.y.experimental.matriz_incerteza[:,j:j+1],{'estimativa':'matriz','incerteza':'incerteza'})
+            if self.__flag.info['dadosvalidacao']==True:
+                # Salvando dados experimentais
+                grandeza[simbolo]._SETvalidacao(self.y.validacao.matriz_estimativa[:,j:j+1],self.y.validacao.matriz_incerteza[:,j:j+1],{'estimativa':'matriz','incerteza':'incerteza'})
             if self.__etapasdisponiveis[7] in self.__etapas[self.__etapasID]:
                 # Salvando dados calculados
                 grandeza[simbolo]._SETcalculado(self.y.calculado.matriz_estimativa[:,j:j+1],self.y.calculado.matriz_incerteza[:,j:j+1],{'estimativa':'matriz','incerteza':'incerteza'},None)
@@ -523,6 +526,9 @@ class Estimacao:
             if  self.__flag.info['dadosexperimentais']==True:
                 # Salvando dados experimentais
                 grandeza[simbolo]._SETexperimental(self.x.experimental.matriz_estimativa[:,j:j+1],self.x.experimental.matriz_incerteza[:,j:j+1],{'estimativa':'matriz','incerteza':'incerteza'})
+            if self.__flag.info['dadosvalidacao']==True:
+                # Salvando dados experimentais
+                grandeza[simbolo]._SETvalidacao(self.x.validacao.matriz_estimativa[:,j:j+1],self.x.validacao.matriz_incerteza[:,j:j+1],{'estimativa':'matriz','incerteza':'incerteza'})
             if self.__etapasdisponiveis[7] in self.__etapas[self.__etapasID]:
                 # Salvando dados calculados
                 grandeza[simbolo]._SETcalculado(self.x.calculado.matriz_estimativa[:,j:j+1],self.x.calculado.matriz_incerteza[:,j:j+1],{'estimativa':'matriz','incerteza':'incerteza'},None)
@@ -652,8 +658,9 @@ class Estimacao:
         # ---------------------------------------------------------------------
         # ATRIBUIÇÃO A GRANDEZAS
         # ---------------------------------------------------------------------     
-        self.parametros._SETparametro(estimativa,variancia,None) # Atribuindo o valor ótimo dos parâmetros
-
+        # Atribuindo o valores para a estimativa dos parâmetros e sua matriz de 
+        # covariância
+        self.parametros._SETparametro(estimativa,variancia,None) 
 
         # ---------------------------------------------------------------------
         # VARIÁVEIS INTERNAS
@@ -663,6 +670,7 @@ class Estimacao:
     
     def incertezaParametros(self,PA=0.95,delta=1e-5,metodo='2InvHessiana'):       
         u'''
+        
         Método para avaliação da matriz covariãncia dos parâmetros da matriz de covariância
         dos valores preditos pelo modelo.
         
@@ -685,7 +693,7 @@ class Estimacao:
         Saídas
         ======
         * a matriz de covariância dos parâmetros é salva na Grandeza parâmetros
-        * a matriz de covariência da predição é salva na Grandeza y
+        * a matriz de covariância da predição é salva na Grandeza y
         '''
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
@@ -707,6 +715,7 @@ class Estimacao:
         Gy  = self.__Matriz_Gy(delta) 
         
         # Matriz de sensibilidade do modelo em relação aos parâmetros
+        
         S   = self.__Matriz_S(delta) 
             
         # ---------------------------------------------------------------------
@@ -828,49 +837,71 @@ class Estimacao:
         u'''
         Método para calcular a matriz Hessiana da função objetivo em relaçao aos parâmetros.
         
-        Está disponível o método de derivada central.
+        Está disponível o método de derivada central de segunda ordem.
         
         ========
         Entradas
         ========
-        * delta: valor do incremento relativo para o cálculo da derivada. Incremento relativo à ordem de grandeza do parâmetro.
+        * delta(float): valor do incremento relativo para o cálculo da derivada. Incremento relativo à ordem de grandeza do parâmetro.
 
         =====
         Saída
         =====
         
-        Retorna a matriz Hessiana
+        Retorna a matriz Hessiana(array) 
         '''
-            
+        
+        #---------------------------------------------------------------------------------------
+        # DEFINIÇÃO DA MATRIZ DE DERIVADAS PARCIAIS DA FUNÇÃO OBJETIVO EM RELAÇÃO AOS PARÂMETROS
+        #----------------------------------------------------------------------------------------
+        
+        #Criação de matriz de ones com dimenção:(número de parâmetrosXnúmero de parâmetros) a\
+        #qual terá seus elementos substituidos pelo resultado da derivada das  funçâo em relação aos\
+        #parâmetros i e j de acordo determinação do for.
         matriz_hessiana=[[1. for col in range(self.parametros.NV)] for row in range(self.parametros.NV)]
         
-        FO_otimo = self.Otimizacao.best_fitness # Valor da função objetivo no ponto ótimo
-
+        # Valor da função objetivo nos argumentos determinados pela otmização, ou seja, valor no ponto ótimo.
+        FO_otimo = self.Otimizacao.best_fitness
+        
+        #Estrutura iterativa para deslocamento pela matriz Hessiana anteriormente definida.
         for i in range(self.parametros.NV): 
             for j in range(self.parametros.NV):
                 
-                # incrementos para as derivadas dos parâmetros
+                # Incrementos para as derivadas dos parâmetros, tendo delta1 e delta2 aplicados a qual parãmetro está ocorrendo a alteração\
+                #no vetor de parâmetros que é argumento da FO.
+                #--------------------------------------------------------------
+                #OBS.: SE O VALOR DO PARÂMETRO FOR ZERO, APLICA-SE OS VALORES DE ''delta'' para ''delta1'' e/ou ''delta2'', pois não existe log de zero, causando erro.
+                #--------------------------------------------------------------
                 delta1 = (10**(floor(log10(abs(self.parametros.estimativa[i])))))*delta if self.parametros.estimativa[i] != 0 else delta
                 delta2 = (10**(floor(log10(abs(self.parametros.estimativa[j])))))*delta if self.parametros.estimativa[j] != 0 else delta
                 
+                #--------------------------------------------------------------
+                #Aplicação da derivada numérica de segunda ordem para os elementos da diagonal principal.
+                #--------------------------------------------------------------
+                
                 if i==j:
-                    # Incrementos
-                    vetor_parametro_delta_positivo = vetor_delta(self.parametros.estimativa,i,delta1) # Vetor que irá conter o incremento no parâmetro i
-                    vetor_parametro_delta_negativo = vetor_delta(self.parametros.estimativa,j,-delta2) # Vetor que irá conter o incremento no parâmetro j
+                    
+                    # Vetor que irá conter o incremento no parâmetro i
+                    vetor_parametro_delta_positivo = vetor_delta(self.parametros.estimativa,i,delta1)
+                    # Vetor que irá conter o incremento no parâmetro j.
+                    vetor_parametro_delta_negativo = vetor_delta(self.parametros.estimativa,j,-delta2) 
 
-                    # Cálculo da função objetivo
+                    # Cálculo da função objetivo para seu respectivo vetor alterado para utilização na derivação numérica.
                     FO_delta_positivo=self.__FO(vetor_parametro_delta_positivo,self.__args_model)
                     FO_delta_positivo.start()
                                      
                     FO_delta_negativo=self.__FO(vetor_parametro_delta_negativo,self.__args_model)
                     FO_delta_negativo.start()
                      
-                    FO_delta_positivo.join()
+                    FO_delta_positivo.join() #método de funcionamento da FO
                     FO_delta_negativo.join()                    
                     
-                    # Fórmula de diferença finita para i=j (REF????)
+                    # Fórmula de diferença finita para i=j. (Disponível em, Gilat, Amos; MATLAB Com Aplicação em Engenharia, 2a ed, Bookman, 2006.)
                     matriz_hessiana[i][j]=(FO_delta_positivo.result-2*FO_otimo+FO_delta_negativo.result)/(delta1*delta2)
-                     
+                    
+                #--------------------------------------------------------------    
+                #Aplicação da derivada numérica de segunda ordem para os demais elementos da matriz.     
+                #--------------------------------------------------------------
                 else:
                     
                     vetor_parametro_delta_ipositivo_jpositivo = vetor_delta(self.parametros.estimativa,[i,j],[delta1,delta2])
@@ -898,71 +929,90 @@ class Estimacao:
                     FO_ipositivo_jnegativo.join()
                     FO_inegativo_jnegativo.join()
                     
-                    # Referẽncia???
+                    # Fórmula de diferença finita para i=~j. Dedução do próprio autor, baseado em intruções da bibliografia:\
+                    #(Gilat, Amos; MATLAB Com Aplicação em Engenharia, 2a ed, Bookman, 2006.)
                     matriz_hessiana[i][j]=((FO_ipositivo_jpositivo.result-FO_inegativo_jpositivo.result)/(2*delta1)\
                     -(FO_ipositivo_jnegativo.result-FO_inegativo_jnegativo.result)/(2*delta1))/(2*delta2)
  
         return array(matriz_hessiana)
         
     def __Matriz_Gy(self,delta=1e-5):
-        u'''
-        Método para calcular a matriz Gy(derivada segunda da Fobj em relação aos parâmetros e y).
         
-        Método de derivada central.
+        u'''
+        Método para calcular a matriz Gy(derivada segunda da Fobj em relação aos parâmetros e y_experimentais).
+        
+        Método de derivada central dada na forma parcial, em relação as variáveis\
+        dependentes distintas.
         
         ========
         Entradas
         ========
-        * delta: valor do incremento relativo para o cálculo da derivada. Incremento relativo à ordem de grandeza do parâmetro.
+        
+        * delta(float): valor do incremento relativo para o cálculo da derivada.\ 
+        Incremento relativo à ordem de grandeza do parâmetro ou da variável dependente.
 
         =====
         Saída
         ===== 
-        Retorna a matriz Gy.
+        
+        Retorna a matriz Gy(array).
         '''
+        #Criação de matriz de ones com dimenção:(número de var. independentes* NE X número de parâmetros) a\
+        #qual terá seus elementos substituidos pelo resultado da derivada das  funçâo em relação aos\
+        #parâmetros i e Ys j de acordo determinação do for.
         
         matriz_Gy = [[1. for col in xrange(self.y.NV*self.y.experimental.NE)] for row in xrange(self.parametros.NV)]
-
+        
+        #Estrutura iterativa para deslocamento pela matriz Gy anteriormente definida.
         for i in xrange(self.parametros.NV): 
             for j in xrange(self.y.NV*self.y.experimental.NE):
                 
-                # incremento para a derivada nos parâmetros
+                # Incremento no vetor de parâetros
+                #--------------------------------------------------------------
+                #OBS.: SE O VALOR DO PARÂMETRO e/ou DO Y FOR ZERO, APLICA-SE OS VALORES DE ''delta'' para ''delta1'' e/ou ''delta2'', pois não existe log de zero, causando erro.
+                #--------------------------------------------------------------
                 delta1 = (10**(floor(log10(abs(self.parametros.estimativa[i])))))*delta           if self.parametros.estimativa[i]           != 0 else delta 
                 # incremento para a derivada nos valores de y
                 delta2 = (10**(floor(log10(abs(self.y.experimental.vetor_estimativa[j])))))*delta if self.y.experimental.vetor_estimativa[j] != 0 else delta 
                 
-                vetor_parametro_delta_ipositivo = vetor_delta(self.parametros.estimativa,i,delta1) #Vetor alterado dos parâmetros para entrada na função objetivo
+                #Vetor alterado dos parâmetros para entrada na função objetivo
+                vetor_parametro_delta_ipositivo = vetor_delta(self.parametros.estimativa,i,delta1) 
                 vetor_y_delta_jpositivo         = vetor_delta(self.y.experimental.vetor_estimativa,j,delta2)
                 
+                #Agumentos extras a serem passados para a FO.  
                 args                            = copy(self.__args_model).tolist()
-                args[0]                         = vetor_y_delta_jpositivo
+                #Posição [0] da lista de argumantos contem o vetor das variáveis dependentes que será alterado.
+                args[0]                         = vetor_y_delta_jpositivo 
                 
-                FO_ipositivo_jpositivo          = self.__FO(vetor_parametro_delta_ipositivo,args) # Valor da _FO para vetor de parâmetros e Yexperimentais alterados.
+                FO_ipositivo_jpositivo          = self.__FO(vetor_parametro_delta_ipositivo,args) # Valor da _FO para vetores de Ys e parametros alterados.
                 FO_ipositivo_jpositivo.start()
                 
-                
+                #Processo similar ao anterior. Uso de subrrotina vetor_delta.               
                 vetor_parametro_delta_inegativo = vetor_delta(self.parametros.estimativa,i,-delta1)
                 
-                FO_inegativo_jpositivo          = self.__FO(vetor_parametro_delta_inegativo,args)
+                FO_inegativo_jpositivo          = self.__FO(vetor_parametro_delta_inegativo,args) # Valor da _FO para vetores de Ys e parametros alterados.
                 FO_inegativo_jpositivo.start()
                 
                 vetor_y_delta_jnegativo         = vetor_delta(self.y.experimental.vetor_estimativa,j,-delta2) 
                 args                            = copy(self.__args_model).tolist()
                 args[0]                         = vetor_y_delta_jnegativo
    
-                FO_ipositivo_jnegativo          = self.__FO(vetor_parametro_delta_ipositivo,args)
+                FO_ipositivo_jnegativo          = self.__FO(vetor_parametro_delta_ipositivo,args) #Mesma ideia, fazendo isso para aplicar a equação de derivada central de segunda ordem.
                 FO_ipositivo_jnegativo.start()
                 
                     
-                FO_inegativo_jnegativo          = self.__FO(vetor_parametro_delta_inegativo,args)
+                FO_inegativo_jnegativo          = self.__FO(vetor_parametro_delta_inegativo,args) #Idem
                 FO_inegativo_jnegativo.start()
-                    
+                
+                # Método para fazer a função objetivo funcionar(start(), join(), .result).
+                
                 FO_ipositivo_jpositivo.join()
                 FO_inegativo_jpositivo.join()
                 FO_ipositivo_jnegativo.join()
                 FO_inegativo_jnegativo.join()
                     
-                # Referẽncia???
+                # Fórmula de diferença finita para i=~j. Dedução do próprio autor, baseado em intruções da bibliografia:\
+                #(Gilat, Amos; MATLAB Com Aplicação em Engenharia, 2a ed, Bookman, 2006.)
                 matriz_Gy[i][j]=((FO_ipositivo_jpositivo.result-FO_inegativo_jpositivo.result)/(2*delta1)\
                 -(FO_ipositivo_jnegativo.result-FO_inegativo_jnegativo.result)/(2*delta1))/(2*delta2)
          
@@ -970,30 +1020,65 @@ class Estimacao:
 
 
     def __Matriz_S(self,delta=1e-5):
+        
+        u'''
+        Método para calcular a matriz S(derivadas primeiras da função do modelo em relação aos parâmetros).
+        
+        Método de derivada central de primeira ordem em relação aos parâmetros(considera os parâmetros como variáveis do modelo).
+        
+        ========
+        Entradas
+        ========
+        
+        * delta(float): valor do incremento relativo para o cálculo da derivada. Incremento relativo à ordem de grandeza do parâmetro.
 
+        =====
+        Saída
+        ===== 
+        
+        Retorna a matriz S(array).
+        '''
+        
+        #Criação de matriz de ones com dimenção:(número de Y*NE X número de parâmetros) a\
+        #qual terá seus elementos substituidos pelo resultado da derivada das  função em relação aos\
+        #parâmetros i de acordo o seguinte ''for''.
+        
         matriz_S = ones((self.y.NV*self.y.validacao.NE,self.parametros.NV))
         
         for i in xrange(self.parametros.NV): 
-               
+            
+                # Incrementos para as derivadas dos parâmetros, tendo delta_alpha aplicados a qual parâmetro está ocorrendo a alteração\
+                #no vetor de parâmetros que é argumento da FO.
+                
+                #--------------------------------------------------------------
+                #OBS.: SE O VALOR DO PARÂMETRO FOR ZERO, APLICA-SE OS VALORES DE ''delta'' para delta_alpha, pois não existe log de zero, causando erro.
+                #--------------------------------------------------------------
                 delta_alpha = (10**(floor(log10(abs(self.parametros.estimativa[i])))))*delta if self.parametros.estimativa[i] != 0 else delta
-                    
-                vetor_parametro_delta_i_positivo = vetor_delta(self.parametros.estimativa,i,delta_alpha) #Vetor alterado dos parâmetros para entrada na função objetivo
+                
+                #Vetores alterados dos parâmetros para entrada na função do modelo
+                vetor_parametro_delta_i_positivo = vetor_delta(self.parametros.estimativa,i,delta_alpha) 
                 vetor_parametro_delta_i_negativo = vetor_delta(self.parametros.estimativa,i,-delta_alpha)
                 
+                #Valores para o modelo com os parâmetros acrescidos (matriz na foma de array).                
                 ycalculado_delta_positivo       = self.__modelo(vetor_parametro_delta_i_positivo,self.x.validacao.matriz_estimativa,\
                                         [self.__args_model[4],self.x.simbolos,self.y.simbolos,self.parametros.simbolos])
                 
                 ycalculado_delta_positivo.start()
                 
-                
+                #Valores para o modelo com os parâmetros decrescidos (matriz na foma de array).
                 ycalculado_delta_negativo       = self.__modelo(vetor_parametro_delta_i_negativo,self.x.validacao.matriz_estimativa,\
                                         [self.__args_model[4],self.x.simbolos,self.y.simbolos,self.parametros.simbolos])
                 
                 ycalculado_delta_negativo.start()
                 
+                # Método para fazer a função do modelo funcionar(start(), join(), .result).
+                
                 ycalculado_delta_positivo.join()
                 ycalculado_delta_negativo.join()
                 
+                
+                # Fórmula de diferença finita de primeira ordem. Fonte bibliográfica bibliográfia:\
+                #(Gilat, Amos; MATLAB Com Aplicação em Engenharia, 2a ed, Bookman, 2006.)
                 matriz_S[:,i:i+1] =  (matriz2vetor(ycalculado_delta_positivo.result) - matriz2vetor(ycalculado_delta_negativo.result))/(2*delta_alpha)
                 
         return matriz_S
