@@ -110,13 +110,15 @@ class Organizador:
             if incerteza != None:            
                 self.matriz_incerteza   = incerteza            
                 self.matriz_covariancia = diag(transpose(matriz2vetor(self.matriz_incerteza**2)).tolist()[0])
+                self.matriz_correlacao  = matrizcorrelacao(self.matriz_covariancia)
 
         if tipos['incerteza'] == 'variancia':
 
             if incerteza != None:        
                 self.matriz_covariancia = incerteza     
                 self.matriz_incerteza   = vetor2matriz(array(diag(self.matriz_covariancia)**0.5,ndmin=2).transpose(),NE)
-                
+                self.matriz_correlacao  = matrizcorrelacao(self.matriz_covariancia)
+
         # ---------------------------------------------------------------------
         # Criação dos atributos na forma de LISTAS
         # ---------------------------------------------------------------------
@@ -257,7 +259,7 @@ class Grandeza:
         
         # Verificação se os símbolos possuem caracteres especiais
         for simb in self.simbolos:
-            if set('[~!@#$%^&*()_+{}":;\']+$').intersection(simb):
+            if set('[~!@#$%^&*()+{}":;\']+$').intersection(simb):
                 raise NameError('Os nomes das grandezas não podem ter caracteres especiais. Simbolo incorreto: '+simb)       
     
         # Verificação se os símbolos são distintos

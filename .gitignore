@@ -45,6 +45,7 @@ Temporary Items
 
 # Arquivos de compilação do Python
 .pyc
-/..TESTANDO/
-
 *.pyc
+
+# Figuras
+*.png
