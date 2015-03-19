@@ -6,7 +6,7 @@ Created on Mon Feb  2 11:05:02 2015
 """
 # Importação de pacotes de terceiros
 from numpy import array, transpose ,size, diag, linspace, min, max, \
- mean,  std, amin, amax, ndarray, ones, sqrt
+ mean,  std, amin, amax, ndarray, ones, sqrt, nan
 
 from scipy.stats import normaltest, anderson, shapiro, ttest_1samp, kstest,\
  norm, probplot, ttest_ind
@@ -373,7 +373,11 @@ class Grandeza:
                 
                 # Testes para normalidade
                 # Lista que contém as chamadas das funções de teste:
-                if size(dados) < 20: # Se for menor do que 20 não será realizado no normaltest, pois ele só é válido a partir dste número de dados
+                if size(dados) < 3: # Se for menor do que 3, não se pode executar o teste de shapiro
+                    pnormal=[None, None, anderson(dados, dist='norm'),kstest(dados,'norm',args=(mean(dados),std(dados,ddof=1)))]                
+                    pvalor[nome]['residuo-Normalidade'] = {'normaltest':None, 'shapiro':None, 'anderson':[[pnormal[2][0]], pnormal[2][1][1]],'kstest':pnormal[3][1]}                    
+
+                elif size(dados) < 20: # Se for menor do que 20 não será realizado no normaltest, pois ele só é válido a partir dste número de dados
                     pnormal=[None, shapiro(dados), anderson(dados, dist='norm'),kstest(dados,'norm',args=(mean(dados),std(dados,ddof=1)))]                
                     pvalor[nome]['residuo-Normalidade'] = {'normaltest':None, 'shapiro':pnormal[1][1], 'anderson':[[pnormal[2][0]], pnormal[2][1][1]],'kstest':pnormal[3][1]}
                 else:
@@ -469,19 +473,21 @@ class Grandeza:
 
                 # NORMALIDADE               
                 res = probplot(dados, dist='norm', sparams=(mean(dados),std(dados,ddof=1)))
-                fig = figure()
-                plot(res[0][0], res[0][1], 'o', res[0][0], res[1][0]*res[0][0] + res[1][1])
-                xlabel('Quantis')
-                ylabel('Valores ordenados')
-                xmin = amin(res[0][0])
-                xmax = amax(res[0][0])
-                ymin = amin(dados)
-                ymax = amax(dados)
-                posx = xmin + 0.70 * (xmax - xmin)
-                posy = ymin + 0.01 * (ymax - ymin)
-                text(posx, posy, "$R^2$=%1.4f" % res[1][2])
-                fig.savefig(base_path+base_dir+'residuos_probplot')
-                close()
+
+                if nan in res[0][0].tolist() or nan in res[0][1].tolist() or  nan in res[1]:   
+                    fig = figure()
+                    plot(res[0][0], res[0][1], 'o', res[0][0], res[1][0]*res[0][0] + res[1][1])
+                    xlabel('Quantis')
+                    ylabel('Valores ordenados')
+                    xmin = amin(res[0][0])
+                    xmax = amax(res[0][0])
+                    ymin = amin(dados)
+                    ymax = amax(dados)
+                    posx = xmin + 0.70 * (xmax - xmin)
+                    posy = ymin + 0.01 * (ymax - ymin)
+                    text(posx, posy, "$R^2$=%1.4f" % res[1][2])
+                    fig.savefig(base_path+base_dir+'residuos_probplot')
+                    close()
                 
         if ('experimental' in ID or 'validacao' in ID or 'calculado' in ID):
                 
