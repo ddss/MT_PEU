@@ -9,7 +9,8 @@ Principais classes do motor de cálculo do PEU
 
 # Importação de pacotes de terceiros
 from numpy import array, transpose, concatenate,size, diag, linspace, min, max, \
-sort, argsort, mean,  std, amin, amax, copy, cos, sin, radians, mean, dot, ones
+sort, argsort, mean,  std, amin, amax, copy, cos, sin, radians, mean, dot, ones, \
+hstack, shape
 
 from scipy.stats import f
 
@@ -32,7 +33,11 @@ from subrotinas import Validacao_Diretorio, plot_cov_ellipse, vetor_delta,\
  ThreadExceptionHandling, matriz2vetor, flag
 from PSO import PSO
 
-class Estimacao:
+# Usado quando o modelo é linear
+from Modelo import ModeloLinear
+from Funcao_Objetivo import WLS
+
+class EstimacaoNaoLinear:
     
     def __init__(self,FO,Modelo,simbolos_y,simbolos_x,simbolos_param,projeto='Projeto',**kwargs):
         u'''
@@ -163,6 +168,7 @@ class Estimacao:
         * matriz covariância das grandezas dependentes
         * matriz covariância das grandezas independentes
         * argumentos extras a serem passados para o modelo (entrada de usuário)
+        * o modelo
         * lista com os símbolos das grandezas independentes
         * lista com os símbolos das grandezas dependentes
         * lista com os símbolos dos parâmetros
@@ -248,6 +254,9 @@ class Estimacao:
         self.__FO        = FO
         # Modelo
         self.__modelo    = Modelo
+        # Argumentos extras a serem passados para o modelo
+        self.__args_model = None # Foi criado, para que a variável exista nas heranças sem execução do método otimiza.
+        
         # Caminho base para os arquivos, caso seja definido a keyword base_path ela será utilizada.
         if kwargs.get(self.__keywordsEntrada[9]) == None:
             self.__base_path = getcwd()+ sep +str(projeto)+sep
@@ -413,7 +422,7 @@ class Estimacao:
             raise ValueError(u'O número de variáveis definidas foi %s, mas foram inseridas incertezas para %s.'%(Ndados,size(udados,1)))
  
 
-    def gerarEntradas(self,x,y,ux,uy,tipo='experimental',uxy=None):
+    def gerarEntradas(self,x,y,ux,uy,glx=[],gly=[],tipo='experimental',uxy=None):
         u'''
         Método para incluir os dados de entrada da estimação
         
@@ -425,10 +434,13 @@ class Estimacao:
         * ux        : array com as incertezas das variáveis independentes na forma de colunas
         * ye        : array com os dados experimentais das variáveis dependentes na forma de colunas
         * uy        : array com as incertezas das variáveis dependentes na forma de colunas
+        * glx       : graus de liberdade para as grandezas de entrada
+        * gly       : graus de liberdada para as grandezas de saída
         * tipo      : string que define se os dados são experimentais ou de validação.
 
         **Aviso**:
-        Caso não definidos dados de validação, será assumido os valores experimentais                    
+        * Caso não definidos dados de validação, será assumido os valores experimentais                    
+        * Caso não definido graus de liberdade para as grandezas, será assumido o valor constante de 100
         '''
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
@@ -450,8 +462,8 @@ class Estimacao:
             # ATRIBUIÇÃO A GRANDEZAS
             # ---------------------------------------------------------------------
             # Salvando os dados experimentais nas variáveis.
-            self.x._SETexperimental(x,ux,{'estimativa':'matriz','incerteza':'incerteza'})
-            self.y._SETexperimental(y,uy,{'estimativa':'matriz','incerteza':'incerteza'}) 
+            self.x._SETexperimental(x,ux,glx,{'estimativa':'matriz','incerteza':'incerteza'})
+            self.y._SETexperimental(y,uy,gly,{'estimativa':'matriz','incerteza':'incerteza'}) 
         
         
         if tipo == 'validacao':
@@ -461,8 +473,8 @@ class Estimacao:
             # ATRIBUIÇÃO A GRANDEZAS
             # ---------------------------------------------------------------------
             # Salvando os dados de validação.
-            self.x._SETvalidacao(x,ux,{'estimativa':'matriz','incerteza':'incerteza'})
-            self.y._SETvalidacao(y,uy,{'estimativa':'matriz','incerteza':'incerteza'}) 
+            self.x._SETvalidacao(x,ux,glx,{'estimativa':'matriz','incerteza':'incerteza'})
+            self.y._SETvalidacao(y,uy,gly,{'estimativa':'matriz','incerteza':'incerteza'}) 
 
 
         if self.__flag.info['dadosvalidacao'] == False:
@@ -473,8 +485,8 @@ class Estimacao:
             # ATRIBUIÇÃO A GRANDEZAS
             # ---------------------------------------------------------------------
             # Salvando os dados de validação.
-            self.x._SETvalidacao(x,ux,{'estimativa':'matriz','incerteza':'incerteza'})
-            self.y._SETvalidacao(y,uy,{'estimativa':'matriz','incerteza':'incerteza'}) 
+            self.x._SETvalidacao(x,ux,glx,{'estimativa':'matriz','incerteza':'incerteza'})
+            self.y._SETvalidacao(y,uy,gly,{'estimativa':'matriz','incerteza':'incerteza'}) 
             
         # ---------------------------------------------------------------------
         # VARIÁVEIS INTERNAS
@@ -509,32 +521,32 @@ class Estimacao:
             grandeza[simbolo] = Grandeza([simbolo],[self.y.nomes[j]],[self.y.unidades[j]],[self.y.label_latex[j]])
             if self.__flag.info['dadosexperimentais']==True:
                 # Salvando dados experimentais
-                grandeza[simbolo]._SETexperimental(self.y.experimental.matriz_estimativa[:,j:j+1],self.y.experimental.matriz_incerteza[:,j:j+1],{'estimativa':'matriz','incerteza':'incerteza'})
+                grandeza[simbolo]._SETexperimental(self.y.experimental.matriz_estimativa[:,j:j+1],self.y.experimental.matriz_incerteza[:,j:j+1],self.y.experimental.gL[j],{'estimativa':'matriz','incerteza':'incerteza'})
             if self.__flag.info['dadosvalidacao']==True:
                 # Salvando dados experimentais
-                grandeza[simbolo]._SETvalidacao(self.y.validacao.matriz_estimativa[:,j:j+1],self.y.validacao.matriz_incerteza[:,j:j+1],{'estimativa':'matriz','incerteza':'incerteza'})
+                grandeza[simbolo]._SETvalidacao(self.y.validacao.matriz_estimativa[:,j:j+1],self.y.validacao.matriz_incerteza[:,j:j+1],self.y.validacao.gL[j],{'estimativa':'matriz','incerteza':'incerteza'})
             if self.__etapasdisponiveis[7] in self.__etapas[self.__etapasID]:
                 # Salvando dados calculados
-                grandeza[simbolo]._SETcalculado(self.y.calculado.matriz_estimativa[:,j:j+1],self.y.calculado.matriz_incerteza[:,j:j+1],{'estimativa':'matriz','incerteza':'incerteza'},None)
+                grandeza[simbolo]._SETcalculado(self.y.calculado.matriz_estimativa[:,j:j+1],self.y.calculado.matriz_incerteza[:,j:j+1],self.y.calculado.gL[j],{'estimativa':'matriz','incerteza':'incerteza'},None)
             if self.__etapasdisponiveis[5] in self.__etapas[self.__etapasID]:
                 # Salvando os resíduos
-                grandeza[simbolo]._SETresiduos(self.y.residuos.matriz_estimativa[:,j:j+1],None,{'estimativa':'matriz','incerteza':'variancia'})
+                grandeza[simbolo]._SETresiduos(self.y.residuos.matriz_estimativa[:,j:j+1],None,[],{'estimativa':'matriz','incerteza':'variancia'})
 
         # GRANDEZAS INDEPENDENTES (x)
         for j,simbolo in enumerate(self.x.simbolos):
             grandeza[simbolo] = Grandeza([simbolo],[self.x.nomes[j]],[self.x.unidades[j]],[self.x.label_latex[j]])
             if  self.__flag.info['dadosexperimentais']==True:
                 # Salvando dados experimentais
-                grandeza[simbolo]._SETexperimental(self.x.experimental.matriz_estimativa[:,j:j+1],self.x.experimental.matriz_incerteza[:,j:j+1],{'estimativa':'matriz','incerteza':'incerteza'})
+                grandeza[simbolo]._SETexperimental(self.x.experimental.matriz_estimativa[:,j:j+1],self.x.experimental.matriz_incerteza[:,j:j+1],self.x.experimental.gL[j],{'estimativa':'matriz','incerteza':'incerteza'})
             if self.__flag.info['dadosvalidacao']==True:
                 # Salvando dados experimentais
-                grandeza[simbolo]._SETvalidacao(self.x.validacao.matriz_estimativa[:,j:j+1],self.x.validacao.matriz_incerteza[:,j:j+1],{'estimativa':'matriz','incerteza':'incerteza'})
+                grandeza[simbolo]._SETvalidacao(self.x.validacao.matriz_estimativa[:,j:j+1],self.x.validacao.matriz_incerteza[:,j:j+1],self.x.validacao.gL[j],{'estimativa':'matriz','incerteza':'incerteza'})
             if self.__etapasdisponiveis[7] in self.__etapas[self.__etapasID]:
                 # Salvando dados calculados
-                grandeza[simbolo]._SETcalculado(self.x.calculado.matriz_estimativa[:,j:j+1],self.x.calculado.matriz_incerteza[:,j:j+1],{'estimativa':'matriz','incerteza':'incerteza'},None)
+                grandeza[simbolo]._SETcalculado(self.x.calculado.matriz_estimativa[:,j:j+1],self.x.calculado.matriz_incerteza[:,j:j+1],self.x.calculado.gL[j],{'estimativa':'matriz','incerteza':'incerteza'},None)
             if self.__etapasdisponiveis[5] in self.__etapas[self.__etapasID]:
                 # Salvando os resíduos
-                grandeza[simbolo]._SETresiduos(self.x.residuos.matriz_estimativa[:,j:j+1],None,{'estimativa':'matriz','incerteza':'variancia'})
+                grandeza[simbolo]._SETresiduos(self.x.residuos.matriz_estimativa[:,j:j+1],None,[],{'estimativa':'matriz','incerteza':'variancia'})
 
         # PARÂMETROS
         for j,simbolo in enumerate(self.parametros.simbolos):
@@ -593,7 +605,8 @@ class Estimacao:
         # ---------------------------------------------------------------------
         self.__args_model = [self.y.experimental.vetor_estimativa,self.x.experimental.matriz_estimativa,\
         self.y.experimental.matriz_covariancia,self.x.experimental.matriz_covariancia,\
-        args,self.x.simbolos,self.y.simbolos,self.parametros.simbolos]
+        args,self.__modelo,\
+        self.x.simbolos,self.y.simbolos,self.parametros.simbolos]
         
         # ---------------------------------------------------------------------
         # ALGORITMOS DE OTIMIZAÇÃO
@@ -631,6 +644,7 @@ class Estimacao:
             self.Otimizacao = PSO(sup,inf,args_model=self.__args_model,**kwargs)
             self.Otimizacao.Busca(self.__FO,**kwargsbusca)
             
+            self.FOotimo   = self.Otimizacao.best_fitness
             # ---------------------------------------------------------------------
             # ATRIBUIÇÃO A GRANDEZAS
             # ---------------------------------------------------------------------   
@@ -823,8 +837,8 @@ class Estimacao:
         # ---------------------------------------------------------------------
         # ATRIBUIÇÃO A GRANDEZAS
         # ---------------------------------------------------------------------     
-        self.y._SETcalculado(aux.result,Uyycalculado,{'estimativa':'matriz','incerteza':'variancia'},self.y.validacao.NE)
-        self.x._SETcalculado(self.x.validacao.matriz_estimativa,self.x.validacao.matriz_incerteza,{'estimativa':'matriz','incerteza':'incerteza'},None)
+        self.y._SETcalculado(aux.result,Uyycalculado,[[self.y.experimental.NE-self.parametros.NV]*self.y.experimental.NE]*self.y.NV,{'estimativa':'matriz','incerteza':'variancia'},self.y.validacao.NE)
+        self.x._SETcalculado(self.x.validacao.matriz_estimativa,self.x.validacao.matriz_incerteza,[[self.x.experimental.NE-self.parametros.NV]*self.x.experimental.NE]*self.x.NV,{'estimativa':'matriz','incerteza':'incerteza'},None)
       
         # ---------------------------------------------------------------------
         # VARIÁVEIS INTERNAS
@@ -861,7 +875,7 @@ class Estimacao:
         matriz_hessiana=[[1. for col in range(self.parametros.NV)] for row in range(self.parametros.NV)]
         
         # Valor da função objetivo nos argumentos determinados pela otmização, ou seja, valor no ponto ótimo.
-        FO_otimo = self.Otimizacao.best_fitness
+        FO_otimo = self.FOotimo
         
         #Estrutura iterativa para deslocamento pela matriz Hessiana anteriormente definida.
         for i in range(self.parametros.NV): 
@@ -1134,8 +1148,8 @@ class Estimacao:
         # ATRIBUIÇÃO A GRANDEZAS
         # ---------------------------------------------------------------------       
         # Attribuição dos valores nos objetos
-        self.x._SETresiduos(residuo_x,None,{'estimativa':'matriz','incerteza':'incerteza'})
-        self.y._SETresiduos(residuo_y,None,{'estimativa':'matriz','incerteza':'incerteza'})
+        self.x._SETresiduos(residuo_x,None,[],{'estimativa':'matriz','incerteza':'incerteza'})
+        self.y._SETresiduos(residuo_y,None,[],{'estimativa':'matriz','incerteza':'incerteza'})
 
         # ---------------------------------------------------------------------
         # CÁLCULO DE R2 e R2 ajustado
@@ -1323,32 +1337,33 @@ class Estimacao:
     
                 if self.parametros.NV == 1:
                     
-                    # Região de abrangência (método da verossimilhança)
-                    Regiao, Hist_Posicoes, Hist_Fitness = self.regiaoAbrangencia(PA)
-                        
-                    aux = []
-                    for it in xrange(size(self.parametros.regiao_abrangencia)/self.parametros.NV):     
-                        aux.append(self.parametros.regiao_abrangencia[it][0])
-                           
-                    X = [Hist_Posicoes[it][0] for it in xrange(len(Hist_Posicoes))]
-                    Y = Hist_Fitness
-                    X_sort   = sort(X)
-                    Y_sort   = [Y[i] for i in argsort(X)]    
-                    fig = figure()
-                    ax = fig.add_subplot(1,1,1)
-                    plot(X_sort,Y_sort,'bo',markersize=4)
-                    plot(self.parametros.estimativa[0],self.Otimizacao.best_fitness,'ro',markersize=8)
-                    plot([min(aux),min(aux)],[min(Y_sort),max(Y_sort)/4],'r-')
-                    plot([max(aux),max(aux)],[min(Y_sort),max(Y_sort)/4],'r-')
-                    ax.text(min(aux),max(Y_sort)/4,u'%.2e'%(min(aux),), fontsize=8, horizontalalignment='center')
-                    ax.text(max(aux),max(Y_sort)/4,u'%.2e'%(max(aux),), fontsize=8, horizontalalignment='center')
-                    ax.yaxis.grid(color='gray', linestyle='dashed')
-                    ax.xaxis.grid(color='gray', linestyle='dashed')
-                    xlim((self.parametros.estimativa[0]-2.5*self.parametros.matriz_covariancia[0,0],self.parametros.estimativa[0]+2.5*self.parametros.matriz_covariancia[0,0]))
-                    ylabel(r"$\quad \Phi $",fontsize = 20)
-                    xlabel(self.parametros.labelGraficos()[0],fontsize=20)
-                    fig.savefig(base_path+base_dir+'regiao_verossimilhanca_'+str(self.parametros.simbolos[0])+'_'+str(self.parametros.simbolos[0])+'.png')
-                    close()
+                    if self.__etapasdisponiveis[4] in self.__etapasGlobal():
+                        # Região de abrangência (método da verossimilhança)
+                        Regiao, Hist_Posicoes, Hist_Fitness = self.regiaoAbrangencia(PA)
+                            
+                        aux = []
+                        for it in xrange(size(self.parametros.regiao_abrangencia)/self.parametros.NV):     
+                            aux.append(self.parametros.regiao_abrangencia[it][0])
+                               
+                        X = [Hist_Posicoes[it][0] for it in xrange(len(Hist_Posicoes))]
+                        Y = Hist_Fitness
+                        X_sort   = sort(X)
+                        Y_sort   = [Y[i] for i in argsort(X)]    
+                        fig = figure()
+                        ax = fig.add_subplot(1,1,1)
+                        plot(X_sort,Y_sort,'bo',markersize=4)
+                        plot(self.parametros.estimativa[0],self.Otimizacao.best_fitness,'ro',markersize=8)
+                        plot([min(aux),min(aux)],[min(Y_sort),max(Y_sort)/4],'r-')
+                        plot([max(aux),max(aux)],[min(Y_sort),max(Y_sort)/4],'r-')
+                        ax.text(min(aux),max(Y_sort)/4,u'%.2e'%(min(aux),), fontsize=8, horizontalalignment='center')
+                        ax.text(max(aux),max(Y_sort)/4,u'%.2e'%(max(aux),), fontsize=8, horizontalalignment='center')
+                        ax.yaxis.grid(color='gray', linestyle='dashed')
+                        ax.xaxis.grid(color='gray', linestyle='dashed')
+                        xlim((self.parametros.estimativa[0]-2.5*self.parametros.matriz_covariancia[0,0],self.parametros.estimativa[0]+2.5*self.parametros.matriz_covariancia[0,0]))
+                        ylabel(r"$\quad \Phi $",fontsize = 20)
+                        xlabel(self.parametros.labelGraficos()[0],fontsize=20)
+                        fig.savefig(base_path+base_dir+'regiao_verossimilhanca_'+str(self.parametros.simbolos[0])+'_'+str(self.parametros.simbolos[0])+'.png')
+                        close()
                 
                 else:
                     
@@ -1363,11 +1378,12 @@ class Estimacao:
                         fig = figure()
                         ax = fig.add_subplot(1,1,1)
                         
-                        for it in xrange(size(self.parametros.regiao_abrangencia)/self.parametros.NV):     
-                            PSO, = plot(self.parametros.regiao_abrangencia[it][p1],self.parametros.regiao_abrangencia[it][p2],'bo',linewidth=2.0,zorder=1)
-                        
+                        if self.__etapasdisponiveis[4] in self.__etapasGlobal():
+                            for it in xrange(size(self.parametros.regiao_abrangencia)/self.parametros.NV):     
+                                PSO, = plot(self.parametros.regiao_abrangencia[it][p1],self.parametros.regiao_abrangencia[it][p2],'bo',linewidth=2.0,zorder=1)
+                            
                         Fisher = f.ppf(PA,self.parametros.NV,(self.y.experimental.NE*self.y.NV-self.parametros.NV))            
-                        Comparacao = self.Otimizacao.best_fitness*(float(self.parametros.NV)/(self.y.experimental.NE*self.y.NV-float(self.parametros.NV))*Fisher)
+                        Comparacao = self.FOotimo*(float(self.parametros.NV)/(self.y.experimental.NE*self.y.NV-float(self.parametros.NV))*Fisher)
                         cov = array([[self.parametros.matriz_covariancia[p1,p1],self.parametros.matriz_covariancia[p1,p2]],[self.parametros.matriz_covariancia[p2,p1],self.parametros.matriz_covariancia[p2,p2]]])
                         ellipse, width, height, theta = plot_cov_ellipse(cov, [self.parametros.estimativa[p1],self.parametros.estimativa[p2]], Comparacao, fill = False, color = 'r', linewidth=2.0,zorder=2)
                         plot(self.parametros.estimativa[p1],self.parametros.estimativa[p2],'r*',markersize=10.0,zorder=2)
@@ -1391,7 +1407,8 @@ class Estimacao:
                               max([self.parametros.estimativa[p1] + 1.15*hx,xauto[-1]])))
                         ylim((min([self.parametros.estimativa[p2] - 1.15*hy,yauto[0]]),\
                               max([self.parametros.estimativa[p2] + 1.15*hy,yauto[-1]])))
-                        legend([ellipse,PSO],[u"Ellipse",u"Verossimilhança"])
+                        if self.__etapasdisponiveis[4] in self.__etapasGlobal():
+                            legend([ellipse,PSO],[u"Ellipse",u"Verossimilhança"])
                         fig.savefig(base_path+base_dir+'Regiao_verossimilhanca_'+str(self.parametros.simbolos[p1])+'_'+str(self.parametros.simbolos[p2])+'.png')
                         close()
                         p2+=1            
@@ -1489,8 +1506,48 @@ class Estimacao:
                         else:
                             fig.savefig(base_path+base_dir+'grafico_'+str(self.y.simbolos[iy])+'exp_vs_'+str(self.y.simbolos[iy])+'calc_com_var.png')
                         close()           
+                        
+                        # Teste de variância - F - y +- var(y), ym +- var(ym)    
+                        yerr_experimental = self.y.validacao.matriz_incerteza[:,iy]
+                        yerr_calculado    = self.y.calculado.matriz_incerteza[:,iy]
     
-                
+                        ycalc_inferior_F = []
+                        ycalc_superior_F = []
+                        for iNE in xrange(self.y.experimental.NE):
+							ycalc_inferior_F.append(self.y.calculado.matriz_estimativa[iNE,iy]-f.ppf(0.975,self.y.calculado.gL[iy][iNE],self.y.validacao.gL[iy][iNE])*self.y.experimental.matriz_covariancia[iNE,iNE])
+							ycalc_superior_F.append(self.y.calculado.matriz_estimativa[iNE,iy]+f.ppf(0.975,self.y.calculado.gL[iy][iNE],self.y.validacao.gL[iy][iNE])*self.y.experimental.matriz_covariancia[iNE,iNE])
+													
+                        fig = figure()
+                        ax = fig.add_subplot(1,1,1)
+                        errorbar(y,ym,xerr=yerr_experimental,yerr=yerr_calculado,marker='o',color='b',linestyle='None')
+                        plot(diagonal,diagonal,'k-',linewidth=2.0)
+                        plot(y,ycalc_inferior_F,color='g')
+                        plot(y,ycalc_superior_F,color='k')
+                        
+                        ax.yaxis.grid(color='gray', linestyle='dashed')                        
+                        ax.xaxis.grid(color='gray', linestyle='dashed')
+                                            
+                        label_tick_y   = ax.get_yticks().tolist() 
+                        tamanho_tick_y = (label_tick_y[1] - label_tick_y[0])/2
+    
+                        ymin   = min(ym - yerr_calculado) - tamanho_tick_y
+                        ymax   = max(ym + yerr_calculado) + tamanho_tick_y
+                        
+                        xlim((ymin,ymax))
+                        ylim((ymin,ymax))                
+                        if self.__flag.info['dadosvalidacao'] == True:
+                            xlabel(self.y.labelGraficos('validacao')[iy])
+                        else:
+                            xlabel(self.y.labelGraficos('experimental')[iy])
+                        
+                        ylabel(self.y.labelGraficos('calculado')[iy])
+
+                        if self.__flag.info['dadosvalidacao'] == True:
+                            fig.savefig(base_path+base_dir+'grafico_'+str(self.y.simbolos[iy])+'val_vs_'+str(self.y.simbolos[iy])+'calc_teste_F.png')
+                        else:
+                            fig.savefig(base_path+base_dir+'grafico_'+str(self.y.simbolos[iy])+'exp_vs_'+str(self.y.simbolos[iy])+'calc_teste_F.png')
+                        close()           
+                       
                 if (self.__etapasdisponiveis[5] in self.__etapas[self.__etapasID]):
                     
                     for i,simb in enumerate(self.y.simbolos):         
@@ -1515,6 +1572,247 @@ class Estimacao:
             else:
                 warn(u'Os gráficos envolvendo a estimação (predição) não puderam ser criados, pois o método %s'%(self.__etapasdisponiveis[7],)+' não foi executado e não há dados experimentais.',UserWarning)
 
+class EstimacaoLinear(EstimacaoNaoLinear):
+    
+    def __init__(self,simbolos_y,simbolos_x,simbolos_param,projeto='Projeto',**kwargs):
+        u'''
+        Classe para executar a estimação de parâmetros de modelos MISO lineares nos parâmetros       
+        
+        =======================
+        Entradas (obrigatórias)
+        =======================
+        * ``simbolos_y`` (list)     : lista com os simbolos das variáveis y (Não podem haver caracteres especiais)
+        * ``simbolos_x`` (list)     : lista com os simbolos das variáveis x (Não podem haver caracteres especiais)
+        * ``simbolos_param`` (list) : lista com o simbolos dos parâmetros (Não podem haver caracteres especiais)
+        * ``projeto`` (string)      : nome do projeto (Náo podem haver caracteres especiais)
+        
+        **AVISO**:
+        Para cálculo do coeficiente linear, basta que o número de parâmetros seja igual o número de grandezas
+        independentes + 1.
+        
+        ==============================
+        Keywords (Entradas opcionais):
+        ==============================
+        
+        * ``nomes_x``        (list): lista com os nomes para x 
+        * ``unidades_x``     (list): lista com as unidades para x (inclusive em formato LATEX)
+        * ``label_latex_x``  (list): lista com os símbolos das variáveis em formato LATEX
+        
+        * ``nomes_y``        (list): lista com os nomes para y
+        * ``unidades_y``     (list): lista com as unidades para y (inclusive em formato LATEX)
+        * ``label_latex_y``  (list): lista com os símbolos das variáveis em formato LATEX
+        
+        * ``nomes_param``       (list): lista com os nomes para os parâmetros (inclusive em formato LATEX)
+        * ``unidades_param``    (list): lista com as unidades para os parâmetros (inclusive em formato LATEX)
+        * ``label_latex_param`` (list): lista com os símbolos das variáveis em formato LATEX
+        
+        * ``base_path`` (string): String que define o diretório pai que serão criados/salvos os arquivos gerados pelo motor de cálculo
+        
+        =======        
+        Métodos
+        =======
+        
+        Para a realização da estimação de parâmetros de um certo modelo faz-se necessário executar \
+        alguns métodos, na ordem indicada:
+            
+        **ESTIMAÇÂO DE PARÂMETROS** 
+        
+        * ``gerarEntradas``        : método para incluir dados obtidos de experimentos. Neste há a opção de determinar \
+        se estes dados serão utilizados como dados para estimar os parâmetros ou para validação. (Vide documentação do método)
+        * ``otimiza``              : método para realizar a otimização, com base nos dados fornecidos em gerarEntradas.
+        * ``incertezaParametros``  : método que avalia a incerteza dos parâmetros (Vide documentação do método)   
+        * ``gerarEntradas``        : (é opcional para inclusão de dados de validação)
+        * ``Predicao``             : método que avalia a predição do modelo e sua incerteza ou utilizando os pontos experimentais ou de \
+        validação, se disponível (Vide documentação do método) 
+        * ``analiseResiduos``      : método para executar a análise de resíduos (Vide documentação do método)
+        * ``graficos``             : método para criação dos gráficos (Vide documentação do método)
+        * ``_armazenarDicionario`` : método que returna as grandezas sob a forma de um dicionário (Vide documentação do método)
+        
+        ====================
+        Fluxo de trabalho        
+        ====================
+        
+        Esta classe valida a correta ordem de execução dos métodos. É importante salientar que cada vez que o método ``gerarEntradas`` \
+        é utilizado, é criado um novo ``Fluxo de trabalho``, ou seja, o motor de cálculo valida de alguns métodos precisam ser reexecutados \
+        devido a entrada de novos dados.
+        
+        **Observação 1**: Se forem adicionados diferentes dados de validação (execuções do método gerarEntradas para incluir tais dados), \
+        são iniciado novos fluxos, mas é mantido o histórico de toda execução.
+        
+        **Observação 2**: Se forem adicionados novos dados experimentais, todo o histórico de fluxos é apagado e reniciado.
+         
+        ======      
+        Saídas
+        ======
+        
+        As saídas deste motor de cálculo estão, principalmente, sob a forma de atributos e gráficos.
+        Os principais atributos de uma variável Estimacao, são:
+                
+        * ``x`` : objeto Grandeza que contém todas as informações referentes às grandezas \
+        independentes sob a forma de atributos:
+            * ``experimental`` : referente aos dados experimentais. Principais atributos: ``matriz_estimativa``, ``matriz_covariancia``
+            * ``calculado``    : referente aos dados calculados pelo modelo. Principais atributos: ``matriz_estimativa``, ``matriz_covariancia``
+            * ``validacao``    : referente aos dados de validação. Principais atributos: ``matriz_estimativa``, ``matriz_covariancia``
+            * ``residuos``     : referente aos resíduos de regressão. Principais atributos: ``matriz_estimativa``, ``estatisticas``
+            
+        * ``y``          : objeto Grandeza que contém todas as informações referentes às grandezas \
+        dependentes sob a forma de atributos. Os atributos são os mesmos de x.
+
+        * ``parametros`` : objeto Grandeza que contém todas as informações referentes aos parâmetros sob a forma de atributos.
+            * ``estimativa``         : estimativa para os parâmetros
+            * ``matriz_covariancia`` : matriz de covariância
+            * ``regiao_abrangencia`` : pontos contidos na região de abrangência
+        
+        Obs.: Para informações mais detalhadas, consultar os Atributos da classe Grandeza.        
+        '''
+        # ---------------------------------------------------------------------
+        # INICIANDO A CLASSE INIT
+        # ---------------------------------------------------------------------
+        # A função objetivo é None
+        
+        EstimacaoNaoLinear.__init__(self,WLS,ModeloLinear,simbolos_y,simbolos_x,simbolos_param,projeto,**kwargs)
+
+        # ---------------------------------------------------------------------
+        # VALIDAÇÃO
+        # ---------------------------------------------------------------------    
+        if self.y.NV != 1:
+            raise ValueError(u'Está apenas implementado estimação de parâmetros de modelos lineares MISO')
+ 
+        if (self.parametros.NV != self.x.NV) and (self.parametros.NV != self.x.NV+1):
+            raise ValueError(u'O número de parâmetros deve ser: igual ao de grandezas independentes (não é efetuado cálculo do coeficiente linear)'+\
+            'OU igual ao número de grandezas independentes + 1 (é calculado o coeficiente linear).')
+   
+    def gerarEntradas(self, x, y, ux, uy, glx, gly, tipo='experimental', uxy=None):
+        u'''
+        Método para incluir os dados de entrada da estimação
+        
+        =======================
+        Entradas (Obrigatórias)
+        =======================        
+        
+        * xe        : array com os dados experimentais das variáveis independentes na forma de colunas
+        * ux        : array com as incertezas das variáveis independentes na forma de colunas
+        * ye        : array com os dados experimentais das variáveis dependentes na forma de colunas
+        * uy        : array com as incertezas das variáveis dependentes na forma de colunas
+        * glx       : graus de liberdade de x
+        * gly       : graus de liberdade de y
+        * tipo      : string que define se os dados são experimentais ou de validação.
+        **Aviso**:
+        Caso não definidos dados de validação, será assumido os valores experimentais                    
+        '''    
+        # ---------------------------------------------------------------------
+        # VALIDAÇÃO
+        # ---------------------------------------------------------------------
+        # Validação dos dados de entrada x, y, xval e yval - É tomado como referência
+        # a quantidade de observações das variáveis x.
+        self._EstimacaoNaoLinear__validacaoDadosEntrada(x  ,ux   ,self.x.NV,size(x,0)) 
+        self._EstimacaoNaoLinear__validacaoDadosEntrada(y  ,uy   ,self.y.NV,size(x,0))
+        
+        self._EstimacaoNaoLinear__validacaoArgumentosEntrada('gerarEntradas',None,tipo)       
+         
+        # ---------------------------------------------------------------------
+        # MODIFICAÇÕES DAS MATRIZES DE DADOS 
+        # ---------------------------------------------------------------------
+        if (self.parametros.NV == self.x.NV+1):
+            self.x.simbolos = self.x.simbolos.append('dumb')
+            self.x.nomes    = self.x.nomes.append('dumb')
+            self.x.unidades = self.x.unidades.append('adimensional')
+            x               = hstack((x,ones((shape(x)[0],1))))
+            ux              = hstack((ux,ones((shape(x)[0],1))))
+            
+        if tipo == 'experimental':
+            self._EstimacaoNaoLinear__flag.ToggleActive('dadosexperimentais')
+            if not self._EstimacaoNaoLinear__etapasID == 0: # Se a execução do motor de Cálculo não for a primeira, é
+                self._EstimacaoNaoLinear__novoFluxo() # Inclusão de novo fluxo
+
+            # ---------------------------------------------------------------------
+            # ATRIBUIÇÃO A GRANDEZAS
+            # ---------------------------------------------------------------------
+            # Salvando os dados experimentais nas variáveis.
+            self.x._SETexperimental(x,ux,glx,{'estimativa':'matriz','incerteza':'incerteza'})
+            self.y._SETexperimental(y,uy,gly,{'estimativa':'matriz','incerteza':'incerteza'}) 
+        
+        
+        if tipo == 'validacao':
+            self._EstimacaoNaoLinear__flag.ToggleActive('dadosvalidacao')
+            self._EstimacaoNaoLinear__novoFluxo() # Variável para controlar a execução dos métodos PEU
+            # ---------------------------------------------------------------------
+            # ATRIBUIÇÃO A GRANDEZAS
+            # ---------------------------------------------------------------------
+            # Salvando os dados de validação.
+            self.x._SETvalidacao(x,ux,glx,{'estimativa':'matriz','incerteza':'incerteza'})
+            self.y._SETvalidacao(y,uy,gly,{'estimativa':'matriz','incerteza':'incerteza'}) 
+
+
+        if self._EstimacaoNaoLinear__flag.info['dadosvalidacao'] == False:
+            # Caso gerarEntradas seja executado somente para os dados experimentais,
+            # será assumido que estes são os dados de validação, pois todos os cálculos 
+            # de predição são realizados para os dados de validação.
+            # ---------------------------------------------------------------------
+            # ATRIBUIÇÃO A GRANDEZAS
+            # ---------------------------------------------------------------------
+            # Salvando os dados de validação.
+            self.x._SETvalidacao(x,ux,glx,{'estimativa':'matriz','incerteza':'incerteza'})
+            self.y._SETvalidacao(y,uy,gly,{'estimativa':'matriz','incerteza':'incerteza'}) 
+            
+        # ---------------------------------------------------------------------
+        # VARIÁVEIS INTERNAS
+        # ---------------------------------------------------------------------         
+        # Inclusão desta etapa da lista de etapas
+        self._EstimacaoNaoLinear__etapas[self._EstimacaoNaoLinear__etapasID].append(self._EstimacaoNaoLinear__etapasdisponiveis[1]) 
+        
+    def otimiza(self):
+        u'''
+        Método para obtenção da estimativa dos parâmetros e sua matriz de covariância.
+        '''
+        X   = self.x.experimental.matriz_estimativa
+        Uyy = self.y.experimental.matriz_covariancia
+        y   = self.y.experimental.vetor_estimativa
+        variancia = inv(X.transpose().dot(inv(Uyy)).dot(X))
+        parametros = variancia.dot(X.transpose().dot(inv(Uyy))).dot(y)
+
+        # ---------------------------------------------------------------------
+        # ATRIBUIÇÃO A GRANDEZA
+        # ---------------------------------------------------------------------
+        
+        self.parametros._SETparametro(parametros,variancia,None)
+            
+        # ---------------------------------------------------------------------
+        # FUNÇÃO OBJETIVO NO PONTO ÓTIMO
+        # ---------------------------------------------------------------------
+        self._EstimacaoNaoLinear__args_model = [self.y.experimental.vetor_estimativa,self.x.experimental.matriz_estimativa,\
+        self.y.experimental.matriz_covariancia,self.x.experimental.matriz_covariancia,\
+        None,self._EstimacaoNaoLinear__modelo,\
+        self.x.simbolos,self.y.simbolos,self.parametros.simbolos]
+
+        FO = self._EstimacaoNaoLinear__FO(self.parametros.estimativa,self._EstimacaoNaoLinear__args_model)
+        FO.start()
+        FO.join()
+        self.FOotimo = FO.result
+        
+        # ---------------------------------------------------------------------
+        # VARIÁVEIS INTERNAS
+        # ---------------------------------------------------------------------         
+        # Inclusão desta etapa da lista de etapas
+        self._EstimacaoNaoLinear__etapas[self._EstimacaoNaoLinear__etapasID].append(self._EstimacaoNaoLinear__etapasdisponiveis[2])
+        # Inclusão da incertezaParametros na lista de etapas
+        self._EstimacaoNaoLinear__etapas[self._EstimacaoNaoLinear__etapasID].append(self._EstimacaoNaoLinear__etapasdisponiveis[3])
+
+    def incertezaParametros(self):
+        u'''
+        Este método não se aplica à esta classe. A incerteza dos parâmetros é calculada na etapa de otimização.
+        '''
+        pass
+        
+
+    def regiaoAbrangencia(self):
+        u'''
+        Método para cálculo da região de abrangência de verossimilhança. 
+        PENDENTE
+        '''       
+        #TODO: implementar região de abrangência por verossilhança
+        pass
+    
 if __name__ == "__main__":
     from Funcao_Objetivo import WLS
     from Modelo import Modelo
@@ -1562,19 +1860,13 @@ if __name__ == "__main__":
     ux = concatenate((ux1,ux2),axis=1)
     uy = concatenate((uy1,uy2),axis=1)
 
-    Estime = Estimacao(WLS,Modelo,simbolos_x=['x1','x2'],simbolos_y=['y1','y2'],simbolos_param=[r'theta%d'%i for i in xrange(4)],label_latex_param=[r'$\theta_{%d}$'%i for i in xrange(4)])
+    Estime = EstimacaoNaoLinear(WLS,Modelo,simbolos_x=['x1','x2'],simbolos_y=['y1','y2'],simbolos_param=[r'theta%d'%i for i in xrange(4)],label_latex_param=[r'$\theta_{%d}$'%i for i in xrange(4)])
     sup = [6.  ,.3  ,8.  ,0.7]
     inf = [1.  , 0  ,1.  ,0.]
 
     # Continuacao
     Estime.gerarEntradas(x,y,ux,uy,tipo='experimental')    
- #   Estime.otimiza(sup=[2,2,2,2],inf=[-2,-2,-2,-2],algoritmo='PSO',itmax=5)
- #   Estime.graficos(0.95)
-#    saida = concatenate((Estime.x.experimental.matriz_estimativa[:,0:1],Estime.x.experimental.matriz_incerteza[:,0:1]),axis=1)
-#    for i in xrange(1,Estime.NX):
-#        aux = concatenate((Estime.x.experimental.matriz_estimativa[:,i:i+1],Estime.x.experimental.matriz_incerteza[:,i:i+1]),axis=1)
-#        saida =  concatenate((saida,aux),axis=1)
-#    grandeza = Estime._armazenarDicionario() # ETAPA PARA CRIAÇÃO DOS DICIONÁRIOS - Grandeza é uma variável que retorna as grandezas na forma de dicionário
+    grandeza = Estime._armazenarDicionario() # ETAPA PARA CRIAÇÃO DOS DICIONÁRIOS - Grandeza é uma variável que retorna as grandezas na forma de dicionário
     
     # Otimização
     Estime.otimiza(sup=sup,inf=inf,algoritmo='PSO',itmax=300,Num_particulas=30,metodo={'busca':'Otimo','algoritmo':'PSO','inercia':'TVIW-Adaptative-VI'})
@@ -1586,3 +1878,14 @@ if __name__ == "__main__":
 
     etapas = ['regiaoAbrangencia', 'entrada', 'predicao','grandezas','estimacao']  
     Estime.graficos(etapas,0.95)
+
+# TESTE: MODELO LINEAR
+#    ER = EstimacaoLinear(['y'],['x'],['p1'])
+#    x = array([[1],[2]])
+#    y = array([[2],[4]])
+#    ER.gerarEntradas(x,y,array([[1],[1]]),array([[1],[1]]))
+#    ER.gerarEntradas(x,y,array([[1],[1]]),array([[1],[1]]),tipo='validacao')
+#    ER.otimiza()
+#    ER.Predicao(delta=1e-6)
+#    ER.analiseResiduos()
+    #ER.graficos(['regiaoAbrangencia', 'entrada', 'predicao','grandezas','estimacao'],0.95)
