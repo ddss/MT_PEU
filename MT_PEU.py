@@ -11,7 +11,7 @@ Principais classes do motor de cálculo do PEU
 from numpy import array, transpose, concatenate,size, diag, linspace, min, max, \
 sort, argsort, mean,  std, amin, amax, copy, cos, sin, radians, mean
 
-from scipy.stats import f
+from scipy.stats import f, chi2
 
 from scipy.misc import factorial
 from numpy.linalg import inv
@@ -704,7 +704,7 @@ class Estimacao:
 
         return (Regiao, Hist_Posicoes, Hist_Fitness)
         
-    def analiseResiduos(self):
+    def analiseResiduos(self,PA):
         u'''
         Método para realização da análise de resíduos.
         
@@ -755,7 +755,18 @@ class Estimacao:
 #            self.R2[symb]         = 1 - SSEx/SSTx
 #            self.R2ajustado[symb] = 1 - (SSEx/(self.x.experimental.NE-self.parametros.NV))\
 #                                       /(SSTx/(self.x.experimental.NE - 1))
-                                       
+
+        # ---------------------------------------------------------------------
+        # VALIDAÇÃO DO VALOR DA FUNÇÃO OBJETIVO COMO UMA CHI 2
+        # ---------------------------------------------------------------------
+        gL = self.y.experimental.NE*self.y.NV - self.parametros.NV
+
+
+        chi2max = chi2.ppf(PA+(1-PA)/2,gL)
+        chi2min = chi2.ppf((1-PA)/2,gL)
+
+        self.estatisticaFO = {'chi2max':chi2max,'chi2min':chi2min,'FO':self.Otimizacao.best_fitness}
+
         # ---------------------------------------------------------------------
         # EXECUÇÃO DE GRÁFICOS E TESTES ESTATÍSTICOS
         # ---------------------------------------------------------------------             
