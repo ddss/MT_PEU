@@ -759,13 +759,19 @@ class Estimacao:
         # ---------------------------------------------------------------------
         # VALIDAÇÃO DO VALOR DA FUNÇÃO OBJETIVO COMO UMA CHI 2
         # ---------------------------------------------------------------------
+        '''Há duas situações possíveis ao se analisar a FO com a chi2, se a FO pertence ao intervalo chi2min < FO < chi2max, o modelo representa bem os dados, ou se FO não pertence a este intervalo, neste caso temos:
+           FO < chi2min, O modelo representa os dados esperimentais muito melhor que o esperado, o que pode indicar que há super parametrização do modelo ou que os erros esperimentais estão superestimados:
+           FO > chi2max: o modelo não é capaz de explicar os erros experimentais ou pode haver subestimação dos erros esperimentais'''
         gL = self.y.experimental.NE*self.y.NV - self.parametros.NV
-
-
         chi2max = chi2.ppf(PA+(1-PA)/2,gL)
         chi2min = chi2.ppf((1-PA)/2,gL)
+        if chi2min < self.Otimizacao.best_fitness < chi2max:
+            result= u'O modelo representa bem o conjunto de dados'
+        else:
+            result= u'O modelo não representa bem o conjunto de dados'
 
-        self.estatisticaFO = {'chi2max':chi2max,'chi2min':chi2min,'FO':self.Otimizacao.best_fitness}
+        self.estatisticaFO = {'chi2max':chi2max,'chi2min':chi2min,'FO': (self.Otimizacao.best_fitness, result) }
+        
 
         # ---------------------------------------------------------------------
         # EXECUÇÃO DE GRÁFICOS E TESTES ESTATÍSTICOS
@@ -799,6 +805,8 @@ class Estimacao:
             close()
 
         self.__etapas.append(self.__etapasdisponiveis[5]) # Inclusão desta etapa na lista de etapas
+        
+        return self.estatisticaFO
 
     def graficos(self,lista_de_etapas,PA):
         u'''
@@ -1086,7 +1094,7 @@ if __name__ == "__main__":
     Estime.otimiza(sup=sup,inf=inf,algoritmo='PSO',itmax=100,Num_particulas=30,metodo={'busca':'Otimo','algoritmo':'PSO','inercia':'TVIW-Adaptative-VI'})
     Estime.incertezaParametros(.95,1e-5,metodo='geral')
     grandeza = Estime._armazenarDicionario()
-    Estime.analiseResiduos()
+    Estime.analiseResiduos(0.95)
     lista_de_etapas = ['entrada','otimizacao','estimacao'] 
     Estime.graficos(lista_de_etapas,0.95)       
     grandeza2 = Estime._armazenarDicionario()

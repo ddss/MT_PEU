@@ -393,9 +393,10 @@ class Grandeza:
 
             for i,nome in enumerate(self.simbolos):
                 dados = self.residuos.matriz_estimativa[:,i]
-                
-                # Testes para normalidade
+        
                 # Lista que contém as chamadas das funções de teste:
+        
+                # Testes para normalidade
                 if size(dados) < 20: # Se for menor do que 20 não será realizado no normaltest, pois ele só é válido a partir dste número de dados
                     pnormal=[None, shapiro(dados), anderson(dados, dist='norm'),kstest(dados,'norm',args=(mean(dados),std(dados,ddof=1)))]                
                     pvalor[nome]['residuo-Normalidade'] = {'normaltest':None, 'shapiro':pnormal[1][1], 'anderson':[[pnormal[2][0]], pnormal[2][1][1]],'kstest':pnormal[3][1]}
@@ -403,16 +404,18 @@ class Grandeza:
                     pnormal=[normaltest(dados), shapiro(dados), anderson(dados, dist='norm'),kstest(dados,'norm',args=(mean(dados),std(dados,ddof=1)))]                
                     pvalor[nome]['residuo-Normalidade'] = {'normaltest':pnormal[0][1], 'shapiro':pnormal[1][1], 'anderson':[[pnormal[2][0]], pnormal[2][1][1]],'kstest':pnormal[3][1]}
 
-                # Dicionário para salvar os resultados                
+                           
                 # Testes para a média:
                 pmedia = [ttest_1samp(dados,0.)]#, ttest_ind(dados,norm.rvs(loc=0.,scale=std(dados,ddof=1),size=100000))]
                 pvalor[nome][u'residuo-Media'] = {'ttest':pmedia[0][1]}#,'ttest_ind':pmedia[1][1]}
-                
+             
+                # Testes para a autocorrelação:
                 pacorr= [durbin_watson(dados)]
                 pvalor[nome][u'residuo-Autocorrelacao'] = {'test durbin watson':pacorr[0]}
                 
-                pheter= [het_white(dados,insert(x, 0, 1, axis=1))]
-                pvalor[nome][u'residuo-Homocedasticidade'] = {'test white':{'p-value of lagrange multiplier test':pheter[0][1], 'p-value for the f-statistic':pheter[0][3]}}
+                # Testes para a Homocedásticidade:
+                pheter= [het_white(dados,insert(x, 0, 1, axis=1)),het_breushpagan(dados,x)]
+                pvalor[nome][u'residuo-Homocedasticidade'] = {'test white':{'p-value of lagrange multiplier test':pheter[0][1], 'p-value for the f-statistic':pheter[0][3]},'outr':pheter[1]}
         else:
             raise NameError(u'Os testes estatísticos são válidos apenas para o resíduos')
 
