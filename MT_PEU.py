@@ -395,7 +395,7 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # GRÁFICOS
         # ---------------------------------------------------------------------     
-        self.__tipoGraficos = ['regiaoAbrangencia', 'entrada', 'predicao','grandezas','estimacao']
+        self.__tipoGraficos = ['regiaoAbrangencia', 'entrada', 'predicao','grandezas','estimacao','otimizacao']
         if etapa == self.__etapasdisponiveis[9]:
             if not set(args).issubset(self.__tipoGraficos):
                 raise ValueError('A(s) entrada(s) '+','.join(set(args).difference(self.__tipoGraficos))+' não estão disponíveis. Usar: '+','.join(self.__tipoGraficos)+'.')
