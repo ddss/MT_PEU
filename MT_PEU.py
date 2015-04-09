@@ -395,7 +395,7 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # GRÁFICOS
         # ---------------------------------------------------------------------     
-        self.__tipoGraficos = ['regiaoAbrangencia', 'entrada', 'predicao','grandezas','estimacao']
+        self.__tipoGraficos = ['regiaoAbrangencia', 'entrada', 'predicao','grandezas','estimacao','otimizacao']
         if etapa == self.__etapasdisponiveis[9]:
             if not set(args).issubset(self.__tipoGraficos):
                 raise ValueError('A(s) entrada(s) '+','.join(set(args).difference(self.__tipoGraficos))+' não estão disponíveis. Usar: '+','.join(self.__tipoGraficos)+'.')
@@ -1869,7 +1869,7 @@ if __name__ == "__main__":
     grandeza = Estime._armazenarDicionario() # ETAPA PARA CRIAÇÃO DOS DICIONÁRIOS - Grandeza é uma variável que retorna as grandezas na forma de dicionário
     
     # Otimização
-    Estime.otimiza(sup=sup,inf=inf,algoritmo='PSO',itmax=300,Num_particulas=30,metodo={'busca':'Otimo','algoritmo':'PSO','inercia':'TVIW-Adaptative-VI'})
+    Estime.otimiza(sup=sup,inf=inf,algoritmo='PSO',itmax=5,Num_particulas=30,metodo={'busca':'Otimo','algoritmo':'PSO','inercia':'TVIW-Adaptative-VI'})
     Estime.incertezaParametros(.95,1e-5,metodo='2InvHessiana')  
     grandeza = Estime._armazenarDicionario()
 
