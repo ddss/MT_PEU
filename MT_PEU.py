@@ -14,6 +14,8 @@ hstack, shape
 
 from scipy.stats import f
 
+from scipy import stats  ###############
+
 from scipy.misc import factorial
 from numpy.linalg import inv
 from math import floor, log10
@@ -1338,7 +1340,9 @@ class EstimacaoNaoLinear:
                 if self.parametros.NV == 1:
                     
                     if self.__etapasdisponiveis[4] in self.__etapasGlobal():
+                        
                         # Região de abrangência (método da verossimilhança)
+                        
                         Regiao, Hist_Posicoes, Hist_Fitness = self.regiaoAbrangencia(PA)
                             
                         aux = []
@@ -1418,6 +1422,7 @@ class EstimacaoNaoLinear:
        
             
         if ('grandezas' in tipos):
+            
             if  self.__etapasdisponiveis[7] in self.__etapas[self.__etapasID]:
                 base_dir = sep + 'Grandezas' + sep
                 
@@ -1439,7 +1444,34 @@ class EstimacaoNaoLinear:
                         ux = self.x.calculado.matriz_incerteza[:,ix]
                         uy = self.y.calculado.matriz_incerteza[:,iy]
                         graficos_x_y(x,y,ux,uy,ix,iy,base_dir,'calculado')
+                '''
+                ########################################################################################
                 
+                Fonte: http://stackoverflow.com/questions/19339305/python-function-to-get-the-t-statistic
+                
+                limite do intervalo= (t * ^Vyy)/Raiz(N)
+                
+                Miy= X | (barra) +- (t * ^Vyy)/Raiz(N)
+                
+                '''
+                
+                
+                #lim_superior=ones((self.y.experimental.NE,self.y.NV)) 
+                
+                limite=ones((self.y.experimental.NE,self.y.NV))
+                
+                for linha in xrange(self.y.experimental.NE):
+                    for colum in xrange(self.y.NV):
+                                            
+                        limite[linha][colum]=-(stats.t.ppf((1-PA)/2, array(transpose(self.y.validacao.gL))[linha][colum])*\
+                                             self.y.calculado.matriz_incerteza[linha][colum])/((self.y.experimental.NE)**0.5)
+                                             
+                        #lim_superior[elem][colum]=stats.t.ppf((PA+(1-PA)/2), array(transpose(self.y.validacao.gL))[colum][elem])*self.y.calculado.matriz_incerteza[elem][colum]
+                '''
+                #######################################################################################
+                '''
+                    
+                    
                 base_dir = sep + 'Estimacao' + sep
                 Validacao_Diretorio(base_path,base_dir)
                 for iy in xrange(self.y.NV):
@@ -1475,9 +1507,11 @@ class EstimacaoNaoLinear:
                         close()
                 
                         # Gráfico comparativo entre valores experimentais e calculados pelo modelo, com variância    
-                        yerr_experimental = 2.*self.y.validacao.matriz_incerteza[:,iy]
-                        yerr_calculado    = 2.*self.y.calculado.matriz_incerteza[:,iy]
-    
+                        yerr_experimental = self.y.validacao.matriz_incerteza[:,iy]
+                        yerr_calculado    = limite[:,iy]
+                        
+                            
+                        
                         fig = figure()
                         ax = fig.add_subplot(1,1,1)
                         errorbar(y,ym,xerr=yerr_experimental,yerr=yerr_calculado,marker='o',color='b',linestyle='None')
@@ -1509,19 +1543,23 @@ class EstimacaoNaoLinear:
                         
                         # Teste de variância - F - y +- var(y), ym +- var(ym)    
                         yerr_experimental = self.y.validacao.matriz_incerteza[:,iy]
-                        yerr_calculado    = self.y.calculado.matriz_incerteza[:,iy]
+                        #yerr_calculado    = self.y.calculado.matriz_incerteza[:,iy]
     
                         ycalc_inferior_F = []
                         ycalc_superior_F = []
                         for iNE in xrange(self.y.experimental.NE):
-							ycalc_inferior_F.append(self.y.calculado.matriz_estimativa[iNE,iy]-f.ppf(0.975,self.y.calculado.gL[iy][iNE],self.y.validacao.gL[iy][iNE])*self.y.experimental.matriz_covariancia[iNE,iNE])
-							ycalc_superior_F.append(self.y.calculado.matriz_estimativa[iNE,iy]+f.ppf(0.975,self.y.calculado.gL[iy][iNE],self.y.validacao.gL[iy][iNE])*self.y.experimental.matriz_covariancia[iNE,iNE])
+                            
+							ycalc_inferior_F.append(self.y.calculado.matriz_estimativa[iNE,iy]-f.ppf(0.975,self.y.calculado.gL[iy][iNE],\
+                                        self.y.validacao.gL[iy][iNE])*self.y.experimental.matriz_covariancia[iNE,iNE])
+                                        
+							ycalc_superior_F.append(self.y.calculado.matriz_estimativa[iNE,iy]+f.ppf(0.975,self.y.calculado.gL[iy][iNE],\
+                                        self.y.validacao.gL[iy][iNE])*self.y.experimental.matriz_covariancia[iNE,iNE])
 													
                         fig = figure()
                         ax = fig.add_subplot(1,1,1)
                         errorbar(y,ym,xerr=yerr_experimental,yerr=yerr_calculado,marker='o',color='b',linestyle='None')
                         plot(diagonal,diagonal,'k-',linewidth=2.0)
-                        plot(y,ycalc_inferior_F,color='g')
+                        plot(y,ycalc_inferior_F,color='orange')
                         plot(y,ycalc_superior_F,color='k')
                         
                         ax.yaxis.grid(color='gray', linestyle='dashed')                        
@@ -1565,12 +1603,22 @@ class EstimacaoNaoLinear:
                         ax.xaxis.grid(color='gray', linestyle='dashed')
                         ax.axhline(0, color='black', lw=2)
                         fig.savefig(base_path+base_dir+'residuos_versus_ycalculado.png')
-                        close()      
+                        close() 
+                        
                 else:
                     warn(u'Os gráficos envolvendo os resíduos não puderam ser criados, pois o método %s'%(self.__etapasdisponiveis[5],)+' não foi executado.',UserWarning)
     
             else:
                 warn(u'Os gráficos envolvendo a estimação (predição) não puderam ser criados, pois o método %s'%(self.__etapasdisponiveis[7],)+' não foi executado e não há dados experimentais.',UserWarning)
+                
+            
+            #print 2.*self.y.calculado.matriz_incerteza
+            #print yerr_calculado
+            
+            print ycalc_inferior_F
+            print limite
+            print PA
+
 
 class EstimacaoLinear(EstimacaoNaoLinear):
     
