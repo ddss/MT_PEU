@@ -49,3 +49,7 @@ Temporary Items
 
 # Figuras
 *.png
+
+# Outros arquivos
+*.xml
+*.idea

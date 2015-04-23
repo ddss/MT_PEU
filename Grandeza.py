@@ -298,8 +298,8 @@ class Grandeza:
         self.matriz_covariancia = variancia
         # Cálculo da matriz de correlação
         if variancia != None:
-            self.matriz_correlacao  = matrizcorrelacao(self.matriz_covariancia)    
- 
+            self.matriz_correlacao  = matrizcorrelacao(self.matriz_covariancia)
+            self.matriz_incerteza   = vetor2matriz(array(diag(self.matriz_covariancia)**0.5,ndmin=2).transpose(),self.NV)
         self.regiao_abrangencia = regiao
  
     def labelGraficos(self,add=None):
@@ -503,7 +503,6 @@ class Grandeza:
                         # Gráficos da estimação
                         base_dir = sep + symb + sep
                         Validacao_Diretorio(base_path,base_dir)
-        
                         dados = y[:,i]
                         x   = linspace(1,NE,num=NE)
                         

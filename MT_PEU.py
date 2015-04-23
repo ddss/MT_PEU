@@ -33,10 +33,6 @@ from subrotinas import Validacao_Diretorio, plot_cov_ellipse, vetor_delta,\
  ThreadExceptionHandling, matriz2vetor, flag
 from PSO import PSO
 
-# Usado quando o modelo é linear
-from Modelo import ModeloLinear
-from Funcao_Objetivo import WLS
-
 class EstimacaoNaoLinear:
     
     def __init__(self,FO,Modelo,simbolos_y,simbolos_x,simbolos_param,projeto='Projeto',**kwargs):
@@ -90,7 +86,19 @@ class EstimacaoNaoLinear:
         * ``analiseResiduos``      : método para executar a análise de resíduos (Vide documentação do método)
         * ``graficos``             : método para criação dos gráficos (Vide documentação do método)
         * ``_armazenarDicionario`` : método que returna as grandezas sob a forma de um dicionário (Vide documentação do método)
-        
+
+        **PREDIÇÃO**
+
+        * ``gerarEntradas``        : método para incluir dados obtidos de experimentos. Neste há a opção de determinar \
+        se estes dados serão utilizados como dados para estimar os parâmetros ou para validação. (Vide documentação do método)
+        * ``SETparametro``         : método adicionar manualmente valores das estimativas dos parâmetros e sua matriz covarãncia
+        * ``gerarEntradas``        : (é opcional para inclusão de dados de validação)
+        * ``Predicao``             : método que avalia a predição do modelo e sua incerteza ou utilizando os pontos experimentais ou de \
+        validação, se disponível (Vide documentação do método)
+        * ``analiseResiduos``      : método para executar a análise de resíduos (Vide documentação do método)
+        * ``graficos``             : método para criação dos gráficos (Vide documentação do método)
+        * ``_armazenarDicionario`` : método que returna as grandezas sob a forma de um dicionário (Vide documentação do método)
+
         ====================
         Fluxo de trabalho        
         ====================
@@ -219,7 +227,8 @@ class EstimacaoNaoLinear:
         self.__etapasdisponiveis = ['__init__','gerarEntradas','otimizacao',\
                                     'incertezaParametros','regiaoAbrangencia',\
                                     'analiseResiduos','armazenarDicionario',\
-                                    'Predicao','SETparametro','graficos','novoFluxo'] # Lista de etapas que o algoritmo irá executar
+                                    'Predicao','SETparametro','graficos',\
+                                    'novoFluxo'] # Lista de etapas que o algoritmo irá executar
         
         # FLUXO DE INFORMAÇÕES -> conjunto de etapas que se inicia com o método gerarEntradas.
         
@@ -334,7 +343,7 @@ class EstimacaoNaoLinear:
         # --------------------------------------------------------------------- 
         # Keywords disponíveis        
         self.__AlgoritmosOtimizacao = ['PSO']        
-        self.__keywordsOtimizacaoObrigatorias = {'PSO':['sup','inf'],'Nelder_Mead':[]}  
+        self.__keywordsOtimizacaoObrigatorias = {'PSO':['sup','inf']}
 
         if etapa == self.__etapasdisponiveis[2]:
             
@@ -365,11 +374,18 @@ class EstimacaoNaoLinear:
         # --------------------------------------------------------------------- 
         self.__metodosIncerteza = ['2InvHessiana','Geral','SensibilidadeModelo']
         if etapa == self.__etapasdisponiveis[3]:
-            if (self.__etapasdisponiveis[2] not in self.__etapas[self.__etapasID]) and (self.__etapasdisponiveis[8] not in self._etapas):
+            if (self.__etapasdisponiveis[2] not in self.__etapas[self.__etapasID]) and (self.__etapasdisponiveis[8] not in self.__etapas[self.__etapasID]):
                 raise TypeError(u'Para executar a avaliação da incerteza dos parâmetros, faz-se necessário primeiro executar método %s ou %s.'%(self.__etapasdisponiveis[2],self.__etapasdisponiveis[8]))
         
             if args not in self.__metodosIncerteza:
                 raise NameError(u'O método solicitado para cálculo da incerteza dos parâmetros %s'%(args,)+' não está disponível. Métodos disponíveis '+', '.join(self.__metodosIncerteza)+'.')
+
+        # ---------------------------------------------------------------------
+        # REGIÃO DE ABRANGÊNCIA
+        # ---------------------------------------------------------------------
+        if etapa == self.__etapasdisponiveis[4]:
+            if not (0 <= args <= 1):
+                raise ValueError(u'O valor da probabilidade de abrangência deve estar entre 0 e 1.')
 
         # ---------------------------------------------------------------------
         # ANÁLISE RESÍDUOS
@@ -642,6 +658,17 @@ class EstimacaoNaoLinear:
             self.Otimizacao.Busca(self.__FO,**kwargsbusca)
             
             self.FOotimo   = self.Otimizacao.best_fitness
+
+            # ---------------------------------------------------------------------
+            # HISTÓRICO DA OTIMIZAÇÃO
+            # ---------------------------------------------------------------------
+            self.__hist_Posicoes = []; self.__hist_Fitness = []
+
+            for it in xrange(self.Otimizacao.itmax):
+                for ID_particula in xrange(self.Otimizacao.Num_particulas):
+                    self.__hist_Posicoes.append(self.Otimizacao.historico_posicoes[it][ID_particula])
+                    self.__hist_Fitness.append(self.Otimizacao.historico_fitness[it][ID_particula])
+
             # ---------------------------------------------------------------------
             # ATRIBUIÇÃO A GRANDEZAS
             # ---------------------------------------------------------------------   
@@ -747,7 +774,7 @@ class EstimacaoNaoLinear:
             matriz_covariancia = inv(S.transpose().dot(inv(self.y.experimental.matriz_covariancia)).dot(S))
 
         # REGIÃO DE ABRANGÊNCIA
-        Regiao, Hist_Posicoes, Hist_Fitness = self.regiaoAbrangencia(PA)
+        Regiao = self.regiaoAbrangencia(PA)
 
         # ATRIBUIÇÃO A GRANDEZA
         self.parametros._SETparametro(self.parametros.estimativa,matriz_covariancia,Regiao)
@@ -1098,20 +1125,26 @@ class EstimacaoNaoLinear:
         u'''
         Método para avaliação da região de abrangência
         '''
+        # ---------------------------------------------------------------------
+        # VALIDAÇÃO
+        # ---------------------------------------------------------------------
+        self.__validacaoArgumentosEntrada('regiaoAbrangencia',None,PA)
+
+        # ---------------------------------------------------------------------
+        # DETERMINAÇÃO DA REGIÃO PELO CRITÉRIO DE FISHER
+        # ---------------------------------------------------------------------
+
         Fisher = f.ppf(PA,self.parametros.NV,(self.y.experimental.NE*self.y.NV-self.parametros.NV))            
-        Comparacao = self.Otimizacao.best_fitness*(1+float(self.parametros.NV)/(self.y.experimental.NE*self.y.NV-float(self.parametros.NV))*Fisher)
+        Comparacao = self.FOotimo*(1+float(self.parametros.NV)/(self.y.experimental.NE*self.y.NV-float(self.parametros.NV))*Fisher)
         
-        Regiao = []; Hist_Posicoes = []; Hist_Fitness = []
-        for it in xrange(self.Otimizacao.itmax):
-            for ID_particula in xrange(self.Otimizacao.Num_particulas):
-                if self.Otimizacao.historico_fitness[it][ID_particula] <= Comparacao:
-                    Regiao.append(self.Otimizacao.historico_posicoes[it][ID_particula])
-                Hist_Posicoes.append(self.Otimizacao.historico_posicoes[it][ID_particula])
-                Hist_Fitness.append(self.Otimizacao.historico_fitness[it][ID_particula])
-                
+        Regiao = []
+        for pos,fitness in enumerate(self.__hist_Fitness):
+            if fitness <= Comparacao:
+                Regiao.append(self.__hist_Posicoes[pos])
+
         self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[4]) # Inclusão desta etapa da lista de etapas
 
-        return (Regiao, Hist_Posicoes, Hist_Fitness)
+        return Regiao
         
     def analiseResiduos(self):
         u'''
@@ -1313,7 +1346,7 @@ class EstimacaoNaoLinear:
                 warn(u'Os gráficos de entrada não puderam ser criados, pois o método %s'%(self.__etapasdisponiveis[1],)+' não foi executado.',UserWarning)
 
         if ('otimizacao' in tipos):
-            f
+
             if self.__etapasdisponiveis[2] in self.__etapasGlobal():
                 # Gráficos da otimização
                 base_dir = sep+'PSO'+ sep
@@ -1330,40 +1363,9 @@ class EstimacaoNaoLinear:
                 # Gráficos da estimação
                 base_dir = sep + 'Estimacao' + sep
                 Validacao_Diretorio(base_path,base_dir)
-    
-    
-                if self.parametros.NV == 1:
-                    
-                    if self.__etapasdisponiveis[4] in self.__etapasGlobal():
-                        # Região de abrangência (método da verossimilhança)
-                        Regiao, Hist_Posicoes, Hist_Fitness = self.regiaoAbrangencia(PA)
-                            
-                        aux = []
-                        for it in xrange(size(self.parametros.regiao_abrangencia)/self.parametros.NV):     
-                            aux.append(self.parametros.regiao_abrangencia[it][0])
-                               
-                        X = [Hist_Posicoes[it][0] for it in xrange(len(Hist_Posicoes))]
-                        Y = Hist_Fitness
-                        X_sort   = sort(X)
-                        Y_sort   = [Y[i] for i in argsort(X)]    
-                        fig = figure()
-                        ax = fig.add_subplot(1,1,1)
-                        plot(X_sort,Y_sort,'bo',markersize=4)
-                        plot(self.parametros.estimativa[0],self.Otimizacao.best_fitness,'ro',markersize=8)
-                        plot([min(aux),min(aux)],[min(Y_sort),max(Y_sort)/4],'r-')
-                        plot([max(aux),max(aux)],[min(Y_sort),max(Y_sort)/4],'r-')
-                        ax.text(min(aux),max(Y_sort)/4,u'%.2e'%(min(aux),), fontsize=8, horizontalalignment='center')
-                        ax.text(max(aux),max(Y_sort)/4,u'%.2e'%(max(aux),), fontsize=8, horizontalalignment='center')
-                        ax.yaxis.grid(color='gray', linestyle='dashed')
-                        ax.xaxis.grid(color='gray', linestyle='dashed')
-                        xlim((self.parametros.estimativa[0]-2.5*self.parametros.matriz_covariancia[0,0],self.parametros.estimativa[0]+2.5*self.parametros.matriz_covariancia[0,0]))
-                        ylabel(r"$\quad \Phi $",fontsize = 20)
-                        xlabel(self.parametros.labelGraficos()[0],fontsize=20)
-                        fig.savefig(base_path+base_dir+'regiao_verossimilhanca_'+str(self.parametros.simbolos[0])+'_'+str(self.parametros.simbolos[0])+'.png')
-                        close()
-                
-                else:
-                    
+
+                if self.parametros.NV != 1:
+
                     Combinacoes = int(factorial(self.parametros.NV)/(factorial(self.parametros.NV-2)*factorial(2)))
                     p1 = 0; p2 = 1; cont = 0; passo = 1
                     
@@ -1529,245 +1531,6 @@ class EstimacaoNaoLinear:
             else:
                 warn(u'Os gráficos envolvendo a estimação (predição) não puderam ser criados, pois o método %s'%(self.__etapasdisponiveis[7],)+' não foi executado e não há dados experimentais.',UserWarning)
 
-class EstimacaoLinear(EstimacaoNaoLinear):
-    
-    def __init__(self,simbolos_y,simbolos_x,simbolos_param,projeto='Projeto',**kwargs):
-        u'''
-        Classe para executar a estimação de parâmetros de modelos MISO lineares nos parâmetros       
-        
-        =======================
-        Entradas (obrigatórias)
-        =======================
-        * ``simbolos_y`` (list)     : lista com os simbolos das variáveis y (Não podem haver caracteres especiais)
-        * ``simbolos_x`` (list)     : lista com os simbolos das variáveis x (Não podem haver caracteres especiais)
-        * ``simbolos_param`` (list) : lista com o simbolos dos parâmetros (Não podem haver caracteres especiais)
-        * ``projeto`` (string)      : nome do projeto (Náo podem haver caracteres especiais)
-        
-        **AVISO**:
-        Para cálculo do coeficiente linear, basta que o número de parâmetros seja igual o número de grandezas
-        independentes + 1.
-        
-        ==============================
-        Keywords (Entradas opcionais):
-        ==============================
-        
-        * ``nomes_x``        (list): lista com os nomes para x 
-        * ``unidades_x``     (list): lista com as unidades para x (inclusive em formato LATEX)
-        * ``label_latex_x``  (list): lista com os símbolos das variáveis em formato LATEX
-        
-        * ``nomes_y``        (list): lista com os nomes para y
-        * ``unidades_y``     (list): lista com as unidades para y (inclusive em formato LATEX)
-        * ``label_latex_y``  (list): lista com os símbolos das variáveis em formato LATEX
-        
-        * ``nomes_param``       (list): lista com os nomes para os parâmetros (inclusive em formato LATEX)
-        * ``unidades_param``    (list): lista com as unidades para os parâmetros (inclusive em formato LATEX)
-        * ``label_latex_param`` (list): lista com os símbolos das variáveis em formato LATEX
-        
-        * ``base_path`` (string): String que define o diretório pai que serão criados/salvos os arquivos gerados pelo motor de cálculo
-        
-        =======        
-        Métodos
-        =======
-        
-        Para a realização da estimação de parâmetros de um certo modelo faz-se necessário executar \
-        alguns métodos, na ordem indicada:
-            
-        **ESTIMAÇÂO DE PARÂMETROS** 
-        
-        * ``gerarEntradas``        : método para incluir dados obtidos de experimentos. Neste há a opção de determinar \
-        se estes dados serão utilizados como dados para estimar os parâmetros ou para validação. (Vide documentação do método)
-        * ``otimiza``              : método para realizar a otimização, com base nos dados fornecidos em gerarEntradas.
-        * ``incertezaParametros``  : método que avalia a incerteza dos parâmetros (Vide documentação do método)   
-        * ``gerarEntradas``        : (é opcional para inclusão de dados de validação)
-        * ``Predicao``             : método que avalia a predição do modelo e sua incerteza ou utilizando os pontos experimentais ou de \
-        validação, se disponível (Vide documentação do método) 
-        * ``analiseResiduos``      : método para executar a análise de resíduos (Vide documentação do método)
-        * ``graficos``             : método para criação dos gráficos (Vide documentação do método)
-        * ``_armazenarDicionario`` : método que returna as grandezas sob a forma de um dicionário (Vide documentação do método)
-        
-        ====================
-        Fluxo de trabalho        
-        ====================
-        
-        Esta classe valida a correta ordem de execução dos métodos. É importante salientar que cada vez que o método ``gerarEntradas`` \
-        é utilizado, é criado um novo ``Fluxo de trabalho``, ou seja, o motor de cálculo valida de alguns métodos precisam ser reexecutados \
-        devido a entrada de novos dados.
-        
-        **Observação 1**: Se forem adicionados diferentes dados de validação (execuções do método gerarEntradas para incluir tais dados), \
-        são iniciado novos fluxos, mas é mantido o histórico de toda execução.
-        
-        **Observação 2**: Se forem adicionados novos dados experimentais, todo o histórico de fluxos é apagado e reniciado.
-         
-        ======      
-        Saídas
-        ======
-        
-        As saídas deste motor de cálculo estão, principalmente, sob a forma de atributos e gráficos.
-        Os principais atributos de uma variável Estimacao, são:
-                
-        * ``x`` : objeto Grandeza que contém todas as informações referentes às grandezas \
-        independentes sob a forma de atributos:
-            * ``experimental`` : referente aos dados experimentais. Principais atributos: ``matriz_estimativa``, ``matriz_covariancia``
-            * ``calculado``    : referente aos dados calculados pelo modelo. Principais atributos: ``matriz_estimativa``, ``matriz_covariancia``
-            * ``validacao``    : referente aos dados de validação. Principais atributos: ``matriz_estimativa``, ``matriz_covariancia``
-            * ``residuos``     : referente aos resíduos de regressão. Principais atributos: ``matriz_estimativa``, ``estatisticas``
-            
-        * ``y``          : objeto Grandeza que contém todas as informações referentes às grandezas \
-        dependentes sob a forma de atributos. Os atributos são os mesmos de x.
-
-        * ``parametros`` : objeto Grandeza que contém todas as informações referentes aos parâmetros sob a forma de atributos.
-            * ``estimativa``         : estimativa para os parâmetros
-            * ``matriz_covariancia`` : matriz de covariância
-            * ``regiao_abrangencia`` : pontos contidos na região de abrangência
-        
-        Obs.: Para informações mais detalhadas, consultar os Atributos da classe Grandeza.        
-        '''
-        # ---------------------------------------------------------------------
-        # INICIANDO A CLASSE INIT
-        # ---------------------------------------------------------------------
-        # A função objetivo é None
-        
-        EstimacaoNaoLinear.__init__(self,WLS,ModeloLinear,simbolos_y,simbolos_x,simbolos_param,projeto,**kwargs)
-
-        # ---------------------------------------------------------------------
-        # VALIDAÇÃO
-        # ---------------------------------------------------------------------    
-        if self.y.NV != 1:
-            raise ValueError(u'Está apenas implementado estimação de parâmetros de modelos lineares MISO')
- 
-        if (self.parametros.NV != self.x.NV) and (self.parametros.NV != self.x.NV+1):
-            raise ValueError(u'O número de parâmetros deve ser: igual ao de grandezas independentes (não é efetuado cálculo do coeficiente linear)'+\
-            'OU igual ao número de grandezas independentes + 1 (é calculado o coeficiente linear).')
-   
-    def gerarEntradas(self, x, y, ux, uy, tipo='experimental', uxy=None):
-        u'''
-        Método para incluir os dados de entrada da estimação
-        
-        =======================
-        Entradas (Obrigatórias)
-        =======================        
-        
-        * xe        : array com os dados experimentais das variáveis independentes na forma de colunas
-        * ux        : array com as incertezas das variáveis independentes na forma de colunas
-        * ye        : array com os dados experimentais das variáveis dependentes na forma de colunas
-        * uy        : array com as incertezas das variáveis dependentes na forma de colunas
-        * tipo      : string que define se os dados são experimentais ou de validação.
-        **Aviso**:
-        Caso não definidos dados de validação, será assumido os valores experimentais                    
-        '''    
-        # ---------------------------------------------------------------------
-        # VALIDAÇÃO
-        # ---------------------------------------------------------------------
-        # Validação dos dados de entrada x, y, xval e yval - É tomado como referência
-        # a quantidade de observações das variáveis x.
-        self._EstimacaoNaoLinear__validacaoDadosEntrada(x  ,ux   ,self.x.NV,size(x,0)) 
-        self._EstimacaoNaoLinear__validacaoDadosEntrada(y  ,uy   ,self.y.NV,size(x,0))
-        
-        self._EstimacaoNaoLinear__validacaoArgumentosEntrada('gerarEntradas',None,tipo)       
-         
-        # ---------------------------------------------------------------------
-        # MODIFICAÇÕES DAS MATRIZES DE DADOS 
-        # ---------------------------------------------------------------------
-        if (self.parametros.NV == self.x.NV+1):
-            self.x.simbolos = self.x.simbolos.append('dumb')
-            self.x.nomes    = self.x.nomes.append('dumb')
-            self.x.unidades = self.x.unidades.append('adimensional')
-            x               = hstack((x,ones((shape(x)[0],1))))
-            ux              = hstack((ux,ones((shape(x)[0],1))))
-            
-        if tipo == 'experimental':
-            self._EstimacaoNaoLinear__flag.ToggleActive('dadosexperimentais')
-            if not self._EstimacaoNaoLinear__etapasID == 0: # Se a execução do motor de Cálculo não for a primeira, é
-                self._EstimacaoNaoLinear__novoFluxo() # Inclusão de novo fluxo
-
-            # ---------------------------------------------------------------------
-            # ATRIBUIÇÃO A GRANDEZAS
-            # ---------------------------------------------------------------------
-            # Salvando os dados experimentais nas variáveis.
-            self.x._SETexperimental(x,ux,{'estimativa':'matriz','incerteza':'incerteza'})
-            self.y._SETexperimental(y,uy,{'estimativa':'matriz','incerteza':'incerteza'}) 
-        
-        
-        if tipo == 'validacao':
-            self._EstimacaoNaoLinear__flag.ToggleActive('dadosvalidacao')
-            self._EstimacaoNaoLinear__novoFluxo() # Variável para controlar a execução dos métodos PEU
-            # ---------------------------------------------------------------------
-            # ATRIBUIÇÃO A GRANDEZAS
-            # ---------------------------------------------------------------------
-            # Salvando os dados de validação.
-            self.x._SETvalidacao(x,ux,{'estimativa':'matriz','incerteza':'incerteza'})
-            self.y._SETvalidacao(y,uy,{'estimativa':'matriz','incerteza':'incerteza'}) 
-
-
-        if self._EstimacaoNaoLinear__flag.info['dadosvalidacao'] == False:
-            # Caso gerarEntradas seja executado somente para os dados experimentais,
-            # será assumido que estes são os dados de validação, pois todos os cálculos 
-            # de predição são realizados para os dados de validação.
-            # ---------------------------------------------------------------------
-            # ATRIBUIÇÃO A GRANDEZAS
-            # ---------------------------------------------------------------------
-            # Salvando os dados de validação.
-            self.x._SETvalidacao(x,ux,{'estimativa':'matriz','incerteza':'incerteza'})
-            self.y._SETvalidacao(y,uy,{'estimativa':'matriz','incerteza':'incerteza'}) 
-            
-        # ---------------------------------------------------------------------
-        # VARIÁVEIS INTERNAS
-        # ---------------------------------------------------------------------         
-        # Inclusão desta etapa da lista de etapas
-        self._EstimacaoNaoLinear__etapas[self._EstimacaoNaoLinear__etapasID].append(self._EstimacaoNaoLinear__etapasdisponiveis[1]) 
-        
-    def otimiza(self):
-        u'''
-        Método para obtenção da estimativa dos parâmetros e sua matriz de covariância.
-        '''
-        X   = self.x.experimental.matriz_estimativa
-        Uyy = self.y.experimental.matriz_covariancia
-        y   = self.y.experimental.vetor_estimativa
-        variancia = inv(X.transpose().dot(inv(Uyy)).dot(X))
-        parametros = variancia.dot(X.transpose().dot(inv(Uyy))).dot(y)
-
-        # ---------------------------------------------------------------------
-        # ATRIBUIÇÃO A GRANDEZA
-        # ---------------------------------------------------------------------
-        
-        self.parametros._SETparametro(parametros,variancia,None)
-            
-        # ---------------------------------------------------------------------
-        # FUNÇÃO OBJETIVO NO PONTO ÓTIMO
-        # ---------------------------------------------------------------------
-        self._EstimacaoNaoLinear__args_model = [self.y.experimental.vetor_estimativa,self.x.experimental.matriz_estimativa,\
-        self.y.experimental.matriz_covariancia,self.x.experimental.matriz_covariancia,\
-        None,self._EstimacaoNaoLinear__modelo,\
-        self.x.simbolos,self.y.simbolos,self.parametros.simbolos]
-
-        FO = self._EstimacaoNaoLinear__FO(self.parametros.estimativa,self._EstimacaoNaoLinear__args_model)
-        FO.start()
-        FO.join()
-        self.FOotimo = FO.result
-        
-        # ---------------------------------------------------------------------
-        # VARIÁVEIS INTERNAS
-        # ---------------------------------------------------------------------         
-        # Inclusão desta etapa da lista de etapas
-        self._EstimacaoNaoLinear__etapas[self._EstimacaoNaoLinear__etapasID].append(self._EstimacaoNaoLinear__etapasdisponiveis[2])
-        # Inclusão da incertezaParametros na lista de etapas
-        self._EstimacaoNaoLinear__etapas[self._EstimacaoNaoLinear__etapasID].append(self._EstimacaoNaoLinear__etapasdisponiveis[3])
-
-    def incertezaParametros(self):
-        u'''
-        Este método não se aplica à esta classe. A incerteza dos parâmetros é calculada na etapa de otimização.
-        '''
-        pass
-        
-
-    def regiaoAbrangencia(self):
-        u'''
-        Método para cálculo da região de abrangência de verossimilhança. 
-        PENDENTE
-        '''       
-        #TODO: implementar região de abrangência por verossilhança
-        pass
-    
 if __name__ == "__main__":
     from Funcao_Objetivo import WLS
     from Modelo import Modelo
@@ -1833,14 +1596,3 @@ if __name__ == "__main__":
 
     etapas = ['regiaoAbrangencia', 'entrada', 'predicao','grandezas','estimacao']  
     Estime.graficos(etapas,0.95)
-
-# TESTE: MODELO LINEAR
-#    ER = EstimacaoLinear(['y'],['x'],['p1'])
-#    x = array([[1],[2]])
-#    y = array([[2],[4]])
-#    ER.gerarEntradas(x,y,array([[1],[1]]),array([[1],[1]]))
-#    ER.gerarEntradas(x,y,array([[1],[1]]),array([[1],[1]]),tipo='validacao')
-#    ER.otimiza()
-#    ER.Predicao(delta=1e-6)
-#    ER.analiseResiduos()
-    #ER.graficos(['regiaoAbrangencia', 'entrada', 'predicao','grandezas','estimacao'],0.95)

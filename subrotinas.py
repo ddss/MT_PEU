@@ -301,7 +301,7 @@ class flag:
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------
-        self._caracteristicas_disponiveis = ['dadosexperimentais','dadosvalidacao','reconciliacao']
+        self._caracteristicas_disponiveis = ['dadosexperimentais','dadosvalidacao','reconciliacao','calc_termo_independente']
 
         self.info = {}
         for elemento in self._caracteristicas_disponiveis:

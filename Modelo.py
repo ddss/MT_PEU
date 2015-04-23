@@ -55,11 +55,3 @@ class Modelo(Thread):
                 self.runEquacoes()
             except:
                 self.bucket.put(exc_info())
-                
-class ModeloLinear(Modelo):
-    u'''
-    Classe contendo o modelo para estimação linear de parâmetros
-    '''
-    def runEquacoes(self):
-        
-        self.result = self.x.dot(self.param)
