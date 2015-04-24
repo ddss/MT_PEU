@@ -67,6 +67,7 @@ class WLS(Thread):
         ym = self.modelo(self.param,self.x,[self.args,self.simb_x,self.simb_y,self.simb_param])
         ym.start()
         ym.join()
+
         ym = matriz2vetor(ym.result)
         #print '-------------'
         #print ym

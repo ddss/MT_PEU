@@ -29,10 +29,7 @@ class Modelo(Thread):
     def __init__(self,param,x,args,**kwargs):
         Thread.__init__(self)
 
-        if not isinstance(param,ndarray):
-            self.param  = array(param,ndmin=2).transpose()
-        else:
-            self.param  = param
+        self.param  = array(param,ndmin=2).transpose()
 
         self.x      = x
 
@@ -45,7 +42,6 @@ class Modelo(Thread):
     def runEquacoes(self):
 
         self.result = self.x.dot(self.param)
-
 
     def run(self):
 
@@ -258,7 +254,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # VALIDAÇÃO
         # ---------------------------------------------------------------------
         if (self._EstimacaoNaoLinear__etapasdisponiveis[1] not in self._EstimacaoNaoLinear__etapas[self._EstimacaoNaoLinear__etapasID]) or (self._EstimacaoNaoLinear__flag.info['dadosexperimentais']==False):
-                raise TypeError(u'Para executar a otimização, faz-se necessário primeiro executar método %s informando os dados experimentais.'%(self.__etapasdisponiveis[1],))
+                raise TypeError(u'Para executar a otimização, faz-se necessário primeiro executar método %s informando os dados experimentais.'%(self._EstimacaoNaoLinear__etapasdisponiveis[1],))
 
         # ---------------------------------------------------------------------
         # RESOLUÇÃO
@@ -272,9 +268,9 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # ---------------------------------------------------------------------
         # ATRIBUIÇÃO A GRANDEZA
         # ---------------------------------------------------------------------
-        
-        self.parametros._SETparametro(parametros,variancia,None)
-            
+
+        self.parametros._SETparametro(parametros.transpose()[0].tolist(),variancia,None)
+
         # ---------------------------------------------------------------------
         # FUNÇÃO OBJETIVO NO PONTO ÓTIMO
         # ---------------------------------------------------------------------
@@ -379,7 +375,7 @@ if __name__ == "__main__":
     ER = EstimacaoLinear(['y'],['x'],['p1','p2'],projeto='LINEAR')
     x = array([[0],[1],[2],[3],[4],[5]])
     y = array([[.1],[.9],[2.2],[3.2],[3.9],[4.8]])
-    ER.gerarEntradas(x,y,array([[1],[1],[1],[1],[1],[1]]),array([[1],[1],[1],[1],[1],[1]]))
+    ER.gerarEntradas(x,y,array([[1],[1],[1],[1],[1],[1]]),array([[1],[1],[1],[1],[1],[1]]),tipo='experimental')
     ER.gerarEntradas(x,y,array([[1],[1],[1],[1],[1],[1]]),array([[1],[1],[1],[1],[1],[1]]),tipo='validacao')
     ER.otimiza()
     ER.incertezaParametros(.95)

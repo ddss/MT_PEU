@@ -1578,21 +1578,22 @@ if __name__ == "__main__":
     ux = concatenate((ux1,ux2),axis=1)
     uy = concatenate((uy1,uy2),axis=1)
 
+
     Estime = EstimacaoNaoLinear(WLS,Modelo,simbolos_x=['x1','x2'],simbolos_y=['y1','y2'],simbolos_param=[r'theta%d'%i for i in xrange(4)],label_latex_param=[r'$\theta_{%d}$'%i for i in xrange(4)])
     sup = [6.  ,.3  ,8.  ,0.7]
     inf = [1.  , 0  ,1.  ,0.]
 
     # Continuacao
-    Estime.gerarEntradas(x,y,ux,uy,tipo='experimental')    
+    Estime.gerarEntradas(x,y,ux,uy,tipo='experimental')
     grandeza = Estime._armazenarDicionario() # ETAPA PARA CRIAÇÃO DOS DICIONÁRIOS - Grandeza é uma variável que retorna as grandezas na forma de dicionário
-    
+
     # Otimização
-    Estime.otimiza(sup=sup,inf=inf,algoritmo='PSO',itmax=300,Num_particulas=30,metodo={'busca':'Otimo','algoritmo':'PSO','inercia':'TVIW-Adaptative-VI'})
-    Estime.incertezaParametros(.95,1e-5,metodo='2InvHessiana')  
+    Estime.otimiza(sup=sup,inf=inf,algoritmo='PSO',itmax=100,Num_particulas=30,metodo={'busca':'Otimo','algoritmo':'PSO','inercia':'TVIW-Adaptative-VI'})
+    Estime.incertezaParametros(.95,1e-5,metodo='2InvHessiana')
     grandeza = Estime._armazenarDicionario()
 
     Estime.Predicao()
     Estime.analiseResiduos()
 
-    etapas = ['regiaoAbrangencia', 'entrada', 'predicao','grandezas','estimacao']  
+    etapas = ['regiaoAbrangencia', 'entrada', 'predicao','grandezas','estimacao']
     Estime.graficos(etapas,0.95)
