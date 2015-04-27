@@ -12,10 +12,7 @@ from numpy import array, transpose, concatenate,size, diag, linspace, min, max, 
 sort, argsort, mean,  std, amin, amax, copy, cos, sin, radians, mean, dot, ones, \
 hstack, shape
 
-from scipy.stats import f
-
-from scipy import stats  ###############
-
+from scipy.stats import f, t
 from scipy.misc import factorial
 from numpy.linalg import inv
 from math import floor, log10
@@ -1447,9 +1444,13 @@ class EstimacaoNaoLinear:
                 '''
                 ########################################################################################
                 
-                Fonte: http://stackoverflow.com/questions/19339305/python-function-to-get-the-t-statistic
+                (Pacote): Fonte: http://stackoverflow.com/questions/19339305/python-function-to-get-the-t-statistic
                 
-                limite do intervalo= (t * ^Vyy)/Raiz(N)
+                (Definição Incerteza expandida): http://www.portalaction.com.br/incerteza-de-medicao/17-incerteza-expandida
+                
+                
+                
+                incerteza expandida = (t * ^Vyy)/Raiz(N)
                 
                 Miy= X | (barra) +- (t * ^Vyy)/Raiz(N)
                 
@@ -1458,13 +1459,13 @@ class EstimacaoNaoLinear:
                 
                 #lim_superior=ones((self.y.experimental.NE,self.y.NV)) 
                 
-                limite=ones((self.y.experimental.NE,self.y.NV))
+                incerteza_expandida=ones((self.y.experimental.NE,self.y.NV))
                 
                 for linha in xrange(self.y.experimental.NE):
-                    for colum in xrange(self.y.NV):
+                    for column in xrange(self.y.NV):
                                             
-                        limite[linha][colum]=-(stats.t.ppf((1-PA)/2, array(transpose(self.y.validacao.gL))[linha][colum])*\
-                                             self.y.calculado.matriz_incerteza[linha][colum])/((self.y.experimental.NE)**0.5)
+                        incerteza_expandida[linha][column]=-t.ppf((1-PA)/2, array(transpose(self.y.validacao.gL))[linha][column])*\
+                                             self.y.calculado.matriz_incerteza[linha][column]
                                              
                         #lim_superior[elem][colum]=stats.t.ppf((PA+(1-PA)/2), array(transpose(self.y.validacao.gL))[colum][elem])*self.y.calculado.matriz_incerteza[elem][colum]
                 '''
@@ -1507,8 +1508,8 @@ class EstimacaoNaoLinear:
                         close()
                 
                         # Gráfico comparativo entre valores experimentais e calculados pelo modelo, com variância    
-                        yerr_experimental = self.y.validacao.matriz_incerteza[:,iy]
-                        yerr_calculado    = limite[:,iy]
+                        yerr_experimental = 2.*self.y.validacao.matriz_incerteza[:,iy]
+                        yerr_calculado    = incerteza_expandida[:,iy]
                         
                             
                         
@@ -1541,25 +1542,36 @@ class EstimacaoNaoLinear:
                             fig.savefig(base_path+base_dir+'grafico_'+str(self.y.simbolos[iy])+'exp_vs_'+str(self.y.simbolos[iy])+'calc_com_var.png')
                         close()           
                         
-                        # Teste de variância - F - y +- var(y), ym +- var(ym)    
-                        yerr_experimental = self.y.validacao.matriz_incerteza[:,iy]
+                        # Teste de variância - F - y +- var(y), ym +- var(ym) 
+                        '''
+                        ###################################################################
+                        OBS.: Multiplicação por '2.', fator de abrangência sugerido pelo GUM 
+                        ###################################################################
+                        
+                                            ||
+                                           \||/
+                                            \/
+                        '''
+                        yerr_experimental = 2.*self.y.validacao.matriz_incerteza[:,iy]
                         #yerr_calculado    = self.y.calculado.matriz_incerteza[:,iy]
     
                         ycalc_inferior_F = []
                         ycalc_superior_F = []
                         for iNE in xrange(self.y.experimental.NE):
                             
-							ycalc_inferior_F.append(self.y.calculado.matriz_estimativa[iNE,iy]-f.ppf(0.975,self.y.calculado.gL[iy][iNE],\
-                                        self.y.validacao.gL[iy][iNE])*self.y.experimental.matriz_covariancia[iNE,iNE])
+							ycalc_inferior_F.append(self.y.calculado.matriz_estimativa[iNE,iy]+t.ppf((1-PA)/2, array(transpose(self.y.validacao.gL))[iNE][iy])\
+                                        *(f.ppf((PA+(1-PA)/2),self.y.calculado.gL[iy][iNE],\
+                                        self.y.validacao.gL[iy][iNE])*self.y.experimental.matriz_covariancia[iNE,iNE])**0.5)
                                         
-							ycalc_superior_F.append(self.y.calculado.matriz_estimativa[iNE,iy]+f.ppf(0.975,self.y.calculado.gL[iy][iNE],\
-                                        self.y.validacao.gL[iy][iNE])*self.y.experimental.matriz_covariancia[iNE,iNE])
+							ycalc_superior_F.append(self.y.calculado.matriz_estimativa[iNE,iy]-t.ppf((1-PA)/2, array(transpose(self.y.validacao.gL))[iNE][iy])\
+                                        *(f.ppf((PA+(1-PA)/2),self.y.calculado.gL[iy][iNE],\
+                                        self.y.validacao.gL[iy][iNE])*self.y.experimental.matriz_covariancia[iNE,iNE])**0.5)
 													
                         fig = figure()
                         ax = fig.add_subplot(1,1,1)
                         errorbar(y,ym,xerr=yerr_experimental,yerr=yerr_calculado,marker='o',color='b',linestyle='None')
                         plot(diagonal,diagonal,'k-',linewidth=2.0)
-                        plot(y,ycalc_inferior_F,color='orange')
+                        plot(y,ycalc_inferior_F,color='red')
                         plot(y,ycalc_superior_F,color='k')
                         
                         ax.yaxis.grid(color='gray', linestyle='dashed')                        
@@ -1614,9 +1626,12 @@ class EstimacaoNaoLinear:
             
             #print 2.*self.y.calculado.matriz_incerteza
             #print yerr_calculado
+            '''
+            Verificando se o intervalo de confiança dos dados experimentais sao maiores que os da predição
+            '''
+            print incerteza_expandida-2.*self.y.validacao.matriz_incerteza
             
-            print ycalc_inferior_F
-            print limite
+            print incerteza_expandida
             print PA
 
 
@@ -1917,7 +1932,7 @@ if __name__ == "__main__":
     grandeza = Estime._armazenarDicionario() # ETAPA PARA CRIAÇÃO DOS DICIONÁRIOS - Grandeza é uma variável que retorna as grandezas na forma de dicionário
     
     # Otimização
-    Estime.otimiza(sup=sup,inf=inf,algoritmo='PSO',itmax=5,Num_particulas=30,metodo={'busca':'Otimo','algoritmo':'PSO','inercia':'TVIW-Adaptative-VI'})
+    Estime.otimiza(sup=sup,inf=inf,algoritmo='PSO',itmax=300,Num_particulas=30,metodo={'busca':'Otimo','algoritmo':'PSO','inercia':'TVIW-Adaptative-VI'})
     Estime.incertezaParametros(.95,1e-5,metodo='2InvHessiana')  
     grandeza = Estime._armazenarDicionario()
 
@@ -1927,6 +1942,9 @@ if __name__ == "__main__":
     etapas = ['regiaoAbrangencia', 'entrada', 'predicao','grandezas','estimacao']  
     Estime.graficos(etapas,0.95)
 
+
+    print Estime.y.calculado.matriz_incerteza**2/Estime.y.experimental.matriz_incerteza**2
+    print f.ppf(0.975,Estime.y.calculado.gL[0][0],Estime.y.validacao.gL[0][0])
 # TESTE: MODELO LINEAR
 #    ER = EstimacaoLinear(['y'],['x'],['p1'])
 #    x = array([[1],[2]])
