@@ -50,12 +50,14 @@ y = transpose(array([0.9,0.949,0.886,0.785,0.791,0.890,0.787,0.877,0.938,\
 
 uy = ones((41,1))
 
-tipo = 3
+tipo = 1 # tipo: modelo a ser escolhido - 0 (exemplo 5.11), 1 (exemplo 5.12) ou 2 (exemplo 5.13)
 
-Estime = EstimacaoNaoLinear(WLS,Modelo,nomes_x = ['variavel teste x1','variavel teste 2'],simbolos_x=[r't','T'],label_latex_x=[r'$t$','$T$'],nomes_y=['y1'],simbolos_y=[r'y1'],nomes_param=['theta'+str(i) for i in xrange(2)],simbolos_param=[r'theta%d'%i for i in xrange(2)],label_latex_param=[r'$\theta_{%d}$'%i for i in xrange(2)],projeto='EX_%d'%tipo)
+Estime = EstimacaoNaoLinear(WLS,Modelo,simbolos_x=[r't','T'],label_latex_x=[r'$t$','$T$'],simbolos_y=[r'y'],simbolos_param=['ko','E'],projeto='EX_%d'%tipo)
 
-sup=[100,30000]
-inf=[0,20000]
+sup=[50,30000]
+inf=[0 ,20000]
+
+
 
 # ---------------------------------------------------------------------------------
 # Exemplo de validacao Exemplo resolvido 5.2 (capitulo 6) (Análise de dados experimentais 1)
@@ -105,7 +107,7 @@ Estime.graficos(etapas,0.95)
 
 ##################################################################################
 ##################################################################################
-# EXEMPLOS PARA MODELOS NÃO LINEARES
+# EXEMPLOS PARA MODELOS LINEARES
 ##################################################################################
 ##################################################################################
 
@@ -113,18 +115,18 @@ Estime.graficos(etapas,0.95)
 # PARTE I - INCLUSÃO DE DADOS (DEPENDE DO EXEMPLO)
 # =================================================================================
 
-ER = EstimacaoLinear(['y'],['x'],['p1','p2'],projeto='LINEAR')
-x = array([[0],[1],[2],[3],[4],[5]])
-y = array([[.1],[.9],[2.2],[3.2],[3.9],[4.8]])
-ER.gerarEntradas(x,y,array([[1],[1],[1],[1],[1],[1]]),array([[1],[1],[1],[1],[1],[1]]),tipo='experimental')
-ER.gerarEntradas(x,y,array([[1],[1],[1],[1],[1],[1]]),array([[1],[1],[1],[1],[1],[1]]),tipo='validacao')
+#ER = EstimacaoLinear(['y'],['x'],['p1','p2'],projeto='LINEAR')
+#x = array([[0],[1],[2],[3],[4],[5]])
+#y = array([[.1],[.9],[2.2],[3.2],[3.9],[4.8]])
+#ER.gerarEntradas(x,y,array([[1],[1],[1],[1],[1],[1]]),array([[1],[1],[1],[1],[1],[1]]),tipo='experimental')
+#ER.gerarEntradas(x,y,array([[1],[1],[1],[1],[1],[1]]),array([[1],[1],[1],[1],[1],[1]]),tipo='validacao')
 
 # =================================================================================
 # PARTE II - GENÉRICO (INDEPENDE DO EXEMPLO)
 # =================================================================================
 
-ER.otimiza()
-ER.incertezaParametros(.95)
-ER.Predicao(delta=1e-6)
-ER.analiseResiduos()
-ER.graficos(['regiaoAbrangencia', 'entrada', 'predicao','grandezas','estimacao'],0.95)
+#ER.otimiza()
+#ER.incertezaParametros(.95)
+#ER.Predicao(delta=1e-6)
+#ER.analiseResiduos()
+#ER.graficos(['regiaoAbrangencia', 'entrada', 'predicao','grandezas','estimacao'],0.95)

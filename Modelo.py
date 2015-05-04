@@ -19,7 +19,6 @@ class Modelo(Thread):
 
 
     def runEquacoes(self):
-        
         #x1 = self.x[:,0:1]
         #x2 = self.x[:,1:]
 
@@ -41,17 +40,9 @@ class Modelo(Thread):
         ko = self.param[0]
         E  = self.param[1]
 
-        y1 = []
-        if tipo == 1:
-            y1 = exp(-(ko*10**17)*tempo*exp(-E/T))
+        y1 = [exp(-(ko*10**17)*tempo*exp(-E/T)),exp(-tempo*exp(ko-E/T)),exp(-ko*tempo*exp(-E*(1/T-1./630.)))]
 
-        if tipo == 2:
-            y1 = exp(-tempo*exp(ko-E/T))
-
-        if tipo == 3:
-            y1 = exp(-ko*tempo*exp(-E*(1/T-1./630.)))
-
-        self.result = y1
+        self.result = y1[tipo]
         
         
     def run(self):

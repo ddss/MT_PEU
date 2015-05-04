@@ -7,7 +7,10 @@ Principais classes do motor de cálculo do PEU
 @LinhadePesquisa: GI-UFBA
 """
 
-# Importação de pacotes de terceiros
+# ---------------------------------------------------------------------
+# IMPORTAÇÃO DE PACOTES DE TERCEIROS
+# ---------------------------------------------------------------------
+# Cálculos científicos
 from numpy import array, transpose, concatenate,size, diag, linspace, min, max, \
 sort, argsort, mean,  std, amin, amax, copy, cos, sin, radians, mean, dot, ones, \
 hstack, shape
@@ -18,19 +21,29 @@ from scipy.misc import factorial
 from numpy.linalg import inv
 from math import floor, log10
 
+# Construção de gráficos
 from matplotlib import use
-use('Agg')
+use('Agg') # Define que o matplotlib não usará recursos de vídeo
 
 from matplotlib.pyplot import figure, axes, axis, plot, errorbar, subplot, xlabel, ylabel,\
     title, legend, savefig, xlim, ylim, close, grid, text, hist, boxplot
 
+# Pacotes do sistema operacional
 from os import getcwd, sep
+
+# Exception Handling
 from warnings import warn
 
-# Subrotinas próprias e adaptações (desenvolvidas pelo GI-UFBA)
+# Threads
+from Queue import Queue, Empty
+
+
+# ---------------------------------------------------------------------
+# IMPORTAÇÃO DE SUBROTINAS PRÓPRIAS E ADAPTAÇÕES (DESENVOLVIDAS PELO GI-UFBA)
+# ---------------------------------------------------------------------
 from Grandeza import Grandeza
 from subrotinas import Validacao_Diretorio, plot_cov_ellipse, vetor_delta,\
- ThreadExceptionHandling, matriz2vetor, flag
+    matriz2vetor, flag
 from PSO import PSO
 
 class EstimacaoNaoLinear:
@@ -647,8 +660,8 @@ class EstimacaoNaoLinear:
             # ---------------------------------------------------------------------            
             # Verificação se o modelo é executável nos limites de busca
             
-            ThreadExceptionHandling(self.__modelo,sup,self.x.validacao.matriz_estimativa,[args,self.x.simbolos,self.y.simbolos,self.parametros.simbolos])
-            ThreadExceptionHandling(self.__modelo,inf,self.x.validacao.matriz_estimativa,[args,self.x.simbolos,self.y.simbolos,self.parametros.simbolos])
+            self.__ThreadExceptionHandling(self.__modelo,sup,self.x.validacao.matriz_estimativa,[args,self.x.simbolos,self.y.simbolos,self.parametros.simbolos])
+            self.__ThreadExceptionHandling(self.__modelo,inf,self.x.validacao.matriz_estimativa,[args,self.x.simbolos,self.y.simbolos,self.parametros.simbolos])
             
             # ---------------------------------------------------------------------
             # EXECUÇÃO OTIMIZAÇÃO
@@ -679,7 +692,59 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------         
         # Inclusão desta etapa da lista de etapas
         self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[2]) # Inclusão desta etapa na lista de etapas
-        
+
+    def __ThreadExceptionHandling(self,classeThread,argumento1,argumento2,argumento3):
+        u'''
+        Método para lidar com exceptions em Thread.
+
+        =======
+        Entrada
+        =======
+
+        * classeThread: deve ser uma Thread com a seguinte estrutura [1]::
+        * argumentos 1, 2 e 3:  argumentos a serem passado p
+
+        >>> import threading
+        >>> import Queue
+        >>>
+        >>> class ExcThread(threading.Thread):
+        >>>
+        >>>     def __init__(self, bucket):
+        >>>         threading.Thread.__init__(self)
+        >>>         self.bucket = bucket
+        >>>
+        >>>     def run(self):
+        >>>         try:
+        >>>             raise Exception('An error occured here.')
+        >>>         except Exception:
+        >>>              self.bucket.put(sys.exc_info())
+
+        Referência:
+
+        [1] http://stackoverflow.com/questions/2829329/catch-a-threads-exception-in-the-caller-thread-in-python
+
+        '''
+        bucket = Queue()
+        thread_obj = classeThread(argumento1,argumento2,argumento3,bucket=bucket)
+        thread_obj.start()
+
+        while True:
+            try:
+                exc = bucket.get(block=False)
+            except Empty:
+                pass
+            else:
+                # Informações sobre o erro ocorrido:
+                exc_type, exc_obj, exc_trace = exc
+
+                raise SyntaxError('Erro no modelo, quando avaliado nos limites de busca definidos. Erro identificado "%s" no modelo.'%exc_obj)
+
+            thread_obj.join(0.1)
+            if thread_obj.isAlive():
+                continue
+            else:
+                break
+
     def SETparametro(self,estimativa,variancia):
         u'''Método para incluir a estimativa dos parâmetos e sua matriz de covarância, caso somente o método de ``Predição`` seja 
         executado.

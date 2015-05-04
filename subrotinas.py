@@ -12,11 +12,6 @@ from os import path, makedirs
 from matplotlib.pyplot import gca
 from matplotlib.patches import Ellipse
 
-#THREAD
-from Queue import Queue, Empty
-
-
-
 def matriz2vetor(matriz):
     u'''
     Subrotina para converter uma matriz (array com várias colunas) em um vetor (array com uma coluna)
@@ -225,56 +220,6 @@ def lista2matriz(lista):
     
     return res
     
-def ThreadExceptionHandling(Thread,argumento1,argumento2,argumento3):
-    u'''
-    Subrotina para lidar com exceptions em Thread.
-    
-    =======
-    Entrada
-    =======
-    
-    * Thread: deve ser uma Thread com a seguinte estrutura [1]::
-        
-    >>> import threading
-    >>> import Queue
-    >>>
-    >>> class ExcThread(threading.Thread):
-    >>>
-    >>>     def __init__(self, bucket):
-    >>>         threading.Thread.__init__(self)
-    >>>         self.bucket = bucket
-    >>>
-    >>>     def run(self):
-    >>>         try:
-    >>>             raise Exception('An error occured here.')
-    >>>         except Exception:
-    >>>              self.bucket.put(sys.exc_info())        
-    
-    Referência:
-    
-    [1] http://stackoverflow.com/questions/2829329/catch-a-threads-exception-in-the-caller-thread-in-python
-    
-    '''
-    bucket = Queue()
-    thread_obj = Thread(argumento1,argumento2,argumento3,bucket=bucket)
-    thread_obj.start()
-
-    while True:
-        try:
-            exc = bucket.get(block=False)
-        except Empty:
-            pass
-        else:
-            # Informações sobre o erro ocorrido:
-            exc_type, exc_obj, exc_trace = exc
-
-            raise SyntaxError('Erro no modelo. Erro identificado "%s" no modelo.'%exc_obj)
-            
-        thread_obj.join(0.1)
-        if thread_obj.isAlive():
-            continue
-        else:
-            break
 
 class flag:
     
