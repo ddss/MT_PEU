@@ -287,6 +287,7 @@ class EstimacaoNaoLinear:
                     
         # Flags para controle
         self.__flag = flag()
+        self.__flag.setCaracteristica(['dadosexperimentais','dadosvalidacao','reconciliacao'])
     
     def __novoFluxo(self,reiniciar=False):
         u'''Método para criar um novo fluxo de informações.

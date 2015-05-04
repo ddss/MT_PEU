@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Oct 21 10:36:09 2014
+Arquivo que contém subrotinas genéricas para uso pelo MT_PEU.
 
 @author: Daniel
 """
@@ -156,7 +156,6 @@ def plot_cov_ellipse(cov, pos, c2=2, ax=None, **kwargs):
     return (ellip, width, height, theta)
     
 def vetor_delta(entrada_vetor,posicao,delta):
-    
     u'''
     Subrotina para alterar o(s) elementos de um vetor, acrescentando ou retirando um determinado ''delta''.
     =======
@@ -224,34 +223,81 @@ def lista2matriz(lista):
 class flag:
     
     def __init__(self):
-        u'''Classe para padronizar o uso de flags no motor de cálculo.
-        
+        u'''Classe para padronizar o uso de flags.
+
+        =======
+        Entrada
+        =======
+
+        * caracteristicas (List): lista contendo as características das flags
+
         =========
         Atributos
         =========
 
-        * **info**: dicionário que informa a situação atual das flags. As chaves são 'status' (TRUE ou FALSE) e 'descrição' (o que está ocorrendo)
-        
-        * **resumo**: apresenta um resumo completo de todas as possibilidades de status das flags e seus respectivos significados
-                    
+        * **info**: dicionário que informa a situação atual das flags. As chaves são as características das flags e o conteúdo seu status.
+
+        IMPORTANTE: Quando iniciada, as flags possuem status como FALSE.
+
         =======
         Métodos
         =======
         
         * **ToggleActive(caracteristica)** : muda o status da caracteristica da flag para TRUE
         * **ToggleInactive(caracteristica)**: muda o status da caracteristica da flag para FALSE
-        
-        É necessário informar característica que está sendo modificada. Características disponíveis: 'dadosvalidacao' e 'reconciliacao'.
-        '''               
+
+        =======
+        Exemplo
+        =======
+        Exemplo: ::
+
+        >>> Fl = flag()
+        >>> Fl.setCaracteristica(['estimacao','reconciliacao'])
+        >>> Fl.info
+        >>> Fl.ToggleActive('estimacao')
+        >>> Fl.info
+        >>> Fl.ToggleInactive('estimacao')
+        >>> Fl.info
+        >>> Fl.setCaracteristica(['validacao'])
+        >>> Fl.info
+        >>> Fl.ToggleActive(['validacao'])
+        >>> Fl.info
+        '''
+
+        # ---------------------------------------------------------------------
+        # INICIALIZAÇÃO
+        # ---------------------------------------------------------------------
+        self._caracteristicas_disponiveis = []
+
+        self.info = {}
+
+    def setCaracteristica(self,caracteristica):
+        '''uMétodo para incluir uma lista de características
+
+        =======
+        Entrada
+        =======
+
+        * caracteristica (List): lista de características a serem incluídas
+
+        '''
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------
-        self._caracteristicas_disponiveis = ['dadosexperimentais','dadosvalidacao','reconciliacao','calc_termo_independente']
+        if not isinstance(caracteristica,list):
+            raise TypeError(u'a entrada "características" deve ser do tipo list.')
 
-        self.info = {}
-        for elemento in self._caracteristicas_disponiveis:
+        # ---------------------------------------------------------------------
+        # INCLUSÃO DA(S) NOVA(S) CARACTERÍSTICAS
+        # ---------------------------------------------------------------------
+        # Inclusão na lista de características disponíveis
+        self._caracteristicas_disponiveis.extend(caracteristica)
+
+        # Definição do status para o valor default de falso.
+        for elemento in caracteristica:
             self.info[elemento] = False
-        
+
+
     def __validacao(self,caracteristica):
         u'''Validação das entradas
         '''
@@ -279,16 +325,20 @@ class flag:
                     
         # ---------------------------------------------------------------------
         # AÇÃO
-        # ---------------------------------------------------------------------      
+        # ---------------------------------------------------------------------
+        # TODO: Permitir somente a inclusão de lista. Retirar este IF.
+
         if not isinstance(caracteristica,list):
             caracteristica = [caracteristica]
-         
-        self.__caracteristica = caracteristica
+
+        # TODO: relocar este código para ToggleActive e ToggleInactive.
+        self.__caracteristica = caracteristica # indica qual característica será modificada (Active/Inactive)
         
     def __Toggle(self):
-        u''' Método interno para realizar ação de mudança de status
-        
+        u'''
+         Método interno para realizar ação de mudança de status
         '''
+
         for elemento in self.__caracteristica:
             self.info[elemento]    = self.__togglestatus 
     

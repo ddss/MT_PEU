@@ -153,6 +153,8 @@ class EstimacaoLinear(EstimacaoNaoLinear):
 
         EstimacaoNaoLinear.__init__(self,WLS,Modelo,simbolos_y,simbolos_x,simbolos_param,projeto,**kwargs)
 
+        self._EstimacaoNaoLinear__flag.setCaracteristica(['calc_termo_independente'])
+
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------
