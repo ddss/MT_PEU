@@ -115,18 +115,26 @@ Estime.graficos(etapas,0.95)
 # PARTE I - INCLUSÃO DE DADOS (DEPENDE DO EXEMPLO)
 # =================================================================================
 
-#ER = EstimacaoLinear(['y'],['x'],['p1','p2'],projeto='LINEAR')
-#x = array([[0],[1],[2],[3],[4],[5]])
-#y = array([[.1],[.9],[2.2],[3.2],[3.9],[4.8]])
-#ER.gerarEntradas(x,y,array([[1],[1],[1],[1],[1],[1]]),array([[1],[1],[1],[1],[1],[1]]),tipo='experimental')
-#ER.gerarEntradas(x,y,array([[1],[1],[1],[1],[1],[1]]),array([[1],[1],[1],[1],[1],[1]]),tipo='validacao')
+# Sem o cálculo do termo independente
+ER = EstimacaoLinear(['y'],['x'],['p1'],projeto='LINEAR_semB')
+x = array([[0],[1],[2],[3],[4],[5]])
+y = array([[.1],[.9],[2.2],[3.2],[3.9],[4.8]])
+ER.gerarEntradas(x,y,array([[1],[1],[1],[1],[1],[1]]),array([[1],[1],[1],[1],[1],[1]]),tipo='experimental')
+ER.gerarEntradas(x,y,array([[1],[1],[1],[1],[1],[1]]),array([[1],[1],[1],[1],[1],[1]]),tipo='validacao')
+
+# Com o cálculo do termo independente
+# ER = EstimacaoLinear(['y'],['x'],['p1','p2'],projeto='LINEAR_comB')
+# x = array([[0],[1],[2],[3],[4],[5]])
+# y = array([[.1],[.9],[2.2],[3.2],[3.9],[4.8]])
+# ER.gerarEntradas(x,y,array([[1],[1],[1],[1],[1],[1]]),array([[1],[1],[1],[1],[1],[1]]),tipo='experimental')
+# ER.gerarEntradas(x,y,array([[1],[1],[1],[1],[1],[1]]),array([[1],[1],[1],[1],[1],[1]]),tipo='validacao')
 
 # =================================================================================
 # PARTE II - GENÉRICO (INDEPENDE DO EXEMPLO)
 # =================================================================================
 
-#ER.otimiza()
-#ER.incertezaParametros(.95)
-#ER.Predicao(delta=1e-6)
-#ER.analiseResiduos()
-#ER.graficos(['regiaoAbrangencia', 'entrada', 'predicao','grandezas','estimacao'],0.95)
+ER.otimiza()
+ER.incertezaParametros(.95)
+ER.Predicao(delta=1e-6)
+ER.analiseResiduos()
+ER.graficos(['regiaoAbrangencia', 'entrada', 'predicao','grandezas','estimacao'],0.95)
