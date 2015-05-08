@@ -6,7 +6,7 @@ Created on Mon Feb  2 11:05:02 2015
 """
 # Importação de pacotes de terceiros
 from numpy import array, transpose ,size, diag, linspace, min, max, \
- mean,  std, amin, amax, ndarray, ones, sqrt, nan
+ mean,  std, amin, amax, ndarray, ones, sqrt, nan, shape
 
 from scipy.stats import normaltest, anderson, shapiro, ttest_1samp, kstest,\
  norm, probplot, ttest_ind
@@ -287,20 +287,50 @@ class Grandeza:
         self.__ID.append('residuo')
         self.residuos = Organizador(estimativa,variancia,tipo)  
 
-    def _SETparametro(self,estimativa,variancia,regiao):
-        
-        if variancia != None:        
+    def _SETparametro(self, estimativa, variancia, regiao):
+
+        # --------------------------------------
+        # VALIDAÇÃO
+        # --------------------------------------
+
+        # estimativa
+        if not isinstance(estimativa,list):
+            raise TypeError(u'A estimativa para os parâmetros precisa ser uma lista')
+
+        for elemento in estimativa:
+            if not isinstance(elemento,float):
+                raise TypeError(u'A estimativa precisa ser uma lista de floats.')
+
+        # variância
+        if variancia is not None:
             if not isinstance(variancia,ndarray):
-                    raise TypeError(u'Os dados de entrada precisam ser arrays.')                  
-        
+                    raise TypeError(u'A variância precisa ser um array.')
+            try:
+                shape(variancia)[1]
+            except:
+                raise TypeError(u'A variância precisa ser um array com duas dimensões.')
+
+            if shape(variancia)[0] != shape(variancia)[1]:
+                raise TypeError(u'A variância precisa ser quadrada.')
+
+        # regiao
+        if regiao is not None:
+            if not isinstance(regiao,list):
+                raise TypeError(u'A regiao precisa ser uma lista.')
+
+        # --------------------------------------
+        # EXECUÇÃO
+        # --------------------------------------
+
         self.__ID.append('parametro')           
         self.estimativa         = estimativa
         self.matriz_covariancia = variancia
         # Cálculo da matriz de correlação
-        if variancia != None:
+        if variancia is not None:
             self.matriz_correlacao  = matrizcorrelacao(self.matriz_covariancia)
             self.matriz_incerteza   = vetor2matriz(array(diag(self.matriz_covariancia)**0.5,ndmin=2).transpose(),self.NV)
         self.regiao_abrangencia = regiao
+
  
     def labelGraficos(self,add=None):
         u'''

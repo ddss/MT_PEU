@@ -52,12 +52,10 @@ uy = ones((41,1))
 
 tipo = 1 # tipo: modelo a ser escolhido - 0 (exemplo 5.11), 1 (exemplo 5.12) ou 2 (exemplo 5.13)
 
-Estime = EstimacaoNaoLinear(WLS,Modelo,simbolos_x=[r't','T'],label_latex_x=[r'$t$','$T$'],simbolos_y=[r'y'],simbolos_param=['ko','E'],projeto='EX_%d'%tipo)
+Estime = EstimacaoNaoLinear(WLS,Modelo,simbolos_x=[r't','T'],label_latex_x=[r'$t$','$T$'],simbolos_y=[r'y'],simbolos_param=['ko','E'],projeto='EX_%d'%tipo,args=[tipo])
 
 sup=[50,30000]
 inf=[0 ,20000]
-
-
 
 # ---------------------------------------------------------------------------------
 # Exemplo de validacao Exemplo resolvido 5.2 (capitulo 6) (Análise de dados experimentais 1)
@@ -94,15 +92,19 @@ Estime.gerarEntradas(x,y,ux,uy,tipo='experimental')
 grandeza = Estime._armazenarDicionario() # ETAPA PARA CRIAÇÃO DOS DICIONÁRIOS - Grandeza é uma variável que retorna as grandezas na forma de dicionário
 
 # Otimização
-Estime.otimiza(sup=sup,inf=inf,args=[tipo],algoritmo='PSO',itmax=500,Num_particulas=40,metodo={'busca':'Otimo','algoritmo':'PSO','inercia':'TVIW-linear'})
+Estime.otimiza(sup=sup,inf=inf,algoritmo='PSO',itmax=100,Num_particulas=40,metodo={'busca':'Otimo','algoritmo':'PSO','inercia':'TVIW-linear'})
+#Estime.SETparametro([39.004290830926863, 27647.97544504721],array([[ 2.04661985e+03, 1.28577884e+06], [1.28577884e+06, 8.07978484e+08]]))
 Estime.incertezaParametros(.95,1e-5,metodo='2InvHessiana')
 grandeza = Estime._armazenarDicionario()
-
-Estime.Predicao()
+Estime.predicao()
 Estime.analiseResiduos()
 
-etapas = ['regiaoAbrangencia', 'entrada', 'predicao','grandezas','estimacao']
+etapas = ['regiaoAbrangencia', 'entrada', 'predicao','grandezas','estimacao','analiseResiduos']
 Estime.graficos(etapas,0.95)
+
+#print Estime.parametros.estimativa
+#print Estime.parametros.matriz_covariancia
+#print Estime.parametros.regiao_abrangencia
 
 
 ##################################################################################
@@ -115,26 +117,26 @@ Estime.graficos(etapas,0.95)
 # PARTE I - INCLUSÃO DE DADOS (DEPENDE DO EXEMPLO)
 # =================================================================================
 
-# Sem o cálculo do termo independente
-ER = EstimacaoLinear(['y'],['x'],['p1'],projeto='LINEAR_semB')
-x = array([[0],[1],[2],[3],[4],[5]])
-y = array([[.1],[.9],[2.2],[3.2],[3.9],[4.8]])
-ER.gerarEntradas(x,y,array([[1],[1],[1],[1],[1],[1]]),array([[1],[1],[1],[1],[1],[1]]),tipo='experimental')
-ER.gerarEntradas(x,y,array([[1],[1],[1],[1],[1],[1]]),array([[1],[1],[1],[1],[1],[1]]),tipo='validacao')
-
-# Com o cálculo do termo independente
-# ER = EstimacaoLinear(['y'],['x'],['p1','p2'],projeto='LINEAR_comB')
+# # Sem o cálculo do termo independente
+# ER = EstimacaoLinear(['y'],['x'],['p1'],projeto='LINEAR_semB')
 # x = array([[0],[1],[2],[3],[4],[5]])
 # y = array([[.1],[.9],[2.2],[3.2],[3.9],[4.8]])
 # ER.gerarEntradas(x,y,array([[1],[1],[1],[1],[1],[1]]),array([[1],[1],[1],[1],[1],[1]]),tipo='experimental')
 # ER.gerarEntradas(x,y,array([[1],[1],[1],[1],[1],[1]]),array([[1],[1],[1],[1],[1],[1]]),tipo='validacao')
-
-# =================================================================================
-# PARTE II - GENÉRICO (INDEPENDE DO EXEMPLO)
-# =================================================================================
-
-ER.otimiza()
-ER.incertezaParametros(.95)
-ER.Predicao(delta=1e-6)
-ER.analiseResiduos()
-ER.graficos(['regiaoAbrangencia', 'entrada', 'predicao','grandezas','estimacao'],0.95)
+#
+# # Com o cálculo do termo independente
+# # ER = EstimacaoLinear(['y'],['x'],['p1','p2'],projeto='LINEAR_comB')
+# # x = array([[0],[1],[2],[3],[4],[5]])
+# # y = array([[.1],[.9],[2.2],[3.2],[3.9],[4.8]])
+# # ER.gerarEntradas(x,y,array([[1],[1],[1],[1],[1],[1]]),array([[1],[1],[1],[1],[1],[1]]),tipo='experimental')
+# # ER.gerarEntradas(x,y,array([[1],[1],[1],[1],[1],[1]]),array([[1],[1],[1],[1],[1],[1]]),tipo='validacao')
+#
+# # =================================================================================
+# # PARTE II - GENÉRICO (INDEPENDE DO EXEMPLO)
+# # =================================================================================
+#
+# ER.otimiza()
+# ER.incertezaParametros(.95)
+# ER.Predicao(delta=1e-6)
+# ER.analiseResiduos()
+# ER.graficos(['regiaoAbrangencia', 'entrada', 'predicao','grandezas','estimacao'],0.95)
