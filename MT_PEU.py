@@ -47,15 +47,27 @@ sys.setdefaultencoding("utf-8") # Forçar o sistema utilizar o coding utf-8
 # ---------------------------------------------------------------------------
 from Grandeza import Grandeza
 from subrotinas import Validacao_Diretorio, plot_cov_ellipse, vetor_delta,\
-    matriz2vetor, flag
+    matriz2vetor
 from PSO import PSO
+from Relatorio import Relatorio
+from Flag import flag
 
 class EstimacaoNaoLinear:
     
     def __init__(self,FO,Modelo,simbolos_y,simbolos_x,simbolos_param,projeto='Projeto',**kwargs):
         u'''
-        Classe para executar a estimação de parâmetros        
-        
+        Classe para executar a estimação de parâmetros de modelos não lineares.
+
+         Esta classe conta com um conjunto de métodos para obtenção do ótimo de determinada função objetivo, avaliação
+         da incerteza dos parâmetros, estimativa da predição, cálculo da incerteza da predição e análise de resíduos.
+
+         Principais saídas:
+         * Gráficos
+
+        Classes auxiliares:
+        * Grandeza
+        * Organizador
+
         =======================
         Entradas (obrigatórias)
         =======================
@@ -63,7 +75,7 @@ class EstimacaoNaoLinear:
         * ``Modelo`` (Thread)       : objeto modelo. O modelo deve retornar um array com número de colunas igual ao número de y.
         * ``simbolos_y`` (list)     : lista com os simbolos das variáveis y (Não podem haver caracteres especiais)
         * ``simbolos_x`` (list)     : lista com os simbolos das variáveis x (Não podem haver caracteres especiais)
-        * ``simbolos_param`` (list) : lista com o simbolos dos parâmetros (Não podem haver caracteres especiais)
+        * ``simbolos_param`` (list) : lista com o simbolos dos parâmetros   (Não podem haver caracteres especiais)
         * ``projeto`` (string)      : nome do projeto (Náo podem haver caracteres especiais)
         
         ==============================
@@ -90,7 +102,7 @@ class EstimacaoNaoLinear:
         =======
         
         Para a realização da estimação de parâmetros de um certo modelo faz-se necessário executar \
-        alguns métodos, na ordem indicada:
+        alguns métodos, na ordem indicada (vide observação):
             
         **ESTIMAÇÂO DE PARÂMETROS** 
         
@@ -99,8 +111,8 @@ class EstimacaoNaoLinear:
         * ``otimiza``              : método para realizar a otimização, com base nos dados fornecidos em gerarEntradas.
         * ``incertezaParametros``  : método que avalia a incerteza dos parâmetros (Vide documentação do método)   
         * ``gerarEntradas``        : (é opcional para inclusão de dados de validação)
-        * ``Predicao``             : método que avalia a predição do modelo e sua incerteza ou utilizando os pontos experimentais ou de \
-        validação, se disponível (Vide documentação do método) 
+        * ``Predicao``             : método que avalia a predição do modelo e sua incerteza ou utilizando os dados de validação. Caso estes \
+        não estejam disponíveis, será utilizado os mesmos dados de estimação (Vide documentação do método)
         * ``analiseResiduos``      : método para executar a análise de resíduos (Vide documentação do método)
         * ``graficos``             : método para criação dos gráficos (Vide documentação do método)
         * ``_armazenarDicionario`` : método que returna as grandezas sob a forma de um dicionário (Vide documentação do método)
@@ -109,30 +121,42 @@ class EstimacaoNaoLinear:
 
         * ``gerarEntradas``        : método para incluir dados obtidos de experimentos. Neste há a opção de determinar \
         se estes dados serão utilizados como dados para estimar os parâmetros ou para validação. (Vide documentação do método)
-        * ``SETparametro``         : método adicionar manualmente valores das estimativas dos parâmetros e sua matriz covarãncia
+        * ``SETparametro``         : método adicionar manualmente valores das estimativas dos parâmetros e sua matriz covarãncia. É assumido \
+        que os parâmetros foram estimados para o conjunto de dados fornecidos para estimação.
         * ``gerarEntradas``        : (é opcional para inclusão de dados de validação)
-        * incertezaParametros      : (é opcional para avaliação da incerteza, caso não incluído em SETparametro). Entretanto, este estará limitado a calcular a incerteza pela
-        sensibilidade ao modelo, somente. Não será avaliada a região de abrangẽncia (esta deve ser incluída via SETparametro)
-        * ``Predicao``             : método que avalia a predição do modelo e sua incerteza ou utilizando os pontos experimentais ou de \
-        validação, se disponível (Vide documentação do método).
+        * incertezaParametros      : (é opcional para avaliação da incerteza, caso não incluído em SETparametro). Entretanto, este estará limitado a \
+        calcular a matriz de covariância dos parâmetros. Não será avaliada a região de abrangẽncia (esta deve ser incluída via SETparametro)
+        * ``Predicao``             : método que avalia a predição do modelo e sua incerteza ou utilizando os dados de validação. Caso estes \
+        não estejam disponíveis, será utilizado os mesmos dados de estimação (Vide documentação do método)
         * ``analiseResiduos``      : método para executar a análise de resíduos (Vide documentação do método)
         * ``graficos``             : método para criação dos gráficos (Vide documentação do método)
         * ``_armazenarDicionario`` : método que returna as grandezas sob a forma de um dicionário (Vide documentação do método)
 
-        ====================
+
+        **OBSERVAÇÃO**: A ordem de execução dos métodos é importante. Esta classe só permite a execução e métodos, caso as etapas predescessoras tenho sido
+        executadas. Entretanto, alguns métodos possuem flexibilidade. Segue abaixo algumas exemplos:
+        * gerarEntradas para definir os dados de estimação deve ser sempre executado antes de otimiza
+        * gerarEntradas para definir os dados de validação deve ser sempre executado antes de Predicao
+        * graficos é um método que pode ser executado em diferentes momentos:
+            * se for solicitado os gráficos das grandezas-entrada, o método pode ser executado logo após gerarEntradas
+            * se for solicitado os gráficos da otimização, o método pode ser executado logo após otimização
+
+        =================
         Fluxo de trabalho        
-        ====================
+        =================
         
         Esta classe valida a correta ordem de execução dos métodos. É importante salientar que cada vez que o método ``gerarEntradas`` \
-        é utilizado, é criado um novo ``Fluxo de trabalho``, ou seja, o motor de cálculo valida de alguns métodos precisam ser reexecutados \
-        devido a entrada de novos dados.
+        é utilizado, é criado um novo ``Fluxo de trabalho`` ou ele ``Reinicia`` todos.
         
         **Observação 1**: Se forem adicionados diferentes dados de validação (execuções do método gerarEntradas para incluir tais dados), \
         são iniciado novos fluxos, mas é mantido o histórico de toda execução.
         
-        **Observação 2**: Se forem adicionados novos dados experimentais, todo o histórico de fluxos é apagado e reniciado.
+        **Observação 2**: Se forem adicionados novos dados para estimacao, todo o histórico de fluxos é apagado e reniciado.
          
-        ======      
+        Esta característica permite a avaliação de diferentes dados de valiação consecutivamente (uso dos métodos de Predição, análiseResiduos, graficos),
+        após a estimação dos parâmtros (otimiza, incertezaParametros)
+
+        ======
         Saídas
         ======
         
@@ -152,6 +176,7 @@ class EstimacaoNaoLinear:
         * ``parametros`` : objeto Grandeza que contém todas as informações referentes aos parâmetros sob a forma de atributos.
             * ``estimativa``         : estimativa para os parâmetros
             * ``matriz_covariancia`` : matriz de covariância
+            * ``matriz_correlacao``   : matriz de correlação
             * ``regiao_abrangencia`` : pontos contidos na região de abrangência
         
         Obs.: Para informações mais detalhadas, consultar os Atributos da classe Grandeza.        
@@ -169,23 +194,35 @@ class EstimacaoNaoLinear:
                 result = 0
                 def __init__(self,p,argumentos):
                     Thread.__init__(self)
-            
+
                     self.param  = p
-                    
-                    self.y     = argumentos[0]
-                    self.x     = argumentos[1]
-                    self.Vy    = argumentos[2]
-                    self.Vx    = argumentos[3]
-                    self.args  = argumentos[4]                    
+
+                    self.y      = argumentos[0]
+                    self.x      = argumentos[1]
+                    self.Vy     = argumentos[2]
+                    self.Vx     = argumentos[3]
+                    self.args   = argumentos[4]
+
+                    # Modelo
+                    self.modelo     = argumentos[5]
+
+                    # Simbologia
+                    self.simb_x     = argumentos[6]
+                    self.simb_y     = argumentos[7]
+                    self.simb_param = argumentos[8]
 
                 def run(self):
-            
-                    ym = Modelo(self.param,self.x,self.args)
+
+                    ym = self.modelo(self.param,self.x,[self.args,self.simb_x,self.simb_y,self.simb_param])
                     ym.start()
                     ym.join()
+
                     ym = matriz2vetor(ym.result)
+                    #print '-------------'
+                    #print ym
+                    #print '-------------'
                     d     = self.y - ym
-                    self.result =  float(dot(dot(transpose(d),linalg.inv(self.Vy)),d))            
+                    self.result =  float(dot(dot(transpose(d),linalg.inv(self.Vy)),d))
         
         OBSERVAÇÃO:
         O Motor de cálculo sempre irá enviar como uma lista argumentos para a função objetivo \
@@ -1761,3 +1798,34 @@ class EstimacaoNaoLinear:
 
             else:
                 warn(u'Os gráficos envolvendo a análise de resíduos não puderam ser criados, pois o método %s'%(self.__etapasdisponiveis[5],)+u' não foi executado.',UserWarning)
+
+    def Relatorio(self,**kwargs):
+        '''
+        Método para criação do(s) relatório(s) com os principais resultados.
+
+        ========
+        Keywords
+        ========
+        * Vide documentação de Relatorio.Predicao
+        '''
+        # ---------------------------------------------------------------------
+        # DEFINIÇÃO DA CLASSE
+        # ---------------------------------------------------------------------
+        saida = Relatorio(self.__base_path,sep +'Relatorios'+ sep)
+
+        # ---------------------------------------------------------------------
+        # RELATÓRIO DOS PARÂMETROS
+        # ---------------------------------------------------------------------
+        # Caso a otimização ou SETParametros tenha sido executado, pode-se fazer um relatório sobre os parâmetros
+        if self.__etapasdisponiveis[2] in self.__etapasGlobal() or self.__etapasdisponiveis[8] in self.__etapasGlobal():
+            saida.Parametros(self.parametros,self.FOotimo)
+
+        # ---------------------------------------------------------------------
+        # RELATÓRIO DA PREDIÇÃO E ANÁLISE DE RESÍDUOS
+        # ---------------------------------------------------------------------
+        # Caso a Predição tenha sido executada, pode-se fazer um relatório sobre a predição
+        if self.__etapasdisponiveis[7] in self.__etapas[self.__etapasID]:
+            if self.__etapasdisponiveis[5] in self.__etapas[self.__etapasID]:
+                saida.Predicao(self.x,self.y,self.R2,self.R2ajustado,**kwargs)
+            else:
+                saida.Predicao(self.x,self.y,None,None,**kwargs)

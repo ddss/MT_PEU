@@ -160,7 +160,7 @@ class Grandeza:
         Métodos        
         =======
 
-        **DEFINICIONAIS**:
+        **DEFINICIONAIS** - Usado para criação de atributos:
         
         * ``_SETexperimental`` : irá criar o atributo experimental. Deve ser usado se se tratar de dados experimentais
         * ``_SETmodelo``       : irá criar o atributo modelo. Deve ser usado se se tratar de dados do modelo
@@ -198,7 +198,7 @@ class Grandeza:
         (vide documentação do mesmo). **só exitirá após execução do método _SETcalculado**
 
         **PARÂMETROS**
-        (atributos só existiram após a execução do método _SETparametro)
+        (atributos só existirão após a execução do método _SETparametro)
         
         * ``.estimativa`` (list): lista com estimativas. 
         * ``.matriz_covariancia`` (array): array representando a matriz covariância. 
@@ -405,20 +405,24 @@ class Grandeza:
                 # Lista que contém as chamadas das funções de teste:
                 if size(dados) < 3: # Se for menor do que 3, não se pode executar o teste de shapiro
                     pnormal=[None, None, anderson(dados, dist='norm'),kstest(dados,'norm',args=(mean(dados),std(dados,ddof=1)))]                
-                    pvalor[nome]['residuo-Normalidade'] = {'normaltest':None, 'shapiro':None, 'anderson':[[pnormal[2][0]], pnormal[2][1][1]],'kstest':pnormal[3][1]}                    
+                    pvalor[nome]['residuo-Normalidade'] = {'normaltest':None, 'shapiro':None, 'anderson':[pnormal[2][0], pnormal[2][1][1]],'kstest':pnormal[3][1]}
 
                 elif size(dados) < 20: # Se for menor do que 20 não será realizado no normaltest, pois ele só é válido a partir dste número de dados
                     pnormal=[None, shapiro(dados), anderson(dados, dist='norm'),kstest(dados,'norm',args=(mean(dados),std(dados,ddof=1)))]                
-                    pvalor[nome]['residuo-Normalidade'] = {'normaltest':None, 'shapiro':pnormal[1][1], 'anderson':[[pnormal[2][0]], pnormal[2][1][1]],'kstest':pnormal[3][1]}
+                    pvalor[nome]['residuo-Normalidade'] = {'normaltest':None, 'shapiro':pnormal[1][1], 'anderson':[pnormal[2][0], pnormal[2][1][1]],'kstest':pnormal[3][1]}
                 else:
                     pnormal=[normaltest(dados), shapiro(dados), anderson(dados, dist='norm'),kstest(dados,'norm',args=(mean(dados),std(dados,ddof=1)))]                
-                    pvalor[nome]['residuo-Normalidade'] = {'normaltest':pnormal[0][1], 'shapiro':pnormal[1][1], 'anderson':[[pnormal[2][0]], pnormal[2][1][1]],'kstest':pnormal[3][1]}
+                    pvalor[nome]['residuo-Normalidade'] = {'normaltest':pnormal[0][1], 'shapiro':pnormal[1][1], 'anderson':[pnormal[2][0], pnormal[2][1][1]],'kstest':pnormal[3][1]}
 
                 # Dicionário para salvar os resultados                
                 # Testes para a média:
                 pmedia = [ttest_1samp(dados,0.), ttest_ind(dados,norm.rvs(loc=0.,scale=std(dados,ddof=1),size=size(dados)))]
                 pvalor[nome]['residuo-Media'] = {'ttest':pmedia[0][1],'ttest_ind':pmedia[1][1]}
-                
+
+                # Variável para salvar os nomes dos testes estatísticos - consulta
+                self.__nomesTestes = {'residuo-Normalidade':['normaltest','shapiro', 'anderson','kstest'],
+                                      'residuo-Media':['ttest']}
+
         else:
             raise NameError(u'Os testes estatísticos são válidos apenas para o resíduos')
 
