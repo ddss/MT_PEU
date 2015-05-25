@@ -45,10 +45,10 @@ sys.setdefaultencoding("utf-8") # Forçar o sistema utilizar o coding utf-8
 # ---------------------------------------------------------------------------
 # IMPORTAÇÃO DE SUBROTINAS PRÓPRIAS E ADAPTAÇÕES (DESENVOLVIDAS PELO GI-UFBA)
 # ---------------------------------------------------------------------------
+from PSO.PSO import PSO   # Deve haver uma pasta com os códigos-fonte do PSO
 from Grandeza import Grandeza
 from subrotinas import Validacao_Diretorio, plot_cov_ellipse, vetor_delta,\
     matriz2vetor
-from PSO import PSO
 from Relatorio import Relatorio
 from Flag import flag
 
@@ -63,10 +63,20 @@ class EstimacaoNaoLinear:
 
          Principais saídas:
          * Gráficos
+         * Relatórios
 
         Classes auxiliares:
         * Grandeza
         * Organizador
+
+        ======================
+        Bibliotecas requeridas
+        ======================
+        * Numpy
+        * Scipy
+        * Matplotlib
+        * Math
+        * PSO - **Obtida no link http://github.com/ddss/PSO. Os códigos devem estar dentro de uma pasta de nome PSO**
 
         =======================
         Entradas (obrigatórias)

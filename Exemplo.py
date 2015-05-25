@@ -61,26 +61,26 @@ from numpy import ones, array, transpose, concatenate
 # Exemplo de validacao Exemplo resolvido 5.2 (capitulo 6) (Análise de dados experimentais 1)
 # ---------------------------------------------------------------------------------
 
-x1 = transpose(array([1.,2.,3.,5.,10,15.,20.,30.,40.,50.],ndmin=2))
-y1 = transpose(array([1.66,6.07,7.55,9.72,15.24,18.79,19.33,22.38,24.27,25.51],ndmin=2))
-x2 = transpose(array([1.,2.,3.,5.,10,15.,20.,30.,40.,50.],ndmin=2))
-y2 = transpose(array([1.66,6.07,7.55,9.72,15.24,18.79,19.33,22.38,24.27,25.51],ndmin=2))
-
-ux1 = ones((10,1))
-ux2 = ones((10,1))
-uy1 = ones((10,1))
-uy2 = ones((10,1))
-
-x  = concatenate((x1,x2),axis=1)
-y  = concatenate((y1,y2),axis=1)
-ux = concatenate((ux1,ux2),axis=1)
-uy = concatenate((uy1,uy2),axis=1)
-
-
-Estime = EstimacaoNaoLinear(WLS,Modelo,simbolos_x=['x1','x2'],simbolos_y=['y1','y2'],simbolos_param=[r'theta%d'%i for i in xrange(4)],label_latex_param=[r'$\theta_{%d}$'%i for i in xrange(4)])
-
-sup = [6.  ,.3  ,8.  ,0.7]
-inf = [1.  , 0  ,1.  ,0.]
+# x1 = transpose(array([1.,2.,3.,5.,10,15.,20.,30.,40.,50.],ndmin=2))
+# y1 = transpose(array([1.66,6.07,7.55,9.72,15.24,18.79,19.33,22.38,24.27,25.51],ndmin=2))
+# x2 = transpose(array([1.,2.,3.,5.,10,15.,20.,30.,40.,50.],ndmin=2))
+# y2 = transpose(array([1.66,6.07,7.55,9.72,15.24,18.79,19.33,22.38,24.27,25.51],ndmin=2))
+#
+# ux1 = ones((10,1))
+# ux2 = ones((10,1))
+# uy1 = ones((10,1))
+# uy2 = ones((10,1))
+#
+# x  = concatenate((x1,x2),axis=1)
+# y  = concatenate((y1,y2),axis=1)
+# ux = concatenate((ux1,ux2),axis=1)
+# uy = concatenate((uy1,uy2),axis=1)
+#
+#
+# Estime = EstimacaoNaoLinear(WLS,Modelo,simbolos_x=['x1','x2'],simbolos_y=['y1','y2'],simbolos_param=[r'theta%d'%i for i in xrange(4)],label_latex_param=[r'$\theta_{%d}$'%i for i in xrange(4)])
+#
+# sup = [6.  ,.3  ,8.  ,0.7]
+# inf = [1.  , 0  ,1.  ,0.]
 
 #tipo = None
 
@@ -88,20 +88,20 @@ inf = [1.  , 0  ,1.  ,0.]
 # PARTE II - GENÉRICO (INDEPENDE DO EXEMPLO)
 # =================================================================================
 
-Estime.gerarEntradas(x,y,ux,uy,tipo='experimental')
-grandeza = Estime._armazenarDicionario() # ETAPA PARA CRIAÇÃO DOS DICIONÁRIOS - Grandeza é uma variável que retorna as grandezas na forma de dicionário
-
-# Otimização
-Estime.otimiza(sup=sup,inf=inf,algoritmo='PSO',itmax=100,Num_particulas=40,metodo={'busca':'Otimo','algoritmo':'PSO','inercia':'TVIW-linear'})
-#Estime.SETparametro([38.995741810115526, 27642.600636422056],array([[  2.02734350e+03,   1.27340945e+06], [  1.27340945e+06,   8.00043729e+08]]), [[40.109979078710914, 28327.340030375271], [39.974873089082237, 28269.976466622789], [39.986868869853929, 28257.245507319007], [39.957802118600114, 28262.280430186871], [39.96796782099441, 28252.197585436141], [39.972752888990108, 28247.451519119131], [39.970243928961061, 28248.729896415203], [40.213165972226285, 28401.616852926723], [39.966798413346233, 28255.363399182246], [39.967131150063913, 28249.310328451735], [39.968894125215073, 28251.321914853899], [39.968259898251567, 28254.002072298666], [39.845248197231676, 28170.027690073686], [37.137087267928976, 26470.834878622278], [39.967980582134309, 28255.18242446626], [39.968018736414727, 28253.447171804281], [39.968035154317207, 28252.700487325488], [40.189655836527102, 28405.961873947806], [39.968007703632878, 28253.379865343017], [39.968008117335522, 28253.765566695656], [39.8324968893617, 28186.280024724736], [39.906652236738815, 28212.712307038702], [39.894059693996837, 28201.761703602224]])
-Estime.incertezaParametros(.95,1e-5,metodo='2InvHessiana')
-grandeza = Estime._armazenarDicionario()
-Estime.predicao()
-Estime.analiseResiduos()
-
-etapas = ['regiaoAbrangencia', 'grandezas-entrada', 'predicao','grandezas-calculadas','estimacao','analiseResiduos']
-#Estime.graficos(etapas,0.95)
-Estime.Relatorio(export_y=True,export_cov_y=True)
+# Estime.gerarEntradas(x,y,ux,uy,tipo='experimental')
+# grandeza = Estime._armazenarDicionario() # ETAPA PARA CRIAÇÃO DOS DICIONÁRIOS - Grandeza é uma variável que retorna as grandezas na forma de dicionário
+#
+# # Otimização
+# Estime.otimiza(sup=sup,inf=inf,algoritmo='PSO',itmax=100,Num_particulas=40,metodo={'busca':'Otimo','algoritmo':'PSO','inercia':'TVIW-linear'})
+# #Estime.SETparametro([38.995741810115526, 27642.600636422056],array([[  2.02734350e+03,   1.27340945e+06], [  1.27340945e+06,   8.00043729e+08]]), [[40.109979078710914, 28327.340030375271], [39.974873089082237, 28269.976466622789], [39.986868869853929, 28257.245507319007], [39.957802118600114, 28262.280430186871], [39.96796782099441, 28252.197585436141], [39.972752888990108, 28247.451519119131], [39.970243928961061, 28248.729896415203], [40.213165972226285, 28401.616852926723], [39.966798413346233, 28255.363399182246], [39.967131150063913, 28249.310328451735], [39.968894125215073, 28251.321914853899], [39.968259898251567, 28254.002072298666], [39.845248197231676, 28170.027690073686], [37.137087267928976, 26470.834878622278], [39.967980582134309, 28255.18242446626], [39.968018736414727, 28253.447171804281], [39.968035154317207, 28252.700487325488], [40.189655836527102, 28405.961873947806], [39.968007703632878, 28253.379865343017], [39.968008117335522, 28253.765566695656], [39.8324968893617, 28186.280024724736], [39.906652236738815, 28212.712307038702], [39.894059693996837, 28201.761703602224]])
+# Estime.incertezaParametros(.95,1e-5,metodo='2InvHessiana')
+# grandeza = Estime._armazenarDicionario()
+# Estime.predicao()
+# Estime.analiseResiduos()
+#
+# etapas = ['otimizacao','regiaoAbrangencia', 'grandezas-entrada', 'predicao','grandezas-calculadas','estimacao','analiseResiduos']
+# Estime.graficos(etapas,0.95)
+# Estime.Relatorio(export_y=True,export_cov_y=True)
 # print Estime.parametros.estimativa
 #print Estime.parametros.matriz_covariancia
 #print Estime.parametros.regiao_abrangencia
@@ -117,12 +117,12 @@ Estime.Relatorio(export_y=True,export_cov_y=True)
 # PARTE I - INCLUSÃO DE DADOS (DEPENDE DO EXEMPLO)
 # =================================================================================
 
-# Sem o cálculo do termo independente
-# ER = EstimacaoLinear(['y'],['x'],['p1'],projeto='LINEAR_semB')
-# x = array([[0],[1],[2],[3],[4],[5]])
-# y = array([[.1],[.9],[2.2],[3.2],[3.9],[4.8]])
-# ER.gerarEntradas(x,y,array([[1],[1],[1],[1],[1],[1]]),array([[1],[1],[1],[1],[1],[1]]),tipo='experimental')
-# ER.gerarEntradas(x,y,array([[1],[1],[1],[1],[1],[1]]),array([[1],[1],[1],[1],[1],[1]]),tipo='validacao')
+#Sem o cálculo do termo independente
+ER = EstimacaoLinear(['y'],['x'],['p1'],projeto='LINEAR_semB')
+x = array([[0],[1],[2],[3],[4],[5]])
+y = array([[.1],[.9],[2.2],[3.2],[3.9],[4.8]])
+ER.gerarEntradas(x,y,array([[1],[1],[1],[1],[1],[1]]),array([[1],[1],[1],[1],[1],[1]]),tipo='experimental')
+ER.gerarEntradas(x,y,array([[1],[1],[1],[1],[1],[1]]),array([[1],[1],[1],[1],[1],[1]]),tipo='validacao')
 
 # # Com o cálculo do termo independente
 # ER = EstimacaoLinear(['y'],['x'],['p1','p2'],projeto='LINEAR_comB')
@@ -135,10 +135,10 @@ Estime.Relatorio(export_y=True,export_cov_y=True)
 # # PARTE II - GENÉRICO (INDEPENDE DO EXEMPLO)
 # # =================================================================================
 #
-#ER.otimiza()
+ER.otimiza()
 # ER.SETparametro([0.9571428571428567, 0.12380952380952503])
-# ER.incertezaParametros(.95)
-#ER.predicao(delta=1e-6)
-#ER.analiseResiduos()
-#ER.graficos(['regiaoAbrangencia', 'grandezas-entrada', 'predicao','grandezas-calculadas','estimacao'],0.95)
-# ER.Relatorio()
+ER.incertezaParametros(.95)
+ER.predicao(delta=1e-6)
+ER.analiseResiduos()
+ER.graficos(['regiaoAbrangencia', 'grandezas-entrada', 'predicao','grandezas-calculadas','estimacao'],0.95)
+ER.Relatorio()

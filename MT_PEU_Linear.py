@@ -19,7 +19,7 @@ from numpy.linalg import inv
 # Rotinas Internas
 from MT_PEU import EstimacaoNaoLinear
 
-from PSO import PSO
+from PSO.PSO import PSO # Deve haver uma pasta de nome PSO com os código fonte
 
 from Funcao_Objetivo import WLS
 
@@ -59,7 +59,16 @@ class EstimacaoLinear(EstimacaoNaoLinear):
     def __init__(self,simbolos_y,simbolos_x,simbolos_param,projeto='Projeto',**kwargs):
         u'''
         Classe para executar a estimação de parâmetros de modelos MISO lineares nos parâmetros       
-        
+
+        ======================
+        Bibliotecas requeridas
+        ======================
+        * Numpy
+        * Scipy
+        * Matplotlib
+        * Math
+        * PSO - **Obtida no link http://github.com/ddss/PSO. Os códigos devem estar dentro de uma pasta de nome PSO**
+
         =======================
         Entradas (obrigatórias)
         =======================
