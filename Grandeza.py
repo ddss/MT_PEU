@@ -107,14 +107,14 @@ class Organizador:
         
         if tipos['incerteza'] == 'incerteza':
 
-            if incerteza != None:            
+            if incerteza is not None:
                 self.matriz_incerteza   = incerteza            
                 self.matriz_covariancia = diag(transpose(matriz2vetor(self.matriz_incerteza**2)).tolist()[0])
                 self.matriz_correlacao  = matrizcorrelacao(self.matriz_covariancia)
 
         if tipos['incerteza'] == 'variancia':
 
-            if incerteza != None:        
+            if incerteza is not None:
                 self.matriz_covariancia = incerteza     
                 self.matriz_incerteza   = vetor2matriz(array(diag(self.matriz_covariancia)**0.5,ndmin=2).transpose(),NE)
                 self.matriz_correlacao  = matrizcorrelacao(self.matriz_covariancia)
@@ -124,7 +124,7 @@ class Organizador:
         # ---------------------------------------------------------------------
         self.lista_estimativa = self.matriz_estimativa.transpose().tolist()
         
-        if incerteza != None:        
+        if incerteza is not None:
             self.lista_incerteza  = self.matriz_incerteza.transpose().tolist()
             self.lista_variancia  = diag(self.matriz_covariancia).tolist()
         else:
@@ -206,21 +206,21 @@ class Grandeza:
         * ``.regiao_abrangencia`` (list): lista representando os pontos pertencentes à região de abrangência.
         '''
         
-        if simbolos == None:
+        if simbolos is None:
             raise NameError('Os símbolos das grandezas são obrigatórios')
 
         self.simbolos    = simbolos        
 
         self.nomes       = nomes
-        if nomes == None:
+        if nomes is None:
             self.nomes = [None]*len(simbolos)
 
         self.unidades    = unidades
-        if unidades == None:
+        if unidades is None:
             self.unidades = [None]*len(simbolos)
         
         self.label_latex = label_latex
-        if label_latex == None:
+        if label_latex is None:
             self.label_latex = [None]*len(simbolos)
         
         # ------------------------------------------------------------------------------------
@@ -342,7 +342,7 @@ class Grandeza:
         * add: texto que se deseja escrever antes da unidade. Deve ser um string
         '''
         # VALIDAÇÃO Da variável add
-        if (add != None) and (not isinstance(add,str)):
+        if (add is not None) and (not isinstance(add,str)):
             raise TypeError(u'A variável add deve ser um string')
             
         # Definição dos labels: latex ou nomes ou simbolos (nesta ordem)
@@ -350,18 +350,18 @@ class Grandeza:
         
         for z in xrange(len(self.nomes)):
 
-            if self.label_latex[z] != None:
+            if self.label_latex[z] is not None:
                 label[z] = self.label_latex[z]
-            elif self.nomes[z] != None:
+            elif self.nomes[z] is not None:
                 label[z] = self.nomes[z]
-            elif self.simbolos[z] != None:
+            elif self.simbolos[z] is not None:
                 label[z] = self.simbolos[z]
 
-            if add != None:
+            if add is not None:
                 label[z] = label[z] +' '+ add
             
             # Caso seja definido uma unidade, esta será incluída no label
-            if self.unidades[z] != None:
+            if self.unidades[z] is not None:
                 label[z] = label[z]+' '+"/"+self.unidades[z]
             
         return label
@@ -396,7 +396,6 @@ class Grandeza:
             pvalor = {}
             for nome in self.simbolos:
                 pvalor[nome] = {}
-                
 
             for i,nome in enumerate(self.simbolos):
                 dados = self.residuos.matriz_estimativa[:,i]
@@ -444,13 +443,13 @@ class Grandeza:
         # ---------------------------------------------------------------------
         # VALIDAÇÃO DOS IDs:
         # ---------------------------------------------------------------------
-        if ID == None:
+        if ID is None:
             ID = self.__ID
         
         if False in [ele in self.__ID_disponivel for ele in ID]:
             raise NameError(u'Foi inserido uma ID indiponível. IDs disponíveis: '+','.join(self.__ID_disponivel))
 
-        if base_path == None:
+        if base_path is None:
             base_path = getcwd()
 
         base_dir  = sep + 'Grandezas' + sep
