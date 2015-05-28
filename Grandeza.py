@@ -6,7 +6,7 @@ Created on Mon Feb  2 11:05:02 2015
 """
 # Importação de pacotes de terceiros
 from numpy import array, transpose ,size, diag, linspace, min, max, \
- mean,  std, amin, amax, ndarray, ones, sqrt, nan, shape
+ mean,  std, amin, amax, ndarray, ones, sqrt, insert, nan, shape
 
 from scipy.stats import normaltest, anderson, shapiro, ttest_1samp, kstest,\
  norm, probplot, ttest_ind
@@ -15,7 +15,8 @@ from matplotlib.pyplot import figure, axes, axis, plot, errorbar, subplot, xlabe
     title, legend, savefig, xlim, ylim, close, grid, text, hist, boxplot
 
 from os import getcwd, sep
-
+from statsmodels.stats.diagnostic import acorr_breush_godfrey, acorr_ljungbox, het_breushpagan, het_white
+from statsmodels.stats.stattools import durbin_watson
 
 # Subrotinas próprias (desenvolvidas pelo GI-UFBA)
 from subrotinas import matriz2vetor, vetor2matriz, Validacao_Diretorio, matrizcorrelacao
@@ -366,10 +367,15 @@ class Grandeza:
             
         return label
 
-    def _testesEstatisticos(self):
+    def _testesEstatisticos(self,z):
         u'''
         Subrotina para realizar testes estatísticos nos resíduos
-        
+
+        =======
+        Entrada
+        =======
+        * z: variáveis para explicadores. Objetivo: avaliar homocedasticidade
+
         =================
         Testes realizados
         =================
@@ -377,51 +383,101 @@ class Grandeza:
         **NORMALIDADE**:
         
         * normaltest: Retorna o pvalor do teste de normalidade. Hipótese nula: a amostra vem de distribuição normal
-        * shapiro   : Retorna o valor de normalidade. Hipótese nula: a amostra vem de uma distribuição normal
-        * anderson  : Retorna o valor do Teste para os dados provenientes de uma distribuição em particular. Hipotese nula: a amostra vem de uma normal
-        * probplot  : Gera um gráfico de probabilidade de dados de exemplo contra os quantis de uma distribuição teórica especificado (a distribuição normal por padrão).
-                      Calcula uma linha de melhor ajuste para os dados se "encaixar" é verdadeiro e traça os resultados usando Matplotlib.
-                      tornar um conjunto de dados positivos transformados por uma transformação Box-Cox power.
+        * shapiro   : Retorna o pvalor de normalidade. Hipótese nula: a amostra vem de uma distribuição normal
+        * anderson  : Retorna a estatistica do Teste para os dados provenientes de uma distribuição Normal e um parâmetro comparativo para PA de confiança, onde se a estatistica for maior que os valores críticos (1-PA) tem-se que: a hipótese nula de que os dados vem da distribuição normal pode ser rejeitada.
+                      A lista de valores críticos (nível se significância) é para 15%, 10%, 5%, 2.5%, 1%, respectivamente.
+                      Hipotese nula: a amostra vem de uma normal
+        * kstest    : Retorna o pvalor de normalidade. Hipótese nula: a amostra vem de uma distribuição normal
+
         **MÉDIA**:
         
         * ttest_1sam: Retorna o pvalor para média determinada. Hipótese nula: a amostra tem a média determinada
-      
-        **SAÍDA** (sobe a forma de ATRIBUTO)
+       
+        **AUTOCORRELAÇÃO**:
         
-        * estatisticas (float):  Valor das hipóteses testadas. Para a hipótese nula tida como verdadeira, um valor abaixo de 0.05 nos diz que para 95% de confiança pode-se rejeitar essa hipótese
+        *durbin_watson: Teste de autocorrelação Interpretativo. Há duas formas de analisar o resultado:
+        1 Forma: Comparação com valores tabelados:
+            Podemos tomar a decisão comparando o valor de dw (estatística) com os valores críticos
+            dL e dU da Tabela de Durbin-Watson (https://www3.nd.edu/~wevans1/econ30331/Durbin_Watson_tables.pdf) .
+            Assim,
+            se 0 ≤ dw < dL então rejeitamos H0 (dependência);
+            se dL ≤ dw ≤ dU então o teste é inconclusivo;
+            se dU < dw < 4-dU então não rejeitamos H0 (independência);
+            se 4-dU ≤ dw ≤ 4-dL então o teste é inconclusivo;
+            se 4-dL < dw ≤ 4 então rejeitamos H0 (dependência).
+
+            Quando 0<= dw < dL temos evidência de uma correlação positiva. Já quando 4-dL <= dw <= 4 ,
+            a correlação é negativa.No caso em que não rejeitamos H0,
+            temos que não existe autocorrelação, ou seja, os resíduos são independentes.
+
+        2 Forma: Simplificada
+            A estatística de teste é aproximadamente igual a 2 * (1-r) em que r é a autocorrelação das amostras residuais.
+            Assim, por r == 0, indicando que não há correlação, a estatística de teste é igual a 2.
+            Quanto mais próximo de 0 a estatística, o mais evidências para correlação serial positiva.
+            Quanto mais próximo de 4, mais evidências de correlação serial negativa.
+
+        **HOMOCEDÁSTICIDADE**:
+
+        *het_white [1]: Testa se os residuos são homocedásticos, foi proposto por Halbert White em 1980.
+         Para este teste, a hipótese nula é de que todas as observações têm a mesma variância do erro, ou seja, os erros são homocedásticas.
+
+        *Bresh Pagan:Testa a hipótese de os residuos são homocedásticos, recomendado para funções lineares  
+         
+        =====
+        SAÍDA
+        =====
+        Sob a forma de atributo:
+        * estatisticas (dict):  p-valor das hipóteses testadas. Para a hipótese nula tida como verdadeira,
+        um valor abaixo de (1-PA) nos diz que para PA de confiança pode-se rejeitar essa hipótese.
+
+        OBS: para o teste de durbin_watson e anderson Darling, são retornadas estatísticas e não p-valores.
+
+        =================
+        Referências
+        =================
+        [1] White, H. (1980). "A Heteroskedasticity-Consistente Covariance Matrix Estimador e um teste direto para Heteroskedasticity". Econometrica 48 (4):. 817-838 JSTOR 1.912.934 . MR 575027 .
+
         '''
+        # TODO: Verificar teste de acorr_ljungbox
+        # TODO: detalhar melhor a documentação
+        # TODO: revise as documentações para avaliar se os valores de resposta estão coerentes
     
         if 'residuo' in self.__ID: # Testes para os resíduos
-            
+            # Variável para salvar os nomes dos testes estatísticos - consulta
+            self.__nomesTestes = {'residuo-Normalidade':['normaltest','shapiro', 'anderson','kstest'],
+                                  'residuo-Media':['ttest'],
+                                  'residuo-Autocorrelacao':['Durbin Watson','Ljung-Box'],
+                                  'residuo-Homocedasticidade':['white test','Bresh Pagan']}
             pvalor = {}
             for nome in self.simbolos:
                 pvalor[nome] = {}
 
             for i,nome in enumerate(self.simbolos):
                 dados = self.residuos.matriz_estimativa[:,i]
-                
-                # Testes para normalidade
+        
                 # Lista que contém as chamadas das funções de teste:
                 if size(dados) < 3: # Se for menor do que 3, não se pode executar o teste de shapiro
                     pnormal=[None, None, anderson(dados, dist='norm'),kstest(dados,'norm',args=(mean(dados),std(dados,ddof=1)))]                
-                    pvalor[nome]['residuo-Normalidade'] = {'normaltest':None, 'shapiro':None, 'anderson':[pnormal[2][0], pnormal[2][1][1]],'kstest':pnormal[3][1]}
+                    pvalor[nome]['residuo-Normalidade'] = {'normaltest':None, 'shapiro':None, 'anderson':{'estatistica A_Darling':pnormal[2][0],'valores criticos':pnormal[2][1]},'kstest':pnormal[3][1]}
 
                 elif size(dados) < 20: # Se for menor do que 20 não será realizado no normaltest, pois ele só é válido a partir dste número de dados
                     pnormal=[None, shapiro(dados), anderson(dados, dist='norm'),kstest(dados,'norm',args=(mean(dados),std(dados,ddof=1)))]                
-                    pvalor[nome]['residuo-Normalidade'] = {'normaltest':None, 'shapiro':pnormal[1][1], 'anderson':[pnormal[2][0], pnormal[2][1][1]],'kstest':pnormal[3][1]}
+                    pvalor[nome]['residuo-Normalidade'] = {'normaltest':None, 'shapiro':pnormal[1][1], 'anderson':{'estatistica A_Darling':pnormal[2][0],'valores criticos':pnormal[2][1]},'kstest':pnormal[3][1]}
                 else:
                     pnormal=[normaltest(dados), shapiro(dados), anderson(dados, dist='norm'),kstest(dados,'norm',args=(mean(dados),std(dados,ddof=1)))]                
-                    pvalor[nome]['residuo-Normalidade'] = {'normaltest':pnormal[0][1], 'shapiro':pnormal[1][1], 'anderson':[pnormal[2][0], pnormal[2][1][1]],'kstest':pnormal[3][1]}
+                    pvalor[nome]['residuo-Normalidade'] = {'normaltest':pnormal[0][1], 'shapiro':pnormal[1][1], 'anderson':{'estatistica A_Darling':pnormal[2][0],'valores criticos':pnormal[2][1]},'kstest':pnormal[3][1]}
 
-                # Dicionário para salvar os resultados                
                 # Testes para a média:
-                pmedia = [ttest_1samp(dados,0.), ttest_ind(dados,norm.rvs(loc=0.,scale=std(dados,ddof=1),size=size(dados)))]
-                pvalor[nome]['residuo-Media'] = {'ttest':pmedia[0][1],'ttest_ind':pmedia[1][1]}
-
-                # Variável para salvar os nomes dos testes estatísticos - consulta
-                self.__nomesTestes = {'residuo-Normalidade':['normaltest','shapiro', 'anderson','kstest'],
-                                      'residuo-Media':['ttest']}
-
+                pvalor[nome]['residuo-Media'] = {'ttest':float(ttest_1samp(dados,0.)[1])}
+             
+                # Testes para a autocorrelação:
+                #ljungbox = acorr_ljungbox(dados, lags=None, boxpierce=True)
+                pvalor[nome]['residuo-Autocorrelacao'] = {'Durbin Watson':{'estatistica':durbin_watson(dados)}}#, 'Ljung-Box':{'p-valor chi2':ljungbox[1],'p-valor Box-Pierce test':ljungbox[3]}}
+                
+                # Testes para a Homocedásticidade:
+                # TODO: Avaliar se z deve ser passado para cada coluna da entrada.
+                pheter= [het_white(dados,insert(z, 0, 1, axis=1)),het_breushpagan(dados,z)]
+                pvalor[nome]['residuo-Homocedasticidade'] = {'white test':{'p-valor multiplicador de Lagrange':pheter[0][1], 'p-valor Teste F':pheter[0][3]},'Bresh Pagan':{'p-valor multiplicador de lagrange':pheter[1][1],'p-valor Teste F':pheter[1][3]}}
         else:
             raise NameError(u'Os testes estatísticos são válidos apenas para o resíduos')
 
@@ -439,6 +495,12 @@ class Grandeza:
         * ``ID``        : Identificação da grandeza. Este ID é útil apenas para as grandezas \
         dependentes e independentes, ele identifica para qual atributo os gráficos devem ser avaliados. \
         Caso seja None, será feito os gráficos para TODOS os atributos disponíveis.
+        
+        Funções: 
+        * probplot  : Gera um gráfico de probabilidade de dados de exemplo contra os quantis de uma distribuição teórica especificado (a distribuição normal por padrão).
+                      Calcula uma linha de melhor ajuste para os dados se "encaixar" é verdadeiro e traça os resultados usando Matplotlib.
+        *BOXPLOT    : O boxplot (gráfico de caixa) é um gráfico utilizado para avaliar a distribuição empírica do dados. 
+                      O boxplot é formado pelo primeiro e terceiro quartil e pela mediana.
         '''
         # ---------------------------------------------------------------------
         # VALIDAÇÃO DOS IDs:
@@ -447,7 +509,7 @@ class Grandeza:
             ID = self.__ID
         
         if False in [ele in self.__ID_disponivel for ele in ID]:
-            raise NameError(u'Foi inserido uma ID indiponível. IDs disponíveis: '+','.join(self.__ID_disponivel))
+            raise NameError(u'Foi inserido uma ID indiponível. IDs disponíveis: '+','.join(self.__ID_disponivel)+'.')
 
         if base_path is None:
             base_path = getcwd()
@@ -457,6 +519,7 @@ class Grandeza:
 
         if 'residuo' in ID:
             # BOXPLOT
+            #checa a variabilidade dos dados, assim como a existência de possíveis outliers
             fig = figure()
             ax = fig.add_subplot(1,1,1)
             boxplot(self.residuos.matriz_estimativa)
@@ -472,7 +535,9 @@ class Grandeza:
 
                 dados = self.residuos.matriz_estimativa[:,i]
         
-                # TENDENCIA
+                # TENDÊNCIA
+                #Testa a aleatoriedade dos dados, plotando os valores do residuo versus a ordem em que foram obtidos
+                #dessa forma verifica-se há alguma tendência
                 fig = figure()
                 ax = fig.add_subplot(1,1,1)
                 plot(linspace(1,size(dados),num=size(dados)),dados, 'o')
@@ -486,6 +551,7 @@ class Grandeza:
                 close()        
         
                 # AUTO CORRELAÇÃO
+                #Gera um gráfico de barras que verifica a autocorrelação
                 fig = figure()
                 ax = fig.add_subplot(1,1,1)
                 ax.acorr(dados,usevlines=True, normed=True,maxlags=None)
@@ -497,6 +563,7 @@ class Grandeza:
                 close()
 
                 # HISTOGRAMA                
+                #Gera um gráfico de histograma, importante na verificação da pdf
                 fig = figure()
                 hist(dados, normed=True)
                 xlabel(self.labelGraficos()[i])
@@ -504,10 +571,10 @@ class Grandeza:
                 fig.savefig(base_path+base_dir+'residuos_histograma')
                 close()
 
-                # NORMALIDADE               
+                # NORMALIDADE 
+                #Verifica se os dados são oriundos de uma pdf normal, o indicativo disto é a obtenção de uma reta              
                 res = probplot(dados, dist='norm', sparams=(mean(dados),std(dados,ddof=1)))
-
-                if nan in res[0][0].tolist() or nan in res[0][1].tolist() or  nan in res[1]:   
+                if not (nan in res[0][0].tolist() or nan in res[0][1].tolist() or nan in res[1]):
                     fig = figure()
                     plot(res[0][0], res[0][1], 'o', res[0][0], res[1][0]*res[0][0] + res[1][1])
                     xlabel('Quantis')

@@ -15,11 +15,12 @@ from numpy import array, transpose, concatenate,size, diag, linspace, min, max, 
 sort, argsort, mean,  std, amin, amax, copy, cos, sin, radians, mean, dot, ones, \
 hstack, shape
 
-from scipy.stats import f
+from scipy.stats import f, chi2
 
 from scipy.misc import factorial
 from numpy.linalg import inv
 from math import floor, log10
+from statsmodels.graphics.regressionplots import influence_plot
 
 # Construção de gráficos
 from matplotlib import use
@@ -77,6 +78,7 @@ class EstimacaoNaoLinear:
         * Matplotlib
         * Math
         * PSO - **Obtida no link http://github.com/ddss/PSO. Os códigos devem estar dentro de uma pasta de nome PSO**
+        * statsmodels
 
         =======================
         Entradas (obrigatórias)
@@ -1405,19 +1407,30 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         return regiao
         
-    def analiseResiduos(self):
+    def analiseResiduos(self,PA):
         u'''
         Método para realização da análise de resíduos.
-        
         A análise da sempre preferência aos dados de validação.
+
+        ========
+        Entradas
+        ========
+        PA= Probabilidade de Abrângência
         
         ======
         Saídas
         ======
-        
-        * Saídas na forma de gráficos
-        * As grandezas resíduos possuem o atributo "estatisticas".
+        * Cálculo do R2 e R2 ajustado (atributos: R2 e R2ajustado)
+        * Aplicação de testes estatísticos para as grandezas. Criação do atributo estatisticas para cada grandeza x e y. (Vide documentação de Grandeza)
+        * Teste estatítico para avaliar se a função objetivo segue uma chi2 (atributo estatisticas)
+            * Há duas situações possíveis ao se analisar a FO com a chi2, se a FO pertence ao intervalo chi2min < FO < chi2max,
+              o modelo representa bem os dados, ou se FO não pertence a este intervalo, neste caso tem-se:
+              * FO < chi2min, O modelo representa os dados esperimentais muito melhor que o esperado,
+              o que pode indicar que há super parametrização do modelo ou que os erros esperimentais estão superestimados:
+              * FO > chi2max: o modelo não é capaz de explicar os erros experimentais
+              ou pode haver subestimação dos erros esperimentais
         '''
+        # TODO: avaliar se PA deve ser self
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------         
@@ -1471,10 +1484,26 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------             
         # Grandezas independentes
         if self.__flag.info['reconciliacao'] == True:
-            self.x._testesEstatisticos()
+            self.x._testesEstatisticos(self.y.experimental.matriz_estimativa)
  
         # Grandezas dependentes            
-        self.y._testesEstatisticos()
+        self.y._testesEstatisticos(self.x.experimental.matriz_estimativa)
+
+        # ---------------------------------------------------------------------
+        # VALIDAÇÃO DO VALOR DA FUNÇÃO OBJETIVO COMO UMA CHI 2
+        # ---------------------------------------------------------------------
+        # TODO: substituir pelo grau de liberdade dos parâmetros, após merge com INcertezaParametros
+        gL = self.y.experimental.NE*self.y.NV - self.parametros.NV
+        
+        chi2max = chi2.ppf(PA+(1-PA)/2,gL)
+        chi2min = chi2.ppf((1-PA)/2,gL)
+        
+        if chi2min < self.Otimizacao.best_fitness < chi2max:
+            result= u'O modelo representa bem o conjunto de dados'
+        else:
+            result= u'O modelo não representa bem o conjunto de dados'
+
+        self.estatisticas = {'FuncaoObjetivo':{'chi2max':chi2max,'chi2min':chi2min,'FO': (self.FOotimo, result)}}
 
         # ---------------------------------------------------------------------
         # VARIÁVEIS INTERNAS
@@ -1482,6 +1511,24 @@ class EstimacaoNaoLinear:
         # Inclusão desta etapa na lista de etapas
         self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[5]) 
 
+        # TODO avaliar erro em influence_plot
+#        for i,simb in enumerate(self.y.simbolos):
+#            base_dir =  sep + 'Grandezas' + sep + self.y.simbolos[i] + sep
+#            # Gráficos da otimização
+#            Validacao_Diretorio(base_path,base_dir)  
+#        
+#            ymodelo = self.y.experimental.matriz_estimativa[:,i]
+#            fig = figure()
+#            ax = fig.add_subplot(1,1,1)
+#            ax.set_ylabel("Modelo")
+#            ax.set_xlabel("Residuos")
+#            ax.set_title("")
+#            influence_plot(self.y.residuos.matriz_estimativa[:,i],True, 0.05, 'cooks', 48, 0.75, ax)
+#            fig.savefig(base_path+base_dir+'outlier.png')
+#            close()
+#
+#        self.__etapas.append(self.__etapasdisponiveis[5]) # Inclusão desta etapa na lista de etapas
+#        return self.estatisticaFO
 
     def graficos(self,tipos,PA=0.95):
         u'''
@@ -1490,7 +1537,6 @@ class EstimacaoNaoLinear:
         =======================
         Entradas (obrigatórias)
         =======================
-
         * ``tipos`` (list): lista contendo strings referentes aos tipos de gráficos que se deseja criar
             * 'regiaoAbrangencia': gráficos da região de abrangência dos parâmetros
             * 'grandezas-entrada': gráficos referentes aos dados de entrada e de validação
@@ -1795,6 +1841,7 @@ class EstimacaoNaoLinear:
                     Validacao_Diretorio(base_path,base_dir)
 
                     ymodelo = self.y.calculado.matriz_estimativa[:,i]
+
                     fig = figure()
                     ax = fig.add_subplot(1,1,1)
                     plot(ymodelo,self.y.residuos.matriz_estimativa[:,i], 'o')
