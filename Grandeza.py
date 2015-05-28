@@ -538,9 +538,11 @@ class Grandeza:
                 # TENDÊNCIA
                 #Testa a aleatoriedade dos dados, plotando os valores do residuo versus a ordem em que foram obtidos
                 #dessa forma verifica-se há alguma tendência
+                # TODO: colocar legenda
                 fig = figure()
                 ax = fig.add_subplot(1,1,1)
                 plot(linspace(1,size(dados),num=size(dados)),dados, 'o')
+                plot(linspace(1,size(dados),num=size(dados)),[mean(dados)]*size(dados),'-.r')
                 xlabel('Ordem de Coleta')
                 ylabel(self.simbolos[i])
                 ax.yaxis.grid(color='gray', linestyle='dashed')                        

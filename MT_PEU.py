@@ -1842,9 +1842,11 @@ class EstimacaoNaoLinear:
 
                     ymodelo = self.y.calculado.matriz_estimativa[:,i]
 
+                    # TODO: colocar legenda e substituir ymodelo por linespace
                     fig = figure()
                     ax = fig.add_subplot(1,1,1)
                     plot(ymodelo,self.y.residuos.matriz_estimativa[:,i], 'o')
+                    plot(ymodelo,[mean(self.y.residuos.matriz_estimativa[:,i])]*size(ymodelo), '-.r')
                     xlabel(u'Valores Ajustados '+self.y.labelGraficos()[i])
                     ylabel(u'Resíduos '+self.y.labelGraficos()[i])
                     ax.yaxis.grid(color='gray', linestyle='dashed')
