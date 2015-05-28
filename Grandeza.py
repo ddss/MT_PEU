@@ -347,18 +347,20 @@ class Grandeza:
         **NORMALIDADE**:
         
         * normaltest: Retorna o pvalor do teste de normalidade. Hipótese nula: a amostra vem de distribuição normal
-        * shapiro   : Retorna o valor de normalidade. Hipótese nula: a amostra vem de uma distribuição normal
-        * anderson  : Retorna o valor do Teste para os dados provenientes de uma distribuição em particular. Hipotese nula: a amostra vem de uma normal
-        * probplot  : Gera um gráfico de probabilidade de dados de exemplo contra os quantis de uma distribuição teórica especificado (a distribuição normal por padrão).
-                      Calcula uma linha de melhor ajuste para os dados se "encaixar" é verdadeiro e traça os resultados usando Matplotlib.
-                      tornar um conjunto de dados positivos transformados por uma transformação Box-Cox power.
+        * shapiro   : Retorna o pvalor de normalidade. Hipótese nula: a amostra vem de uma distribuição normal
+        * anderson  : Retorna o pvalor do Teste para os dados provenientes de uma distribuição Normal e um parâmetro comparativo para 95% de confiança, onde se o pvalor for maior que o Parâmetro tem-se que: a hipótese nula de que os dados vem da distribuição normal pode ser rejeitada.
+                      A lista de valores críticos é para 15%, 10%, 5%, 2.5%, 1%, respectivamente.
+                      Hipotese nula: a amostra vem de uma normal
+                      
         **MÉDIA**:
         
         * ttest_1sam: Retorna o pvalor para média determinada. Hipótese nula: a amostra tem a média determinada
        
         **AUTOCORRELAÇÃO**:
         
-        *durbin_watson, podemos tomar a decisão comparando o valor de dw com os valores críticos dL e dU da Tabela de Durbin-Watson (hhttps://www.google.com.br/url?sa=t&rct=j&q=&esrc=s&source=web&cd=1&cad=rja&uact=8&ved=0CB0QFjAA&url=https%3A%2F%2Fwww3.nd.edu%2F~wevans1%2Fecon30331%2FDurbin_Watson_tables.pdf&ei=62P3VImiMPHksATf74HIBQ&usg=AFQjCNHDagBaOLazvei8S2FeJKsc_Vh7eg&sig2=uLw2VfKsPyneQQXhOhkKdA&bvm=bv.87519884,d.cWc) .
+        *durbin_watson: Teste de autocorrelação Interpretativo 
+        Podemos tomar a decisão comparando o valor de dw com os valores críticos
+        dL e dU da Tabela de Durbin-Watson (https://www3.nd.edu/~wevans1/econ30331/Durbin_Watson_tables.pdf) .
         Assim,
         se 0 ≤ dw < dL então rejeitamos H0 (dependência); 
         se dL ≤ dw ≤ dU então o teste é inconclusivo;
@@ -366,22 +368,27 @@ class Grandeza:
         se 4-dU ≤ dw ≤ 4-dL então o teste é inconclusivo;
         se 4-dL < dw ≤ 4 então rejeitamos H0 (dependência).
  
-        Quando 0<= dw < dL temos evidência de uma correlação positiva. Já quando 4-dL <= dw <= 4 , a correlação é negativa. No caso em que não rejeitamos H0,
+        Quando 0<= dw < dL temos evidência de uma correlação positiva. Já quando 4-dL <= dw <= 4 ,
+        a correlação é negativa.No caso em que não rejeitamos H0,
         temos que não existe autocorrelação, ou seja, os resíduos são independentes.
         
         A estatística de teste é aproximadamente igual a 2 * (1-r) em que r é a autocorrelação das amostras residuais. 
-        Assim, por r == 0, indicando que não há correlação serial, a estatística de teste é igual a 2. Esta estatística será sempre entre 0 e 4. 
-        Quanto mais próximo de 0 a estatística, o mais evidências para correlação serial positiva. Quanto mais próximo de 4, mais evidências de correlação serial negativa.
+        Assim, por r == 0, indicando que não há correlação, a estatística de teste é igual a 2.
+        Quanto mais próximo de 0 a estatística, o mais evidências para correlação serial positiva. 
+        Quanto mais próximo de 4, mais evidências de correlação serial negativa.
         
         **HOMOCEDÁSTICIDADE**:
-        *het_white testa se os residuos são homocedásticos, foi proposto por Halbert White em 1980.
+        *het_white: Testa se os residuos são homocedásticos, foi proposto por Halbert White em 1980.
          Para este teste, a hipótese nula é de que todas as observações têm a mesma variância do erro, ou seja, os erros são homocedásticas.
        
         *White, H. (1980). "A Heteroskedasticity-Consistente Covariance Matrix Estimador e um teste direto para Heteroskedasticity". Econometrica 48 (4):. 817-838 JSTOR 1.912.934 . MR 575027 .
         
+        *Bresh Pagan:Testa a hipótese de os residuos são homocedásticos, recomendado para funções lineares  
+         
         **SAÍDA** (sobe a forma de ATRIBUTO)
         
-        * estatisticas (float):  Valor das hipóteses testadas. Para a hipótese nula tida como verdadeira, um valor abaixo de 0.05 nos diz que para 95% de confiança pode-se rejeitar essa hipótese
+        * estatisticas (float):  Valor das hipóteses testadas. Para a hipótese nula tida como verdadeira,
+        um valor abaixo de 0.05 nos diz que para 95% de confiança pode-se rejeitar essa hipótese
         '''
     
         if 'residuo' in self.__ID: # Testes para os resíduos
@@ -399,23 +406,23 @@ class Grandeza:
                 # Testes para normalidade
                 if size(dados) < 20: # Se for menor do que 20 não será realizado no normaltest, pois ele só é válido a partir dste número de dados
                     pnormal=[None, shapiro(dados), anderson(dados, dist='norm'),kstest(dados,'norm',args=(mean(dados),std(dados,ddof=1)))]                
-                    pvalor[nome]['residuo-Normalidade'] = {'normaltest':None, 'shapiro':pnormal[1][1], 'anderson':[[pnormal[2][0]], pnormal[2][1][1]],'kstest':pnormal[3][1]}
+                    pvalor[nome][u'Residuo-Normalidade'] = {'Normaltest':None, 'Teste Shapiro':pnormal[1][1], 'Teste Anderson-Darling':{u'Estatistica A_Darling':pnormal[2][0],'Valores criticos': pnormal[2][1]},'Teste Kolmogorov-Smirnov':pnormal[3][1]}
                 else:
                     pnormal=[normaltest(dados), shapiro(dados), anderson(dados, dist='norm'),kstest(dados,'norm',args=(mean(dados),std(dados,ddof=1)))]                
-                    pvalor[nome]['residuo-Normalidade'] = {'normaltest':pnormal[0][1], 'shapiro':pnormal[1][1], 'anderson':[[pnormal[2][0]], pnormal[2][1][1]],'kstest':pnormal[3][1]}
+                    pvalor[nome][u'Residuo-Normalidade'] = {'Normaltest':pnormal[0][1], 'Teste Shapiro':pnormal[1][1], 'Teste Anderson-Darling':{u'Estatistica A_Darling':pnormal[2][0],'Valores criticos': pnormal[2][1]},'Teste Kolmogorov-Smirnov':pnormal[3][1]}
 
                            
                 # Testes para a média:
                 pmedia = [ttest_1samp(dados,0.)]#, ttest_ind(dados,norm.rvs(loc=0.,scale=std(dados,ddof=1),size=100000))]
-                pvalor[nome][u'residuo-Media'] = {'ttest':pmedia[0][1]}#,'ttest_ind':pmedia[1][1]}
+                pvalor[nome][u'Residuo-Media'] = {'T-test':pmedia[0][1]}#,'ttest_ind':pmedia[1][1]}
              
                 # Testes para a autocorrelação:
-                pacorr= [durbin_watson(dados)]
-                pvalor[nome][u'residuo-Autocorrelacao'] = {'test durbin watson':pacorr[0]}
+                pacorr= [durbin_watson(dados),acorr_ljungbox(dados, lags=None, boxpierce=True)]
+                pvalor[nome][u'Residuo-Autocorrelacao'] = {u'Estatistica Durbin Watson':pacorr[0], u'Teste Ljung-Box':{u'p-valor baseado en chi2':pacorr[1][1],u'p-valor baseado em Box-Pierce test':pacorr[1][3]} }
                 
                 # Testes para a Homocedásticidade:
                 pheter= [het_white(dados,insert(x, 0, 1, axis=1)),het_breushpagan(dados,x)]
-                pvalor[nome][u'residuo-Homocedasticidade'] = {'test white':{'p-value of lagrange multiplier test':pheter[0][1], 'p-value for the f-statistic':pheter[0][3]},'outr':pheter[1]}
+                pvalor[nome][u'Residuo-Homocedasticidade'] = {'Test de white':{'p-valor pelo teste multiplicador de Lagrange':pheter[0][1], 'p-valor pelo Teste F':pheter[0][3]},'Teste de Bresh Pagan':{'p-valor pelo multiplicador de lagrange':pheter[1][1],'p-valor pelo Teste F':pheter[1][3]} }
         else:
             raise NameError(u'Os testes estatísticos são válidos apenas para o resíduos')
 
@@ -433,10 +440,17 @@ class Grandeza:
         * ``ID``        : Identificação da grandeza. Este ID é útil apenas para as grandezas \
         dependentes e independentes, ele identifica para qual atributo os gráficos devem ser avaliados. \
         Caso seja None, será feito os gráficos para TODOS os atributos disponíveis.
+        
+        Funções: 
+        * probplot  : Gera um gráfico de probabilidade de dados de exemplo contra os quantis de uma distribuição teórica especificado (a distribuição normal por padrão).
+                      Calcula uma linha de melhor ajuste para os dados se "encaixar" é verdadeiro e traça os resultados usando Matplotlib.
+        *BOXPLOT    : O boxplot (gráfico de caixa) é um gráfico utilizado para avaliar a distribuição empírica do dados. 
+                      O boxplot é formado pelo primeiro e terceiro quartil e pela mediana.
         '''
         # ---------------------------------------------------------------------
         # VALIDAÇÃO DOS IDs:
         # ---------------------------------------------------------------------
+        
         if ID == None:
             ID = self.__ID
         
@@ -451,6 +465,7 @@ class Grandeza:
 
         if 'residuo' in ID:
             # BOXPLOT
+            #checa a variabilidade dos dados, assim como a existência de possíveis outliers
             fig = figure()
             ax = fig.add_subplot(1,1,1)
             boxplot(self.residuos.matriz_estimativa)
@@ -466,7 +481,9 @@ class Grandeza:
 
                 dados = self.residuos.matriz_estimativa[:,i]
         
-                # TENDENCIA
+                # TENDÊNCIA
+                #Testa a aleatoriedade dos dados, plotando os valores do residuo versus a ordem em que foram obtidos
+                #dessa forma verifica-se há alguma tendência
                 fig = figure()
                 ax = fig.add_subplot(1,1,1)
                 plot(linspace(1,size(dados),num=size(dados)),dados, 'o')
@@ -480,6 +497,7 @@ class Grandeza:
                 close()        
         
                 # AUTO CORRELAÇÃO
+                #Gera um gráfico de barras que verifica a autocorrelação
                 fig = figure()
                 ax = fig.add_subplot(1,1,1)
                 ax.acorr(dados,usevlines=True, normed=True,maxlags=None)
@@ -491,6 +509,7 @@ class Grandeza:
                 close()
 
                 # HISTOGRAMA                
+                #Gera um gráfico de histograma, importante na verificação da pdf
                 fig = figure()
                 hist(dados, normed=True)
                 xlabel(self.labelGraficos()[i])
@@ -498,7 +517,8 @@ class Grandeza:
                 fig.savefig(base_path+base_dir+'residuos_histograma')
                 close()
 
-                # NORMALIDADE               
+                # NORMALIDADE 
+                #Verifica se os dados são oriundos de uma pdf normal, o indicativo disto é a obtenção de uma reta              
                 res = probplot(dados, dist='norm', sparams=(mean(dados),std(dados,ddof=1)))
                 fig = figure()
                 plot(res[0][0], res[0][1], 'o', res[0][0], res[1][0]*res[0][0] + res[1][1])

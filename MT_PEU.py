@@ -16,6 +16,7 @@ from scipy.stats import f, chi2
 from scipy.misc import factorial
 from numpy.linalg import inv
 from math import floor, log10
+from statsmodels.graphics.regressionplots import influence_plot
 
 from matplotlib import use
 use('Agg')
@@ -708,6 +709,11 @@ class Estimacao:
         u'''
         Método para realização da análise de resíduos.
         
+        ========
+        Entradas
+        ========
+        PA= Probabilidade de Abrângência
+        
         ======
         Saídas
         ======
@@ -756,15 +762,22 @@ class Estimacao:
 #            self.R2ajustado[symb] = 1 - (SSEx/(self.x.experimental.NE-self.parametros.NV))\
 #                                       /(SSTx/(self.x.experimental.NE - 1))
 
+
         # ---------------------------------------------------------------------
         # VALIDAÇÃO DO VALOR DA FUNÇÃO OBJETIVO COMO UMA CHI 2
         # ---------------------------------------------------------------------
-        '''Há duas situações possíveis ao se analisar a FO com a chi2, se a FO pertence ao intervalo chi2min < FO < chi2max, o modelo representa bem os dados, ou se FO não pertence a este intervalo, neste caso temos:
-           FO < chi2min, O modelo representa os dados esperimentais muito melhor que o esperado, o que pode indicar que há super parametrização do modelo ou que os erros esperimentais estão superestimados:
-           FO > chi2max: o modelo não é capaz de explicar os erros experimentais ou pode haver subestimação dos erros esperimentais'''
+        '''Há duas situações possíveis ao se analisar a FO com a chi2, se a FO pertence ao intervalo chi2min < FO < chi2max, 
+           o modelo representa bem os dados, ou se FO não pertence a este intervalo, neste caso temos:
+           FO < chi2min, O modelo representa os dados esperimentais muito melhor que o esperado,
+           o que pode indicar que há super parametrização do modelo ou que os erros esperimentais estão superestimados:
+           FO > chi2max: o modelo não é capaz de explicar os erros experimentais 
+           ou pode haver subestimação dos erros esperimentais'''
+        
         gL = self.y.experimental.NE*self.y.NV - self.parametros.NV
+        
         chi2max = chi2.ppf(PA+(1-PA)/2,gL)
         chi2min = chi2.ppf((1-PA)/2,gL)
+        
         if chi2min < self.Otimizacao.best_fitness < chi2max:
             result= u'O modelo representa bem o conjunto de dados'
         else:
@@ -806,7 +819,23 @@ class Estimacao:
 
         self.__etapas.append(self.__etapasdisponiveis[5]) # Inclusão desta etapa na lista de etapas
         
-        return self.estatisticaFO
+#        for i,simb in enumerate(self.y.simbolos):
+#            base_dir =  sep + 'Grandezas' + sep + self.y.simbolos[i] + sep
+#            # Gráficos da otimização
+#            Validacao_Diretorio(base_path,base_dir)  
+#        
+#            ymodelo = self.y.experimental.matriz_estimativa[:,i]
+#            fig = figure()
+#            ax = fig.add_subplot(1,1,1)
+#            ax.set_ylabel("Modelo")
+#            ax.set_xlabel("Residuos")
+#            ax.set_title("")
+#            influence_plot(self.y.residuos.matriz_estimativa[:,i],True, 0.05, 'cooks', 48, 0.75, ax)
+#            fig.savefig(base_path+base_dir+'outlier.png')
+#            close()
+#
+#        self.__etapas.append(self.__etapasdisponiveis[5]) # Inclusão desta etapa na lista de etapas
+#        return self.estatisticaFO
 
     def graficos(self,lista_de_etapas,PA):
         u'''
@@ -815,7 +844,7 @@ class Estimacao:
         Entradas (obrigatórias)
         =======================
         * ``Etapa``   : Status que determinam se o método deve gerar os gráficos de entrada ou de otimização
-        * ``PA``      : 
+        * ``PA``      : Probabilidade de Abragência
         ==========
         Atributos
         ==========
@@ -1006,7 +1035,7 @@ class Estimacao:
             base_dir = sep + 'Estimacao' + sep
             Validacao_Diretorio(base_path,base_dir)
             for iy in xrange(self.y.NV):
-               # Gráfico comparativo entre valores experimentais e calculados pelo modelo, sem variância         
+               # Gráfico comparativo entre valores experimentais e calculados pelo modelo, sem variância, uma reta é um indicativo de qualidade da estimação         
                     y  = self.y.experimental.matriz_estimativa[:,iy]
                     ym = self.y.calculado.matriz_estimativa[:,iy]
                     diagonal = linspace(min(y),max(y))  
@@ -1032,53 +1061,53 @@ if __name__ == "__main__":
     from Funcao_Objetivo import WLS
     from Modelo import Modelo
     # Exemplo validação: Exemplo resolvido 5.11, 5.12, 5.13 (capítulo 5) (Análise de Dados experimentais I)
-    #Tempo
-#    x1 = transpose(array([120.0,60.0,60.0,120.0,120.0,60.0,60.0,30.0,15.0,60.0,\
-#    45.1,90.0,150.0,60.0,60.0,60.0,30.0,90.0,150.0,90.4,120.0,\
-#    60.0,60.0,60.0,60.0,60.0,60.0,30.0,45.1,30.0,30.0,45.0,15.0,30.0,90.0,25.0,\
-#    60.1,60.0,30.0,30.0,60.0],ndmin=2))
+#    Tempo
+    x1 = transpose(array([120.0,60.0,60.0,120.0,120.0,60.0,60.0,30.0,15.0,60.0,\
+    45.1,90.0,150.0,60.0,60.0,60.0,30.0,90.0,150.0,90.4,120.0,\
+    60.0,60.0,60.0,60.0,60.0,60.0,30.0,45.1,30.0,30.0,45.0,15.0,30.0,90.0,25.0,\
+    60.1,60.0,30.0,30.0,60.0],ndmin=2))
+    
+    #Temperatura
+    x2 = transpose(array([600.0,600.0,612.0,612.0,612.0,612.0,620.0,620.0,620.0,\
+    620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,\
+    620.0,620.0,620.0,620.0,620.0,620.0,631.0,631.0,631.0,631.0,631.0,639.0,639.0,\
+    639.0,639.0,639.0,639.0,639.0,639.0,639.0],ndmin=2))
+    
+    x = concatenate((x1,x2),axis=1)
+
+    ux = ones((41,2))
+    
+    y = transpose(array([0.9,0.949,0.886,0.785,0.791,0.890,0.787,0.877,0.938,\
+    0.782,0.827,0.696,0.582,0.795,0.800,0.790,0.883,0.712,0.576,0.715,0.673,\
+    0.802,0.802,0.804,0.794,0.804,0.799,0.764,0.688,0.717,0.802,0.695,0.808,\
+    0.655,0.309,0.689,0.437,0.425,0.638,.659,0.449],ndmin=2))
+        
+    uy = ones((41,1))    
+    
+    Estime = Estimacao(WLS,Modelo,nomes_x = ['variavel teste x1','variavel teste 2'],simbolos_x=[r't','T'],label_latex_x=[r'$t$','$T$'],nomes_y=['y1'],simbolos_y=[r'y1'],nomes_param=['theyta'+str(i) for i in xrange(2)],simbolos_param=[r'theta%d'%i for i in xrange(2)],label_latex_param=[r'$\theta_{%d}$'%i for i in xrange(2)])
+    sup=[1,30000]
+    inf=[0,20000]
+
+#    # Exemplo de validacao Exemplo resolvido 5.2 (capitulo 6) (Análise de dados experimentais 1)
+#    x1 = transpose(array([1.,2.,3.,5.,10,15.,20.,30.,40.,50.],ndmin=2))
+#    y1 = transpose(array([1.66,6.07,7.55,9.72,15.24,18.79,19.33,22.38,24.27,25.51],ndmin=2))
+#    x2 = transpose(array([1.,2.,3.,5.,10,15.,20.,30.,40.,50.],ndmin=2))
+#    y2 = transpose(array([1.66,6.07,7.55,9.72,15.24,18.79,19.33,22.38,24.27,25.51],ndmin=2))
 #    
-#    #Temperatura
-#    x2 = transpose(array([600.0,600.0,612.0,612.0,612.0,612.0,620.0,620.0,620.0,\
-#    620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,\
-#    620.0,620.0,620.0,620.0,620.0,620.0,631.0,631.0,631.0,631.0,631.0,639.0,639.0,\
-#    639.0,639.0,639.0,639.0,639.0,639.0,639.0],ndmin=2))
+#    ux1 = ones((10,1))
+#    ux2 = ones((10,1))
+#    uy1 = ones((10,1))    
+#    uy2 = ones((10,1))
 #    
-#    x = concatenate((x1,x2),axis=1)
+#    x  = concatenate((x1,x2),axis=1)
+#    y  = concatenate((y1,y2),axis=1)    
+#    ux = concatenate((ux1,ux2),axis=1)
+#    uy = concatenate((uy1,uy2),axis=1)
 #
-#    ux = ones((41,2))
+#    Estime = Estimacao(WLS,Modelo,simbolos_x=['x1','x2'],simbolos_y=['y1','y2'],simbolos_param=[r'theta%d'%i for i in xrange(4)],label_latex_param=[r'$\theta_{%d}$'%i for i in xrange(4)])
+#    sup = [6.  ,.3  ,8.  ,0.7]
+#    inf = [1.  , 0  ,1.  ,0.]
 #    
-#    y = transpose(array([0.9,0.949,0.886,0.785,0.791,0.890,0.787,0.877,0.938,\
-#    0.782,0.827,0.696,0.582,0.795,0.800,0.790,0.883,0.712,0.576,0.715,0.673,\
-#    0.802,0.802,0.804,0.794,0.804,0.799,0.764,0.688,0.717,0.802,0.695,0.808,\
-#    0.655,0.309,0.689,0.437,0.425,0.638,.659,0.449],ndmin=2))
-#        
-#    uy = ones((41,1))    
-#    
-#    Estime = Estimacao(WLS,Modelo,nomes_x = ['variavel teste x1','variavel teste 2'],simbolos_x=[r't','T'],label_latex_x=[r'$t$','$T$'],nomes_y=['y1'],simbolos_y=[r'y1'],nomes_param=['theyta'+str(i) for i in xrange(2)],simbolos_param=[r'theta%d'%i for i in xrange(2)],label_latex_param=[r'$\theta_{%d}$'%i for i in xrange(2)])
-#    sup=[1,30000]
-#    inf=[0,20000]
-
-    # Exemplo de validacao Exemplo resolvido 5.2 (capitulo 6) (Análise de dados experimentais 1)
-    x1 = transpose(array([1.,2.,3.,5.,10,15.,20.,30.,40.,50.],ndmin=2))
-    y1 = transpose(array([1.66,6.07,7.55,9.72,15.24,18.79,19.33,22.38,24.27,25.51],ndmin=2))
-    x2 = transpose(array([1.,2.,3.,5.,10,15.,20.,30.,40.,50.],ndmin=2))
-    y2 = transpose(array([1.66,6.07,7.55,9.72,15.24,18.79,19.33,22.38,24.27,25.51],ndmin=2))
-    
-    ux1 = ones((10,1))
-    ux2 = ones((10,1))
-    uy1 = ones((10,1))    
-    uy2 = ones((10,1))
-    
-    x  = concatenate((x1,x2),axis=1)
-    y  = concatenate((y1,y2),axis=1)    
-    ux = concatenate((ux1,ux2),axis=1)
-    uy = concatenate((uy1,uy2),axis=1)
-
-    Estime = Estimacao(WLS,Modelo,simbolos_x=['x1','x2'],simbolos_y=['y1','y2'],simbolos_param=[r'theta%d'%i for i in xrange(4)],label_latex_param=[r'$\theta_{%d}$'%i for i in xrange(4)])
-    sup = [6.  ,.3  ,8.  ,0.7]
-    inf = [1.  , 0  ,1.  ,0.]
-    
     # Continuacao
     Estime.gerarEntradas(x,y,ux,uy)    
     #print Estime.x.labelGraficos()
