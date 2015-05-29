@@ -206,68 +206,71 @@ class Grandeza:
         * ``.matriz_correlcao``   (array): array representando a matriz dos coeficientes de correlação. 
         * ``.regiao_abrangencia`` (list): lista representando os pontos pertencentes à região de abrangência.
         '''
-        
+        # ------------------------------------------------------------------------------------
+        # VALIDAÇÂO
+        # -------------------------------------------------------------------------------------
         if simbolos is None:
             raise NameError('Os símbolos das grandezas são obrigatórios')
 
-        self.simbolos    = simbolos        
+        self.__validacaoEntrada(simbolos,nomes,unidades,label_latex)
 
-        self.nomes       = nomes
-        if nomes is None:
-            self.nomes = [None]*len(simbolos)
-
-        self.unidades    = unidades
-        if unidades is None:
-            self.unidades = [None]*len(simbolos)
-        
-        self.label_latex = label_latex
-        if label_latex is None:
-            self.label_latex = [None]*len(simbolos)
-        
         # ------------------------------------------------------------------------------------
-        # VALIDAÇÂO referente ao tamanho das listas de simbolos, unidades, nomes e label_latex
+        # CRIAÇÃO DE ATRIBUTOS
         # -------------------------------------------------------------------------------------
-        self.__validacaoEntrada()
-    
-        # ---------------------------------------------------------------------
+        # simbolos: usado como referência para a quantdade de variáveis da grandeza
+        self.simbolos    = simbolos
+
+        # nomes, unidades e label_latex: utilizados para plotagem
+        # caso não definidos, eles serão uma lista de elementos None, para manter a consistência dimensional
+        self.nomes       = nomes if nomes is not None else [None]*len(simbolos)
+        self.unidades    = unidades if unidades is not None else [None]*len(simbolos)
+        self.label_latex = label_latex if label_latex is not None else [None]*len(simbolos)
+
         # Número de pontos experimentais e de variáveis
-        # ---------------------------------------------------------------------   
         self.NV = len(simbolos)
         
         # ---------------------------------------------------------------------
-        # Identificação da grandeza
+        # VARIÁVEIS INTERNAS
         # ---------------------------------------------------------------------   
-        self.__ID = []
-        self.__ID_disponivel = ['experimental','validacao','calculado','parametro','residuo']
+        self.__ID = [] # ID`s que a grandeza possui
+        self.__ID_disponivel = ['experimental','validacao','calculado','parametro','residuo'] # Todos os ID's disponíveis
 
-    def __validacaoEntrada(self):
+    def __validacaoEntrada(self,simbolos,nomes,unidades,label_latex):
         u'''
-        Verificação:
+        Validação:
         
-        * se os atributos de simbologia, nome, unidades e label_latex são Listas.
-        * se os tamanhos dos atributos de simbologia, nome, unidades e label_latex são os mesmos.
+        * se os simbolos, nome, unidades e label_latex são Listas.
+        * se os elementos de simbolos, nome, unidades e label_latex são strings (ou caracteres unicode)
+        * se os elementos de simbolos possuem caracteres não permitidos (caracteres especiais)
         * se os simbolos são distintos
+        * se os tamanhos dos atributos de simbologia, nome, unidades e label_latex são os mesmos.
         '''
         # Verificação se nomes, unidade e label_latex são listas
-        for elemento in [self.nomes,self.unidades,self.label_latex]:
-            if not isinstance(elemento,list):
-                raise TypeError(u'A simbologia, nomes, unidades e label_latex de uma grandeza devem ser LISTAS.')        
-       
-       # Verificação se nomes, unidade e label_latex possuem mesmo tamanho
-        for elemento in [self.nomes,self.unidades,self.label_latex]:
-            if len(elemento) != len(self.simbolos):
-                raise ValueError(u'A simbologia, nomes, unidades e label_latex de uma grandeza devem ser listas de MESMO tamanho.')        
-        
+        for elemento in [simbolos,nomes,unidades,label_latex]:
+            if elemento is not None:
+                if not isinstance(elemento,list):
+                    raise TypeError('A simbologia, nomes, unidades e label_latex de uma grandeza devem ser LISTAS.')
+                # verificação se os elementos são strings
+                for value in elemento:
+                    if not isinstance(value,str) and not isinstance(value,unicode):
+                        raise TypeError('Os elementos de simbolos, nomes, unidades e label_latex devem ser STRINGS.')
+
         # Verificação se os símbolos possuem caracteres especiais
-        for simb in self.simbolos:
+        for simb in simbolos:
             if set('[~!@#$%^&*()+{}":;\']+$').intersection(simb):
-                raise NameError('Os nomes das grandezas não podem ter caracteres especiais. Simbolo incorreto: '+simb)       
-    
+                raise NameError('Os simbolos das grandezas não podem ter caracteres especiais. Simbolo incorreto: '+simb)
+
         # Verificação se os símbolos são distintos
         # set: conjunto de elementos distintos não ordenados (trabalha com teoria de conjuntos)
-        if len(set(self.simbolos)) != len(self.simbolos):
+        if len(set(simbolos)) != len(simbolos):
             raise NameError('Os símbolos de cada grandeza devem ser distintos.')
-    
+
+       # Verificação se nomes, unidade e label_latex possuem mesmo tamanho
+        for elemento in [nomes,unidades,label_latex]:
+            if elemento is not None:
+                if len(elemento) != len(simbolos):
+                    raise ValueError('A simbologia, nomes, unidades e label_latex de uma grandeza devem ser listas de MESMO tamanho.')
+
     def _SETexperimental(self,estimativa,variancia,tipo):
         
         self.__ID.append('experimental')
