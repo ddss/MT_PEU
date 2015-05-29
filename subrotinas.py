@@ -9,33 +9,35 @@ from numpy import concatenate, size, arctan2, degrees, sqrt, copy, ones, array
 from numpy.linalg import eigh
 from os import path, makedirs
 
-from matplotlib.pyplot import gca
+from matplotlib.pyplot import figure, axes, axis, plot, errorbar, subplot, xlabel, ylabel,\
+    title, legend, savefig, xlim, ylim, close, grid, text, hist, boxplot, gca
+
 from matplotlib.patches import Ellipse
 
 def matriz2vetor(matriz):
-    u'''
+    u"""
     Subrotina para converter uma matriz (array com várias colunas) em um vetor (array com uma coluna)
     =======
     Entrada
     =======
     * ``matriz`` (array): matriz que se deseja converter para vetor
-    
+
     =====
     Saída
     =====
     * ``vetor`` (array): array com uma coluna
-    
+
     =======
     Exemplo
     =======
     Exemplo: ::
-        
+
         >>> from numpy import array, transpose
         >>> x1 = transpose(array([[1,2,3,4,5]]))
         >>> x2 = transpose(array([[6,7,8,9,10]]))
         >>> matriz  = concatenate((x1,x2),axis=1)
         >>> vetor   = matriz2vetor(matriz)
-    '''
+    """
     # Obtenção da primeira coluna da matriz    
     vetor = matriz[:,0:1]
     for i in xrange(1,size(matriz,1)):
@@ -46,7 +48,7 @@ def matriz2vetor(matriz):
 
 
 def vetor2matriz(vetor,NE):
-    u'''
+    u"""
     Subrotina para converter um vetor (array com uma coluna) em um vetor (array com uma coluna)
 
     =======
@@ -54,24 +56,24 @@ def vetor2matriz(vetor,NE):
     =======
     * ``vetor`` (array): vetor que se deseja converter para matriz
     * ``NE`` (float): quantidade de dados de cada coluna da matriz
-    
+
     =====
     Saída
     =====
-    
+
     * ``matriz`` (array): matriz convertida
-    
+
     =======
     Exemplo
     =======
     Exemplo: ::
-        
+
         >>> from numpy import array, transpose
         >>> x1 = transpose(array([[1,2,3,4,5]]))
         >>> x2 = transpose(array([[6,7,8,9,10]]))
         >>> vetor  = concatenate((x1,x2),axis=0)
         >>> matriz   = vetor2matriz(vetor,5)
-    '''
+    """
 
     pos_inicial = 0  # primeira linha da primeira coluna
     pos_final   = NE # última linha da primeira coluna 
@@ -112,9 +114,7 @@ def Coef_R2(residuo,yexp):
 
 def CovarianciaXY(matriz_cov_x,matriz_cov_y):
     matriz_cov_xy = concatenate((matriz_cov_x,matriz_cov_y))
-    
-    
-    
+
 def plot_cov_ellipse(cov, pos, c2=2, ax=None, **kwargs):
     """
     Plots an `nstd` sigma error ellipse based on the specified covariance
@@ -156,36 +156,36 @@ def plot_cov_ellipse(cov, pos, c2=2, ax=None, **kwargs):
     return (ellip, width, height, theta)
     
 def vetor_delta(entrada_vetor,posicao,delta):
-    u'''
+    u"""
     Subrotina para alterar o(s) elementos de um vetor, acrescentando ou retirando um determinado ''delta''.
     =======
     Entrada
     =======
-    
+
     *``entrada_vetor´´(array, ndmi=1): Vetor ao qual a posição i e j ou apenas i será alterada.
     *``posicao´´(list ou float)= posição a ser repassada pela estrutura 'for'.
     *``delta´´(float): valor do incremento, proporcional a grandeza que será acrescida ou decrescida.
-    
-    
+
+
     =====
     Saída
     =====
     * ``vetor`` (array): array com uma linha.
-    
+
     =======
     Exemplo
     =======
     Exemplo: ::
-        
+
         >>>from numpy import array
         >>>from subrotinas import vetor_delta
-        
+
         >>> x1 =(array([1,2,3,4,5]))
-        
+
         print vetor_delta(x1,3,5)
-        
+
         >>> array([1, 2, 3, 9, 5])
-    '''
+    """
             
     vetor = copy(entrada_vetor)
 
@@ -198,9 +198,9 @@ def vetor_delta(entrada_vetor,posicao,delta):
     return vetor
     
 def matrizcorrelacao(matriz_covariancia):
-    u'''
+    u"""
     Calcula a matriz de correlação de determinada matriz covariância
-    '''
+    """
     if size(matriz_covariancia,0) != size(matriz_covariancia,1):
         raise ValueError(u'A matriz precisa ser quadrada para calcular a matriz dos coeficientes de correlação.')
     
@@ -218,3 +218,82 @@ def lista2matriz(lista):
         res = concatenate((res,aux),1)
     
     return res
+
+def graficos_x_y(X, Y, ix, iy, base_path, base_dir, info):
+    u"""
+    Subrotina para gerar gráficos das variáveis y em função de x
+
+    =======
+    Entrada
+    =======
+    * X: objeto Grandeza contendo os dados a grandeza dependente
+    * Y: objeto Grandeza contendo os dados a grandeza independente
+    * ix: posição da variável que se deseja plotar
+    * iy: posição da variável que se deseja plotar em função de x[ix]
+    * info: atributo de Grandeza que se deseja plotar
+
+    * base_path: caminho base
+    * base_dir : diretório base
+
+    * Gráfico de y em função de x sem incerteza
+    * Gráfico de y em função de x com incerteza
+    """
+
+    x  = eval('X.'+info+'.matriz_estimativa[:,ix]')
+    y  = eval('Y.'+info+'.matriz_estimativa[:,iy]')
+    ux = eval('X.'+info+'.matriz_incerteza[:,ix]')
+    uy = eval('Y.'+info+'.matriz_incerteza[:,iy]')
+
+    #Gráfico apenas com os pontos experimentais
+    fig = figure()
+    ax = fig.add_subplot(1,1,1)
+    plot(x,y,'o')
+    # obtençao do tick do grafico
+    # eixo x+
+    label_tick_x   = ax.get_xticks().tolist()
+    tamanho_tick_x = (label_tick_x[1] - label_tick_x[0])/2
+    # eixo y
+    label_tick_y = ax.get_yticks().tolist()
+    tamanho_tick_y = (label_tick_y[1] - label_tick_y[0])/2
+    # Modificação do limite dos gráficos
+    xmin   = min(x) - tamanho_tick_x
+    xmax   = max(x) + tamanho_tick_x
+    ymin   = min(y) - tamanho_tick_y
+    ymax   = max(y) + tamanho_tick_y
+    xlim(xmin,xmax)
+    ylim(ymin,ymax)
+    # Labels
+    xlabel(X.labelGraficos(info)[ix],fontsize=20)
+    ylabel(Y.labelGraficos(info)[iy],fontsize=20)
+    #Grades
+    grid(b = 'on', which = 'major', axis = 'both')
+    fig.savefig(base_path+base_dir+info+'_'+Y.simbolos[iy]+'_funcao_de_'+X.simbolos[ix]+'_sem_incerteza')
+    close()
+
+    #Grafico com os pontos experimentais e as incertezas
+    fig = figure()
+    ax = fig.add_subplot(1,1,1)
+    xerr = 2*ux
+    yerr = 2*uy
+    errorbar(x,y,xerr=xerr,yerr=yerr,marker='o')
+    # obtençao do tick do grafico
+    # eixo x
+    label_tick_x   = ax.get_xticks().tolist()
+    tamanho_tick_x = (label_tick_x[1] - label_tick_x[0])/2
+    # eixo y
+    label_tick_y = ax.get_yticks().tolist()
+    tamanho_tick_y = (label_tick_y[1] - label_tick_y[0])/2
+    # Modificação dos limites dos gráficos
+    xmin  = min(x - xerr) - tamanho_tick_x
+    ymin  = min(y - yerr) - tamanho_tick_y
+    xmax  = max(x + xerr) + tamanho_tick_x
+    ymax  = max(y + yerr) + tamanho_tick_y
+    xlim(xmin,xmax)
+    ylim(ymin,ymax)
+    # Labels
+    xlabel(X.labelGraficos(info)[ix],fontsize=20)
+    ylabel(Y.labelGraficos(info)[iy],fontsize=20)
+    #Grades
+    grid(b = 'on', which = 'major', axis = 'both')
+    fig.savefig(base_path+base_dir+info+'_'+Y.simbolos[iy]+'_funcao_de_'+X.simbolos[ix]+'_com_incerteza')
+    close()

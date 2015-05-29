@@ -23,9 +23,6 @@ from math import floor, log10
 from statsmodels.graphics.regressionplots import influence_plot
 
 # Construção de gráficos
-from matplotlib import use
-use('Agg') # Define que o matplotlib não usará recursos de vídeo
-
 from matplotlib.pyplot import figure, axes, axis, plot, errorbar, subplot, xlabel, ylabel,\
     title, legend, savefig, xlim, ylim, close, grid, text, hist, boxplot
 
@@ -49,7 +46,7 @@ sys.setdefaultencoding("utf-8") # Forçar o sistema utilizar o coding utf-8
 from PSO.PSO import PSO   # Deve haver uma pasta com os códigos-fonte do PSO
 from Grandeza import Grandeza
 from subrotinas import Validacao_Diretorio, plot_cov_ellipse, vetor_delta,\
-    matriz2vetor
+    matriz2vetor, graficos_x_y
 from Relatorio import Relatorio
 from Flag import flag
 
@@ -347,23 +344,54 @@ class EstimacaoNaoLinear:
                     
         # Flags para controle
         self.__flag = flag()
-        self.__flag.setCaracteristica(['dadosexperimentais','dadosvalidacao','reconciliacao'])
-    
+        self.__flag.setCaracteristica(['dadosexperimentais','dadosvalidacao','reconciliacao','graficootimizacao'])
+        # uso das caracterśiticas:
+        # dadosexperimentais: indicar se dadosexperimentais foram inseridos
+        # dadosvalidacao: indicar se dadosvalidacao foram inseridos
+        # reconciliacao: indicar se reconciliacao está sendo executada
+        # graficootimizacao: indicar se na etapa de otimização são utilizados algoritmos de otimização que possuem
+        # gráficos de desempenho
     def __novoFluxo(self,reiniciar=False):
         u'''Método para criar um novo fluxo de informações.
-        '''        
-        self.__etapasID+= 1 # Incrementa o fluxo de trabalho
-        
+        ===
+        USO
+        ===
+        * Possibilitar o algoritmo validar as etapas predescessoras quando usado + de um dado de validação.
+        * Possibilitar o algoritmo se reiniciar se usado outro dado experimental.
+
+        =========
+        Filosofia
+        =========
+        * Toda vez que é adicionado dados de validação é iniciado um novo fluxo de trabalho, para que a predição, analise de residuos
+         e os respectivos gráficos e relatórios destas etapas sejam corretamente criados
+         * Todas as vezes que dados experimentais são adionados, o fluxo é reiniciado, inclusive definindo que não foram inseridos
+         dados de validação
+        '''
         # Adicionar este novo fluxo no controle de etapas
+
         if reiniciar == False:
+            # Incrementa o fluxo de trabalho é sempre incrementado
+            self.__etapasID+= 1
             # Incluindo o novo ID (fluxo)
-            self.__etapas.update({self.__etapasID:[self.__etapasdisponiveis[10]]}) 
+            # na lista de etapas, a primeira será o novoFluxo
+            self.__etapas.update({self.__etapasID:[self.__etapasdisponiveis[10]]})
         else:
-            # Reiniciando o fluxo, mas mantendo o ID
+            # Reiniciando o fluxo, de trabalho
+            # na lista de etapas é adicionado o init
+            self.__etapasID = 0
             self.__etapas = {self.__etapasID:[self.__etapasdisponiveis[0]]}
+            # Sempre que o fluxo é reiniciado, os dados de validação precisam ser inseridos.
+            if self.__flag.info['dadosvalidacao'] == True:
+                warn('O fluxo foi reiniciado, faz-se necessário incluir novos dados de validação',UserWarning)
+
+            self.__flag.info['dadosvalidacao'].ToogleInactive()
             
     def __etapasGlobal(self):
-        u''' Determina quais etapas foram executadas como um todo
+        u'''
+        Determina quais etapas foram executadas como um todo, independente do fluxo:
+
+        * Testes envolvendo otimiza, SETparametros, incertezaParametros devem ser realizados para as
+        etapas globais, pois sem eles não é possível realizar a predição.
         '''
 
         fluxo = []
@@ -420,101 +448,111 @@ class EstimacaoNaoLinear:
         self.__keywordsOtimizacaoObrigatorias = {'PSO':['sup','inf']}
 
         if etapa == self.__etapasdisponiveis[2]:
-            
-            if (self.__etapasdisponiveis[1] not in self.__etapas[self.__etapasID]) or (self.__flag.info['dadosexperimentais']==False):
-                raise TypeError(u'Para executar a otimização, faz-se necessário primeiro executar método %s informando os dados experimentais.'%(self.__etapasdisponiveis[1],))
-
+            # se gerar entradas não foi executado no Global
+            if (self.__etapasdisponiveis[1] not in self.__etapasGlobal()) or (self.__flag.info['dadosexperimentais']==False):
+                raise SyntaxError('Para executar a otimização, faz-se necessário primeiro executar método {} informando os dados experimentais.'.format(self.__etapasdisponiveis[1]))
+            # se SETparametro não pode ser executado antes de otimiza, em nenhum fluxo.
             if self.__etapasdisponiveis[8] in self.__etapas[self.__etapasID]:
-                raise TypeError(u'O método %s não pode ser executado com %s.'%(self.__etapasdisponiveis[2], self.__etapasdisponiveis[8]))
+                raise SyntaxError('O método {} não pode ser executado com {}'.format(self.__etapasdisponiveis[2], self.__etapasdisponiveis[8]))
 
             # verificação se o algoritmo está disponível
-            if (not args in self.__AlgoritmosOtimizacao) and  args is not None:
-                raise NameError(u'A opção de algoritmo não está correta. Algoritmos disponíveis: '+', '.join(self.__AlgoritmosOtimizacao)+'.')
+            if (not args in self.__AlgoritmosOtimizacao) and args is not None:
+                raise NameError('A opção {} de algoritmo não está correta. Algoritmos disponíveis: '.format(args)+', '.join(self.__AlgoritmosOtimizacao)+'.')
             
             # Validação das keywords obrigatórias por algoritmo
             keyobrigatoria = [key for key in self.__keywordsOtimizacaoObrigatorias[args] if not key in keywargs.keys()]
                 
             if len(keyobrigatoria) != 0:
-                raise NameError(u'Para o método de %s a(s) keyword(s) obrigatória(s) não foram (foi) definida(s): '%(args,)+', '.join(keyobrigatoria)+'.')
+                raise NameError('Para o método de {} a(s) keyword(s) obrigatória(s) não foram (foi) definida(s): '.format(args)+', '.join(keyobrigatoria)+'.')
         
             # validação se as keywords foram corretamente definidas
-            if args == self.__AlgoritmosOtimizacao[0]:
+            if args == self.__AlgoritmosOtimizacao[0]: # PSO
                 # verificação de os tamanhos das listas sup e inf são iguais ao número de parâmetros
                 if (not isinstance(keywargs.get('sup'),list)) or (not isinstance(keywargs.get('inf'),list)):
-                    raise TypeError(u'As keywords sup e inf devem ser LISTAS.')
+                    raise TypeError('As keywords sup e inf devem ser LISTAS.')
                     
                 if (len(keywargs.get('sup')) != self.parametros.NV) or (len(keywargs.get('inf')) != self.parametros.NV):
-                    raise ValueError(u'As keywords sup e inf devem ter o mesmo tamanho do número de parâmetros, definido pelos símbolos. Número de parâmetros: %d'%(self.parametros.NV,))
+                    raise ValueError('As keywords sup e inf devem ter o mesmo tamanho do número de parâmetros, definido pelos símbolos. Número de parâmetros: {}'.format(self.parametros.NV))
                     
         # ---------------------------------------------------------------------
         # INCERTEZA DOS PARÂMETROS
         # --------------------------------------------------------------------- 
         self.__metodosIncerteza = ['2InvHessiana','Geral','SensibilidadeModelo']
         if etapa == self.__etapasdisponiveis[3]:
-
+            # se otimiza não tiver sido executado no contexto global ou SETparametro não tiver sido executado no contexto Global,
+            # não se pode executar incertezaParametros
             if (self.__etapasdisponiveis[2] not in self.__etapasGlobal()) and (self.__etapasdisponiveis[8] not in self.__etapasGlobal()):
-                raise TypeError(u'Para executar a incertezaParametros, faz-se necessário primeiro executar os métodos %s OU %s.'%(self.__etapasdisponiveis[2],self.__etapasdisponiveis[8]))
+                raise SyntaxError('Para executar a incertezaParametros, faz-se necessário primeiro executar os métodos {} OU {}.'.format(self.__etapasdisponiveis[2],self.__etapasdisponiveis[8]))
 
             if args not in self.__metodosIncerteza:
-                raise NameError(u'O método solicitado para cálculo da incerteza dos parâmetros %s'%(args,)+' não está disponível. Métodos disponíveis '+', '.join(self.__metodosIncerteza)+'.')
+                raise NameError('O método solicitado para cálculo da incerteza dos parâmetros {}'.format(args)+' não está disponível. Métodos disponíveis '+', '.join(self.__metodosIncerteza)+'.')
 
         # ---------------------------------------------------------------------
         # REGIÃO DE ABRANGÊNCIA
         # ---------------------------------------------------------------------
         if etapa == self.__etapasdisponiveis[4]:
-
+            # se historicoOtimizacao não tiver sido executado, não se pode criar a Região de abrangência
             if self.__etapasdisponiveis[12] not in self.__etapasGlobal():
-                raise TypeError(u'Para executar a região de abrangência, faz-se necessário primeiro executar um método que avalie o histórico da otimização. Normalmente é %s'%(self.__etapasdisponiveis[2],))
-
+                raise SyntaxError('Para executar a região de abrangência, faz-se necessário primeiro executar um método que avalie o histórico da otimização. Normalmente é {}'.format(self.__etapasdisponiveis[2]))
+            # a probabilidade de abrangência deve estar entre 0 e 1
             if not (0 <= args <= 1):
-                raise ValueError(u'O valor da probabilidade de abrangência deve estar entre 0 e 1.')
+                raise ValueError('O valor da probabilidade de abrangência deve estar entre 0 e 1.')
 
         # ---------------------------------------------------------------------
         # ANÁLISE RESÍDUOS
-        # --------------------------------------------------------------------- 
+        # ---------------------------------------------------------------------
         if etapa == self.__etapasdisponiveis[5]:
+            # para executar análise de resíduos, faz-se necessário executar Predicao NO MESMO FLUXO, pois depende dos dados de validação
             if self.__etapasdisponiveis[7] not in self.__etapas[self.__etapasID]:
-                raise TypeError(u'Para executar o método de análise de resíduos, faz-se necessário primeiro executar método %s.'%(self.__etapasdisponiveis[7],))
+                raise SyntaxError('Para executar o método de análise de resíduos, faz-se necessário primeiro executar método {}.'.format(self.__etapasdisponiveis[7]))
         
         # ---------------------------------------------------------------------
         # ARMAZENAR DICIONÁRIO
         # --------------------------------------------------------------------- 
         if etapa == self.__etapasdisponiveis[6]:
-            if self.__etapasdisponiveis[1] not in self.__etapas[self.__etapasID]:
-                raise TypeError(u'Para executar o método armazenarDicionario, faz-se necessário primeiro executar método %s.'%(self.__etapasdisponiveis[1],))
+            # para armazenar os dicionários, é necessário, pelo menos, executar gerarEntradas
+            if self.__etapasdisponiveis[1] not in self.__etapasGlobal():
+                raise SyntaxError('Para executar o método armazenarDicionario, faz-se necessário, pelo menos, executar método {}.'.format(self.__etapasdisponiveis[1]))
            
         # ---------------------------------------------------------------------
         # PREDIÇÃO
         # ---------------------------------------------------------------------     
         if etapa == self.__etapasdisponiveis[7]:
+            # para executar a predição deve ser executado otimiza (Global), incertezaParametros (Global), SETparametro(Global), incertezaParametros (Global)
             if ((self.__etapasdisponiveis[2] not in self.__etapasGlobal()) or (self.__etapasdisponiveis[3] not in self.__etapasGlobal())) and ((self.__etapasdisponiveis[8] not in self.__etapasGlobal()) or (self.__etapasdisponiveis[3] not in self.__etapasGlobal())):
-                raise TypeError(u'Para executar de predição, faz-se necessário primeiro executar o método %s seguido de %s. Outra opção é executar o método %s, definindo a matriz de covariância dos parâmetros.'%(self.__etapasdisponiveis[2],self.__etapasdisponiveis[3],self.__etapasdisponiveis[8]))
+                raise SyntaxError('Para executar de predição, faz-se necessário primeiro executar o método {} seguido de {} OU {} seguido de {}. Outra opção é executar o método {}, definindo a matriz de covariância dos parâmetros.'.format(self.__etapasdisponiveis[2],self.__etapasdisponiveis[3],self.__etapasdisponiveis[8],self.__etapasdisponiveis[3],self.__etapasdisponiveis[8]))
 
         # ---------------------------------------------------------------------
         # SETparametro
         # ---------------------------------------------------------------------
         if etapa == self.__etapasdisponiveis[8]:
+            # SETparametro não pode ser executado em conjunto com otimiza
             if self.__etapasdisponiveis[2] in self.__etapasGlobal():
-                raise TypeError(u'O método %s não pode ser executado com %s.'%(self.__etapasdisponiveis[8], self.__etapasdisponiveis[2]))
+                raise SyntaxError('O método {} não pode ser executado com {}.'.format(self.__etapasdisponiveis[8], self.__etapasdisponiveis[2]))
 
         # ---------------------------------------------------------------------
         # GRÁFICOS
         # ---------------------------------------------------------------------     
-        self.__tipoGraficos = ['regiaoAbrangencia', 'grandezas-entrada', 'predicao', 'grandezas-calculadas', 'estimacao', 'otimizacao', 'analiseResiduos']
+        self.__tipoGraficos = ['regiaoAbrangencia', 'grandezas-entrada', 'predicao', 'grandezas-calculadas', 'otimizacao', 'analiseResiduos']
         if etapa == self.__etapasdisponiveis[9]:
+            # validando se os tipos de gráficos
+            if not isinstance(args[0],list):
+                raise TypeError('Os tipos de gráficos devem ser definidos em uma lista.')
+            # validando se os tipos de gráficos foram corretamente definidos
             if not set(args[0]).issubset(self.__tipoGraficos):
-                raise ValueError(u'O(s) tipo(s) de gráfico(s) selecionado(s) não está(ão) disponível(is): '+', '.join(set(args[0]).difference(self.__tipoGraficos))+u'. Tipos disponíveis: '+', '.join(self.__tipoGraficos)+'.')
+                raise NameError('O(s) tipo(s) de gráfico(s) selecionado(s) não está(ão) disponível(is): '+', '.join(set(args[0]).difference(self.__tipoGraficos))+'. Tipos disponíveis: '+', '.join(self.__tipoGraficos)+'.')
 
+            # a probbailidade de abrangência deve estar entre 0 e 1
             if not (0 <= args[1] <= 1):
-                raise ValueError(u'O valor da probabilidade de abrangência deve estar entre 0 e 1.')
+                raise ValueError('O valor da probabilidade de abrangência deve estar entre 0 e 1.')
 
         # ---------------------------------------------------------------------
         # GETFOotimo
         # ---------------------------------------------------------------------
         if etapa == self.__etapasdisponiveis[11]:
+            # Depende da execução de otimiza e SETparametro
             if self.__etapasdisponiveis[2] not in self.__etapasGlobal() or self.__etapasdisponiveis[8] not in self.__etapasGlobal():
-                raise TypeError(u'O método GETFOotimo deve ser executado após %s ou %s'%(self.__etapasdisponiveis[8], self.__etapasdisponiveis[2]))
-
+                raise TypeError('O método GETFOotimo deve ser executado após {} ou {}'.format(self.__etapasdisponiveis[8], self.__etapasdisponiveis[2]))
 
     def __validacaoDadosEntrada(self,dados,udados,Ndados,NE):
         u'''
@@ -563,11 +601,12 @@ class EstimacaoNaoLinear:
 
         self.__validacaoArgumentosEntrada('gerarEntradas',None,tipo)       
 
-        
         if tipo == 'experimental':
             self.__flag.ToggleActive('dadosexperimentais')
-            if not self.__etapasID == 0: # Se a execução do motor de Cálculo não for a primeira, é iniciado um novo fluxo.
-                self.__novoFluxo() # Inclusão de novo fluxo
+            # se a execução do motor de cálculo for a primeira (etapasID = 0),
+            # o fluxo segue normalmente. Caso contrário é reiniciado.
+            if not self.__etapasID == 0:
+                self.__novoFluxo(reiniciar=True) # Inclusão de novo fluxo
 
             # ---------------------------------------------------------------------
             # ATRIBUIÇÃO A GRANDEZAS
@@ -593,7 +632,6 @@ class EstimacaoNaoLinear:
             # Salvando os dados de validação.
             self.x._SETvalidacao(x,ux,{'estimativa':'matriz','incerteza':'incerteza'})
             self.y._SETvalidacao(y,uy,{'estimativa':'matriz','incerteza':'incerteza'}) 
-
 
         if self.__flag.info['dadosvalidacao'] == False:
             # Caso gerarEntradas seja executado somente para os dados experimentais,
@@ -733,6 +771,8 @@ class EstimacaoNaoLinear:
         # ALGORITMOS DE OTIMIZAÇÃO
         # ---------------------------------------------------------------------        
         if algoritmo == 'PSO':
+            # indica que este algoritmo possui gráficos de desempenho
+            self.__flag.info['graficootimizacao'].ToggleActive()
             # ---------------------------------------------------------------------
             # KEYWORDS
             # ---------------------------------------------------------------------
@@ -1498,7 +1538,7 @@ class EstimacaoNaoLinear:
         chi2max = chi2.ppf(PA+(1-PA)/2,gL)
         chi2min = chi2.ppf((1-PA)/2,gL)
         
-        if chi2min < self.Otimizacao.best_fitness < chi2max:
+        if chi2min < self.FOotimo < chi2max:
             result= u'O modelo representa bem o conjunto de dados'
         else:
             result= u'O modelo não representa bem o conjunto de dados'
@@ -1531,7 +1571,7 @@ class EstimacaoNaoLinear:
 #        return self.estatisticaFO
 
     def graficos(self,tipos,PA=0.95):
-        u'''
+        u"""
         Métodos para gerar e salvar os gráficos
 
         =======================
@@ -1542,138 +1582,86 @@ class EstimacaoNaoLinear:
             * 'grandezas-entrada': gráficos referentes aos dados de entrada e de validação
             * 'predicao': gráficos da predição
             * 'grandezas-calculadas': gráficos dos valores calculados de cada grandeza
-            * 'estimacao': gráficos referentes aos procedimento de estimação de parâmetros
             * 'otimizacao': gráficos referentes à otimização (depende do algoritmo utilizado)
             * 'analiseResiduos': gráficos referentes à análise de resíduos.
 
         * ``PA``: probabilidade de abrangência a ser utilizada para definição dos intervalos de abrangência.
-        '''
+        """
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------         
-        self.__validacaoArgumentosEntrada('graficos',None,[tipos, PA])
+        self.__validacaoArgumentosEntrada('graficos', None, [tipos, PA])
 
         # ---------------------------------------------------------------------
         # CAMINHO BASE
         # ---------------------------------------------------------------------         
-        base_path  = self.__base_path + sep +'Graficos'+ sep
-        
-        # ---------------------------------------------------------------------
-        # SUBROTINA
-        # ---------------------------------------------------------------------  
-        def graficos_x_y(x,y,ux,uy,ix,iy,base_dir,info):            
-            #Gráfico apenas com os pontos experimentais
-            fig = figure()
-            ax = fig.add_subplot(1,1,1)
-            plot(x,y,'o')
-            # obtençao do tick do grafico
-            # eixo x
-            label_tick_x   = ax.get_xticks().tolist()                 
-            tamanho_tick_x = (label_tick_x[1] - label_tick_x[0])/2
-            # eixo y
-            label_tick_y = ax.get_yticks().tolist()
-            tamanho_tick_y = (label_tick_y[1] - label_tick_y[0])/2
-            # Modificação do limite dos gráficos
-            xmin   = min(x) - tamanho_tick_x
-            xmax   = max(x) + tamanho_tick_x
-            ymin   = min(y) - tamanho_tick_y
-            ymax   = max(y) + tamanho_tick_y
-            xlim(xmin,xmax)
-            ylim(ymin,ymax)
-            # Labels
-            xlabel(self.x.labelGraficos(info)[ix],fontsize=20)
-            ylabel(self.y.labelGraficos(info)[iy],fontsize=20)
-            #Grades
-            grid(b = 'on', which = 'major', axis = 'both')
-            fig.savefig(base_path+base_dir+info+'_'+self.y.simbolos[iy]+'_funcao_de_'+self.x.simbolos[ix]+'_sem_incerteza')
-            close()                    
-                    
-            #Grafico com os pontos experimentais e as incertezas
-            fig = figure()
-            ax = fig.add_subplot(1,1,1)
-            xerr = 2*ux
-            yerr = 2*uy
-            errorbar(x,y,xerr=xerr,yerr=yerr,marker='o')
-            # obtençao do tick do grafico
-            # eixo x
-            label_tick_x   = ax.get_xticks().tolist()                 
-            tamanho_tick_x = (label_tick_x[1] - label_tick_x[0])/2
-            # eixo y
-            label_tick_y = ax.get_yticks().tolist()
-            tamanho_tick_y = (label_tick_y[1] - label_tick_y[0])/2
-            # Modificação dos limites dos gráficos                    
-            xmin  = min(x - xerr) - tamanho_tick_x
-            ymin  = min(y - yerr) - tamanho_tick_y
-            xmax  = max(x + xerr) + tamanho_tick_x                    
-            ymax  = max(y + yerr) + tamanho_tick_y
-            xlim(xmin,xmax)
-            ylim(ymin,ymax)
-            # Labels
-            xlabel(self.x.labelGraficos(info)[ix],fontsize=20)
-            ylabel(self.y.labelGraficos(info)[iy],fontsize=20)
-            #Grades
-            grid(b = 'on', which = 'major', axis = 'both')
-            fig.savefig(base_path+base_dir+info+'_'+self.y.simbolos[iy]+'_funcao_de_'+self.x.simbolos[ix]+'_com_incerteza')
-            close()
-
+        base_path  = self.__base_path + sep + 'Graficos' + sep
         
         # ---------------------------------------------------------------------
         # GRÁFICOS
         # --------------------------------------------------------------------- 
-        # If para gerar os gráficos das grandezas de entrada (x e y)
-        # gerarEntradas deve ser executado
+        # Gráficos referentes aos dados de entrada (experimentais)
         if ('grandezas-entrada' in tipos):
-            if self.__etapasdisponiveis[1] in self.__etapas[self.__etapasID]:
+            # se gerarEntradas foi executado alguma vez:
+            if self.__etapasdisponiveis[1] in self.__etapasGlobal():
                 base_dir = sep + 'Grandezas' + sep
                 Validacao_Diretorio(base_path,base_dir)
-    
-    
+                # gráficos gerados para os dados experimentais
                 if self.__flag.info['dadosexperimentais'] == True:
-                    self.x.Graficos(base_path, ID = ['experimental'])
-                    self.y.Graficos(base_path, ID = ['experimental'])
-        
+                    self.x.Graficos(base_path, ID=['experimental'])
+                    self.y.Graficos(base_path, ID=['experimental'])
+
+                    # Gráficos das grandezas y em função de x
                     for iy in xrange(self.y.NV):
                         for ix in xrange(self.x.NV):
-                            x = self.x.experimental.matriz_estimativa[:,ix]
-                            y = self.y.experimental.matriz_estimativa[:,iy]
-                            ux = self.x.experimental.matriz_incerteza[:,ix]
-                            uy = self.y.experimental.matriz_incerteza[:,iy]                    
-                            graficos_x_y(x,y,ux,uy,ix,iy,base_dir,'experimental')
-                            
+                            graficos_x_y(self.x, self.y, ix, iy, base_path, base_dir, 'experimental')
+
+                # gráficos gerados para os dados de validação, apenas se estes forem diferentes dos experimentais,
+                # apesar dos atributos de validação sempre existirem
                 if self.__flag.info['dadosvalidacao'] == True:
-                    self.x.Graficos(base_path, ID = ['validacao'])
-                    self.y.Graficos(base_path, ID = ['validacao'])
-        
+                    self.x.Graficos(base_path, ID=['validacao'])
+                    self.y.Graficos(base_path, ID=['validacao'])
+
+                    # Gráficos das grandezas y em função de x
                     for iy in xrange(self.y.NV):
                         for ix in xrange(self.x.NV):
-                            x = self.x.validacao.matriz_estimativa[:,ix]
-                            y = self.y.validacao.matriz_estimativa[:,iy]
-                            ux = self.x.validacao.matriz_incerteza[:,ix]
-                            uy = self.y.validacao.matriz_incerteza[:,iy]                    
-                            graficos_x_y(x,y,ux,uy,ix,iy,base_dir,'validacao')
-                            
+                            graficos_x_y(self.x, self.y, ix, iy, base_path, base_dir, 'validacao')
             else:
-                warn(u'Os gráficos de entrada não puderam ser criados, pois o método %s'%(self.__etapasdisponiveis[1],)+u' não foi executado.',UserWarning)
+                warn('Os gráficos de entrada não puderam ser criados, pois o método {} não foi executado.'.format(self.__etapasdisponiveis[1]),UserWarning)
 
-        if ('otimizacao' in tipos):
+        # Gráficos referentes aos dados de saída (calculados)
+        if 'grandezas-calculado' in tipos:
+            # Predição deve ter sido executada no fluxo de trabalho
+            if self.__etapasdisponiveis[7] in self.__etapas[self.__etapasID]:
+                base_dir = sep + 'Grandezas' + sep
 
-            if self.__etapasdisponiveis[2] in self.__etapasGlobal():
+                Validacao_Diretorio(base_path,base_dir)
+                self.x.Graficos(base_path, ID=['calculado'])
+                self.y.Graficos(base_path, ID=['calculado'])
+
+            else:
+                warn('Os gráficos envolvendo somente as grandezas não puderam ser criados, pois o método {} não foi executado.'.format(self.__etapasdisponiveis[7]),UserWarning)
+
+        if 'otimizacao' in tipos:
+            # otimiza deve ter sido alguma vez no contexto global e o algoritmo de otimização possui gráficos de desempenho
+            if self.__etapasdisponiveis[2] in self.__etapasGlobal() and self.__flag.info['graficootimizacao']:
                 # Gráficos da otimização
-                base_dir = sep+'PSO'+ sep
+                base_dir = sep + 'Otimizacao' + sep
                 Validacao_Diretorio(base_path,base_dir)
         
                 self.Otimizacao.Graficos(base_path+base_dir,Nome_param=self.parametros.simbolos,Unid_param=self.parametros.unidades,FO2a2=True)
     
             else:
-                warn(u'Os gráficos de otimizacao não puderam ser criados, pois o método %s'%(self.__etapasdisponiveis[2],)+u' não foi executado.',UserWarning)
-            
+                warn('Os gráficos de otimizacao não puderam ser criados, o algoritmo de otimização utilizado não possui gráficos de desempenho OU o método {} não foi executado.'.format(self.__etapasdisponiveis[2]),UserWarning)
 
-        if ('regiaoAbrangencia' in tipos):
+        if 'regiaoAbrangencia' in tipos:
+            # os gráficos da região de abrangência sõ são executados se houver dados disponíveis
             if self.parametros.regiao_abrangencia is not None:
                 # Gráficos da estimação
-                base_dir = sep + 'Estimacao' + sep
-                Validacao_Diretorio(base_path,base_dir)
-
+                base_dir = sep + 'Regiao' + sep
+                Validacao_Diretorio(base_path, base_dir)
+                # os gráficos só podem ser executado se o número de parâmetros for
+                # maior do que 1
                 if self.parametros.NV != 1:
 
                     Combinacoes = int(factorial(self.parametros.NV)/(factorial(self.parametros.NV-2)*factorial(2)))
@@ -1703,7 +1691,7 @@ class EstimacaoNaoLinear:
                         if abs(theta)>=179.9:
                             hx = width / 2.
                             hy = height /2.
-                        elif abs(theta) >= 89.9 and abs(theta) <= 90.1:
+                        elif 89.9 <= abs(theta) <= 90.1:
                             hx = height / 2.
                             hy=  width  / 2.
                         else:
@@ -1722,37 +1710,22 @@ class EstimacaoNaoLinear:
                         close()
                         p2+=1
                 else:
-                    warn(u'Os gráficos de regiao de abrangencia não puderam ser criados, pois há apenas um parâmetro.',UserWarning)
+                    warn('Os gráficos de regiao de abrangencia não puderam ser criados, pois há apenas um parâmetro.',UserWarning)
 
             else:
-                warn(u'Os gráficos de regiao de abrangencia não puderam ser criados, pois o método %s não foi executado após %s OU no método %s não foi incluída a região de abrangência. Observe que em %s é avaliado a região de abrangência, apenas quando %s é executado.'\
-                     %(self.__etapasdisponiveis[3], self.__etapasdisponiveis[2], self.__etapasdisponiveis[8], self.__etapasdisponiveis[3],self.__etapasdisponiveis[2]),UserWarning)
-       
+                warn('Os gráficos de regiao de abrangencia não puderam ser criados, pois o método {} não foi executado após {} OU no método {} não foi incluída a região de abrangência. Observe que em {} é avaliado a região de abrangência, apenas quando {} é executado.'.format(self.__etapasdisponiveis[3], self.__etapasdisponiveis[2], self.__etapasdisponiveis[8], self.__etapasdisponiveis[3],self.__etapasdisponiveis[2]),UserWarning)
 
-        if ('grandezas-calculado' in tipos):
-            if  self.__etapasdisponiveis[7] in self.__etapas[self.__etapasID]:
-                base_dir = sep + 'Grandezas' + sep
-                
-                Validacao_Diretorio(base_path,base_dir)
-                self.x.Graficos(base_path, ID = ['calculado'])
-                self.y.Graficos(base_path, ID = ['calculado'])
-                
-            else:
-                warn(u'Os gráficos envolvendo somente as grandezas não puderam ser criados, pois o método %s'%(self.__etapasdisponiveis[7],)+u' não foi executado.',UserWarning)
-           
-        
-        if ('estimacao' in tipos):
+        if 'predicao' in tipos:
+            # Predição deve ter sido executada neste fluxo
             if self.__etapasdisponiveis[7] in self.__etapas[self.__etapasID]:
-            
+
+                base_dir = sep + 'Grandezas' + sep
+                #gráficos de y em função de y
                 for iy in xrange(self.y.NV):
                     for ix in xrange(self.x.NV):
-                        x  = self.x.calculado.matriz_estimativa[:,ix]
-                        y  = self.y.calculado.matriz_estimativa[:,iy]
-                        ux = self.x.calculado.matriz_incerteza[:,ix]
-                        uy = self.y.calculado.matriz_incerteza[:,iy]
-                        graficos_x_y(x,y,ux,uy,ix,iy,base_dir,'calculado')
+                        graficos_x_y(self.x, self.y, ix, iy, base_path, base_dir, 'calculado')
                 
-                base_dir = sep + 'Estimacao' + sep
+                base_dir = sep + 'Predicao' + sep
                 Validacao_Diretorio(base_path,base_dir)
                 for iy in xrange(self.y.NV):
                         # Gráfico comparativo entre valores experimentais e calculados pelo modelo, sem variância         
@@ -1820,10 +1793,10 @@ class EstimacaoNaoLinear:
                         close()           
 
             else:
-                warn(u'Os gráficos envolvendo a estimação (predição) não puderam ser criados, pois o método %s'%(self.__etapasdisponiveis[7],)+u' não foi executado e não há dados experimentais.',UserWarning)
+                warn('Os gráficos envolvendo a estimação (predição) não puderam ser criados, pois o método {} não foi executado.'.format(self.__etapasdisponiveis[7]),UserWarning)
 
         if ('analiseResiduos' in tipos):
-
+            # o método análise de resíduos deve ter sido executado
             if self.__etapasdisponiveis[5] in self.__etapas[self.__etapasID]:
 
                 # Gráficos relacionados aos resíduos das grandezas independentes, caso
@@ -1856,9 +1829,9 @@ class EstimacaoNaoLinear:
                     close()
 
             else:
-                warn(u'Os gráficos envolvendo a análise de resíduos não puderam ser criados, pois o método %s'%(self.__etapasdisponiveis[5],)+u' não foi executado.',UserWarning)
+                warn('Os gráficos envolvendo a análise de resíduos não puderam ser criados, pois o método {} não foi executado.'.format(self.__etapasdisponiveis[5]),UserWarning)
 
-    def Relatorio(self,**kwargs):
+    def relatorio(self,**kwargs):
         '''
         Método para criação do(s) relatório(s) com os principais resultados.
 
@@ -1887,4 +1860,4 @@ class EstimacaoNaoLinear:
             if self.__etapasdisponiveis[5] in self.__etapas[self.__etapasID]:
                 saida.Predicao(self.x,self.y,self.R2,self.R2ajustado,**kwargs)
             else:
-                saida.Predicao(self.x,self.y,None,None,**kwargs)
+                saida.Predicao(self.x, self.y, None, None, **kwargs)

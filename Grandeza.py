@@ -89,7 +89,7 @@ class Organizador:
         if not isinstance(estimativa,ndarray):
                 raise TypeError(u'Os dados de entrada precisam ser arrays.')
         
-        if incerteza != None:        
+        if incerteza is not None:
             if not isinstance(incerteza,ndarray):
                     raise TypeError(u'Os dados de entrada precisam ser arrays.')            
         
@@ -252,8 +252,9 @@ class Grandeza:
                     raise TypeError('A simbologia, nomes, unidades e label_latex de uma grandeza devem ser LISTAS.')
                 # verificação se os elementos são strings
                 for value in elemento:
-                    if not isinstance(value,str) and not isinstance(value,unicode):
-                        raise TypeError('Os elementos de simbolos, nomes, unidades e label_latex devem ser STRINGS.')
+                    if value is not None:
+                        if not isinstance(value,str) and not isinstance(value,unicode):
+                            raise TypeError('Os elementos de simbolos, nomes, unidades e label_latex devem ser STRINGS.')
 
         # Verificação se os símbolos possuem caracteres especiais
         for simb in simbolos:
@@ -305,6 +306,9 @@ class Grandeza:
             if not isinstance(elemento,float):
                 raise TypeError(u'A estimativa precisa ser uma lista de floats.')
 
+        if len(estimativa) != self.NV:
+            raise ValueError(u'Devem ser fornecidas estimativas para todos os parãmetros definidos em símbolos')
+
         # variância
         if variancia is not None:
             if not isinstance(variancia,ndarray):
@@ -316,6 +320,9 @@ class Grandeza:
 
             if shape(variancia)[0] != shape(variancia)[1]:
                 raise TypeError(u'A variância precisa ser quadrada.')
+
+            if shape(variancia)[0] != self.NV:
+                    raise ValueError(u'A dimensão da matriz de covariãncia deve ser coerente com os simbolos dos parâmetros')
 
         # regiao
         if regiao is not None:

@@ -219,7 +219,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         if tipo == 'experimental':
             self._EstimacaoNaoLinear__flag.ToggleActive('dadosexperimentais')
             if not self._EstimacaoNaoLinear__etapasID == 0: # Se a execução do motor de Cálculo não for a primeira, é
-                self._EstimacaoNaoLinear__novoFluxo() # Inclusão de novo fluxo
+                self._EstimacaoNaoLinear__novoFluxo(reiniciar=True) # Inclusão de novo fluxo
 
             # ---------------------------------------------------------------------
             # ATRIBUIÇÃO A GRANDEZAS
