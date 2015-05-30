@@ -28,7 +28,7 @@ class Relatorio:
         * base_path: caminho base
         * base_dir: diretório no caminho base que os arquivos serão salvos
         '''
-
+        # TODO: permitir fluxos
         if base_path is None:
             base_path = getcwd()
 

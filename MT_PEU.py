@@ -384,7 +384,7 @@ class EstimacaoNaoLinear:
             if self.__flag.info['dadosvalidacao'] == True:
                 warn('O fluxo foi reiniciado, faz-se necessário incluir novos dados de validação',UserWarning)
 
-            self.__flag.info['dadosvalidacao'].ToogleInactive()
+            self.__flag.ToggleInactive('dadosvalidacao')
             
     def __etapasGlobal(self):
         u'''
@@ -772,7 +772,7 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------        
         if algoritmo == 'PSO':
             # indica que este algoritmo possui gráficos de desempenho
-            self.__flag.info['graficootimizacao'].ToggleActive()
+            self.__flag.ToggleActive('graficootimizacao')
             # ---------------------------------------------------------------------
             # KEYWORDS
             # ---------------------------------------------------------------------
@@ -1587,6 +1587,7 @@ class EstimacaoNaoLinear:
 
         * ``PA``: probabilidade de abrangência a ser utilizada para definição dos intervalos de abrangência.
         """
+        # TODO: usar .format para criar os nomes das figuras
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------         
@@ -1608,24 +1609,24 @@ class EstimacaoNaoLinear:
                 Validacao_Diretorio(base_path,base_dir)
                 # gráficos gerados para os dados experimentais
                 if self.__flag.info['dadosexperimentais'] == True:
-                    self.x.Graficos(base_path, ID=['experimental'])
-                    self.y.Graficos(base_path, ID=['experimental'])
+                    self.x.Graficos(base_path, ID=['experimental'], fluxo=0)
+                    self.y.Graficos(base_path, ID=['experimental'], fluxo=0)
 
                     # Gráficos das grandezas y em função de x
                     for iy in xrange(self.y.NV):
                         for ix in xrange(self.x.NV):
-                            graficos_x_y(self.x, self.y, ix, iy, base_path, base_dir, 'experimental')
+                            graficos_x_y(self.x, self.y, ix, iy, base_path, base_dir, 'experimental',0)
 
                 # gráficos gerados para os dados de validação, apenas se estes forem diferentes dos experimentais,
                 # apesar dos atributos de validação sempre existirem
                 if self.__flag.info['dadosvalidacao'] == True:
-                    self.x.Graficos(base_path, ID=['validacao'])
-                    self.y.Graficos(base_path, ID=['validacao'])
+                    self.x.Graficos(base_path, ID=['validacao'], fluxo=self.__etapasID)
+                    self.y.Graficos(base_path, ID=['validacao'], fluxo=self.__etapasID)
 
                     # Gráficos das grandezas y em função de x
                     for iy in xrange(self.y.NV):
                         for ix in xrange(self.x.NV):
-                            graficos_x_y(self.x, self.y, ix, iy, base_path, base_dir, 'validacao')
+                            graficos_x_y(self.x, self.y, ix, iy, base_path, base_dir, 'validacao',self.__etapasID)
             else:
                 warn('Os gráficos de entrada não puderam ser criados, pois o método {} não foi executado.'.format(self.__etapasdisponiveis[1]),UserWarning)
 
@@ -1636,11 +1637,11 @@ class EstimacaoNaoLinear:
                 base_dir = sep + 'Grandezas' + sep
 
                 Validacao_Diretorio(base_path,base_dir)
-                self.x.Graficos(base_path, ID=['calculado'])
-                self.y.Graficos(base_path, ID=['calculado'])
+                self.x.Graficos(base_path, ID=['calculado'], fluxo=self.__etapasID)
+                self.y.Graficos(base_path, ID=['calculado'], fluxo=self.__etapasID)
 
             else:
-                warn('Os gráficos envolvendo somente as grandezas não puderam ser criados, pois o método {} não foi executado.'.format(self.__etapasdisponiveis[7]),UserWarning)
+                warn('Os gráficos envolvendo somente as grandezas calculadas não puderam ser criados, pois o método {} não foi executado.'.format(self.__etapasdisponiveis[7]),UserWarning)
 
         if 'otimizacao' in tipos:
             # otimiza deve ter sido alguma vez no contexto global e o algoritmo de otimização possui gráficos de desempenho
@@ -1706,7 +1707,7 @@ class EstimacaoNaoLinear:
                               max([self.parametros.estimativa[p2] + 1.15*hy,yauto[-1]])))
                         if self.__etapasdisponiveis[4] in self.__etapasGlobal():
                             legend([ellipse,PSO],[u"Ellipse",u"Verossimilhança"])
-                        fig.savefig(base_path+base_dir+'Regiao_verossimilhanca_'+str(self.parametros.simbolos[p1])+'_'+str(self.parametros.simbolos[p2])+'.png')
+                        fig.savefig(base_path+base_dir+'regiao_verossimilhanca_fl'+str(0)+'_'+str(self.parametros.simbolos[p1])+'_'+str(self.parametros.simbolos[p2])+'.png')
                         close()
                         p2+=1
                 else:
@@ -1723,7 +1724,7 @@ class EstimacaoNaoLinear:
                 #gráficos de y em função de y
                 for iy in xrange(self.y.NV):
                     for ix in xrange(self.x.NV):
-                        graficos_x_y(self.x, self.y, ix, iy, base_path, base_dir, 'calculado')
+                        graficos_x_y(self.x, self.y, ix, iy, base_path, base_dir, 'calculado', self.__etapasID)
                 
                 base_dir = sep + 'Predicao' + sep
                 Validacao_Diretorio(base_path,base_dir)
@@ -1754,9 +1755,9 @@ class EstimacaoNaoLinear:
                         ylabel(self.y.labelGraficos('calculado')[iy])
                         
                         if self.__flag.info['dadosvalidacao'] == True:
-                            fig.savefig(base_path+base_dir+'grafico_'+str(self.y.simbolos[iy])+'val_vs_'+str(self.y.simbolos[iy])+'calc_sem_var.png')
+                            fig.savefig(base_path+base_dir+'grafico_fl'+str(self.__etapasID)+'_'+str(self.y.simbolos[iy])+'val_vs_'+str(self.y.simbolos[iy])+'calc_sem_var.png')
                         else:
-                            fig.savefig(base_path+base_dir+'grafico_'+str(self.y.simbolos[iy])+'exp_vs_'+str(self.y.simbolos[iy])+'calc_sem_var.png')
+                            fig.savefig(base_path+base_dir+'grafico_fl'+str(self.__etapasID)+'_'+str(self.y.simbolos[iy])+'exp_vs_'+str(self.y.simbolos[iy])+'calc_sem_var.png')
                         close()
                 
                         # Gráfico comparativo entre valores experimentais e calculados pelo modelo, com variância    
@@ -1787,9 +1788,9 @@ class EstimacaoNaoLinear:
                         ylabel(self.y.labelGraficos('calculado')[iy])
 
                         if self.__flag.info['dadosvalidacao'] == True:
-                            fig.savefig(base_path+base_dir+'grafico_'+str(self.y.simbolos[iy])+'val_vs_'+str(self.y.simbolos[iy])+'calc_com_var.png')
+                            fig.savefig(base_path+base_dir+'grafico_fl'+str(self.__etapasID)+'_'+str(self.y.simbolos[iy])+'val_vs_'+str(self.y.simbolos[iy])+'calc_com_var.png')
                         else:
-                            fig.savefig(base_path+base_dir+'grafico_'+str(self.y.simbolos[iy])+'exp_vs_'+str(self.y.simbolos[iy])+'calc_com_var.png')
+                            fig.savefig(base_path+base_dir+'grafico_fl'+str(self.__etapasID)+'_'+str(self.y.simbolos[iy])+'exp_vs_'+str(self.y.simbolos[iy])+'calc_com_var.png')
                         close()           
 
             else:
@@ -1802,10 +1803,10 @@ class EstimacaoNaoLinear:
                 # Gráficos relacionados aos resíduos das grandezas independentes, caso
                 # seja realizada a reconciliação
                 if self.__flag.info['reconciliacao'] == True:
-                    self.x.Graficos(self.__base_path + sep + 'Graficos' + sep,ID=['residuo'])
+                    self.x.Graficos(self.__base_path + sep + 'Graficos' + sep, ID=['residuo'])
 
                 # Gráficos relacionados aos resíduos das grandezas dependentes
-                self.y.Graficos(self.__base_path + sep + 'Graficos' + sep,ID=['residuo'])
+                self.y.Graficos(self.__base_path + sep + 'Graficos' + sep, ID=['residuo'], fluxo=self.__etapasID)
 
                 # Grafico dos resíduos em função dos dados de validação (ou experimentais)
                 for i,simb in enumerate(self.y.simbolos):
@@ -1825,7 +1826,7 @@ class EstimacaoNaoLinear:
                     ax.yaxis.grid(color='gray', linestyle='dashed')
                     ax.xaxis.grid(color='gray', linestyle='dashed')
                     ax.axhline(0, color='black', lw=2)
-                    fig.savefig(base_path+base_dir+'residuos_versus_ycalculado.png')
+                    fig.savefig(base_path+base_dir+'residuos_fl'+str(self.__etapasID)+'_versus_ycalculado.png')
                     close()
 
             else:

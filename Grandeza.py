@@ -493,7 +493,7 @@ class Grandeza:
 
         self.estatisticas = pvalor
             
-    def Graficos(self,base_path=None,ID=None):
+    def Graficos(self,base_path=None,ID=None,fluxo=None):
         u'''
         Método para gerar os gráficos das grandezas, cujas informações só dependam dela.
         
@@ -505,7 +505,7 @@ class Grandeza:
         * ``ID``        : Identificação da grandeza. Este ID é útil apenas para as grandezas \
         dependentes e independentes, ele identifica para qual atributo os gráficos devem ser avaliados. \
         Caso seja None, será feito os gráficos para TODOS os atributos disponíveis.
-        
+        * Fluxo       : identificação do fluxo de trabalho
         Funções: 
         * probplot  : Gera um gráfico de probabilidade de dados de exemplo contra os quantis de uma distribuição teórica especificado (a distribuição normal por padrão).
                       Calcula uma linha de melhor ajuste para os dados se "encaixar" é verdadeiro e traça os resultados usando Matplotlib.
@@ -513,7 +513,7 @@ class Grandeza:
                       O boxplot é formado pelo primeiro e terceiro quartil e pela mediana.
         '''
         # ---------------------------------------------------------------------
-        # VALIDAÇÃO DOS IDs:
+        # VALIDAÇÃO DAS ENTRADAS
         # ---------------------------------------------------------------------
         if ID is None:
             ID = self.__ID
@@ -524,6 +524,12 @@ class Grandeza:
         if base_path is None:
             base_path = getcwd()
 
+        if fluxo is None:
+            fluxo = 0
+
+        # ---------------------------------------------------------------------
+        # CRIAÇÃO DOS GRÁFICOS
+        # ---------------------------------------------------------------------
         base_dir  = sep + 'Grandezas' + sep
         Validacao_Diretorio(base_path,base_dir)
 
@@ -534,7 +540,7 @@ class Grandeza:
             ax = fig.add_subplot(1,1,1)
             boxplot(self.residuos.matriz_estimativa)
             ax.set_xticklabels(self.simbolos)
-            fig.savefig(base_path+base_dir+'residuos_boxplot'+'_'.join(self.simbolos))
+            fig.savefig(base_path+base_dir+'residuos_fl'+str(fluxo)+'_boxplot_'+'_'.join(self.simbolos))
             close()
             
             base_path = base_path + base_dir
@@ -559,7 +565,7 @@ class Grandeza:
                 ax.xaxis.grid(color='gray', linestyle='dashed')
                 xlim((0,size(dados)))
                 ax.axhline(0, color='black', lw=2)
-                fig.savefig(base_path+base_dir+'residuos_ordem')
+                fig.savefig(base_path+base_dir+'residuos_fl'+str(fluxo)+'_ordem')
                 close()        
         
                 # AUTO CORRELAÇÃO
@@ -571,7 +577,7 @@ class Grandeza:
                 ax.xaxis.grid(color='gray', linestyle='dashed')
                 ax.axhline(0, color='black', lw=2)
                 xlim((0,size(dados)))
-                fig.savefig(base_path+base_dir+'residuos_autocorrelacao')
+                fig.savefig(base_path+base_dir+'residuos_fl'+str(fluxo)+'_autocorrelacao')
                 close()
 
                 # HISTOGRAMA                
@@ -580,7 +586,7 @@ class Grandeza:
                 hist(dados, normed=True)
                 xlabel(self.labelGraficos()[i])
                 ylabel(u'Frequência')
-                fig.savefig(base_path+base_dir+'residuos_histograma')
+                fig.savefig(base_path+base_dir+'residuos_fl'+str(fluxo)+'_histograma')
                 close()
 
                 # NORMALIDADE 
@@ -598,7 +604,7 @@ class Grandeza:
                     posx = xmin + 0.70 * (xmax - xmin)
                     posy = ymin + 0.01 * (ymax - ymin)
                     text(posx, posy, "$R^2$=%1.4f" % res[1][2])
-                    fig.savefig(base_path+base_dir+'residuos_probplot')
+                    fig.savefig(base_path+base_dir+'residuos_fl'+str(fluxo)+'_probplot')
                     close()
                 
         if ('experimental' in ID or 'validacao' in ID or 'calculado' in ID):
@@ -640,7 +646,5 @@ class Grandeza:
                         ylabel(self.labelGraficos(atributo)[i],fontsize=20)
                         #Grades
                         grid(b = 'on', which = 'major', axis = 'both')
-                        savefig(base_path+base_dir+atributo+'_observacoes.png')
-                        close()   
-
-
+                        savefig(base_path+base_dir+atributo+'_fl'+str(fluxo)+'_observacoes.png')
+                        close()

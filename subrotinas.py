@@ -219,7 +219,7 @@ def lista2matriz(lista):
     
     return res
 
-def graficos_x_y(X, Y, ix, iy, base_path, base_dir, info):
+def graficos_x_y(X, Y, ix, iy, base_path, base_dir, info, ID_fluxo):
     u"""
     Subrotina para gerar gráficos das variáveis y em função de x
 
@@ -235,6 +235,11 @@ def graficos_x_y(X, Y, ix, iy, base_path, base_dir, info):
     * base_path: caminho base
     * base_dir : diretório base
 
+    * ID_fluxo: número que indica o fluxo de trabalho
+
+    =======
+    Saídas
+    =======
     * Gráfico de y em função de x sem incerteza
     * Gráfico de y em função de x com incerteza
     """
@@ -267,7 +272,7 @@ def graficos_x_y(X, Y, ix, iy, base_path, base_dir, info):
     ylabel(Y.labelGraficos(info)[iy],fontsize=20)
     #Grades
     grid(b = 'on', which = 'major', axis = 'both')
-    fig.savefig(base_path+base_dir+info+'_'+Y.simbolos[iy]+'_funcao_de_'+X.simbolos[ix]+'_sem_incerteza')
+    fig.savefig(base_path+base_dir+info+'_fl'+str(ID_fluxo)+'_'+Y.simbolos[iy]+'_funcao_'+X.simbolos[ix]+'_sem_incerteza')
     close()
 
     #Grafico com os pontos experimentais e as incertezas
@@ -295,5 +300,5 @@ def graficos_x_y(X, Y, ix, iy, base_path, base_dir, info):
     ylabel(Y.labelGraficos(info)[iy],fontsize=20)
     #Grades
     grid(b = 'on', which = 'major', axis = 'both')
-    fig.savefig(base_path+base_dir+info+'_'+Y.simbolos[iy]+'_funcao_de_'+X.simbolos[ix]+'_com_incerteza')
+    fig.savefig(base_path+base_dir+info+'_fl'+str(ID_fluxo)+'_'+Y.simbolos[iy]+'_funcao_'+X.simbolos[ix]+'_com_incerteza')
     close()
