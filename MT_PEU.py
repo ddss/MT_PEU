@@ -1129,7 +1129,8 @@ class EstimacaoNaoLinear:
         # MATRIZ DE COVARIÃNCIA DE Y
         # Se os dados de validação forem diferentes dos experimentais, será desconsiderado
         # a covariância entre os parâmetros e dados experimentais
-        if self.__flag.info['dadosvalidacao'] == True:
+        if self.__flag.info['dadosvalidacao']:
+            # TODO: incluir a propagação de incerteza de x para y (com Sx)
             Uyycalculado = S.dot(self.parametros.matriz_covariancia).dot(S.transpose()) + self.y.validacao.matriz_covariancia
 
         else:
@@ -1146,7 +1147,7 @@ class EstimacaoNaoLinear:
             # MATRIZ DE COVARIÃNCIA DE Y
             Uyycalculado   = Uyycalculado_1 + Uyycalculado_2 + Uyycalculado_3 + self.y.experimental.matriz_covariancia
 
-        # ---------------------------------------------------------------------
+        # --------------------------------------------------------------------
         # ATRIBUIÇÃO A GRANDEZAS
         # -------------------------------------------------------------------
         self.y._SETcalculado(aux.result,Uyycalculado,[[self.y.experimental.NE*self.y.NV-self.parametros.NV]*self.y.validacao.NE]*self.y.NV,{'estimativa':'matriz','incerteza':'variancia'},self.y.validacao.NE)
@@ -1174,7 +1175,11 @@ class EstimacaoNaoLinear:
         Saída
         =====
         
-        Retorna a matriz Hessiana(array) 
+        Retorna a matriz Hessiana(array)
+
+        ==========
+        Referência
+        ==========
         '''
         
         #---------------------------------------------------------------------------------------
@@ -1195,41 +1200,42 @@ class EstimacaoNaoLinear:
                 
                 # Incrementos para as derivadas dos parâmetros, tendo delta1 e delta2 aplicados a qual parãmetro está ocorrendo a alteração\
                 #no vetor de parâmetros que é argumento da FO.
-                #--------------------------------------------------------------
-                #OBS.: SE O VALOR DO PARÂMETRO FOR ZERO, APLICA-SE OS VALORES DE ''delta'' para ''delta1'' e/ou ''delta2'', pois não existe log de zero, causando erro.
-                #--------------------------------------------------------------
+                # Obs.: SE O VALOR DO PARÂMETRO FOR ZERO, APLICA-SE OS VALORES DE ''delta'' para ''delta1'' e/ou ''delta2'', pois não existe log de zero, causando erro.
+
                 delta1 = (10**(floor(log10(abs(self.parametros.estimativa[i])))))*delta if self.parametros.estimativa[i] != 0 else delta
                 delta2 = (10**(floor(log10(abs(self.parametros.estimativa[j])))))*delta if self.parametros.estimativa[j] != 0 else delta
                 
-                #--------------------------------------------------------------
-                #Aplicação da derivada numérica de segunda ordem para os elementos da diagonal principal.
-                #--------------------------------------------------------------
+                #---------------------------------------------------------------------------------------
+                # Aplicação da derivada numérica de segunda ordem para os elementos da diagonal principal.
+                #----------------------------------------------------------------------------------------
                 
                 if i==j:
                     
-                    # Vetor que irá conter o incremento no parâmetro i
+                    # Vetor com o incremento no parâmetro i
                     vetor_parametro_delta_positivo = vetor_delta(self.parametros.estimativa,i,delta1)
-                    # Vetor que irá conter o incremento no parâmetro j.
+                    # Vetor com o incremento no parâmetro j.
                     vetor_parametro_delta_negativo = vetor_delta(self.parametros.estimativa,j,-delta2) 
 
                     # Cálculo da função objetivo para seu respectivo vetor alterado para utilização na derivação numérica.
+                    # Inicialização das threads
                     FO_delta_positivo=self.__FO(vetor_parametro_delta_positivo,self.__args_model)
                     FO_delta_positivo.start()
-                                     
+
                     FO_delta_negativo=self.__FO(vetor_parametro_delta_negativo,self.__args_model)
                     FO_delta_negativo.start()
-                     
-                    FO_delta_positivo.join() #método de funcionamento da FO
+
+                    # Aguardando as threads finalizarem a execução
+                    FO_delta_positivo.join()
                     FO_delta_negativo.join()                    
                     
                     # Fórmula de diferença finita para i=j. (Disponível em, Gilat, Amos; MATLAB Com Aplicação em Engenharia, 2a ed, Bookman, 2006.)
                     matriz_hessiana[i][j]=(FO_delta_positivo.result-2*FO_otimo+FO_delta_negativo.result)/(delta1*delta2)
                     
-                #--------------------------------------------------------------    
+                #-------------------------------------------------------------------------------
                 #Aplicação da derivada numérica de segunda ordem para os demais elementos da matriz.     
-                #--------------------------------------------------------------
+                #-----------------------------------------------------------------------------------
                 else:
-                    
+                    # vetor com o incremento do parâmetro i,j
                     vetor_parametro_delta_ipositivo_jpositivo = vetor_delta(self.parametros.estimativa,[i,j],[delta1,delta2])
                     
                     FO_ipositivo_jpositivo=self.__FO(vetor_parametro_delta_ipositivo_jpositivo,self.__args_model)
@@ -1263,7 +1269,6 @@ class EstimacaoNaoLinear:
         return array(matriz_hessiana)
         
     def __Matriz_Gy(self,delta=1e-5):
-        
         u'''
         Método para calcular a matriz Gy(derivada segunda da Fobj em relação aos parâmetros e y_experimentais).
         
@@ -1279,9 +1284,12 @@ class EstimacaoNaoLinear:
 
         =====
         Saída
-        ===== 
-        
-        Retorna a matriz Gy(array).
+        =====
+        * return a matriz Gy(array).
+
+        ==========
+        Referência
+        ==========
         '''
         #Criação de matriz de ones com dimenção:(número de var. independentes* NE X número de parâmetros) a\
         #qual terá seus elementos substituidos pelo resultado da derivada das  funçâo em relação aos\
@@ -1343,9 +1351,27 @@ class EstimacaoNaoLinear:
                 
         return array(matriz_Gy)
 
+    def __Matriz_Sx(self,delta=1e-5):
+        u'''
+        Método para calcular a matriz Sx(derivadas primeiras da função do modelo em relação as grandezas de entrada x).
+
+        Método de derivada central de primeira ordem em relação aos parâmetros(considera os parâmetros como variáveis do modelo).
+
+        ========
+        Entradas
+        ========
+
+        * delta(float): valor do incremento relativo para o cálculo da derivada. Incremento relativo à ordem de grandeza do parâmetro.
+
+        =====
+        Saída
+        =====
+
+        Retorna a matriz Sx(array).
+        '''
+        pass
 
     def __Matriz_S(self,delta=1e-5):
-        
         u'''
         Método para calcular a matriz S(derivadas primeiras da função do modelo em relação aos parâmetros).
         
@@ -1403,7 +1429,7 @@ class EstimacaoNaoLinear:
                 
                 
                 # Fórmula de diferença finita de primeira ordem. Fonte bibliográfica bibliográfia:\
-                #(Gilat, Amos; MATLAB Com Aplicação em Engenharia, 2a ed, Bookman, 2006.)
+                #(Gilat, Amos; MATLAB Com Aplicação em Engenharia, 2a ed, Bookman, 2006.) - página (?)
                 matriz_S[:,i:i+1] =  (matriz2vetor(ycalculado_delta_positivo.result) - matriz2vetor(ycalculado_delta_negativo.result))/(2*delta_alpha)
                 
         return matriz_S

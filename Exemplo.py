@@ -91,26 +91,26 @@ inf=[0 ,20000]
 # PARTE II - GENÉRICO (INDEPENDE DO EXEMPLO)
 # =================================================================================
 
-# Estime.gerarEntradas(x,y,ux,uy,tipo='experimental')
-# #print Estime._EstimacaoNaoLinear__etapas
-# #grandeza = Estime._armazenarDicionario() # ETAPA PARA CRIAÇÃO DOS DICIONÁRIOS - Grandeza é uma variável que retorna as grandezas na forma de dicionário
-# #Estime.gerarEntradas(x,y,ux,uy,tipo='experimental')
-# #Estime.gerarEntradas(x,y,ux,uy,tipo='validacao')
-#
-# # Otimização
-# Estime.otimiza(sup=sup,inf=inf,algoritmo='PSO',itmax=100,Num_particulas=40,metodo={'busca':'Otimo','algoritmo':'PSO','inercia':'TVIW-linear'})
-# #Estime.SETparametro([38.995741810115526, 27642.600636422056],array([[  2.02734350e+03,   1.27340945e+06], [  1.27340945e+06,   8.00043729e+08]]), [[40.109979078710914, 28327.340030375271], [39.974873089082237, 28269.976466622789], [39.986868869853929, 28257.245507319007], [39.957802118600114, 28262.280430186871], [39.96796782099441, 28252.197585436141], [39.972752888990108, 28247.451519119131], [39.970243928961061, 28248.729896415203], [40.213165972226285, 28401.616852926723], [39.966798413346233, 28255.363399182246], [39.967131150063913, 28249.310328451735], [39.968894125215073, 28251.321914853899], [39.968259898251567, 28254.002072298666], [39.845248197231676, 28170.027690073686], [37.137087267928976, 26470.834878622278], [39.967980582134309, 28255.18242446626], [39.968018736414727, 28253.447171804281], [39.968035154317207, 28252.700487325488], [40.189655836527102, 28405.961873947806], [39.968007703632878, 28253.379865343017], [39.968008117335522, 28253.765566695656], [39.8324968893617, 28186.280024724736], [39.906652236738815, 28212.712307038702], [39.894059693996837, 28201.761703602224]])
-# Estime.incertezaParametros(.95,1e-5,metodo='2InvHessiana')
-# grandeza = Estime._armazenarDicionario()
-# Estime.predicao()
-# Estime.analiseResiduos(.95)
-# #
-# etapas = ['otimizacao','grandezas-entrada', 'predicao','grandezas-calculadas','analiseResiduos', 'regiaoAbrangencia']
-# Estime.graficos(etapas,0.95)
-# Estime.relatorio(export_y=True,export_cov_y=True)
+Estime.gerarEntradas(x,y,ux,uy,tipo='experimental')
+#print Estime._EstimacaoNaoLinear__etapas
+#grandeza = Estime._armazenarDicionario() # ETAPA PARA CRIAÇÃO DOS DICIONÁRIOS - Grandeza é uma variável que retorna as grandezas na forma de dicionário
+#Estime.gerarEntradas(x,y,ux,uy,tipo='experimental')
+#Estime.gerarEntradas(x,y,ux,uy,tipo='validacao')
 
-# print Estime.y.estatisticas
-# print Estime.estatisticas
+# Otimização
+Estime.otimiza(sup=sup,inf=inf,algoritmo='PSO',itmax=100,Num_particulas=40,metodo={'busca':'Otimo','algoritmo':'PSO','inercia':'TVIW-linear'})
+#Estime.SETparametro([38.995741810115526, 27642.600636422056],array([[  2.02734350e+03,   1.27340945e+06], [  1.27340945e+06,   8.00043729e+08]]), [[40.109979078710914, 28327.340030375271], [39.974873089082237, 28269.976466622789], [39.986868869853929, 28257.245507319007], [39.957802118600114, 28262.280430186871], [39.96796782099441, 28252.197585436141], [39.972752888990108, 28247.451519119131], [39.970243928961061, 28248.729896415203], [40.213165972226285, 28401.616852926723], [39.966798413346233, 28255.363399182246], [39.967131150063913, 28249.310328451735], [39.968894125215073, 28251.321914853899], [39.968259898251567, 28254.002072298666], [39.845248197231676, 28170.027690073686], [37.137087267928976, 26470.834878622278], [39.967980582134309, 28255.18242446626], [39.968018736414727, 28253.447171804281], [39.968035154317207, 28252.700487325488], [40.189655836527102, 28405.961873947806], [39.968007703632878, 28253.379865343017], [39.968008117335522, 28253.765566695656], [39.8324968893617, 28186.280024724736], [39.906652236738815, 28212.712307038702], [39.894059693996837, 28201.761703602224]])
+Estime.incertezaParametros(.95,1e-5,metodo='2InvHessiana')
+grandeza = Estime._armazenarDicionario()
+Estime.predicao()
+Estime.analiseResiduos(.95)
+#
+etapas = ['otimizacao','grandezas-entrada', 'predicao','grandezas-calculadas','analiseResiduos', 'regiaoAbrangencia']
+Estime.graficos(etapas,0.95)
+Estime.relatorio(export_y=True,export_cov_y=True)
+
+print Estime.y.estatisticas
+print Estime.estatisticas
 ##################################################################################
 ##################################################################################
 # EXEMPLOS PARA MODELOS LINEARES
@@ -120,29 +120,29 @@ inf=[0 ,20000]
 # =================================================================================
 # PARTE I - INCLUSÃO DE DADOS (DEPENDE DO EXEMPLO)
 # =================================================================================
-
-#Sem o cálculo do termo independente
-ER = EstimacaoLinear(['y'],['x'],['p1'],projeto='LINEAR_semB')
-x = array([[0],[1],[2],[3],[4],[5]])
-y = array([[.1],[.9],[2.2],[3.2],[3.9],[4.8]])
-ER.gerarEntradas(x,y,array([[1],[1],[1],[1],[1],[1]]),array([[1],[1],[1],[1],[1],[1]]),tipo='experimental')
-#ER.gerarEntradas(x,y,array([[1],[1],[1],[1],[1],[1]]),array([[1],[1],[1],[1],[1],[1]]),tipo='validacao')
-
-# # Com o cálculo do termo independente
-# ER = EstimacaoLinear(['y'],['x'],['p1','p2'],projeto='LINEAR_comB')
+#
+# #Sem o cálculo do termo independente
+# ER = EstimacaoLinear(['y'],['x'],['p1'],projeto='LINEAR_semB')
 # x = array([[0],[1],[2],[3],[4],[5]])
 # y = array([[.1],[.9],[2.2],[3.2],[3.9],[4.8]])
 # ER.gerarEntradas(x,y,array([[1],[1],[1],[1],[1],[1]]),array([[1],[1],[1],[1],[1],[1]]),tipo='experimental')
-# ER.gerarEntradas(x,y,array([[1],[1],[1],[1],[1],[1]]),array([[1],[1],[1],[1],[1],[1]]),tipo='validacao')
+# #ER.gerarEntradas(x,y,array([[1],[1],[1],[1],[1],[1]]),array([[1],[1],[1],[1],[1],[1]]),tipo='validacao')
 #
-# # =================================================================================
-# # PARTE II - GENÉRICO (INDEPENDE DO EXEMPLO)
-# # =================================================================================
-#
-ER.otimiza()
-#ER.SETparametro([0.9571428571428567, 0.12380952380952503])
-ER.incertezaParametros(.95)
-ER.predicao(delta=1e-6)
-ER.analiseResiduos(.95)
-ER.graficos(['analiseResiduos','regiaoAbrangencia', 'grandezas-entrada', 'predicao','grandezas-calculadas','otimizacao'],0.95)
-ER.relatorio()
+# # # Com o cálculo do termo independente
+# # ER = EstimacaoLinear(['y'],['x'],['p1','p2'],projeto='LINEAR_comB')
+# # x = array([[0],[1],[2],[3],[4],[5]])
+# # y = array([[.1],[.9],[2.2],[3.2],[3.9],[4.8]])
+# # ER.gerarEntradas(x,y,array([[1],[1],[1],[1],[1],[1]]),array([[1],[1],[1],[1],[1],[1]]),tipo='experimental')
+# # ER.gerarEntradas(x,y,array([[1],[1],[1],[1],[1],[1]]),array([[1],[1],[1],[1],[1],[1]]),tipo='validacao')
+# #
+# # # =================================================================================
+# # # PARTE II - GENÉRICO (INDEPENDE DO EXEMPLO)
+# # # =================================================================================
+# #
+# ER.otimiza()
+# #ER.SETparametro([0.9571428571428567, 0.12380952380952503])
+# ER.incertezaParametros(.95)
+# ER.predicao(delta=1e-6)
+# ER.analiseResiduos(.95)
+# ER.graficos(['analiseResiduos','regiaoAbrangencia', 'grandezas-entrada', 'predicao','grandezas-calculadas','otimizacao'],0.95)
+# ER.relatorio()

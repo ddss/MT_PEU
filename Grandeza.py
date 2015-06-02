@@ -67,6 +67,7 @@ class Organizador:
 
         * Caso a incerteza seja definida como None, os atributos relacionados a ela NÃO serão criados.
         '''
+        # TODO: grau de liberade como ARRAY
         # ---------------------------------------------------------------------
         # VALIDAÇÃO da entrada tipos:
         # ---------------------------------------------------------------------
