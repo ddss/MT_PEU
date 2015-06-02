@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+ # -*- coding: utf-8 -*-
 """
 Principais classes do motor de cálculo do PEU
 
@@ -35,6 +35,7 @@ from PSO import PSO
 # Usado quando o modelo é linear
 from Modelo import ModeloLinear
 from Funcao_Objetivo import WLS
+
 
 class EstimacaoNaoLinear:
     
@@ -412,7 +413,7 @@ class EstimacaoNaoLinear:
             raise ValueError(u'Foram inseridos %d dados experimentais para uma grandeza e %d para outra'%(NE,size(dados,0)))
         
         if size(dados,1) != Ndados: 
-            raise ValueError(u'O número de variáveis definidas foi %s, mas foram inseridos dados para %s variáveis.'%(Ndados,size(dados,1)))
+            raise ValueError(u'O número de variáveis definidas foi %s, mas foram inseridos dados para %validacaos variáveis.'%(Ndados,size(dados,1)))
             
         if size(udados,0) != NE:
             raise ValueError(u'Foram inseridos %d dados experimentais, mas incertezas para %d dados'%(NE,size(udados,0)))
@@ -720,6 +721,8 @@ class EstimacaoNaoLinear:
         # Matriz Hessiana da função objetivo em relação aos parâmetros
         Hess   = self.__Hessiana_FO_Param(delta)
         
+        print Hess
+        
         # Inversa da matriz hessiana a função objetivo em relação aos parâmetros
         invHess = inv(Hess)
 
@@ -835,14 +838,17 @@ class EstimacaoNaoLinear:
 
         # ---------------------------------------------------------------------
         # ATRIBUIÇÃO A GRANDEZAS
-        # ---------------------------------------------------------------------     
-        self.y._SETcalculado(aux.result,Uyycalculado,[[self.y.experimental.NE-self.parametros.NV]*self.y.experimental.NE]*self.y.NV,{'estimativa':'matriz','incerteza':'variancia'},self.y.validacao.NE)
-        self.x._SETcalculado(self.x.validacao.matriz_estimativa,self.x.validacao.matriz_incerteza,[[self.x.experimental.NE-self.parametros.NV]*self.x.experimental.NE]*self.x.NV,{'estimativa':'matriz','incerteza':'incerteza'},None)
-      
-        # ---------------------------------------------------------------------
-        # VARIÁVEIS INTERNAS
+        
+                                                                                                            #|| || || || ||  Modificado 11/05/2015
+                                                                              #|||||   modificado 30/05     #\/ \/ \/ \/ \/
+        # -------------------------------------------------------------------  \/\/\/   
+        self.y._SETcalculado(aux.result,Uyycalculado,[[self.y.experimental.NE*self.y.NV-self.parametros.NV]*self.y.validacao.NE]*self.y.NV,{'estimativa':'matriz','incerteza':'variancia'},self.y.validacao.NE)
+        self.x._SETcalculado(self.x.validacao.matriz_estimativa,self.x.validacao.matriz_incerteza,[[self.x.experimental.NE*self.x.NV-self.parametros.NV]*self.x.validacao.NE]*self.x.NV,{'estimativa':'matriz','incerteza':'incerteza'},None)
+        # ---------------------------------------------------------------------                                              /\/\/\
+        # VARIÁVEIS INTERNAS                                                                                                 ||||||  Alterado 30/05/2015           /\/\/\
+                                                                                                                                                                  #||||||   here too. 11/05/2015                             
         # ---------------------------------------------------------------------         
-        # Inclusão desta etapa da lista de etapas                
+        # Inclusão desta etapa da lista de etapas
         self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[7])        
         
         
@@ -1009,6 +1015,7 @@ class EstimacaoNaoLinear:
                 vetor_y_delta_jnegativo         = vetor_delta(self.y.experimental.vetor_estimativa,j,-delta2) 
                 args                            = copy(self.__args_model).tolist()
                 args[0]                         = vetor_y_delta_jnegativo
+                
    
                 FO_ipositivo_jnegativo          = self.__FO(vetor_parametro_delta_ipositivo,args) #Mesma ideia, fazendo isso para aplicar a equação de derivada central de segunda ordem.
                 FO_ipositivo_jnegativo.start()
@@ -1028,7 +1035,7 @@ class EstimacaoNaoLinear:
                 #(Gilat, Amos; MATLAB Com Aplicação em Engenharia, 2a ed, Bookman, 2006.)
                 matriz_Gy[i][j]=((FO_ipositivo_jpositivo.result-FO_inegativo_jpositivo.result)/(2*delta1)\
                 -(FO_ipositivo_jnegativo.result-FO_inegativo_jnegativo.result)/(2*delta1))/(2*delta2)
-         
+                
         return array(matriz_Gy)
 
 
@@ -1429,7 +1436,7 @@ class EstimacaoNaoLinear:
                 
             else:
                 warn(u'Os gráficos envolvendo somente as grandezas não puderam ser criados, pois o método %s'%(self.__etapasdisponiveis[7],)+' não foi executado.',UserWarning)
-           
+ 
         
         if ('estimacao' in tipos):
             if self.__etapasdisponiveis[7] in self.__etapas[self.__etapasID]:
@@ -1454,25 +1461,36 @@ class EstimacaoNaoLinear:
                 
                 Miy= X | (barra) +- (t * ^Vyy)/Raiz(N)
                 
-                '''
+                
                 
                 
                 #lim_superior=ones((self.y.experimental.NE,self.y.NV)) 
+                '''
                 
-                incerteza_expandida=ones((self.y.experimental.NE,self.y.NV))
+                incerteza_expandida_Yc=ones((self.y.calculado.NE,self.y.NV))
+                incerteza_expandida_Ye=ones((self.y.validacao.NE,self.y.NV))   #Troquei self.y.experimental.NE por self.y.validacao.NE
                 
-                for linha in xrange(self.y.experimental.NE):
+                t_cal=t.ppf((1-PA)/2, array(transpose(self.y.calculado.gL))[1][1])
+                t_val=t.ppf((1-PA)/2, array(transpose(self.y.validacao.gL))[1][1])   # Modificado 18/05/15
+                
+                '''
+                for linha in xrange(self.y.calculado.NE):
                     for column in xrange(self.y.NV):
                                             
                         incerteza_expandida[linha][column]=-t.ppf((1-PA)/2, array(transpose(self.y.validacao.gL))[linha][column])*\
                                              self.y.calculado.matriz_incerteza[linha][column]
                                              
                         #lim_superior[elem][colum]=stats.t.ppf((PA+(1-PA)/2), array(transpose(self.y.validacao.gL))[colum][elem])*self.y.calculado.matriz_incerteza[elem][colum]
-                '''
+                
                 #######################################################################################
                 '''
                     
-                    
+                #print self.y.calculado.gL
+                #print size(arrself.y.calculado.gL)
+                
+
+                
+                
                 base_dir = sep + 'Estimacao' + sep
                 Validacao_Diretorio(base_path,base_dir)
                 for iy in xrange(self.y.NV):
@@ -1506,15 +1524,34 @@ class EstimacaoNaoLinear:
                         else:
                             fig.savefig(base_path+base_dir+'grafico_'+str(self.y.simbolos[iy])+'exp_vs_'+str(self.y.simbolos[iy])+'calc_sem_var.png')
                         close()
-                
-                        # Gráfico comparativo entre valores experimentais e calculados pelo modelo, com variância    
-                        yerr_experimental = 2.*self.y.validacao.matriz_incerteza[:,iy]
-                        yerr_calculado    = incerteza_expandida[:,iy]
+                        
+                        '''
+                        Deslocamento do FOR
+                        '''
+                        
+                        '''
+                        for linha in xrange(self.y.calculado.NE):
+                        
+                        In this case, the for structure is not necessary.
+                        
+                        changed at may 30th.
+                        
+                        '''
+                        
+                        incerteza_expandida_Yc[:,iy]=-t_cal*self.y.calculado.matriz_incerteza[:,iy]
+                            
+                        incerteza_expandida_Ye[:,iy]=-t_val*self.y.validacao.matriz_incerteza[:,iy]
+                                                             
+                            # Gráfico comparativo entre valores experimentais e calculados pelo modelo, com variância    
+                           
+                        
+                        yerr_calculado    = incerteza_expandida_Yc[:,iy]
+                        yerr_experimental = incerteza_expandida_Ye[:,iy]
                         
                             
                         
                         fig = figure()
-                        ax = fig.add_subplot(1,1,1)
+                    
                         errorbar(y,ym,xerr=yerr_experimental,yerr=yerr_calculado,marker='o',color='b',linestyle='None')
                         plot(diagonal,diagonal,'k-',linewidth=2.0)
                         
@@ -1545,46 +1582,59 @@ class EstimacaoNaoLinear:
                         # Teste de variância - F - y +- var(y), ym +- var(ym) 
                         '''
                         ###################################################################
-                        OBS.: Multiplicação por '2.', fator de abrangência sugerido pelo GUM 
+                        OBS.: NOVO FATOR DE ABRANGÊNCIA DETERMINADO NA LINHA 1526
                         ###################################################################
                         
                                             ||
                                            \||/
                                             \/
                         '''
-                        yerr_experimental = 2.*self.y.validacao.matriz_incerteza[:,iy]
-                        #yerr_calculado    = self.y.calculado.matriz_incerteza[:,iy]
-    
-                        ycalc_inferior_F = []
-                        ycalc_superior_F = []
-                        for iNE in xrange(self.y.experimental.NE):
+                        #yerr_experimental = 2.*self.y.validacao.matriz_incerteza[:,iy]
+                        #graudeliberdadecalculado=array([[(self.y.calculado.NE-self.parametros.NV) for col in range(self.y.calculado.NE)] for row in range(self.y.NV)])
+                        
+                        '''
+                        ###################################################################
+                        Modificado 11/05/2015
+                        ###################################################################
+                        
+                        Any problem noticed at the indentation of this grafic's building.
+                        
+                        30/05/2015
+                        
+                        '''
+                        if self.__flag.info['dadosvalidacao'] == False:
                             
-							ycalc_inferior_F.append(self.y.calculado.matriz_estimativa[iNE,iy]+t.ppf((1-PA)/2, array(transpose(self.y.validacao.gL))[iNE][iy])\
+                            ycalc_inferior_F = []
+                            ycalc_superior_F = []
+                            for iNE in xrange(self.y.calculado.NE):
+                            
+							ycalc_inferior_F.append(self.y.calculado.matriz_estimativa[iNE,iy]+\
+                                        t_val\
                                         *(f.ppf((PA+(1-PA)/2),self.y.calculado.gL[iy][iNE],\
-                                        self.y.validacao.gL[iy][iNE])*self.y.experimental.matriz_covariancia[iNE,iNE])**0.5)
+                                        self.y.validacao.gL[iy][iNE])*self.y.validacao.matriz_covariancia[iNE,iNE])**0.5)
                                         
-							ycalc_superior_F.append(self.y.calculado.matriz_estimativa[iNE,iy]-t.ppf((1-PA)/2, array(transpose(self.y.validacao.gL))[iNE][iy])\
-                                        *(f.ppf((PA+(1-PA)/2),self.y.calculado.gL[iy][iNE],\
-                                        self.y.validacao.gL[iy][iNE])*self.y.experimental.matriz_covariancia[iNE,iNE])**0.5)
+							ycalc_superior_F.append(self.y.calculado.matriz_estimativa[iNE,iy]-t_val\
+                                           *(f.ppf((PA+(1-PA)/2),self.y.calculado.gL[iy][iNE],\
+                                        self.y.validacao.gL[iy][iNE])*self.y.validacao.matriz_covariancia[iNE,iNE])**0.5)
 													
-                        fig = figure()
-                        ax = fig.add_subplot(1,1,1)
-                        errorbar(y,ym,xerr=yerr_experimental,yerr=yerr_calculado,marker='o',color='b',linestyle='None')
-                        plot(diagonal,diagonal,'k-',linewidth=2.0)
-                        plot(y,ycalc_inferior_F,color='red')
-                        plot(y,ycalc_superior_F,color='k')
-                        
-                        ax.yaxis.grid(color='gray', linestyle='dashed')                        
-                        ax.xaxis.grid(color='gray', linestyle='dashed')
-                                            
-                        label_tick_y   = ax.get_yticks().tolist() 
-                        tamanho_tick_y = (label_tick_y[1] - label_tick_y[0])/2
+                            fig = figure()
+                            ax = fig.add_subplot(1,1,1)
+                            errorbar(y,ym,xerr=yerr_experimental,yerr=yerr_calculado,marker='o',color='b',linestyle='None')
+                            plot(diagonal,diagonal,'k-',linewidth=2.0)
+                            plot(y,ycalc_inferior_F,color='red')
+                            plot(y,ycalc_superior_F,color='k')
+                            
+                            ax.yaxis.grid(color='gray', linestyle='dashed')                        
+                            ax.xaxis.grid(color='gray', linestyle='dashed')
+                            label_tick_y   = ax.get_yticks().tolist() 
+                            tamanho_tick_y = (label_tick_y[1] - label_tick_y[0])/2
     
-                        ymin   = min(ym - yerr_calculado) - tamanho_tick_y
-                        ymax   = max(ym + yerr_calculado) + tamanho_tick_y
+                            ymin   = min(ym - yerr_calculado) - tamanho_tick_y
+                            ymax   = max(ym + yerr_calculado) + tamanho_tick_y
                         
-                        xlim((ymin,ymax))
-                        ylim((ymin,ymax))                
+                            xlim((ymin,ymax))
+                            ylim((ymin,ymax))  
+                            
                         if self.__flag.info['dadosvalidacao'] == True:
                             xlabel(self.y.labelGraficos('validacao')[iy])
                         else:
@@ -1629,10 +1679,9 @@ class EstimacaoNaoLinear:
             '''
             Verificando se o intervalo de confiança dos dados experimentais sao maiores que os da predição
             '''
-            print incerteza_expandida-2.*self.y.validacao.matriz_incerteza
-            
-            print incerteza_expandida
-            print PA
+            #print incerteza_expandida-2.*self.y.validacao.matriz_incerteza
+        
+            #print PA
 
 
 class EstimacaoLinear(EstimacaoNaoLinear):
@@ -1734,6 +1783,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # A função objetivo é None
         
         EstimacaoNaoLinear.__init__(self,WLS,ModeloLinear,simbolos_y,simbolos_x,simbolos_param,projeto,**kwargs)
+       
 
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
@@ -1774,7 +1824,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         self._EstimacaoNaoLinear__validacaoArgumentosEntrada('gerarEntradas',None,tipo)       
          
         # ---------------------------------------------------------------------
-        # MODIFICAÇÕES DAS MATRIZES DE DADOS 
+        # MODIFICAÇÕES DAS MATRIZES D8.440940646E DADOS 
         # ---------------------------------------------------------------------
         if (self.parametros.NV == self.x.NV+1):
             self.x.simbolos = self.x.simbolos.append('dumb')
@@ -1823,6 +1873,8 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # ---------------------------------------------------------------------         
         # Inclusão desta etapa da lista de etapas
         self._EstimacaoNaoLinear__etapas[self._EstimacaoNaoLinear__etapasID].append(self._EstimacaoNaoLinear__etapasdisponiveis[1]) 
+        
+        
         
     def otimiza(self):
         u'''
@@ -1916,23 +1968,51 @@ if __name__ == "__main__":
     ux1 = ones((10,1))
     ux2 = ones((10,1))
     uy1 = ones((10,1))    
-    uy2 = ones((10,1))
+    uy2 = ones((10,1))    
+    
+    '''
+    **********************************************
+    '''
+    x1val = transpose(array([1.5, 5.26, 8.7, 9.9, 12, 16.5, 18.99, 22, 28, 33.5, 45, 50.6, 56.55, 70.7, 79.17, 86.44, 89.5, 90.55, 95.89, 99.9],ndmin=2))
+    y1val = transpose(array([6.497243907, 10.09968151, 13.01752894, 13.26425354, 14.47083352, 17.04390209, 17.72670111, 19.4829354, 20.95230989, 22.54150833, 26.52665825, 27.50618081, 28.90572678, 31.56310699, 33.21890151, 34.83938383, 35.01149464, 35.34906252, 35.84760246, 36.49845796],ndmin=2))
+    x2val = transpose(array([1.5, 5.26, 8.7, 9.9, 12, 16.5, 18.99, 22, 28, 33.5, 45, 50.6, 56.55, 70.7, 79.17, 86.44, 89.5, 90.55, 95.89, 99.9],ndmin=2))
+    y2val = transpose(array([6.497243907, 10.09968151, 13.01752894, 13.26425354, 14.47083352, 17.04390209, 17.72670111, 19.4829354, 20.95230989, 22.54150833, 26.52665825, 27.50618081, 28.90572678, 31.56310699, 33.21890151, 34.83938383, 35.01149464, 35.34906252, 35.84760246, 36.49845796],ndmin=2))
+
+    ux1val = ones((20,1))
+    ux2val = ones((20,1))
+    uy1val = ones((20,1))    
+    uy2val = ones((20,1))
+    
+
     
     x  = concatenate((x1,x2),axis=1)
     y  = concatenate((y1,y2),axis=1)    
     ux = concatenate((ux1,ux2),axis=1)
     uy = concatenate((uy1,uy2),axis=1)
-
+    
+    '''
+    *********************************************
+    '''
+    xval  = concatenate((x1val,x2val),axis=1)
+    yval  = concatenate((y1val,y2val),axis=1)
+    uxval = concatenate((ux1val,ux2val),axis=1)
+    uyval = concatenate((uy1val,uy2val),axis=1)
+    
+    '''
+    *********************************************
+    '''
+    
     Estime = EstimacaoNaoLinear(WLS,Modelo,simbolos_x=['x1','x2'],simbolos_y=['y1','y2'],simbolos_param=[r'theta%d'%i for i in xrange(4)],label_latex_param=[r'$\theta_{%d}$'%i for i in xrange(4)])
     sup = [6.  ,.3  ,8.  ,0.7]
     inf = [1.  , 0  ,1.  ,0.]
 
     # Continuacao
-    Estime.gerarEntradas(x,y,ux,uy,tipo='experimental')    
+    Estime.gerarEntradas(x,y,ux,uy,tipo='experimental')
+    #Estime.gerarEntradas(xval,yval,uxval,uyval,tipo='validacao')
     grandeza = Estime._armazenarDicionario() # ETAPA PARA CRIAÇÃO DOS DICIONÁRIOS - Grandeza é uma variável que retorna as grandezas na forma de dicionário
     
     # Otimização
-    Estime.otimiza(sup=sup,inf=inf,algoritmo='PSO',itmax=300,Num_particulas=30,metodo={'busca':'Otimo','algoritmo':'PSO','inercia':'TVIW-Adaptative-VI'})
+    Estime.otimiza(sup=sup,inf=inf,algoritmo='PSO',itmax=100,Num_particulas=30,metodo={'busca':'Otimo','algoritmo':'PSO','inercia':'TVIW-Adaptative-VI'})
     Estime.incertezaParametros(.95,1e-5,metodo='2InvHessiana')  
     grandeza = Estime._armazenarDicionario()
 
@@ -1943,8 +2023,8 @@ if __name__ == "__main__":
     Estime.graficos(etapas,0.95)
 
 
-    print Estime.y.calculado.matriz_incerteza**2/Estime.y.experimental.matriz_incerteza**2
-    print f.ppf(0.975,Estime.y.calculado.gL[0][0],Estime.y.validacao.gL[0][0])
+    #print Estime.y.calculado.matriz_incerteza**2/Estime.y.experimental.matriz_incerteza**2
+    #print f.ppf(0.975,Estime.y.calculado.gL[0][0],Estime.y.validacao.gL[0][0])
 # TESTE: MODELO LINEAR
 #    ER = EstimacaoLinear(['y'],['x'],['p1'])
 #    x = array([[1],[2]])

@@ -150,6 +150,7 @@ class Organizador:
         # Graus de liberdade
         # ---------------------------------------------------------------------   
         self.gL = gL if len(gL) !=0 else [[100]*self.NE]*size(self.matriz_estimativa,1)
+        
 
         
 class Grandeza:

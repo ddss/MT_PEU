@@ -15,6 +15,8 @@ from matplotlib.patches import Ellipse
 #THREAD
 from Queue import Queue, Empty
 
+from scipy.stats import t
+
 
 
 def matriz2vetor(matriz):
@@ -202,7 +204,7 @@ def vetor_delta(entrada_vetor,posicao,delta):
         vetor[posicao] = vetor[posicao]+delta
                 
     return vetor
-    
+
 def matrizcorrelacao(matriz_covariancia):
     u'''
     Calcula a matriz de correlação de determinada matriz covariância
