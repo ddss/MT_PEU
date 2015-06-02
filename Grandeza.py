@@ -6,7 +6,8 @@ Created on Mon Feb  2 11:05:02 2015
 """
 # Importação de pacotes de terceiros
 from numpy import array, transpose ,size, diag, linspace, min, max, \
- mean,  std, amin, amax, ndarray, ones, sqrt, insert, nan, shape
+    mean,  std, amin, amax, ndarray, ones, sqrt, insert, nan, shape
+
 
 from scipy.stats import normaltest, anderson, shapiro, ttest_1samp, kstest,\
  norm, probplot, ttest_ind
@@ -23,7 +24,7 @@ from subrotinas import matriz2vetor, vetor2matriz, Validacao_Diretorio, matrizco
 
 class Organizador:
     
-    def __init__(self,estimativa,incerteza,tipos={'estimativa':'matriz','incerteza':'incerteza'},NE=None):
+    def __init__(self,estimativa,incerteza,gL=[],tipos={'estimativa':'matriz','incerteza':'incerteza'},NE=None):
         '''
         Classe para organizar os dados das estimativas e suas respectivas incertezas, disponibilizando-os na forma de matriz, vetores e listas.
         
@@ -36,6 +37,7 @@ class Organizador:
         numa única coluna, sendo necessário fornecer a entrada NE.
         * ``incerteza``  (array) : incerteza (ou variância) para os valores das estimativas. Esta informação sempre será uma matriz. No entanto, \
         caso sejam as incertezas, cada coluna da contém a incerteza para os pontos de uma variável. Caso seja as variâncias, será a matriz de covariância.
+        * ``gL''(lista)           : graus de liberdade
         * ``tipos``      (dicionário): dicionário que define como as entradas estimativa e incerteza foram definidas:\
         As chaves e conteúdos são: estimativa (conteúdo: ``matriz`` ou ``vetor``) e incerteza (conteúdo: ``incerteza`` ou `variancia``).
         * ``NE`` (int): quantidade de pontos experimentais. Necessário apenas quanto a estimativa é um vetor.
@@ -93,11 +95,19 @@ class Organizador:
             if not isinstance(incerteza,ndarray):
                     raise TypeError(u'Os dados de entrada precisam ser arrays.')            
         
+        if not isinstance(gL,list):
+			raise TypeError(u'os graus de liberdade precisam ser listas')
+		
+		# TODO: Corrigir este teste
+        #if (len(gL) != size(estimativa)) and (len(gL) != 0) :
+	    #		raise ValueError(u'Os graus de liberdade devem ter o mesmo tamanho das estimativas')    
+		
         # ---------------------------------------------------------------------
         # CRIAÇÃO dos atributos na forma de ARRAYS
         # ---------------------------------------------------------------------
+               
         if tipos['estimativa'] == 'matriz':
-            
+
             self.matriz_estimativa  = estimativa
             self.vetor_estimativa   = matriz2vetor(self.matriz_estimativa) # conversão de matriz para vetor
 
@@ -131,12 +141,18 @@ class Organizador:
         else:
             self.lista_incerteza  = None
             self.lista_variancia  = None
-            
+
         # ---------------------------------------------------------------------
         # Número de pontos experimentais e de variáveis
         # ---------------------------------------------------------------------
+
         self.NE = size(self.matriz_estimativa,0)
-        
+
+        # ---------------------------------------------------------------------
+        # Graus de liberdade
+        # ---------------------------------------------------------------------   
+        self.gL = gL if len(gL) !=0 else [[100]*self.NE]*size(self.matriz_estimativa,1)
+
 class Grandeza:
     
     def __init__(self,simbolos,nomes=None,unidades=None,label_latex=None):
@@ -272,25 +288,25 @@ class Grandeza:
                 if len(elemento) != len(simbolos):
                     raise ValueError('A simbologia, nomes, unidades e label_latex de uma grandeza devem ser listas de MESMO tamanho.')
 
-    def _SETexperimental(self,estimativa,variancia,tipo):
-        
+    def _SETexperimental(self,estimativa,variancia,gL,tipo):
+
         self.__ID.append('experimental')
-        self.experimental = Organizador(estimativa,variancia,tipo)        
+        self.experimental = Organizador(estimativa,variancia,gL,tipo)        
         
-    def _SETvalidacao(self,estimativa,variancia,tipo):
+    def _SETvalidacao(self,estimativa,variancia,gL,tipo):
         
         self.__ID.append('validacao')
-        self.validacao = Organizador(estimativa,variancia,tipo)
+        self.validacao = Organizador(estimativa,variancia,gL,tipo)
 
-    def _SETcalculado(self,estimativa,variancia,tipo,NE):
+    def _SETcalculado(self,estimativa,variancia,gL,tipo,NE):
         
         self.__ID.append('calculado')
-        self.calculado = Organizador(estimativa,variancia,tipo,NE)     
+        self.calculado = Organizador(estimativa,variancia,gL,tipo,NE)     
  
-    def _SETresiduos(self,estimativa,variancia,tipo):
+    def _SETresiduos(self,estimativa,variancia,gL,tipo):
         
         self.__ID.append('residuo')
-        self.residuos = Organizador(estimativa,variancia,tipo)  
+        self.residuos = Organizador(estimativa,variancia,gL,tipo)  
 
     def _SETparametro(self, estimativa, variancia, regiao):
 
@@ -467,7 +483,7 @@ class Grandeza:
         
                 # Lista que contém as chamadas das funções de teste:
                 if size(dados) < 3: # Se for menor do que 3, não se pode executar o teste de shapiro
-                    pnormal=[None, None, anderson(dados, dist='norm'),kstest(dados,'norm',args=(mean(dados),std(dados,ddof=1)))]                
+                    pnormal=[None, None, anderson(dados, dist='norm'),kstest(dados,'norm',args=(mean(dados),std(dados,ddof=1)))]
                     pvalor[nome]['residuo-Normalidade'] = {'normaltest':None, 'shapiro':None, 'anderson':{'estatistica A_Darling':pnormal[2][0],'valores criticos':pnormal[2][1]},'kstest':pnormal[3][1]}
 
                 elif size(dados) < 20: # Se for menor do que 20 não será realizado no normaltest, pois ele só é válido a partir dste número de dados
@@ -593,6 +609,7 @@ class Grandeza:
                 #Verifica se os dados são oriundos de uma pdf normal, o indicativo disto é a obtenção de uma reta              
                 res = probplot(dados, dist='norm', sparams=(mean(dados),std(dados,ddof=1)))
                 if not (nan in res[0][0].tolist() or nan in res[0][1].tolist() or nan in res[1]):
+
                     fig = figure()
                     plot(res[0][0], res[0][1], 'o', res[0][0], res[1][0]*res[0][0] + res[1][1])
                     xlabel('Quantis')

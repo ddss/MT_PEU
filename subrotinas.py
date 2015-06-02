@@ -196,7 +196,7 @@ def vetor_delta(entrada_vetor,posicao,delta):
         vetor[posicao] = vetor[posicao]+delta
                 
     return vetor
-    
+
 def matrizcorrelacao(matriz_covariancia):
     u"""
     Calcula a matriz de correlação de determinada matriz covariância

@@ -180,7 +180,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         if (self.parametros.NV == self.x.NV+1):
             self._EstimacaoNaoLinear__flag.ToggleActive('calc_termo_independente')
 
-    def gerarEntradas(self, x, y, ux, uy, tipo='experimental', uxy=None):
+    def gerarEntradas(self,x,y,ux,uy,glx=[],gly=[],tipo='experimental',uxy=None):
         u'''
         Método para incluir os dados de entrada da estimação
         
@@ -225,8 +225,8 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             # ATRIBUIÇÃO A GRANDEZAS
             # ---------------------------------------------------------------------
             # Salvando os dados experimentais nas variáveis.
-            self.x._SETexperimental(x,ux,{'estimativa':'matriz','incerteza':'incerteza'})
-            self.y._SETexperimental(y,uy,{'estimativa':'matriz','incerteza':'incerteza'}) 
+            self.x._SETexperimental(x,ux,glx,{'estimativa':'matriz','incerteza':'incerteza'})
+            self.y._SETexperimental(y,uy,gly,{'estimativa':'matriz','incerteza':'incerteza'})
 
             # ---------------------------------------------------------------------
             # LISTA DE ATRIBUTOS A SEREM INSERIDOS NA FUNÇÃO OBJETIVO
@@ -245,8 +245,8 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             # ATRIBUIÇÃO A GRANDEZAS
             # ---------------------------------------------------------------------
             # Salvando os dados de validação.
-            self.x._SETvalidacao(x,ux,{'estimativa':'matriz','incerteza':'incerteza'})
-            self.y._SETvalidacao(y,uy,{'estimativa':'matriz','incerteza':'incerteza'}) 
+            self.x._SETvalidacao(x,ux,glx,{'estimativa':'matriz','incerteza':'incerteza'})
+            self.y._SETvalidacao(y,uy,gly,{'estimativa':'matriz','incerteza':'incerteza'})
 
 
         if self._EstimacaoNaoLinear__flag.info['dadosvalidacao'] == False:
@@ -257,8 +257,8 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             # ATRIBUIÇÃO A GRANDEZAS
             # ---------------------------------------------------------------------
             # Salvando os dados de validação.
-            self.x._SETvalidacao(x,ux,{'estimativa':'matriz','incerteza':'incerteza'})
-            self.y._SETvalidacao(y,uy,{'estimativa':'matriz','incerteza':'incerteza'}) 
+            self.x._SETvalidacao(x,ux,glx,{'estimativa':'matriz','incerteza':'incerteza'})
+            self.y._SETvalidacao(y,uy,gly,{'estimativa':'matriz','incerteza':'incerteza'})
             
         # ---------------------------------------------------------------------
         # VARIÁVEIS INTERNAS

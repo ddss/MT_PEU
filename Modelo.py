@@ -45,8 +45,7 @@ class Modelo(Thread):
         y1 = [exp(-(ko*10**17)*tempo*exp(-E/T)),exp(-tempo*exp(ko-E/T)),exp(-ko*tempo*exp(-E*(1/T-1./630.)))]
 
         self.result = y1[tipo]
-        
-        
+
     def run(self):
     
         if self.bucket == None:
