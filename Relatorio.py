@@ -137,47 +137,86 @@ class Relatorio:
         # ESCRITA DE ARQUIVO DE RELATÓRIO
         # ---------------------------------------------------------------------
         with open(self.__base_path+'relatorio-predicao.txt','wb') as f:
-            f.write(('{:#^'+str(max([70,y.NV*18]))+'}\n').format('PREDIÇÃO'))
-            f.write(('{:-^'+str(max([70,y.NV*18]))+'}\n').format('GRANDEZAS DEPENDENTES'))
+            f.write(('{:#^'+str(max([70,y.NV*18]))+'}\n').format(' PREDIÇÃO '))
+            f.write(('{:=^'+str(max([70,y.NV*18]))+'}\n').format(' GRANDEZAS DEPENDENTES '))
             f.write('Adequação aos dados experimentais:\n')
             if R2 is not None and R2ajustado is not None:
                 # Operador para formatar os valores de R2 e R2ajustados, porque eles são dicionários
                 construtor_formatacao_simbolos = ['{'+str(symb)+':^8.3f} ' for symb in y.simbolos]
-                f.write('Simbolos                             : '+ ('{:^8}'*y.NV).format(*y.simbolos) + '\n')
-                f.write('Coeficiente de determinação          : '+ (''.join(construtor_formatacao_simbolos)).format(**R2) + '\n')
-                f.write('Coeficiente de determinação ajustado : '+ (''.join(construtor_formatacao_simbolos)).format(**R2ajustado) + '\n')
+                f.write('    Simbolos                             : '+ ('{:^8}'*y.NV).format(*y.simbolos) + '\n')
+                f.write('    Coeficiente de determinação          : '+ (''.join(construtor_formatacao_simbolos)).format(**R2) + '\n')
+                f.write('    Coeficiente de determinação ajustado : '+ (''.join(construtor_formatacao_simbolos)).format(**R2ajustado) + '\n')
             f.write('\n')
             # TODO: Adpatar relatório para as novas características dos testes estatísticos das grandezas
-            # # Análise de resíduos - testes para normalidade
-            # f.write('Análise de resíduos: testes para normalidade \n')
-            # f.write('{:<10} :'.format('Simbolos')+ ('{:^14}'*y.NV).format(*y.simbolos) + '\n')
-            # # construção semi-automatizada para preencher os valores dos testes estatísticos de normalidade
-            # for teste in y._Grandeza__nomesTestes['residuo-Normalidade']:
-            #     f.write('{:<10} : '.format(teste))
-            #     for symb in y.simbolos:
-            #         if isinstance(y.estatisticas[symb]['residuo-Normalidade'][teste],float):
-            #             f.write('{:^14.3f}'.format(y.estatisticas[symb]['residuo-Normalidade'][teste])+' ')
-            #         elif isinstance(y.estatisticas[symb]['residuo-Normalidade'][teste],list):
-            #             f.write(('{:^4.3f}  '*len(y.estatisticas[symb]['residuo-Normalidade'][teste])).format(*y.estatisticas[symb]['residuo-Normalidade'][teste])+' ')
-            #         else:
-            #             f.write('{:^14}'.format('N/A'))
-            #     f.write('\n')
-            # f.write('\n')
+            # Análise de resíduos - testes para normalidade
+            f.write('Análise de resíduos: testes para normalidade \n')
+            f.write('    {:-^45}\n'.format('Testes com p-valores'))
+            f.write('    {:<10} : '.format('Simbolos')+ ('{:^8}'*y.NV).format(*y.simbolos)+'\n')
+            # construção semi-automatizada para preencher os valores dos testes estatísticos de normalidade
+            for teste in y._Grandeza__nomesTestes['residuo-Normalidade'].keys():
+                break_line = False
+                if not isinstance(y._Grandeza__nomesTestes['residuo-Normalidade'][teste],dict):
+                    f.write('    {:<10} : '.format(teste))
+                for symb in y.simbolos:
+                    if isinstance(y.estatisticas[symb]['residuo-Normalidade'][teste],float):
+                        f.write('{:^8.3f}'.format(y.estatisticas[symb]['residuo-Normalidade'][teste])+' ')
+                        break_line = True
+                    elif y.estatisticas[symb]['residuo-Normalidade'][teste] is None:
+                        f.write('{:^8}'.format('N/A')+' ')
+                        break_line = True
+
+                if break_line:
+                    f.write('\n')
+            f.write('    {:-^45}\n'.format('Testes com valores críticos'))
+            f.write('    {:<}:            '.format('Simbolos')+ ('{:^37}'*y.NV).format(*y.simbolos)+'\n')
+            for teste in y._Grandeza__nomesTestes['residuo-Normalidade'].keys():
+                break_line = False
+                if isinstance(y._Grandeza__nomesTestes['residuo-Normalidade'][teste],dict):
+                    f.write('        {:<}: \n'.format(teste))
+                    for key in y._Grandeza__nomesTestes['residuo-Normalidade'][teste].keys():
+                        f.write('        {:<16}:'.format(key))
+                        for symb in y.simbolos:
+                            if isinstance(y._Grandeza__nomesTestes['residuo-Normalidade'][teste][key],float):
+                                f.write('{:^37.3f}'.format(y.estatisticas[symb]['residuo-Normalidade'][teste][key]))
+                            else:
+                                f.write('{:^37}'.format(y.estatisticas[symb]['residuo-Normalidade'][teste][key]))
+                        f.write('\n')
+                    break_line = True
+
+                if break_line:
+                    f.write('\n')
+
+            # Análise de resíduos - testes para média
+            f.write('Análise de resíduos: testes para média \n')
+            f.write('    {:-^45}\n'.format('Testes com p-valores'))
+            f.write('    {:<8}:'.format('Simbolos') + ('{:^8}'*y.NV).format(*y.simbolos) + '\n')
+            # construção semi-automatizada para preencher os valores dos testes estatísticos para média
+            for teste in y._Grandeza__nomesTestes['residuo-Media'].keys():
+                 f.write('    {:<8}:'.format(teste))
+                 for symb in y.simbolos:
+                     if isinstance(y.estatisticas[symb]['residuo-Media'][teste],float):
+                         f.write('{:^8.3f}'.format(y.estatisticas[symb]['residuo-Media'][teste])+' ')
+                     elif isinstance(y.estatisticas[symb]['residuo-Media'][teste],list):
+                         f.write(('{:^4.3f}  '*len(y.estatisticas[symb]['residuo-Media'][teste])).format(*y.estatisticas[symb]['residuo-Media'][teste])+' ')
+                     else:
+                         f.write('N/A')
+                 f.write('\n')
             #
             # # Análise de resíduos - testes para média
             # f.write('Análise de resíduos: testes para média \n')
-            # f.write('{:<10} :'.format('Simbolos') + ('{:^8}'*y.NV).format(*y.simbolos) + '\n')
+            # f.write('    {:-^45}\n'.format('Testes com p-valores'))
+            # f.write('    {:<8}:'.format('Simbolos') + ('{:^8}'*y.NV).format(*y.simbolos) + '\n')
             # # construção semi-automatizada para preencher os valores dos testes estatísticos para média
             # for teste in y._Grandeza__nomesTestes['residuo-Media']:
-            #     f.write('{:<10} : '.format(teste))
-            #     for symb in y.simbolos:
-            #         if isinstance(y.estatisticas[symb]['residuo-Media'][teste],float):
-            #             f.write('{:^8.3f}'.format(y.estatisticas[symb]['residuo-Media'][teste])+' ')
-            #         elif isinstance(y.estatisticas[symb]['residuo-Media'][teste],list):
-            #             f.write(('{:^4.3f}  '*len(y.estatisticas[symb]['residuo-Media'][teste])).format(*y.estatisticas[symb]['residuo-Media'][teste])+' ')
-            #         else:
-            #             f.write('N/A')
-            #     f.write('\n')
+            #      f.write('    {:<8}:'.format(teste))
+            #      for symb in y.simbolos:
+            #          if isinstance(y.estatisticas[symb]['residuo-Media'][teste],float):
+            #              f.write('{:^8.3f}'.format(y.estatisticas[symb]['residuo-Media'][teste])+' ')
+            #          elif isinstance(y.estatisticas[symb]['residuo-Media'][teste],list):
+            #              f.write(('{:^4.3f}  '*len(y.estatisticas[symb]['residuo-Media'][teste])).format(*y.estatisticas[symb]['residuo-Media'][teste])+' ')
+            #          else:
+            #              f.write('N/A')
+            #      f.write('\n')
         f.close()
 
         # ---------------------------------------------------------------------

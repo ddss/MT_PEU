@@ -471,8 +471,8 @@ class Grandeza:
     
         if 'residuo' in self.__ID: # Testes para os resíduos
             # Variável para salvar os nomes dos testes estatísticos - consulta
-            self.__nomesTestes = {'residuo-Normalidade':['normaltest','shapiro', 'anderson','kstest'],
-                                  'residuo-Media':['ttest'],
+            self.__nomesTestes = {'residuo-Normalidade':{'normaltest':1.0,'shapiro':1.0, 'anderson':{'estatistica':1.0,'valores criticos':[]},'kstest':1.0},
+                                  'residuo-Media':{'ttest':1.0},
                                   'residuo-Autocorrelacao':['Durbin Watson','Ljung-Box'],
                                   'residuo-Homocedasticidade':['white test','Bresh Pagan']}
             pvalor = {}
@@ -485,14 +485,14 @@ class Grandeza:
                 # Lista que contém as chamadas das funções de teste:
                 if size(dados) < 3: # Se for menor do que 3, não se pode executar o teste de shapiro
                     pnormal=[None, None, anderson(dados, dist='norm'),kstest(dados,'norm',args=(mean(dados),std(dados,ddof=1)))]
-                    pvalor[nome]['residuo-Normalidade'] = {'normaltest':None, 'shapiro':None, 'anderson':{'estatistica A_Darling':pnormal[2][0],'valores criticos':pnormal[2][1]},'kstest':pnormal[3][1]}
+                    pvalor[nome]['residuo-Normalidade'] = {'normaltest':None, 'shapiro':None, 'anderson':{'estatistica':pnormal[2][0],'valores criticos':pnormal[2][1]},'kstest':pnormal[3][1]}
 
                 elif size(dados) < 20: # Se for menor do que 20 não será realizado no normaltest, pois ele só é válido a partir dste número de dados
                     pnormal=[None, shapiro(dados), anderson(dados, dist='norm'),kstest(dados,'norm',args=(mean(dados),std(dados,ddof=1)))]                
-                    pvalor[nome]['residuo-Normalidade'] = {'normaltest':None, 'shapiro':pnormal[1][1], 'anderson':{'estatistica A_Darling':pnormal[2][0],'valores criticos':pnormal[2][1]},'kstest':pnormal[3][1]}
+                    pvalor[nome]['residuo-Normalidade'] = {'normaltest':None, 'shapiro':pnormal[1][1], 'anderson':{'estatistica':pnormal[2][0],'valores criticos':pnormal[2][1]},'kstest':pnormal[3][1]}
                 else:
                     pnormal=[normaltest(dados), shapiro(dados), anderson(dados, dist='norm'),kstest(dados,'norm',args=(mean(dados),std(dados,ddof=1)))]                
-                    pvalor[nome]['residuo-Normalidade'] = {'normaltest':pnormal[0][1], 'shapiro':pnormal[1][1], 'anderson':{'estatistica A_Darling':pnormal[2][0],'valores criticos':pnormal[2][1]},'kstest':pnormal[3][1]}
+                    pvalor[nome]['residuo-Normalidade'] = {'normaltest':pnormal[0][1], 'shapiro':pnormal[1][1], 'anderson':{'estatistica':pnormal[2][0],'valores criticos':pnormal[2][1]},'kstest':pnormal[3][1]}
 
                 # Testes para a média:
                 pvalor[nome]['residuo-Media'] = {'ttest':float(ttest_1samp(dados,0.)[1])}
