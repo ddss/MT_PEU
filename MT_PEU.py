@@ -1504,7 +1504,7 @@ class EstimacaoNaoLinear:
         # VALIDAÇÃO
         # ---------------------------------------------------------------------         
         self.__validacaoArgumentosEntrada('analiseResiduos',None,None)       
-        
+
         # Tamanho dos vetores:
         if self.y.validacao.NE != self.y.calculado.NE:
             raise TypeError(u'O comprimento dos vetores de validação e calculado não estão consistentes. Avaliar necessidade de executar o método de predição')
@@ -1525,34 +1525,33 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # CÁLCULO DE R2 e R2 ajustado
         # ---------------------------------------------------------------------   
-        self.R2         = {}
-        self.R2ajustado = {}
+        self.estatisticas = {'R2':{},'R2ajustado':{},'FuncaoObjetivo':{}}
         # Para y:
         for i,symb in enumerate(self.y.simbolos):
             SSE = sum(self.y.residuos.matriz_estimativa[:,i]**2)
             SST = sum((self.y.validacao.matriz_estimativa[:,i]-\
                   mean(self.y.validacao.matriz_estimativa[:,i]))**2)
-            self.R2[symb]         = 1 - SSE/SST
-            self.R2ajustado[symb] = 1 - (SSE/(self.y.validacao.NE-self.parametros.NV))\
+            self.estatisticas['R2'][symb]         = 1 - SSE/SST
+            self.estatisticas['R2ajustado'][symb] = 1 - (SSE/(self.y.validacao.NE-self.parametros.NV))\
                                        /(SST/(self.y.validacao.NE - 1))
         # Para x:                                           
         for i,symb in enumerate(self.x.simbolos):
-            if self.__flag.info['reconciliacao'] == True:
+            if self.__flag.info['reconciliacao']:
                 SSEx = sum(self.x.residuos.matriz_estimativa[:,i]**2)
                 SSTx = sum((self.x.validacao.matriz_estimativa[:,i]-\
                       mean(self.x.validacao.matriz_estimativa[:,i]))**2)
-                self.R2[symb]         = 1 - SSEx/SSTx
-                self.R2ajustado[symb] = 1 - (SSEx/(self.x.validacao.NE-self.parametros.NV))\
+                self.estatisticas['R2'][symb]         = 1 - SSEx/SSTx
+                self.estatisticas['R2ajustado'][symb] = 1 - (SSEx/(self.x.validacao.NE-self.parametros.NV))\
                                            /(SSTx/(self.x.validacao.NE - 1))
             else:
-                self.R2[symb]         = None
-                self.R2ajustado[symb] = None
+                self.estatisticas['R2'][symb]         = None
+                self.estatisticas['R2ajustado'][symb] = None
                 
         # ---------------------------------------------------------------------
         # EXECUÇÃO DE TESTES ESTATÍSTICOS
         # ---------------------------------------------------------------------             
         # Grandezas independentes
-        if self.__flag.info['reconciliacao'] == True:
+        if self.__flag.info['reconciliacao']:
             self.x._testesEstatisticos(self.y.experimental.matriz_estimativa)
  
         # Grandezas dependentes            
@@ -1566,13 +1565,8 @@ class EstimacaoNaoLinear:
         
         chi2max = chi2.ppf(PA+(1-PA)/2,gL)
         chi2min = chi2.ppf((1-PA)/2,gL)
-        
-        if chi2min < self.FOotimo < chi2max:
-            result= u'O modelo representa bem o conjunto de dados'
-        else:
-            result= u'O modelo não representa bem o conjunto de dados'
 
-        self.estatisticas = {'FuncaoObjetivo':{'chi2max':chi2max,'chi2min':chi2min,'FO': (self.FOotimo, result)}}
+        self.estatisticas['FuncaoObjetivo'] = {'chi2max':chi2max,'chi2min':chi2min,'FO':self.FOotimo}
 
         # ---------------------------------------------------------------------
         # VARIÁVEIS INTERNAS
@@ -1939,14 +1933,21 @@ class EstimacaoNaoLinear:
         # Caso a otimização ou SETParametros tenha sido executado, pode-se fazer um relatório sobre os parâmetros
         if self.__etapasdisponiveis[2] in self.__etapasGlobal() or self.__etapasdisponiveis[8] in self.__etapasGlobal():
             saida.Parametros(self.parametros,self.FOotimo)
-
+        else:
+            warn('O relatório sobre os parâmetros não foi criado, pois o método {} ou {} não foi executado'.format(self.__etapasdisponiveis[2],self.__etapasdisponiveis[8]))
         # ---------------------------------------------------------------------
         # RELATÓRIO DA PREDIÇÃO E ANÁLISE DE RESÍDUOS
         # ---------------------------------------------------------------------
         # Caso a Predição tenha sido executada, pode-se fazer um relatório sobre a predição
         if self.__etapasdisponiveis[7] in self.__etapas[self.__etapasID]:
+            # Caso a Análise de resíduos tenha sido executada, pode-se fazer um relatório completo
             if self.__etapasdisponiveis[5] in self.__etapas[self.__etapasID]:
-                saida.Predicao(self.x,self.y,self.R2,self.R2ajustado,**kwargs)
+                saida.Predicao(self.x,self.y,self.estatisticas,**kwargs)
             else:
-                saida.Predicao(self.x, self.y, None, None, **kwargs)
+                saida.Predicao(self.x,self.y,None,**kwargs)
+                warn('O relatório sobre a análise de resíduos não foi criado, pois o método {} não foi executado. Entretanto, ainda é possível exportar a predição'.format(self.__etapasdisponiveis[5]))
+        else:
+            warn('O relatório sobre a predição e análise de resíduos não foi criado, pois o método {} não foi executado'.format(self.__etapasdisponiveis[7]))
+
+
 

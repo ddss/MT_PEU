@@ -471,10 +471,12 @@ class Grandeza:
     
         if 'residuo' in self.__ID: # Testes para os resíduos
             # Variável para salvar os nomes dos testes estatísticos - consulta
+            # identifica o nome do teste, e o tipo de resposta (1.0 - float, {} - dicionário, [] - lista)
+            # É nessa variável que o Relatório se baseia para obter as informações
             self.__nomesTestes = {'residuo-Normalidade':{'normaltest':1.0,'shapiro':1.0, 'anderson':{'estatistica':1.0,'valores criticos':[]},'kstest':1.0},
                                   'residuo-Media':{'ttest':1.0},
-                                  'residuo-Autocorrelacao':['Durbin Watson','Ljung-Box'],
-                                  'residuo-Homocedasticidade':['white test','Bresh Pagan']}
+                                  'residuo-Autocorrelacao':{'Durbin Watson':{'estatistica':1.0}},
+                                  'residuo-Homocedasticidade':{'white test':{'p-valor multiplicador de Lagrange':1.0,'p-valor Teste F':1.0},'Bresh Pagan':{'p-valor multiplicador de Lagrange':1.0,'p-valor Teste F':1.0}}}
             pvalor = {}
             for nome in self.simbolos:
                 pvalor[nome] = {}
@@ -504,7 +506,7 @@ class Grandeza:
                 # Testes para a Homocedásticidade:
                 # TODO: Avaliar se z deve ser passado para cada coluna da entrada.
                 pheter= [het_white(dados,insert(z, 0, 1, axis=1)),het_breushpagan(dados,z)]
-                pvalor[nome]['residuo-Homocedasticidade'] = {'white test':{'p-valor multiplicador de Lagrange':pheter[0][1], 'p-valor Teste F':pheter[0][3]},'Bresh Pagan':{'p-valor multiplicador de lagrange':pheter[1][1],'p-valor Teste F':pheter[1][3]}}
+                pvalor[nome]['residuo-Homocedasticidade'] = {'white test':{'p-valor multiplicador de Lagrange':pheter[0][1], 'p-valor Teste F':pheter[0][3]},'Bresh Pagan':{'p-valor multiplicador de Lagrange':pheter[1][1],'p-valor Teste F':pheter[1][3]}}
         else:
             raise NameError(u'Os testes estatísticos são válidos apenas para o resíduos')
 
