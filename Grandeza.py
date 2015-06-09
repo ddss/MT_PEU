@@ -8,6 +8,7 @@ Created on Mon Feb  2 11:05:02 2015
 from numpy import array, transpose ,size, diag, linspace, min, max, \
     mean,  std, amin, amax, ndarray, ones, sqrt, insert, nan, shape
 
+from statsmodels.stats.weightstats import ztest
 
 from scipy.stats import normaltest, anderson, shapiro, ttest_1samp, kstest,\
  norm, probplot, ttest_ind
@@ -16,7 +17,7 @@ from matplotlib.pyplot import figure, axes, axis, plot, errorbar, subplot, xlabe
     title, legend, savefig, xlim, ylim, close, grid, text, hist, boxplot
 
 from os import getcwd, sep
-from statsmodels.stats.diagnostic import acorr_breush_godfrey, acorr_ljungbox, het_breushpagan, het_white
+from statsmodels.stats.diagnostic import acorr_breush_godfrey, acorr_ljungbox, het_breushpagan, het_white, normal_ad
 from statsmodels.stats.stattools import durbin_watson
 
 # Subrotinas próprias (desenvolvidas pelo GI-UFBA)
@@ -411,9 +412,8 @@ class Grandeza:
         
         * normaltest: Retorna o pvalor do teste de normalidade. Hipótese nula: a amostra vem de distribuição normal
         * shapiro   : Retorna o pvalor de normalidade. Hipótese nula: a amostra vem de uma distribuição normal
-        * anderson  : Retorna a estatistica do Teste para os dados provenientes de uma distribuição Normal e um parâmetro comparativo para PA de confiança, onde se a estatistica for maior que os valores críticos (1-PA) tem-se que: a hipótese nula de que os dados vem da distribuição normal pode ser rejeitada.
-                      A lista de valores críticos (nível se significância) é para 15%, 10%, 5%, 2.5%, 1%, respectivamente.
-                      Hipotese nula: a amostra vem de uma normal
+        * anderson  : Retorna o pvalor de normalidade. Hipótese nula: a amostra vem de uma distribuição normal
+                      
         * kstest    : Retorna o pvalor de normalidade. Hipótese nula: a amostra vem de uma distribuição normal
 
         **MÉDIA**:
@@ -457,7 +457,7 @@ class Grandeza:
         * estatisticas (dict):  p-valor das hipóteses testadas. Para a hipótese nula tida como verdadeira,
         um valor abaixo de (1-PA) nos diz que para PA de confiança pode-se rejeitar essa hipótese.
 
-        OBS: para o teste de durbin_watson e anderson Darling, são retornadas estatísticas e não p-valores.
+        OBS: para o teste de durbin_watson , é retornado uma estatística e não p-valores.
 
         =================
         Referências
@@ -473,10 +473,11 @@ class Grandeza:
             # Variável para salvar os nomes dos testes estatísticos - consulta
             # identifica o nome do teste, e o tipo de resposta (1.0 - float, {} - dicionário, [] - lista)
             # É nessa variável que o Relatório se baseia para obter as informações
-            self.__nomesTestes = {'residuo-Normalidade':{'normaltest':1.0,'shapiro':1.0, 'anderson':{'estatistica':1.0,'valores criticos':[]},'kstest':1.0},
-                                  'residuo-Media':{'ttest':1.0},
+            self.__nomesTestes = {'residuo-Normalidade':{'normaltest':1.0,'shapiro':1.0, 'anderson':1.0,'kstest':1.0},
+                                  'residuo-Media':{'ttest':1.0, 'ztest': 1.0},
                                   'residuo-Autocorrelacao':{'Durbin Watson':{'estatistica':1.0}},
                                   'residuo-Homocedasticidade':{'white test':{'p-valor multiplicador de Lagrange':1.0,'p-valor Teste F':1.0},'Bresh Pagan':{'p-valor multiplicador de Lagrange':1.0,'p-valor Teste F':1.0}}}
+           
             self.__TestesInfo = {'residuo-Normalidade':{'shapiro':{'H0':'resíduos normais'},'normaltest':{'H0':'resíduos normais'},'anderson':{'H0':'resíduos normais'},'kstest':{'H0':'resíduos normais'}}}
             pvalor = {}
             for nome in self.simbolos:
@@ -487,18 +488,18 @@ class Grandeza:
         
                 # Lista que contém as chamadas das funções de teste:
                 if size(dados) < 3: # Se for menor do que 3, não se pode executar o teste de shapiro
-                    pnormal=[None, None, anderson(dados, dist='norm'),kstest(dados,'norm',args=(mean(dados),std(dados,ddof=1)))]
-                    pvalor[nome]['residuo-Normalidade'] = {'normaltest':None, 'shapiro':None, 'anderson':{'estatistica':pnormal[2][0],'valores criticos':pnormal[2][1]},'kstest':pnormal[3][1]}
+                    pnormal=[None, None, normal_ad(dados),kstest(dados,'norm',args=(mean(dados),std(dados,ddof=1)))]
+                    pvalor[nome]['residuo-Normalidade'] = {'normaltest':None, 'shapiro':None, 'anderson':pnormal[2][1],'kstest':pnormal[3][1]}
 
                 elif size(dados) < 20: # Se for menor do que 20 não será realizado no normaltest, pois ele só é válido a partir dste número de dados
-                    pnormal=[None, shapiro(dados), anderson(dados, dist='norm'),kstest(dados,'norm',args=(mean(dados),std(dados,ddof=1)))]                
-                    pvalor[nome]['residuo-Normalidade'] = {'normaltest':None, 'shapiro':pnormal[1][1], 'anderson':{'estatistica':pnormal[2][0],'valores criticos':pnormal[2][1]},'kstest':pnormal[3][1]}
+                    pnormal=[None, shapiro(dados), normal_ad(dados),kstest(dados,'norm',args=(mean(dados),std(dados,ddof=1)))]                
+                    pvalor[nome]['residuo-Normalidade'] = {'normaltest':None, 'shapiro':pnormal[1][1], 'anderson':pnormal[2][1],'kstest':pnormal[3][1]}
                 else:
-                    pnormal=[normaltest(dados), shapiro(dados), anderson(dados, dist='norm'),kstest(dados,'norm',args=(mean(dados),std(dados,ddof=1)))]                
-                    pvalor[nome]['residuo-Normalidade'] = {'normaltest':pnormal[0][1], 'shapiro':pnormal[1][1], 'anderson':{'estatistica':pnormal[2][0],'valores criticos':pnormal[2][1]},'kstest':pnormal[3][1]}
+                    pnormal=[normaltest(dados), shapiro(dados), normal_ad(dados),kstest(dados,'norm',args=(mean(dados),std(dados,ddof=1)))]                
+                    pvalor[nome]['residuo-Normalidade'] = {'normaltest':pnormal[0][1], 'shapiro':pnormal[1][1], 'anderson':pnormal[2][1],'kstest':pnormal[3][1]}
 
                 # Testes para a média:
-                pvalor[nome]['residuo-Media'] = {'ttest':float(ttest_1samp(dados,0.)[1])}
+                pvalor[nome]['residuo-Media'] = {'ttest':float(ttest_1samp(dados,0.)[1]), 'ztest':ztest(dados, x2=None, value=0, alternative='two-sided', usevar='pooled', ddof=1.0)[1]}
              
                 # Testes para a autocorrelação:
                 #ljungbox = acorr_ljungbox(dados, lags=None, boxpierce=True)
@@ -556,7 +557,7 @@ class Grandeza:
         if 'residuo' in ID:
             # BOXPLOT
             #checa a variabilidade dos dados, assim como a existência de possíveis outliers
-            fig = figure()
+            notfig = figure()
             ax = fig.add_subplot(1,1,1)
             boxplot(self.residuos.matriz_estimativa)
             ax.set_xticklabels(self.simbolos)
@@ -577,14 +578,15 @@ class Grandeza:
                 # TODO: colocar legenda
                 fig = figure()
                 ax = fig.add_subplot(1,1,1)
-                plot(linspace(1,size(dados),num=size(dados)),dados, 'o')
-                plot(linspace(1,size(dados),num=size(dados)),[mean(dados)]*size(dados),'-.r')
+                plot(linspace(1,size(dados),num=size(dados)),dados, 'o',label=u'Ordem de coleta')
+                plot(linspace(1,size(dados),num=size(dados)),[mean(dados)]*size(dados),'-.r', label=u'Valor médio')
                 xlabel('Ordem de Coleta')
                 ylabel(self.simbolos[i])
                 ax.yaxis.grid(color='gray', linestyle='dashed')                        
                 ax.xaxis.grid(color='gray', linestyle='dashed')
                 xlim((0,size(dados)))
                 ax.axhline(0, color='black', lw=2)
+                legend()
                 fig.savefig(base_path+base_dir+'residuos_fl'+str(fluxo)+'_ordem')
                 close()        
         

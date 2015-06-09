@@ -1895,18 +1895,20 @@ class EstimacaoNaoLinear:
 
                     Validacao_Diretorio(base_path,base_dir)
 
-                    ymodelo = self.y.calculado.matriz_estimativa[:,i]
+#                    ymodelo = self.y.calculado.matriz_estimativa[:,i]
 
                     # TODO: colocar legenda e substituir ymodelo por linespace
+                    #ymodelo vs. Resíduos
                     fig = figure()
                     ax = fig.add_subplot(1,1,1)
-                    plot(ymodelo,self.y.residuos.matriz_estimativa[:,i], 'o')
-                    plot(ymodelo,[mean(self.y.residuos.matriz_estimativa[:,i])]*size(ymodelo), '-.r')
+                    plot(self.y.calculado.matriz_estimativa[:,i],self.y.residuos.matriz_estimativa[:,i], 'o',label=self.y.labelGraficos()[i] +u' Ajustado vs Resíduos'+self.y.labelGraficos()[i] )
+                    plot(self.y.calculado.matriz_estimativa[:,i],[mean(self.y.residuos.matriz_estimativa[:,i])]*size(self.y.calculado.matriz_estimativa[:,i]), '-.r', label=u'Média-Resíduos' +self.y.labelGraficos()[i])
                     xlabel(u'Valores Ajustados '+self.y.labelGraficos()[i])
                     ylabel(u'Resíduos '+self.y.labelGraficos()[i])
                     ax.yaxis.grid(color='gray', linestyle='dashed')
                     ax.xaxis.grid(color='gray', linestyle='dashed')
                     ax.axhline(0, color='black', lw=2)
+                    legend()
                     fig.savefig(base_path+base_dir+'residuos_fl'+str(self.__etapasID)+'_versus_ycalculado.png')
                     close()
 
