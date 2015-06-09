@@ -151,6 +151,7 @@ class Relatorio:
 
                 # Função objetivo
                 f.write('Função objetivo:\n')
+                f.write('    Info: a função objetivo deve estar entre chi2min e chi2max.\n')
                 # Operador para formatar os valores de R2 e R2ajustados, porque eles são dicionários
                 f.write('    chi2max: {:.3f}\n'.format(estatisticas['FuncaoObjetivo']['chi2max']))
                 f.write('    FO     : {:.3f}\n'.format(estatisticas['FuncaoObjetivo']['FO']))
@@ -161,6 +162,7 @@ class Relatorio:
                 f.write('Análise de resíduos:\n')
                 f.write('    Normalidade:\n')
                 f.write('    {:-^45}\n'.format('Testes com p-valores'))
+                f.write('    Info: p-valores devem ser maiores do que o nível de significânca (1-PA)\n    para não rejeitar a hipótese nula (Ho).\n')
                 f.write('    {:<10} : '.format('Simbolos')+ ('{:^8}'*y.NV).format(*y.simbolos)+'\n')
                 # construção semi-automatizada para preencher os valores dos testes estatísticos de normalidade
                 for teste in y._Grandeza__nomesTestes['residuo-Normalidade'].keys():
@@ -174,7 +176,8 @@ class Relatorio:
                         elif y.estatisticas[symb]['residuo-Normalidade'][teste] is None:
                             f.write('{:^8}'.format('N/A')+' ')
                             break_line = True
-
+                    if not isinstance(y._Grandeza__nomesTestes['residuo-Normalidade'][teste],dict):
+                        f.write('| Ho: {}'.format(y._Grandeza__TestesInfo['residuo-Normalidade'][teste]['H0']))
                     if break_line:
                         f.write('\n')
                 f.write('    {:-^45}\n'.format('Testes com valores críticos'))

@@ -477,6 +477,7 @@ class Grandeza:
                                   'residuo-Media':{'ttest':1.0},
                                   'residuo-Autocorrelacao':{'Durbin Watson':{'estatistica':1.0}},
                                   'residuo-Homocedasticidade':{'white test':{'p-valor multiplicador de Lagrange':1.0,'p-valor Teste F':1.0},'Bresh Pagan':{'p-valor multiplicador de Lagrange':1.0,'p-valor Teste F':1.0}}}
+            self.__TestesInfo = {'residuo-Normalidade':{'shapiro':{'H0':'resíduos normais'},'normaltest':{'H0':'resíduos normais'},'anderson':{'H0':'resíduos normais'},'kstest':{'H0':'resíduos normais'}}}
             pvalor = {}
             for nome in self.simbolos:
                 pvalor[nome] = {}
