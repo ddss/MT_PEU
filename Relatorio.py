@@ -180,24 +180,25 @@ class Relatorio:
                         f.write('| Ho: {}'.format(y._Grandeza__TestesInfo['residuo-Normalidade'][teste]['H0']))
                     if break_line:
                         f.write('\n')
-                f.write('    {:-^45}\n'.format('Testes com valores críticos'))
-                f.write('    {:<}:                '.format('Simbolos')+ ('{:^37}'*y.NV).format(*y.simbolos)+'\n')
-                for teste in y._Grandeza__nomesTestes['residuo-Normalidade'].keys():
-                    break_line = False
-                    if isinstance(y._Grandeza__nomesTestes['residuo-Normalidade'][teste],dict):
-                        f.write('        {:<}: \n'.format(teste))
-                        for key in y._Grandeza__nomesTestes['residuo-Normalidade'][teste].keys():
-                            f.write('            {:<16}:'.format(key))
-                            for symb in y.simbolos:
-                                if isinstance(y._Grandeza__nomesTestes['residuo-Normalidade'][teste][key],float):
-                                    f.write('{:^37.3f}'.format(y.estatisticas[symb]['residuo-Normalidade'][teste][key]))
-                                else:
-                                    f.write('{:^37}'.format(y.estatisticas[symb]['residuo-Normalidade'][teste][key]))
-                            f.write('\n')
-                        break_line = True
-
-                    if break_line:
-                        f.write('\n')
+                f.write('\n')
+                # f.write('    {:-^45}\n'.format('Testes com valores críticos'))
+                # f.write('    {:<}:                '.format('Simbolos')+ ('{:^37}'*y.NV).format(*y.simbolos)+'\n')
+                # for teste in y._Grandeza__nomesTestes['residuo-Normalidade'].keys():
+                #     break_line = False
+                #     if isinstance(y._Grandeza__nomesTestes['residuo-Normalidade'][teste],dict):
+                #         f.write('        {:<}: \n'.format(teste))
+                #         for key in y._Grandeza__nomesTestes['residuo-Normalidade'][teste].keys():
+                #             f.write('            {:<16}:'.format(key))
+                #             for symb in y.simbolos:
+                #                 if isinstance(y._Grandeza__nomesTestes['residuo-Normalidade'][teste][key],float):
+                #                     f.write('{:^37.3f}'.format(y.estatisticas[symb]['residuo-Normalidade'][teste][key]))
+                #                 else:
+                #                     f.write('{:^37}'.format(y.estatisticas[symb]['residuo-Normalidade'][teste][key]))
+                #             f.write('\n')
+                #         break_line = True
+                #
+                #     if break_line:
+                #         f.write('\n')
 
                 # ANÁLISE DE RESÍDUOS - testes para média
                 f.write('    Média:\n')

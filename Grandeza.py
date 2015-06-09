@@ -557,7 +557,7 @@ class Grandeza:
         if 'residuo' in ID:
             # BOXPLOT
             #checa a variabilidade dos dados, assim como a existência de possíveis outliers
-            notfig = figure()
+            fig = figure()
             ax = fig.add_subplot(1,1,1)
             boxplot(self.residuos.matriz_estimativa)
             ax.set_xticklabels(self.simbolos)
