@@ -562,6 +562,7 @@ class EstimacaoNaoLinear:
         * verificar se as colunas dos arrays de entrada são iguais aos nomes das variáveis definidas (y, x)
         * verificar se as grandezas têm o mesmo número de dados experimentais
         '''
+        # TODO: melhorar esta validação (se possível, retirar)
         if size(dados,0) != NE:
             raise ValueError(u'Foram inseridos %d dados experimentais para uma grandeza e %d para outra'%(NE,size(dados,0)))
         
@@ -573,7 +574,9 @@ class EstimacaoNaoLinear:
         
         if size(udados,1) != Ndados: 
             raise ValueError(u'O número de variáveis definidas foi %s, mas foram inseridas incertezas para %s.'%(Ndados,size(udados,1)))
- 
+
+        if size(udados,0)*self.y.NV-float(self.parametros.NV)<=0: # Verificar se há graus de liberdade suficiente
+            warn('Graus de liberdade insuficientes. O seu conjunto de dados experimentais não é suficiente para estimar os parâmetros!',UserWarning)
 
     def gerarEntradas(self,x,y,ux,uy,glx=[],gly=[],tipo='experimental',uxy=None):
         u'''
