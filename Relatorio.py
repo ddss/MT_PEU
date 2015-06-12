@@ -146,7 +146,7 @@ class Relatorio:
                 construtor_formatacao_simbolos = ['{'+str(symb)+':^8.3f} ' for symb in y.simbolos]
                 f.write('    Simbolos                             : '+ ('{:^8}'*y.NV).format(*y.simbolos) + '\n')
                 f.write('    Coeficiente de determinação          : '+ (''.join(construtor_formatacao_simbolos)).format(**estatisticas['R2']) + '\n')
-                f.write('    Coeficiente de determinação ajustado : '+ (''.join(construtor_formatacao_simbolos)).format(**estatisticas['R2']) + '\n')
+                f.write('    Coeficiente de determinação ajustado : '+ (''.join(construtor_formatacao_simbolos)).format(**estatisticas['R2ajustado']) + '\n')
                 f.write('\n')
 
                 # Função objetivo
