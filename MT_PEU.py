@@ -1628,7 +1628,8 @@ class EstimacaoNaoLinear:
         # GRÁFICOS
         # --------------------------------------------------------------------- 
         # Gráficos referentes aos dados de entrada (experimentais)
-        if ('grandezas-entrada' in tipos):
+        # grandezas-entrada
+        if (self.__tipoGraficos[1] in tipos):
             # se gerarEntradas foi executado alguma vez:
             if self.__etapasdisponiveis[1] in self.__etapasGlobal():
                 base_dir = sep + 'Grandezas' + sep
@@ -1657,7 +1658,8 @@ class EstimacaoNaoLinear:
                 warn('Os gráficos de entrada não puderam ser criados, pois o método {} não foi executado.'.format(self.__etapasdisponiveis[1]),UserWarning)
 
         # Gráficos referentes aos dados de saída (calculados)
-        if 'grandezas-calculado' in tipos:
+        # grandezas-calculado
+        if self.__tipoGraficos[3] in tipos:
             # Predição deve ter sido executada no fluxo de trabalho
             if self.__etapasdisponiveis[7] in self.__etapas[self.__etapasID]:
                 base_dir = sep + 'Grandezas' + sep
@@ -1668,8 +1670,8 @@ class EstimacaoNaoLinear:
 
             else:
                 warn('Os gráficos envolvendo somente as grandezas calculadas não puderam ser criados, pois o método {} não foi executado.'.format(self.__etapasdisponiveis[7]),UserWarning)
-
-        if 'otimizacao' in tipos:
+        # otimização
+        if self.__tipoGraficos[4] in tipos:
             # otimiza deve ter sido alguma vez no contexto global e o algoritmo de otimização possui gráficos de desempenho
             if self.__etapasdisponiveis[2] in self.__etapasGlobal() and self.__flag.info['graficootimizacao']:
                 # Gráficos da otimização
@@ -1681,7 +1683,8 @@ class EstimacaoNaoLinear:
             else:
                 warn('Os gráficos de otimizacao não puderam ser criados, o algoritmo de otimização utilizado não possui gráficos de desempenho OU o método {} não foi executado.'.format(self.__etapasdisponiveis[2]),UserWarning)
 
-        if 'regiaoAbrangencia' in tipos:
+        # regiaoAbrangencia
+        if self.__tipoGraficos[0] in tipos:
             # os gráficos da região de abrangência sõ são executados se houver dados disponíveis
             if self.parametros.regiao_abrangencia is not None:
                 # Gráficos da estimação
@@ -1741,8 +1744,8 @@ class EstimacaoNaoLinear:
 
             else:
                 warn('Os gráficos de regiao de abrangencia não puderam ser criados, pois o método {} não foi executado após {} OU no método {} não foi incluída a região de abrangência. Observe que em {} é avaliado a região de abrangência, apenas quando {} é executado.'.format(self.__etapasdisponiveis[3], self.__etapasdisponiveis[2], self.__etapasdisponiveis[8], self.__etapasdisponiveis[3],self.__etapasdisponiveis[2]),UserWarning)
-
-        if 'predicao' in tipos:
+        # predição
+        if self.__tipoGraficos[2] in tipos:
             # Predição deve ter sido executada neste fluxo
 
             if self.__etapasdisponiveis[7] in self.__etapas[self.__etapasID]:
@@ -1880,7 +1883,8 @@ class EstimacaoNaoLinear:
             else:
                 warn('Os gráficos envolvendo a estimação (predição) não puderam ser criados, pois o método {} não foi executado.'.format(self.__etapasdisponiveis[7]),UserWarning)
 
-        if ('analiseResiduos' in tipos):
+        # AnáliseResiduos
+        if (self.__tipoGraficos[5] in tipos):
             # o método análise de resíduos deve ter sido executado
             if self.__etapasdisponiveis[5] in self.__etapas[self.__etapasID]:
 
