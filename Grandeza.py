@@ -6,7 +6,7 @@ Created on Mon Feb  2 11:05:02 2015
 """
 # Importação de pacotes de terceiros
 from numpy import array, transpose ,size, diag, linspace, min, max, \
-    mean,  std, amin, amax, ndarray, ones, sqrt, insert, nan, shape
+    mean,  std, amin, amax, ndarray, ones, sqrt, insert, nan, shape, corrcoef
 
 from statsmodels.stats.weightstats import ztest
 
@@ -14,11 +14,12 @@ from scipy.stats import normaltest, anderson, shapiro, ttest_1samp, kstest,\
  norm, probplot, ttest_ind
 
 from matplotlib.pyplot import figure, axes, axis, plot, errorbar, subplot, xlabel, ylabel,\
-    title, legend, savefig, xlim, ylim, close, grid, text, hist, boxplot
+    title, legend, savefig, xlim, ylim, close, grid, text, hist, boxplot, show
 
 from os import getcwd, sep
 from statsmodels.stats.diagnostic import acorr_breush_godfrey, acorr_ljungbox, het_breushpagan, het_white, normal_ad
 from statsmodels.stats.stattools import durbin_watson
+from statsmodels.graphics.correlation import plot_corr
 
 # Subrotinas próprias (desenvolvidas pelo GI-UFBA)
 from subrotinas import matriz2vetor, vetor2matriz, Validacao_Diretorio, matrizcorrelacao
@@ -419,7 +420,7 @@ class Grandeza:
         **MÉDIA**:
         
         * ttest_1sam: Retorna o pvalor para média determinada. Hipótese nula: a amostra tem a média determinada
-       
+        * ztest : Retorna o pvalor para média determinada. Hipótese nula: a amostra tem a média determinada
         **AUTOCORRELAÇÃO**:
         
         *durbin_watson: Teste de autocorrelação Interpretativo. Há duas formas de analisar o resultado:
@@ -449,7 +450,7 @@ class Grandeza:
          Para este teste, a hipótese nula é de que todas as observações têm a mesma variância do erro, ou seja, os erros são homocedásticas.
 
         *Bresh Pagan:Testa a hipótese de os residuos são homocedásticos, recomendado para funções lineares  
-         
+        **Obs** :  O teste de bresh pagan não é indicado pra formas não lineares de heterocedasticidade
         =====
         SAÍDA
         =====
@@ -465,8 +466,6 @@ class Grandeza:
         [1] White, H. (1980). "A Heteroskedasticity-Consistente Covariance Matrix Estimador e um teste direto para Heteroskedasticity". Econometrica 48 (4):. 817-838 JSTOR 1.912.934 . MR 575027 .
 
         '''
-        # TODO: Verificar teste de acorr_ljungbox
-        # TODO: detalhar melhor a documentação
         # TODO: revise as documentações para avaliar se os valores de resposta estão coerentes
     
         if 'residuo' in self.__ID: # Testes para os resíduos
@@ -478,7 +477,7 @@ class Grandeza:
                                   'residuo-Autocorrelacao':{'Durbin Watson':{'estatistica':1.0}},
                                   'residuo-Homocedasticidade':{'white test':{'p-valor multiplicador de Lagrange':1.0,'p-valor Teste F':1.0},'Bresh Pagan':{'p-valor multiplicador de Lagrange':1.0,'p-valor Teste F':1.0}}}
            
-            self.__TestesInfo = {'residuo-Normalidade':{'shapiro':{'H0':'resíduos normais'},'normaltest':{'H0':'resíduos normais'},'anderson':{'H0':'resíduos normais'},'kstest':{'H0':'resíduos normais'}}}
+            self.__TestesInfo = {'residuo-Normalidade':{'shapiro':{'H0':'resíduos normais'},'normaltest':{'H0':'resíduos normais'},'anderson':{'H0':'resíduos normais'},'kstest':{'H0':'resíduos normais'}}, 'residuo-Media':{'ttest':{'H0':'resíduos com média zero'}, 'ztest':{'H0':'resíduos com média zero'}}, 'residuo-Homocedasticidade':{'white test':{'p-valor multiplicador de Lagrange':{'H0':'resíduos são homocedásticos'},'p-valor Teste F':{'H0':'resíduos são homocedásticos'}}, 'Bresh Pagan':{'p-valor multiplicador de Lagrange':{'H0':'resíduos são homocedásticos'},'p-valor Teste F':{'H0':'resíduos são homocedásticos'}}}}
             pvalor = {}
             for nome in self.simbolos:
                 pvalor[nome] = {}
@@ -506,13 +505,24 @@ class Grandeza:
                 pvalor[nome]['residuo-Autocorrelacao'] = {'Durbin Watson':{'estatistica':durbin_watson(dados)}}#, 'Ljung-Box':{'p-valor chi2':ljungbox[1],'p-valor Box-Pierce test':ljungbox[3]}}
                 
                 # Testes para a Homocedásticidade:
-                # TODO: Avaliar se z deve ser passado para cada coluna da entrada.
+                
+            
                 pheter= [het_white(dados,insert(z, 0, 1, axis=1)),het_breushpagan(dados,z)]
                 pvalor[nome]['residuo-Homocedasticidade'] = {'white test':{'p-valor multiplicador de Lagrange':pheter[0][1], 'p-valor Teste F':pheter[0][3]},'Bresh Pagan':{'p-valor multiplicador de Lagrange':pheter[1][1],'p-valor Teste F':pheter[1][3]}}
         else:
             raise NameError(u'Os testes estatísticos são válidos apenas para o resíduos')
 
         self.estatisticas = pvalor
+        
+#Exemplo de uso da autocorrelação       
+#import numpy as np
+#import matplotlib.pyplot as plt
+#import statsmodels.api as sm
+##hie_data = sm.datasets.randhie.load_pandas()
+##corr_matrix = np.corrcoef(hie_data.data.T)
+##sm.graphics.plot_corr(corr_matrix, xnames=hie_data.names)
+##plt.show()
+
             
     def Graficos(self,base_path=None,ID=None,fluxo=None):
         u'''

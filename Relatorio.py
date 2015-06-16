@@ -162,7 +162,8 @@ class Relatorio:
                 f.write('Análise de resíduos:\n')
                 f.write('    Normalidade:\n')
                 f.write('    {:-^45}\n'.format('Testes com p-valores'))
-                f.write('    Info: p-valores devem ser maiores do que o nível de significânca (1-PA)\n    para não rejeitar a hipótese nula (Ho).\n')
+                f.write('    Info: *Não se pode descartar a hipótese de normalidadep-valores devem ser maiores do que o nível de significânca (1-PA)\n    para não rejeitar a hipótese nula (Ho).\n')
+                f.write('\n')
                 f.write('    {:<10} : '.format('Simbolos')+ ('{:^8}'*y.NV).format(*y.simbolos)+'\n')
                 # construção semi-automatizada para preencher os valores dos testes estatísticos de normalidade
                 for teste in y._Grandeza__nomesTestes['residuo-Normalidade'].keys():
@@ -203,6 +204,8 @@ class Relatorio:
                 # ANÁLISE DE RESÍDUOS - testes para média
                 f.write('    Média:\n')
                 f.write('    {:-^45}\n'.format('Testes com p-valores'))
+                f.write('    Info: p-valores devem ser maiores do que o nível de significânca (1-PA)\n    para não rejeitar a hipótese nula (Ho).\n')
+                f.write('\n')
                 f.write('    {:<8}:'.format('Simbolos') + ('{:^8}'*y.NV).format(*y.simbolos) + '\n')
                 # construção semi-automatizada para preencher os valores dos testes estatísticos para média
                 for teste in y._Grandeza__nomesTestes['residuo-Media'].keys():
@@ -212,12 +215,19 @@ class Relatorio:
                              f.write('{:^8.3f}'.format(y.estatisticas[symb]['residuo-Media'][teste])+' ')
                          else:
                              f.write('N/A')
-                     f.write('\n')
-                f.write('\n')
-
+                             f.write('\n')
+               
+                     if not isinstance(y._Grandeza__nomesTestes['residuo-Media'][teste],dict):
+                        f.write('| Ho: {}'.format(y._Grandeza__TestesInfo['residuo-Media'][teste]['H0']))
+                     if break_line:
+                        f.write('\n')
+                 
                 # ANÁLISE DE RESÍDUOS - testes para autocorrelação
+                f.write('\n')
                 f.write('    Autocorrelação:\n')
                 f.write('    {:-^45}\n'.format('Testes com estatística'))
+                f.write('    Info: A estatística de teste é aproximadamente igual a 2 * (1-r), assim se r==0 indica que não há autocorrelção.\n')
+                f.write('\n')
                 f.write('    {:<}:           '.format('Simbolos')+ ('{:^8}'*y.NV).format(*y.simbolos)+'\n')
                 for teste in y._Grandeza__nomesTestes['residuo-Autocorrelacao'].keys():
                     break_line = False
@@ -239,6 +249,8 @@ class Relatorio:
                 # ANÁLISE DE RESÍDUOS - testes para homocedasticidade
                 f.write('    Homocedasticidade:\n')
                 f.write('    {:-^45}\n'.format('Testes com p-valores'))
+                f.write('    Info: p-valores devem ser maiores do que o nível de significânca (1-PA)\n    para não rejeitar a hipótese nula (Ho).\n')
+                f.write('\n')
                 f.write('    {:<}:                                 '.format('Simbolos')+ ('{:^8}'*y.NV).format(*y.simbolos)+'\n')
                 for teste in y._Grandeza__nomesTestes['residuo-Homocedasticidade'].keys():
                     break_line = False
