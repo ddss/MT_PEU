@@ -514,14 +514,6 @@ class Grandeza:
 
         self.estatisticas = pvalor
         
-#Exemplo de uso da autocorrelação       
-#import numpy as np
-#import matplotlib.pyplot as plt
-#import statsmodels.api as sm
-##hie_data = sm.datasets.randhie.load_pandas()
-##corr_matrix = np.corrcoef(hie_data.data.T)
-##sm.graphics.plot_corr(corr_matrix, xnames=hie_data.names)
-##plt.show()
 
             
     def Graficos(self,base_path=None,ID=None,fluxo=None):
@@ -557,13 +549,54 @@ class Grandeza:
 
         if fluxo is None:
             fluxo = 0
+        
 
         # ---------------------------------------------------------------------
         # CRIAÇÃO DOS GRÁFICOS
         # ---------------------------------------------------------------------
         base_dir  = sep + 'Grandezas' + sep
         Validacao_Diretorio(base_path,base_dir)
+        
+        #Gráfico Pcolor para auto correlação
+        # self.__ID_disponivel[0]=experimental , validacao, parametro     
+        if self.__ID_disponivel[0] in ID or self.__ID_disponivel[1] in ID or self.__ID_disponivel[3] in ID:
+            
+            if self.__ID_disponivel[0] in ID: # Gráfico Pcolor para experimental
+                listalabel=[]
+                for elemento in self.simbolos:
+                    for i in xrange(self.experimental.NE):
+                        listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
+                        
+                corr_matrix= self.experimental.matriz_correlacao
+                plot_corr(corr_matrix, xnames=listalabel,  ynames=listalabel, title=u'Matriz de correlação ' + self.__ID_disponivel[0],normcolor=True, cmap='RdGy')
+                savefig(base_path+base_dir+'correlacao'+str(fluxo)+'_'+self.__ID_disponivel[0]+'_autocorrelacao')
+                close()
+                
+            if self.__ID_disponivel[1] in ID: # Gráfico Pcolor para validação
+                listalabel=[]
+                for elemento in self.simbolos:
+                    for i in xrange(self.validacao.NE):
+                        listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
+                
+                corr_matrix = self.validacao.matriz_correlacao
+                plot_corr(corr_matrix, xnames=listalabel, ynames=listalabel, title=u'Matriz de correlação ' + self.__ID_disponivel[1],normcolor=True,cmap='RdGy')
+                savefig(base_path+base_dir+'correlacao'+str(fluxo)+'_'+self.__ID_disponivel[1]+'_autocorrelacao')
+                close()
+                
 
+                
+            if self.__ID_disponivel[3] in ID: # Gráfico Pcolor para parâmetros
+                listalabel=[]
+                for elemento in self.simbolos:
+                    for i in xrange(self.NV):
+                        listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
+                        
+                corr_matrix= self.calculado.matriz_correlacao
+                plot_corr(corr_matrix, xnames=self.simbolos, ynames=self.simbolos, title=u'Matriz de correlação ' + self.__ID_disponivel[3],normcolor=True, cmap='RdGy' )
+                savefig(base_path+base_dir+'correlacao_f'+str(fluxo)+'_'+self.__ID_disponivel[3]+'_autocorrelacao')
+                close()
+       
+       
         if 'residuo' in ID:
             # BOXPLOT
             #checa a variabilidade dos dados, assim como a existência de possíveis outliers
@@ -611,6 +644,8 @@ class Grandeza:
                 xlim((0,size(dados)))
                 fig.savefig(base_path+base_dir+'residuos_fl'+str(fluxo)+'_autocorrelacao')
                 close()
+                
+                
 
                 # HISTOGRAMA                
                 #Gera um gráfico de histograma, importante na verificação da pdf
