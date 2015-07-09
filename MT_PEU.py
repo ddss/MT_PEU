@@ -1660,6 +1660,16 @@ class EstimacaoNaoLinear:
         # Gráficos referentes aos dados de saída (calculados)
         # grandezas-calculado
         if self.__tipoGraficos[3] in tipos:
+
+            # a incerteza dos parâmetros foi alguma vez executada
+            if self.__etapasdisponiveis[3] in self.__etapasGlobal():
+                base_dir = sep + 'Grandezas' + sep
+
+                Validacao_Diretorio(base_path,base_dir)
+                self.parametros.Graficos(base_path, ID=['parametro'], fluxo=self.__etapasID)
+            else:
+                warn('Os gráficos envolvendo somente as grandezas calculadas (PARÂMETROS) não puderam ser criados, pois o método {} não foi executado.'.format(self.__etapasdisponiveis[3]),UserWarning)
+
             # Predição deve ter sido executada no fluxo de trabalho
             if self.__etapasdisponiveis[7] in self.__etapas[self.__etapasID]:
                 base_dir = sep + 'Grandezas' + sep
@@ -1669,7 +1679,7 @@ class EstimacaoNaoLinear:
                 self.y.Graficos(base_path, ID=['calculado'], fluxo=self.__etapasID)
 
             else:
-                warn('Os gráficos envolvendo somente as grandezas calculadas não puderam ser criados, pois o método {} não foi executado.'.format(self.__etapasdisponiveis[7]),UserWarning)
+                warn('Os gráficos envolvendo somente as grandezas calculadas (X e Y) não puderam ser criados, pois o método {} não foi executado.'.format(self.__etapasdisponiveis[7]),UserWarning)
         # otimização
         if self.__tipoGraficos[4] in tipos:
             # otimiza deve ter sido alguma vez no contexto global e o algoritmo de otimização possui gráficos de desempenho

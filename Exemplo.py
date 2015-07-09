@@ -80,7 +80,7 @@ ux = concatenate((ux1,ux2),axis=1)
 uy = concatenate((uy1,uy2),axis=1)
 
 
-Estime = EstimacaoNaoLinear(WLS,Modelo,simbolos_x=['x1','x2'],simbolos_y=['y1','y2'],simbolos_param=[r'theta%d'%i for i in xrange(4)],label_latex_param=[r'$\theta_{%d}$'%i for i in xrange(4)])
+Estime = EstimacaoNaoLinear(WLS,Modelo,simbolos_x=['x1','x2'],simbolos_y=['y1','y2'],simbolos_param=[r'theta%d'%i for i in xrange(4)],label_latex_param=[r'$\theta_{%d}$'%i for i in xrange(4)],unidades_y=['kg','kg'])
 
 sup = [6.  ,.3  ,8.  ,0.7]
 inf = [1.  , 0  ,1.  ,0.]

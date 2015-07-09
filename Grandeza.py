@@ -559,42 +559,39 @@ class Grandeza:
         
         #Gráfico Pcolor para auto correlação
         # self.__ID_disponivel[0]=experimental , validacao, parametro     
-        if self.__ID_disponivel[0] in ID or self.__ID_disponivel[1] in ID or self.__ID_disponivel[3] in ID:
+        #if self.__ID_disponivel[0] in ID or self.__ID_disponivel[1] in ID or self.__ID_disponivel[3] in ID:
             
-            if self.__ID_disponivel[0] in ID: # Gráfico Pcolor para experimental
-                listalabel=[]
-                for elemento in self.simbolos:
-                    for i in xrange(self.experimental.NE):
-                        listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
-                        
-                corr_matrix= self.experimental.matriz_correlacao
-                plot_corr(corr_matrix, xnames=listalabel,  ynames=listalabel, title=u'Matriz de correlação ' + self.__ID_disponivel[0],normcolor=True, cmap='RdGy')
-                savefig(base_path+base_dir+'correlacao'+str(fluxo)+'_'+self.__ID_disponivel[0]+'_autocorrelacao')
-                close()
-                
-            if self.__ID_disponivel[1] in ID: # Gráfico Pcolor para validação
-                listalabel=[]
-                for elemento in self.simbolos:
-                    for i in xrange(self.validacao.NE):
-                        listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
-                
-                corr_matrix = self.validacao.matriz_correlacao
-                plot_corr(corr_matrix, xnames=listalabel, ynames=listalabel, title=u'Matriz de correlação ' + self.__ID_disponivel[1],normcolor=True,cmap='RdGy')
-                savefig(base_path+base_dir+'correlacao'+str(fluxo)+'_'+self.__ID_disponivel[1]+'_autocorrelacao')
-                close()
-                
+        if self.__ID_disponivel[0] in ID: # Gráfico Pcolor para experimental
+            listalabel=[]
+            for elemento in self.simbolos:
+                for i in xrange(self.experimental.NE):
+                    listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
 
-                
-            if self.__ID_disponivel[3] in ID: # Gráfico Pcolor para parâmetros
-                listalabel=[]
-                for elemento in self.simbolos:
-                    for i in xrange(self.NV):
-                        listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
-                        
-                corr_matrix= self.calculado.matriz_correlacao
-                plot_corr(corr_matrix, xnames=self.simbolos, ynames=self.simbolos, title=u'Matriz de correlação ' + self.__ID_disponivel[3],normcolor=True, cmap='RdGy' )
-                savefig(base_path+base_dir+'correlacao_f'+str(fluxo)+'_'+self.__ID_disponivel[3]+'_autocorrelacao')
-                close()
+            plot_corr(self.experimental.matriz_correlacao, xnames=listalabel,  ynames=listalabel, title=u'Matriz de correlação ' + self.__ID_disponivel[0],normcolor=True, cmap='RdGy')
+            savefig(base_path+base_dir+'correlacao_fl'+str(fluxo)+'_'+self.__ID_disponivel[0]+'_autocorrelacao')
+            close()
+
+        if self.__ID_disponivel[1] in ID: # Gráfico Pcolor para validação
+            listalabel=[]
+            for elemento in self.simbolos:
+                for i in xrange(self.validacao.NE):
+                    listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
+
+            plot_corr(self.validacao.matriz_correlacao, xnames=listalabel, ynames=listalabel, title=u'Matriz de correlação ' + self.__ID_disponivel[1],normcolor=True,cmap='RdGy')
+            savefig(base_path+base_dir+'correlacao_fl'+str(fluxo)+'_'+self.__ID_disponivel[1]+'_autocorrelacao')
+            close()
+
+
+
+        if self.__ID_disponivel[3] in ID: # Gráfico Pcolor para parâmetros
+            listalabel=[]
+            for elemento in self.simbolos:
+                for i in xrange(self.NV):
+                    listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
+
+            plot_corr(self.matriz_correlacao, xnames=self.simbolos, ynames=self.simbolos, title=u'Matriz de correlação ' + self.__ID_disponivel[3],normcolor=True, cmap='RdGy' )
+            savefig(base_path+base_dir+'correlacao_fl'+str(fluxo)+'_'+self.__ID_disponivel[3]+'_autocorrelacao')
+            close()
        
        
         if 'residuo' in ID:
