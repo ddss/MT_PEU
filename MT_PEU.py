@@ -1495,8 +1495,10 @@ class EstimacaoNaoLinear:
         * Cálculo do R2 e R2 ajustado (atributos: R2 e R2ajustado)
         * Aplicação de testes estatísticos para as grandezas. Criação do atributo estatisticas para cada grandeza x e y. (Vide documentação de Grandeza)
         * Teste estatítico para avaliar se a função objetivo segue uma chi2 (atributo estatisticas)
-            * Há duas situações possíveis ao se analisar a FO com a chi2, se a FO pertence ao intervalo chi2min < FO < chi2max,
-              o modelo representa bem os dados, ou se FO não pertence a este intervalo, neste caso tem-se:
+              * Se FO pertence ao intervalo chi2min < FO < chi2max, tem uma situação ideal, então o modelo representa bem os dados
+             
+               Caso contrário há duas situações possíveis ao se analisar a FO com a chi2:
+               
               * FO < chi2min, O modelo representa os dados esperimentais muito melhor que o esperado,
               o que pode indicar que há super parametrização do modelo ou que os erros esperimentais estão superestimados:
               * FO > chi2max: o modelo não é capaz de explicar os erros experimentais
@@ -1577,25 +1579,6 @@ class EstimacaoNaoLinear:
         # Inclusão desta etapa na lista de etapas
         self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[5]) 
 
-        # TODO avaliar erro em influence_plot
-#        for i,simb in enumerate(self.y.simbolos):
-#            base_dir =  sep + 'Grandezas' + sep + self.y.simbolos[i] + sep
-#            # Gráficos da otimização
-#            Validacao_Diretorio(base_path,base_dir)  
-#        
-#            ymodelo = self.y.experimental.matriz_estimativa[:,i]
-#            fig = figure()
-#            ax = fig.add_subplot(1,1,1)
-#            ax.set_ylabel("Modelo")
-#            ax.set_xlabel("Residuos")
-#            ax.set_title("")
-#            influence_plot(self.y.residuos.matriz_estimativa[:,i],True, 0.05, 'cooks', 48, 0.75, ax)
-#            fig.savefig(base_path+base_dir+'outlier.png')
-#            close()
-#
-#        self.__etapas.append(self.__etapasdisponiveis[5]) # Inclusão desta etapa na lista de etapas
-#        return self.estatisticaFO
-
     def graficos(self,tipos,PA=0.95):
         u"""
         Métodos para gerar e salvar os gráficos
@@ -1613,7 +1596,7 @@ class EstimacaoNaoLinear:
 
         * ``PA``: probabilidade de abrangência a ser utilizada para definição dos intervalos de abrangência.
         """
-        # TODO: usar .format para criar os nomes das figuras
+        
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------         
@@ -1815,7 +1798,6 @@ class EstimacaoNaoLinear:
                         #yerr_experimental = incerteza_expandida_Ye[:,iy]
 
                         fig = figure()
-                    
                         errorbar(y,ym,xerr=yerr_experimental,yerr=yerr_calculado,marker='o',color='b',linestyle='None')
                         plot(diagonal,diagonal,'k-',linewidth=2.0)
                         
@@ -1912,7 +1894,6 @@ class EstimacaoNaoLinear:
 
                     Validacao_Diretorio(base_path,base_dir)
 
-                    # TODO: colocar legenda e substituir ymodelo por linespace
                     #ymodelo vs. Resíduos
                     fig = figure()
                     ax = fig.add_subplot(1,1,1)

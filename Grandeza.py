@@ -6,7 +6,7 @@ Created on Mon Feb  2 11:05:02 2015
 """
 # Importação de pacotes de terceiros
 from numpy import array, transpose ,size, diag, linspace, min, max, \
-    mean,  std, amin, amax, ndarray, ones, sqrt, insert, nan, shape, corrcoef
+    mean,  std, amin, amax, ndarray, ones, sqrt, insert, nan, shape, corrcoef, correlate
 
 from statsmodels.stats.weightstats import ztest
 
@@ -15,6 +15,9 @@ from scipy.stats import normaltest, anderson, shapiro, ttest_1samp, kstest,\
 
 from matplotlib.pyplot import figure, axes, axis, plot, errorbar, subplot, xlabel, ylabel,\
     title, legend, savefig, xlim, ylim, close, grid, text, hist, boxplot, show
+    
+from matplotlib.colors import LinearSegmentedColormap
+    
 
 from os import getcwd, sep
 from statsmodels.stats.diagnostic import acorr_breush_godfrey, acorr_ljungbox, het_breushpagan, het_white, normal_ad
@@ -362,7 +365,7 @@ class Grandeza:
         self.regiao_abrangencia = regiao
 
  
-    def labelGraficos(self,add=None):
+    def labelGraficos(self,add=None, printunit=True):
         u'''
         Método para definição do label dos gráficos relacionado às grandezas.
         
@@ -377,33 +380,50 @@ class Grandeza:
             
         # Definição dos labels: latex ou nomes ou simbolos (nesta ordem)
         label = [None]*len(self.nomes)
-        
-        for z in xrange(len(self.nomes)):
-
-            if self.label_latex[z] is not None:
-                label[z] = self.label_latex[z]
-            elif self.nomes[z] is not None:
-                label[z] = self.nomes[z]
-            elif self.simbolos[z] is not None:
-                label[z] = self.simbolos[z]
-
-            if add is not None:
-                label[z] = label[z] +' '+ add
+        if printunit is False:
             
-            # Caso seja definido uma unidade, esta será incluída no label
-            if self.unidades[z] is not None:
-                label[z] = label[z]+' '+"/"+self.unidades[z]
+            for z in xrange(len(self.nomes)):
+    
+                if self.label_latex[z] is not None:
+                    label[z] = self.label_latex[z]
+                elif self.nomes[z] is not None:
+                    label[z] = self.nomes[z]
+                elif self.simbolos[z] is not None:
+                    label[z] = self.simbolos[z]
+    
+                if add is not None:
+                    label[z] = label[z] +' '+ add
+                    
+        else:
+        
+            for z in xrange(len(self.nomes)):
+    
+                if self.label_latex[z] is not None:
+                    label[z] = self.label_latex[z]
+                elif self.nomes[z] is not None:
+                    label[z] = self.nomes[z]
+                elif self.simbolos[z] is not None:
+                    label[z] = self.simbolos[z]
+    
+                if add is not None:
+                    label[z] = label[z] +' '+ add
+                
+                # Caso seja definido uma unidade, esta será incluída no label
+                if self.unidades[z] is not None:
+                    label[z] = label[z]+' '+"/"+self.unidades[z]
+                
+        
             
         return label
 
-    def _testesEstatisticos(self,z):
+    def _testesEstatisticos(self,Explic):
         u'''
         Subrotina para realizar testes estatísticos nos resíduos
 
         =======
         Entrada
         =======
-        * z: variáveis para explicadores. Objetivo: avaliar homocedasticidade
+        * Explic: variáveis para explicadores (Independentes/Regressores). Objetivo: avaliar homocedasticidade
 
         =================
         Testes realizados
@@ -466,7 +486,6 @@ class Grandeza:
         [1] White, H. (1980). "A Heteroskedasticity-Consistente Covariance Matrix Estimador e um teste direto para Heteroskedasticity". Econometrica 48 (4):. 817-838 JSTOR 1.912.934 . MR 575027 .
 
         '''
-        # TODO: revise as documentações para avaliar se os valores de resposta estão coerentes
     
         if 'residuo' in self.__ID: # Testes para os resíduos
             # Variável para salvar os nomes dos testes estatísticos - consulta
@@ -501,13 +520,13 @@ class Grandeza:
                 pvalor[nome]['residuo-Media'] = {'ttest':float(ttest_1samp(dados,0.)[1]), 'ztest':ztest(dados, x2=None, value=0, alternative='two-sided', usevar='pooled', ddof=1.0)[1]}
              
                 # Testes para a autocorrelação:
-                #ljungbox = acorr_ljungbox(dados, lags=None, boxpierce=True)
-                pvalor[nome]['residuo-Autocorrelacao'] = {'Durbin Watson':{'estatistica':durbin_watson(dados)}}#, 'Ljung-Box':{'p-valor chi2':ljungbox[1],'p-valor Box-Pierce test':ljungbox[3]}}
+                ljungbox = acorr_ljungbox(dados, lags=1, boxpierce=True)
+                pvalor[nome]['residuo-Autocorrelacao'] = {'Durbin Watson':{'estatistica':durbin_watson(dados)}, 'Ljung-Box':{'p-valor chi2':ljungbox[1],'p-valor Box-Pierce test':ljungbox[3]}}
                 
                 # Testes para a Homocedásticidade:
                 
             
-                pheter= [het_white(dados,insert(z, 0, 1, axis=1)),het_breushpagan(dados,z)]
+                pheter= [het_white(dados,insert(Explic, 0, 1, axis=1)),het_breushpagan(dados,Explic)]
                 pvalor[nome]['residuo-Homocedasticidade'] = {'white test':{'p-valor multiplicador de Lagrange':pheter[0][1], 'p-valor Teste F':pheter[0][3]},'Bresh Pagan':{'p-valor multiplicador de Lagrange':pheter[1][1],'p-valor Teste F':pheter[1][3]}}
         else:
             raise NameError(u'Os testes estatísticos são válidos apenas para o resíduos')
@@ -560,24 +579,38 @@ class Grandeza:
         #Gráfico Pcolor para auto correlação
         # self.__ID_disponivel[0]=experimental , validacao, parametro     
         #if self.__ID_disponivel[0] in ID or self.__ID_disponivel[1] in ID or self.__ID_disponivel[3] in ID:
-            
+        # cores para o colormap.
+#        b: blue
+#        g: green
+#        r: red
+#        c: cyan
+#        m: magenta
+#        y: yellow
+#        k: black
+#        w: white
+#        0.75: grey
+       
+        #Variável local para alterl a cor do cmap
+        cm1 = LinearSegmentedColormap.from_list("MyCmapName",["k",'b',"0.75","w","0.75",'b', "k"])   
+    
+        
         if self.__ID_disponivel[0] in ID: # Gráfico Pcolor para experimental
             listalabel=[]
-            for elemento in self.simbolos:
+            for elemento in self.labelGraficos(printunit=False):
                 for i in xrange(self.experimental.NE):
                     listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
 
-            plot_corr(self.experimental.matriz_correlacao, xnames=listalabel,  ynames=listalabel, title=u'Matriz de correlação ' + self.__ID_disponivel[0],normcolor=True, cmap='RdGy')
+            plot_corr(self.experimental.matriz_correlacao, xnames=listalabel,  ynames=listalabel, title=u'Matriz de correlação ' + self.__ID_disponivel[0],normcolor=True, cmap=cm1)
             savefig(base_path+base_dir+'correlacao_fl'+str(fluxo)+'_'+self.__ID_disponivel[0]+'_autocorrelacao')
             close()
 
         if self.__ID_disponivel[1] in ID: # Gráfico Pcolor para validação
             listalabel=[]
-            for elemento in self.simbolos:
+            for elemento in self.labelGraficos(printunit=False):
                 for i in xrange(self.validacao.NE):
                     listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
 
-            plot_corr(self.validacao.matriz_correlacao, xnames=listalabel, ynames=listalabel, title=u'Matriz de correlação ' + self.__ID_disponivel[1],normcolor=True,cmap='RdGy')
+            plot_corr(self.validacao.matriz_correlacao, xnames=listalabel, ynames=listalabel, title=u'Matriz de correlação ' + self.__ID_disponivel[1],normcolor=True,cmap=cm1)
             savefig(base_path+base_dir+'correlacao_fl'+str(fluxo)+'_'+self.__ID_disponivel[1]+'_autocorrelacao')
             close()
 
@@ -585,11 +618,11 @@ class Grandeza:
 
         if self.__ID_disponivel[3] in ID: # Gráfico Pcolor para parâmetros
             listalabel=[]
-            for elemento in self.simbolos:
+            for elemento in self.labelGraficos(printunit=False):
                 for i in xrange(self.NV):
                     listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
 
-            plot_corr(self.matriz_correlacao, xnames=self.simbolos, ynames=self.simbolos, title=u'Matriz de correlação ' + self.__ID_disponivel[3],normcolor=True, cmap='RdGy' )
+            plot_corr(self.matriz_correlacao, xnames=listalabel, ynames=listalabel, title=u'Matriz de correlação ' + self.__ID_disponivel[3],normcolor=True, cmap=cm1)
             savefig(base_path+base_dir+'correlacao_fl'+str(fluxo)+'_'+self.__ID_disponivel[3]+'_autocorrelacao')
             close()
        
@@ -600,7 +633,7 @@ class Grandeza:
             fig = figure()
             ax = fig.add_subplot(1,1,1)
             boxplot(self.residuos.matriz_estimativa)
-            ax.set_xticklabels(self.simbolos)
+            ax.set_xticklabels(self.labelGraficos(printunit=False))
             fig.savefig(base_path+base_dir+'residuos_fl'+str(fluxo)+'_boxplot_'+'_'.join(self.simbolos))
             close()
             
@@ -615,13 +648,12 @@ class Grandeza:
                 # TENDÊNCIA
                 #Testa a aleatoriedade dos dados, plotando os valores do residuo versus a ordem em que foram obtidos
                 #dessa forma verifica-se há alguma tendência
-                # TODO: colocar legenda
                 fig = figure()
                 ax = fig.add_subplot(1,1,1)
                 plot(linspace(1,size(dados),num=size(dados)),dados, 'o',label=u'Ordem de coleta')
-                plot(linspace(1,size(dados),num=size(dados)),[mean(dados)]*size(dados),'-.r', label=u'Valor médio')
+                plot(linspace(1,size(dados),num=size(dados)),[mean(dados)]*size(dados),'-r', label=u'Valor médio')
                 xlabel('Ordem de Coleta')
-                ylabel(self.simbolos[i])
+                ylabel(self.labelGraficos()[i])
                 ax.yaxis.grid(color='gray', linestyle='dashed')                        
                 ax.xaxis.grid(color='gray', linestyle='dashed')
                 xlim((0,size(dados)))
@@ -638,11 +670,29 @@ class Grandeza:
                 ax.yaxis.grid(color='gray', linestyle='dashed')                        
                 ax.xaxis.grid(color='gray', linestyle='dashed')
                 ax.axhline(0, color='black', lw=2)
+                #TODO Uso lag ou Defasagem ?
+                ax.set(xlabel='Lag', ylabel= u'Autocorrelação de ' + self.labelGraficos(printunit=False)[i])
                 xlim((0,size(dados)))
                 fig.savefig(base_path+base_dir+'residuos_fl'+str(fluxo)+'_autocorrelacao')
                 close()
                 
+                #Gera um gráfico que verifica a autocorrelação 2  
+                #TODO verificar se é util
+                fig = figure()
+                ax = fig.add_subplot(1,1,1)
+                dados= dados - dados.mean()
+                autocorr = correlate(dados, dados, mode='full')
+                autocorr /= autocorr.max()
+                ax.stem(autocorr)
+                ax.yaxis.grid(color='gray', linestyle='dashed')                        
+                ax.xaxis.grid(color='gray', linestyle='dashed')
+                ax.set(xlabel='Lag', ylabel= u'Autocorrelação de ' + self.labelGraficos(printunit=False)[i])
+                xlim((0,size(dados)))
+                fig.savefig(base_path+base_dir+'residuos_fl'+str(fluxo)+'_autocorrelacao2')
+                close()
                 
+
+                                
 
                 # HISTOGRAMA                
                 #Gera um gráfico de histograma, importante na verificação da pdf
@@ -650,6 +700,7 @@ class Grandeza:
                 hist(dados, normed=True)
                 xlabel(self.labelGraficos()[i])
                 ylabel(u'Frequência')
+                grid(color='gray', linestyle='dashed')                        
                 fig.savefig(base_path+base_dir+'residuos_fl'+str(fluxo)+'_histograma')
                 close()
 
@@ -661,7 +712,7 @@ class Grandeza:
                     fig = figure()
                     plot(res[0][0], res[0][1], 'o', res[0][0], res[1][0]*res[0][0] + res[1][1])
                     xlabel('Quantis')
-                    ylabel('Valores ordenados')
+                    ylabel('Valores ordenados de ' + self.labelGraficos(printunit=False)[i])
                     xmin = amin(res[0][0])
                     xmax = amax(res[0][0])
                     ymin = amin(dados)
