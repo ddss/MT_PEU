@@ -1470,6 +1470,11 @@ class EstimacaoNaoLinear:
                 regiao.append(self.__hist_Posicoes[pos])
 
         # ---------------------------------------------------------------------
+        # AVALIAÇÃO SE A REGIÃO DE ABRANGÊNCIA NÃO ESTÁ VAZIA (Warning)
+        # ---------------------------------------------------------------------
+        if regiao == []:
+            warn('A região de abrangência avaliada pelo método da verossimilhança não contém pontos. Reveja os parâmetros do algoritmo utilizado.',UserWarning)
+        # ---------------------------------------------------------------------
         # VARIÁVEIS INTERNAS
         # ---------------------------------------------------------------------
         self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[4]) # Inclusão desta etapa da lista de etapas
@@ -1697,7 +1702,7 @@ class EstimacaoNaoLinear:
                         
                         fig = figure()
                         ax = fig.add_subplot(1,1,1)
-                        
+
                         if self.__etapasdisponiveis[4] in self.__etapasGlobal():
                             for it in xrange(size(self.parametros.regiao_abrangencia)/self.parametros.NV):     
                                 PSO, = plot(self.parametros.regiao_abrangencia[it][p1],self.parametros.regiao_abrangencia[it][p2],'bo',linewidth=2.0,zorder=1)
@@ -1727,8 +1732,10 @@ class EstimacaoNaoLinear:
                               max([self.parametros.estimativa[p1] + 1.15*hx,xauto[-1]])))
                         ylim((min([self.parametros.estimativa[p2] - 1.15*hy,yauto[0]]),\
                               max([self.parametros.estimativa[p2] + 1.15*hy,yauto[-1]])))
-                        if self.__etapasdisponiveis[4] in self.__etapasGlobal():
-                            legend([ellipse,PSO],[u"Ellipse",u"Verossimilhança"])
+                        if self.__etapasdisponiveis[4] in self.__etapasGlobal() and self.parametros.regiao_abrangencia != []:
+                            legend([ellipse,PSO],['Elipse','Verossimilhança'])
+                        elif self.__etapasdisponiveis[4] in self.__etapasGlobal() and self.parametros.regiao_abrangencia == []:
+                            legend([ellipse],['Ellipse'])
                         fig.savefig(base_path+base_dir+'regiao_verossimilhanca_fl'+str(0)+'_'+str(self.parametros.simbolos[p1])+'_'+str(self.parametros.simbolos[p2])+'.png')
                         close()
                         p2+=1
