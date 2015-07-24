@@ -162,7 +162,7 @@ class Relatorio:
                 f.write('Análise de resíduos:\n')
                 f.write('    Normalidade:\n')
                 f.write('    {:-^45}\n'.format('Testes com p-valores'))
-                f.write('    Info: *Não se pode descartar a hipótese de normalidadep-valores devem ser maiores do que o nível de significânca (1-PA)\n    para não rejeitar a hipótese nula (Ho).\n')
+                f.write('    Info: p-valores devem ser maiores do que o nível de significânca (1-PA)\n    para não rejeitar a hipótese nula (Ho).\n')
                 f.write('\n')
                 f.write('    {:<10} : '.format('Simbolos')+ ('{:^8}'*y.NV).format(*y.simbolos)+'\n')
                 # construção semi-automatizada para preencher os valores dos testes estatísticos de normalidade
@@ -222,29 +222,56 @@ class Relatorio:
                      if break_line:
                         f.write('\n')
                  
-                # ANÁLISE DE RESÍDUOS - testes para autocorrelação
+                 # ANÁLISE DE RESÍDUOS - testes para autocorrelação
                 f.write('\n')
                 f.write('    Autocorrelação:\n')
+                f.write('    {:-^45}\n'.format('Testes com p-valores'))
+                f.write('    Info: p-valores devem ser maiores do que o nível de significânca (1-PA)\n    para não rejeitar a hipótese nula (Ho).\n')
+                f.write('\n')
+                f.write('    {:<}:                                 '.format('Simbolos')+ ('{:^8}'*y.NV).format(*y.simbolos)+'\n')
+                for teste in y._Grandeza__nomesTestes['residuo-Autocorrelacao'].keys():
+                    break_line = False
+                    if teste == 'Ljung-Box':
+                      if isinstance(y._Grandeza__nomesTestes['residuo-Autocorrelacao'][teste],dict):
+                          f.write('    {:<}: \n'.format(teste))
+                          for key in y._Grandeza__nomesTestes['residuo-Autocorrelacao'][teste].keys():
+                              f.write('            {:<33}:'.format(key))
+                              for symb in y.simbolos:
+                                  if isinstance(y._Grandeza__nomesTestes['residuo-Autocorrelacao'][teste][key],float):
+                                      f.write('{:^8.3f}'.format(y.estatisticas[symb]['residuo-Autocorrelacao'][teste][key]))
+                                  else:
+                                      f.write('N/A')
+                              if  isinstance(y._Grandeza__nomesTestes['residuo-Autocorrelacao'][teste],dict):
+                                    f.write('| Ho: {}'.format(y._Grandeza__TestesInfo['residuo-Autocorrelacao'][teste][key]['H0']))
+                              
+                              f.write('\n')
+                          break_line = True
+                        
+#                      
+                    if break_line:
+                        f.write('\n')
+                             
                 f.write('    {:-^45}\n'.format('Testes com estatística'))
-                f.write('    Info: A estatística de teste é aproximadamente igual a 2 * (1-r), assim se r==0 indica que não há autocorrelção.\n')
+                f.write('    Info: (i) Se a estatística do teste estiver próxima de 0 indica autocorrelação positiva\n          (ii) Se a estatística do teste estiver próxima de 4 indica autocorrelação negativa\n          (iii) Se a estatística do teste estiver próxima de 2 indica que não há autocorrelação.\n')
                 f.write('\n')
                 f.write('    {:<}:           '.format('Simbolos')+ ('{:^8}'*y.NV).format(*y.simbolos)+'\n')
                 for teste in y._Grandeza__nomesTestes['residuo-Autocorrelacao'].keys():
                     break_line = False
-                    if isinstance(y._Grandeza__nomesTestes['residuo-Autocorrelacao'][teste],dict):
-                        f.write('        {:<}: \n'.format(teste))
-                        for key in y._Grandeza__nomesTestes['residuo-Autocorrelacao'][teste].keys():
-                            f.write('            {:<11}:'.format(key))
-                            for symb in y.simbolos:
-                                if isinstance(y._Grandeza__nomesTestes['residuo-Autocorrelacao'][teste][key],float):
-                                    f.write('{:^8.3f}'.format(y.estatisticas[symb]['residuo-Autocorrelacao'][teste][key]))
-                                else:
-                                    f.write('N/A')
-                            f.write('\n')
-                        break_line = True
+                    if teste == 'Durbin Watson':
+                      if isinstance(y._Grandeza__nomesTestes['residuo-Autocorrelacao'][teste],dict):
+                          f.write('        {:<}: \n'.format(teste))
+                          for key in y._Grandeza__nomesTestes['residuo-Autocorrelacao'][teste].keys():
+                              f.write('            {:<11}:'.format(key))
+                              for symb in y.simbolos:
+                                  if isinstance(y._Grandeza__nomesTestes['residuo-Autocorrelacao'][teste][key],float):
+                                      f.write('{:^8.3f}'.format(y.estatisticas[symb]['residuo-Autocorrelacao'][teste][key]))
+                                  else:
+                                      f.write('N/A')
+                              f.write('\n')
+                          break_line = True
 
-                    if break_line:
-                        f.write('\n')
+                      if break_line:
+                          f.write('\n')
 
                 # ANÁLISE DE RESÍDUOS - testes para homocedasticidade
                 f.write('    Homocedasticidade:\n')
@@ -255,7 +282,7 @@ class Relatorio:
                 for teste in y._Grandeza__nomesTestes['residuo-Homocedasticidade'].keys():
                     break_line = False
                     if isinstance(y._Grandeza__nomesTestes['residuo-Homocedasticidade'][teste],dict):
-                        f.write('        {:<}: \n'.format(teste))
+                        f.write('    {:<}: \n'.format(teste))
                         for key in y._Grandeza__nomesTestes['residuo-Homocedasticidade'][teste].keys():
                             f.write('            {:<33}:'.format(key))
                             for symb in y.simbolos:
@@ -263,12 +290,15 @@ class Relatorio:
                                     f.write('{:^8.3f}'.format(y.estatisticas[symb]['residuo-Homocedasticidade'][teste][key]))
                                 else:
                                     f.write('N/A')
+                            if isinstance(y._Grandeza__nomesTestes['residuo-Homocedasticidade'][teste],dict):
+                                    f.write('| Ho: {}'.format(y._Grandeza__TestesInfo['residuo-Homocedasticidade'][teste][key]['H0']))
                             f.write('\n')
                         break_line = True
 
                     if break_line:
                         f.write('\n')
             f.close()
+
 
         # ---------------------------------------------------------------------
         # EXPORTAÇÃO DA PREDIÇÃO

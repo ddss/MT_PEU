@@ -441,7 +441,8 @@ class Grandeza:
         
         * ttest_1sam: Retorna o pvalor para média determinada. Hipótese nula: a amostra tem a média determinada
         * ztest : Retorna o pvalor para média determinada. Hipótese nula: a amostra tem a média determinada
-        **AUTOCORRELAÇÃO**:
+       
+       **AUTOCORRELAÇÃO**:
         
         *durbin_watson: Teste de autocorrelação Interpretativo. Há duas formas de analisar o resultado:
         1 Forma: Comparação com valores tabelados:
@@ -493,10 +494,10 @@ class Grandeza:
             # É nessa variável que o Relatório se baseia para obter as informações
             self.__nomesTestes = {'residuo-Normalidade':{'normaltest':1.0,'shapiro':1.0, 'anderson':1.0,'kstest':1.0},
                                   'residuo-Media':{'ttest':1.0, 'ztest': 1.0},
-                                  'residuo-Autocorrelacao':{'Durbin Watson':{'estatistica':1.0}},
+                                  'residuo-Autocorrelacao':{'Durbin Watson':{'estatistica':1.0}, 'Ljung-Box':{'p-valor chi2':1.0,'p-valor Box-Pierce':1.0}},
                                   'residuo-Homocedasticidade':{'white test':{'p-valor multiplicador de Lagrange':1.0,'p-valor Teste F':1.0},'Bresh Pagan':{'p-valor multiplicador de Lagrange':1.0,'p-valor Teste F':1.0}}}
            
-            self.__TestesInfo = {'residuo-Normalidade':{'shapiro':{'H0':'resíduos normais'},'normaltest':{'H0':'resíduos normais'},'anderson':{'H0':'resíduos normais'},'kstest':{'H0':'resíduos normais'}}, 'residuo-Media':{'ttest':{'H0':'resíduos com média zero'}, 'ztest':{'H0':'resíduos com média zero'}}, 'residuo-Homocedasticidade':{'white test':{'p-valor multiplicador de Lagrange':{'H0':'resíduos são homocedásticos'},'p-valor Teste F':{'H0':'resíduos são homocedásticos'}}, 'Bresh Pagan':{'p-valor multiplicador de Lagrange':{'H0':'resíduos são homocedásticos'},'p-valor Teste F':{'H0':'resíduos são homocedásticos'}}}}
+            self.__TestesInfo = {'residuo-Autocorrelacao':{'Ljung-Box':{'p-valor chi2':{'H0':'resíduos não são autocorrelacionados'},'p-valor Box-Pierce':{'H0':'resíduos não são autocorrelacionados'}}},'residuo-Normalidade':{'shapiro':{'H0':'resíduos normais'},'normaltest':{'H0':'resíduos normais'},'anderson':{'H0':'resíduos normais'},'kstest':{'H0':'resíduos normais'}}, 'residuo-Media':{'ttest':{'H0':'resíduos com média zero'}, 'ztest':{'H0':'resíduos com média zero'}}, 'residuo-Homocedasticidade':{'white test':{'p-valor multiplicador de Lagrange':{'H0':'resíduos são homocedásticos'},'p-valor Teste F':{'H0':'resíduos são homocedásticos'}}, 'Bresh Pagan':{'p-valor multiplicador de Lagrange':{'H0':'resíduos são homocedásticos'},'p-valor Teste F':{'H0':'resíduos são homocedásticos'}}}}
             pvalor = {}
             for nome in self.simbolos:
                 pvalor[nome] = {}
@@ -521,7 +522,7 @@ class Grandeza:
              
                 # Testes para a autocorrelação:
                 ljungbox = acorr_ljungbox(dados, lags=1, boxpierce=True)
-                pvalor[nome]['residuo-Autocorrelacao'] = {'Durbin Watson':{'estatistica':durbin_watson(dados)}, 'Ljung-Box':{'p-valor chi2':ljungbox[1],'p-valor Box-Pierce test':ljungbox[3]}}
+                pvalor[nome]['residuo-Autocorrelacao'] = {'Durbin Watson':{'estatistica':durbin_watson(dados)}, 'Ljung-Box':{'p-valor chi2':float(ljungbox[1]),'p-valor Box-Pierce':float(ljungbox[3])}}
                 
                 # Testes para a Homocedásticidade:
                 
@@ -535,7 +536,7 @@ class Grandeza:
         
 
             
-    def Graficos(self,base_path=None,ID=None,fluxo=None):
+    def Graficos(self,base_path=None,ID=None,fluxo=None, cmap=['k','r','0.75','w','0.75','r','k']):
         u'''
         Método para gerar os gráficos das grandezas, cujas informações só dependam dela.
         
@@ -548,7 +549,10 @@ class Grandeza:
         dependentes e independentes, ele identifica para qual atributo os gráficos devem ser avaliados. \
         Caso seja None, será feito os gráficos para TODOS os atributos disponíveis.
         * Fluxo       : identificação do fluxo de trabalho
-        Funções: 
+        * cmap : definição de cores para o pcolor:
+         b: blue ;  g: green; r: red;    c: cyan;  m: magenta; y: yellow; k: black; w: white; 0.75: grey
+       
+       Funções: 
         * probplot  : Gera um gráfico de probabilidade de dados de exemplo contra os quantis de uma distribuição teórica especificado (a distribuição normal por padrão).
                       Calcula uma linha de melhor ajuste para os dados se "encaixar" é verdadeiro e traça os resultados usando Matplotlib.
         *BOXPLOT    : O boxplot (gráfico de caixa) é um gráfico utilizado para avaliar a distribuição empírica do dados. 
@@ -577,7 +581,7 @@ class Grandeza:
         Validacao_Diretorio(base_path,base_dir)
         
         #Gráfico Pcolor para auto correlação
-        # self.__ID_disponivel[0]=experimental , validacao, parametro     
+        # self.__ID_disponivel[i]=experimental , validacao, calculado, parametro     
         #if self.__ID_disponivel[0] in ID or self.__ID_disponivel[1] in ID or self.__ID_disponivel[3] in ID:
         # cores para o colormap.
 #        b: blue
@@ -591,7 +595,12 @@ class Grandeza:
 #        0.75: grey
        
         #Variável local para alterl a cor do cmap
-        cm1 = LinearSegmentedColormap.from_list("MyCmapName",["k",'b',"0.75","w","0.75",'b', "k"])   
+        cores   = set(['b', 'g', 'r', 'c','m', 'y', 'k', 'w', '0.75'])
+        setcmap = set(cmap)
+        if not setcmap.issubset(cores):
+            raise TypeError('As cores devem pertencer à lista: {}'.format(cores))
+           
+        cm1 = LinearSegmentedColormap.from_list("Correlacao-cmap",cmap)   
     
         
         if self.__ID_disponivel[0] in ID: # Gráfico Pcolor para experimental
@@ -614,13 +623,23 @@ class Grandeza:
             savefig(base_path+base_dir+'correlacao_fl'+str(fluxo)+'_'+self.__ID_disponivel[1]+'_autocorrelacao')
             close()
 
+        if self.__ID_disponivel[2] in ID: # Gráfico Pcolor para calculado
+            listalabel=[]
+            for elemento in self.labelGraficos(printunit=False):
+                for i in xrange(self.calculado.NE):
+                    listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
+
+            plot_corr(self.calculado.matriz_correlacao, xnames=listalabel, ynames=listalabel, title=u'Matriz de correlação ' + self.__ID_disponivel[2],normcolor=True,cmap=cm1)
+            savefig(base_path+base_dir+'correlacao_fl'+str(fluxo)+'_'+self.__ID_disponivel[2]+'_autocorrelacao')
+            close()
+
 
 
         if self.__ID_disponivel[3] in ID: # Gráfico Pcolor para parâmetros
             listalabel=[]
             for elemento in self.labelGraficos(printunit=False):
-                for i in xrange(self.NV):
-                    listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
+                listalabel.append(elemento)
+                   
 
             plot_corr(self.matriz_correlacao, xnames=listalabel, ynames=listalabel, title=u'Matriz de correlação ' + self.__ID_disponivel[3],normcolor=True, cmap=cm1)
             savefig(base_path+base_dir+'correlacao_fl'+str(fluxo)+'_'+self.__ID_disponivel[3]+'_autocorrelacao')
@@ -632,7 +651,7 @@ class Grandeza:
             #checa a variabilidade dos dados, assim como a existência de possíveis outliers
             fig = figure()
             ax = fig.add_subplot(1,1,1)
-            boxplot(self.residuos.matriz_estimativa)
+            boxplot(self.residuos.matriz_estimativa, sym='k.')
             ax.set_xticklabels(self.labelGraficos(printunit=False))
             fig.savefig(base_path+base_dir+'residuos_fl'+str(fluxo)+'_boxplot_'+'_'.join(self.simbolos))
             close()

@@ -1805,7 +1805,7 @@ class EstimacaoNaoLinear:
                         #yerr_experimental = incerteza_expandida_Ye[:,iy]
 
                         fig = figure()
-                        errorbar(y,ym,xerr=yerr_experimental,yerr=yerr_calculado,marker='o',color='b',linestyle='None')
+                        errorbar(y,ym,xerr=yerr_experimental,yerr=yerr_calculado,fmt=None, marker='o',color='b',linestyle='None')
                         plot(diagonal,diagonal,'k-',linewidth=2.0)
                         
                         ax.yaxis.grid(color='gray', linestyle='dashed')                        
@@ -1850,7 +1850,7 @@ class EstimacaoNaoLinear:
 
                             fig = figure()
                             ax = fig.add_subplot(1,1,1)
-                            errorbar(y,ym,xerr=yerr_experimental,yerr=yerr_calculado,marker='o',color='b',linestyle='None')
+                            errorbar(y,ym,xerr=yerr_experimental,yerr=yerr_calculado,fmt=None,marker='o',color='b',linestyle='None')
                             plot(diagonal,diagonal,'k-',linewidth=2.0)
                             plot(y,ycalc_inferior_F,color='red')
                             plot(y,ycalc_superior_F,color='k')
