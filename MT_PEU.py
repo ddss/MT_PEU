@@ -11,19 +11,17 @@ Principais classes do motor de cálculo do PEU
 # IMPORTAÇÃO DE PACOTES DE TERCEIROS
 # ---------------------------------------------------------------------
 # Cálculos científicos
-from numpy import array, transpose, concatenate,size, diag, linspace, min, max, \
-sort, argsort, mean,  std, amin, amax, copy, cos, sin, radians, mean, dot, ones, \
-hstack, shape
+from numpy import array, size, linspace, min, max, copy, cos, sin, radians,\
+    mean, ones, ndarray
 
 from scipy.stats import f, t, chi2
 from scipy.misc import factorial
 from numpy.linalg import inv
 from math import floor, log10
-from statsmodels.graphics.regressionplots import influence_plot
 
 # Construção de gráficos
-from matplotlib.pyplot import figure, axes, axis, plot, errorbar, subplot, xlabel, ylabel,\
-    title, legend, savefig, xlim, ylim, close, grid, text, hist, boxplot
+from matplotlib.pyplot import figure, axes, axis, plot, errorbar, xlabel, ylabel,\
+    legend, xlim, ylim, close
 
 # Pacotes do sistema operacional
 from os import getcwd, sep
@@ -555,25 +553,33 @@ class EstimacaoNaoLinear:
             if self.__etapasdisponiveis[2] not in self.__etapasGlobal() or self.__etapasdisponiveis[8] not in self.__etapasGlobal():
                 raise TypeError('O método GETFOotimo deve ser executado após {} ou {}'.format(self.__etapasdisponiveis[8], self.__etapasdisponiveis[2]))
 
-    def __validacaoDadosEntrada(self,dados,udados,Ndados,NE):
+    def __validacaoDadosEntrada(self,dados,udados,NV):
         u'''
         Validação dos dados de entrada 
-        
-        * verificar se as colunas dos arrays de entrada são iguais aos nomes das variáveis definidas (y, x)
-        * verificar se as grandezas têm o mesmo número de dados experimentais
+
+        * verificar se os dados e suas incertezas são arrays de 2 dimensões
+        * verificar se as colunas dos arrays de entrada tem o mesmo número dos símbolos das variáveis definidas (y, x)
         '''
-        # TODO: melhorar esta validação (se possível, retirar)
-        if size(dados,0) != NE:
-            raise ValueError(u'Foram inseridos %d dados experimentais para uma grandeza e %d para outra'%(NE,size(dados,0)))
-        
-        if size(dados,1) != Ndados: 
-            raise ValueError(u'O número de variáveis definidas foi %s, mas foram inseridos dados para %s variáveis.'%(Ndados,size(dados,1)))
-            
-        if size(udados,0) != NE:
-            raise ValueError(u'Foram inseridos %d dados experimentais, mas incertezas para %d dados'%(NE,size(udados,0)))
-        
-        if size(udados,1) != Ndados: 
-            raise ValueError(u'O número de variáveis definidas foi %s, mas foram inseridas incertezas para %s.'%(Ndados,size(udados,1)))
+        if not isinstance(dados,ndarray):
+            raise TypeError('Os vetores de dados informando deve ser um array.')
+
+        if not isinstance(udados,ndarray):
+            raise TypeError('O vetor contendo a incerteza dos dados informando deve ser um array.')
+
+        if not dados.ndim == 2:
+            raise TypeError('A dimensão dos vetores de dados deve ser 2.')
+
+        if not udados.ndim == 2:
+            raise TypeError('A dimensão contendo a incerteza dos dados deve ser 2.')
+
+        if dados.shape[1] != NV:
+            raise ValueError('O número de variáveis definidas foi {:d}, mas foram inseridos dados para {:d} variáveis.'.format(NV,dados.shape[1]))
+
+        if udados.shape[1] != NV:
+            raise ValueError('O número de variáveis definidas foi {:d}, mas foram inseridas incertezas para {:d}.'.format(NV,udados.shape[1]))
+
+        if dados.shape[0] != udados.shape[0]:
+            raise ValueError('Os vetores de dados e suas incertezas devem ter o mesmo número de pontos.')
 
         if size(udados,0)*self.y.NV-float(self.parametros.NV)<=0: # Verificar se há graus de liberdade suficiente
             warn('Graus de liberdade insuficientes. O seu conjunto de dados experimentais não é suficiente para estimar os parâmetros!',UserWarning)
@@ -601,14 +607,18 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------
-        # Validação dos dados de entrada x, y, xval e yval - É tomado como referência
-        # a quantidade de observações das variáveis x.
-        self.__validacaoDadosEntrada(x  ,ux   ,self.x.NV,size(x,0)) 
-        self.__validacaoDadosEntrada(y  ,uy   ,self.y.NV,size(x,0))
+        # Validação da sintaxe
+        self.__validacaoArgumentosEntrada('gerarEntradas',None,tipo)
 
-        self.__validacaoArgumentosEntrada('gerarEntradas',None,tipo)       
+        # Validação dos dados de entrada x, y, ux e uy
+        self.__validacaoDadosEntrada(x  ,ux   ,self.x.NV)
+        self.__validacaoDadosEntrada(y  ,uy   ,self.y.NV)
 
-        if tipo == 'experimental':
+        # Validação do número de dados experimentais
+        if x.shape[0] != y.shape[0]:
+            raise ValueError('Foram inseridos {:d} dados para as grandezas dependentes, mas {:d} para as independentes'.format(y.shape[0],x.shape[0]))
+
+        if tipo == self.__tiposDisponiveisEntrada[0]: # experimentais:
             self.__flag.ToggleActive('dadosexperimentais')
             # se a execução do motor de cálculo for a primeira (etapasID = 0),
             # o fluxo segue normalmente. Caso contrário é reiniciado.
@@ -630,7 +640,7 @@ class EstimacaoNaoLinear:
                                  self.__args_user, self.__modelo,
                                  self.x.simbolos, self.y.simbolos, self.parametros.simbolos]
 
-        if tipo == 'validacao':
+        if tipo == self.__tiposDisponiveisEntrada[1]: # validação
             self.__flag.ToggleActive('dadosvalidacao')
             self.__novoFluxo() # Variável para controlar a execução dos métodos PEU
             # ---------------------------------------------------------------------
