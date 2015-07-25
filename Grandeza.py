@@ -411,9 +411,7 @@ class Grandeza:
                 # Caso seja definido uma unidade, esta será incluída no label
                 if self.unidades[z] is not None:
                     label[z] = label[z]+' '+"/"+self.unidades[z]
-                
-        
-            
+
         return label
 
     def _testesEstatisticos(self,Explic):
@@ -525,9 +523,7 @@ class Grandeza:
                 pvalor[nome]['residuo-Autocorrelacao'] = {'Durbin Watson':{'estatistica':durbin_watson(dados)}, 'Ljung-Box':{'p-valor chi2':float(ljungbox[1]),'p-valor Box-Pierce':float(ljungbox[3])}}
                 
                 # Testes para a Homocedásticidade:
-                
-            
-                pheter= [het_white(dados,insert(Explic, 0, 1, axis=1)),het_breushpagan(dados,Explic)]
+                pheter = [het_white(dados,insert(Explic, 0, 1, axis=1)),het_breushpagan(dados,Explic)]
                 pvalor[nome]['residuo-Homocedasticidade'] = {'white test':{'p-valor multiplicador de Lagrange':pheter[0][1], 'p-valor Teste F':pheter[0][3]},'Bresh Pagan':{'p-valor multiplicador de Lagrange':pheter[1][1],'p-valor Teste F':pheter[1][3]}}
         else:
             raise NameError(u'Os testes estatísticos são válidos apenas para o resíduos')
@@ -572,7 +568,6 @@ class Grandeza:
 
         if fluxo is None:
             fluxo = 0
-        
 
         # ---------------------------------------------------------------------
         # CRIAÇÃO DOS GRÁFICOS
@@ -601,8 +596,7 @@ class Grandeza:
             raise TypeError('As cores devem pertencer à lista: {}'.format(cores))
            
         cm1 = LinearSegmentedColormap.from_list("Correlacao-cmap",cmap)   
-    
-        
+
         if self.__ID_disponivel[0] in ID: # Gráfico Pcolor para experimental
             listalabel=[]
             for elemento in self.labelGraficos(printunit=False):
@@ -633,19 +627,15 @@ class Grandeza:
             savefig(base_path+base_dir+'correlacao_fl'+str(fluxo)+'_'+self.__ID_disponivel[2]+'_autocorrelacao')
             close()
 
-
-
         if self.__ID_disponivel[3] in ID: # Gráfico Pcolor para parâmetros
             listalabel=[]
             for elemento in self.labelGraficos(printunit=False):
                 listalabel.append(elemento)
-                   
 
             plot_corr(self.matriz_correlacao, xnames=listalabel, ynames=listalabel, title=u'Matriz de correlação ' + self.__ID_disponivel[3],normcolor=True, cmap=cm1)
             savefig(base_path+base_dir+'correlacao_fl'+str(fluxo)+'_'+self.__ID_disponivel[3]+'_autocorrelacao')
             close()
-       
-       
+
         if 'residuo' in ID:
             # BOXPLOT
             #checa a variabilidade dos dados, assim como a existência de possíveis outliers
@@ -709,9 +699,6 @@ class Grandeza:
                 xlim((0,size(dados)))
                 fig.savefig(base_path+base_dir+'residuos_fl'+str(fluxo)+'_autocorrelacao2')
                 close()
-                
-
-                                
 
                 # HISTOGRAMA                
                 #Gera um gráfico de histograma, importante na verificação da pdf
@@ -744,42 +731,84 @@ class Grandeza:
                 
         if ('experimental' in ID or 'validacao' in ID or 'calculado' in ID):
                 
-                if 'residuo' in ID: # remover de ID o resíduo, pois foi tratado separadamente
-                    ID.remove('residuo')
-                
-                base_path = base_path + base_dir
-                for atributo in ID:
-                    y  = eval('self.'+atributo+'.matriz_estimativa')
-                    NE = eval('self.'+atributo+'.NE')
-                    
-                    for i,symb in enumerate(self.simbolos):
-                        # Gráficos da estimação
-                        base_dir = sep + symb + sep
-                        Validacao_Diretorio(base_path,base_dir)
-                        dados = y[:,i]
-                        x   = linspace(1,NE,num=NE)
-                        
-                        fig = figure()
-                        ax  = fig.add_subplot(1,1,1)
-                        plot(x,dados,'o')
-                        # obtençao do tick do grafico
-                        # eixo x
-                        label_tick_x   = ax.get_xticks().tolist()                 
-                        tamanho_tick_x = (label_tick_x[1] - label_tick_x[0])/2
-                        # eixo y
-                        label_tick_y = ax.get_yticks().tolist()
-                        tamanho_tick_y = (label_tick_y[1] - label_tick_y[0])/2
-                        # Modificação do limite dos gráficos
-                        xmin   = min(x)     - tamanho_tick_x
-                        xmax   = max(x)     + tamanho_tick_x
-                        ymin   = min(dados) - tamanho_tick_y
-                        ymax   = max(dados) + tamanho_tick_y
-                        xlim(xmin,xmax)
-                        ylim(ymin,ymax)
-                        # Labels
-                        xlabel(u'Número de pontos',fontsize=20)
-                        ylabel(self.labelGraficos(atributo)[i],fontsize=20)
-                        #Grades
-                        grid(b = 'on', which = 'major', axis = 'both')
-                        savefig(base_path+base_dir+atributo+'_fl'+str(fluxo)+'_observacoes.png')
-                        close()
+            if 'residuo' in ID:  # remover de ID o resíduo, pois foi tratado separadamente
+                ID.remove('residuo')
+
+            base_path = base_path + base_dir
+            for atributo in ID:
+                y  = eval('self.'+atributo+'.matriz_estimativa')
+                NE = eval('self.'+atributo+'.NE')
+
+                for i,symb in enumerate(self.simbolos):
+                    # Gráficos da estimação
+                    base_dir = sep + symb + sep
+                    Validacao_Diretorio(base_path,base_dir)
+                    dados = y[:,i]
+                    x   = linspace(1,NE,num=NE)
+
+                    fig = figure()
+                    ax  = fig.add_subplot(1,1,1)
+                    plot(x,dados,'o')
+                    # obtençao do tick do grafico
+                    # eixo x
+                    label_tick_x   = ax.get_xticks().tolist()
+                    tamanho_tick_x = (label_tick_x[1] - label_tick_x[0])/2
+                    # eixo y
+                    label_tick_y = ax.get_yticks().tolist()
+                    tamanho_tick_y = (label_tick_y[1] - label_tick_y[0])/2
+                    # Modificação do limite dos gráficos
+                    xmin   = min(x)     - tamanho_tick_x
+                    xmax   = max(x)     + tamanho_tick_x
+                    ymin   = min(dados) - tamanho_tick_y
+                    ymax   = max(dados) + tamanho_tick_y
+                    xlim(xmin,xmax)
+                    ylim(ymin,ymax)
+                    # Labels
+                    xlabel(u'Número de pontos',fontsize=20)
+                    ylabel(self.labelGraficos(atributo)[i],fontsize=20)
+                    #Grades
+                    grid(b = 'on', which = 'major', axis = 'both')
+                    savefig(base_path+base_dir+atributo+'_fl'+str(fluxo)+'_observacoes.png')
+                    close()
+
+            if 'experimental' in ID:
+                # AUTO CORRELAÇÃO
+                # Gera um gráfico de barras que verifica a autocorrelação
+
+                for i,nome in enumerate(self.simbolos):
+                    # Gráficos da estimação
+                    base_dir = sep + self.simbolos[i] + sep
+                    Validacao_Diretorio(base_path,base_dir)
+
+                    dados = self.experimental.matriz_estimativa[:,i]
+                    fig = figure()
+                    ax = fig.add_subplot(1,1,1)
+                    ax.acorr(dados,usevlines=True, normed=True,maxlags=None)
+                    ax.yaxis.grid(color='gray', linestyle='dashed')
+                    ax.xaxis.grid(color='gray', linestyle='dashed')
+                    ax.axhline(0, color='black', lw=2)
+                    ax.set(xlabel='Lag', ylabel= u'Autocorrelação de ' + self.labelGraficos(printunit=False)[i])
+                    xlim((0,size(dados)))
+                    fig.savefig(base_path+base_dir+'experimental_fl'+str(fluxo)+'_autocorrelacao')
+                    close()
+
+            if 'validacao' in ID:
+                # AUTO CORRELAÇÃO
+                # Gera um gráfico de barras que verifica a autocorrelação
+
+                for i,nome in enumerate(self.simbolos):
+                    # Gráficos da estimação
+                    base_dir = sep + self.simbolos[i] + sep
+                    Validacao_Diretorio(base_path,base_dir)
+
+                    dados = self.validacao.matriz_estimativa[:,i]
+                    fig = figure()
+                    ax = fig.add_subplot(1,1,1)
+                    ax.acorr(dados,usevlines=True, normed=True,maxlags=None)
+                    ax.yaxis.grid(color='gray', linestyle='dashed')
+                    ax.xaxis.grid(color='gray', linestyle='dashed')
+                    ax.axhline(0, color='black', lw=2)
+                    ax.set(xlabel='Lag', ylabel= u'Autocorrelação de ' + self.labelGraficos(printunit=False)[i])
+                    xlim((0,size(dados)))
+                    fig.savefig(base_path+base_dir+'validacao_fl'+str(fluxo)+'_autocorrelacao')
+                    close()
