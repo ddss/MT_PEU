@@ -576,19 +576,7 @@ class Grandeza:
         Validacao_Diretorio(base_path,base_dir)
         
         #Gráfico Pcolor para auto correlação
-        # self.__ID_disponivel[i]=experimental , validacao, calculado, parametro     
-        #if self.__ID_disponivel[0] in ID or self.__ID_disponivel[1] in ID or self.__ID_disponivel[3] in ID:
-        # cores para o colormap.
-#        b: blue
-#        g: green
-#        r: red
-#        c: cyan
-#        m: magenta
-#        y: yellow
-#        k: black
-#        w: white
-#        0.75: grey
-       
+
         #Variável local para alterl a cor do cmap
         cores   = set(['b', 'g', 'r', 'c','m', 'y', 'k', 'w', '0.75'])
         setcmap = set(cmap)
@@ -604,7 +592,7 @@ class Grandeza:
                     listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
 
             plot_corr(self.experimental.matriz_correlacao, xnames=listalabel,  ynames=listalabel, title=u'Matriz de correlação ' + self.__ID_disponivel[0],normcolor=True, cmap=cm1)
-            savefig(base_path+base_dir+'correlacao_fl'+str(fluxo)+'_'+self.__ID_disponivel[0]+'_autocorrelacao')
+            savefig(base_path+base_dir+self.__ID_disponivel[0]+'_fl'+str(fluxo)+'_'+'pcolor_matriz-correlacao')
             close()
 
         if self.__ID_disponivel[1] in ID: # Gráfico Pcolor para validação
@@ -614,7 +602,7 @@ class Grandeza:
                     listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
 
             plot_corr(self.validacao.matriz_correlacao, xnames=listalabel, ynames=listalabel, title=u'Matriz de correlação ' + self.__ID_disponivel[1],normcolor=True,cmap=cm1)
-            savefig(base_path+base_dir+'correlacao_fl'+str(fluxo)+'_'+self.__ID_disponivel[1]+'_autocorrelacao')
+            savefig(base_path+base_dir+self.__ID_disponivel[1]+'_fl'+str(fluxo)+'_'+'pcolor_matriz-correlacao')
             close()
 
         if self.__ID_disponivel[2] in ID: # Gráfico Pcolor para calculado
@@ -624,16 +612,13 @@ class Grandeza:
                     listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
 
             plot_corr(self.calculado.matriz_correlacao, xnames=listalabel, ynames=listalabel, title=u'Matriz de correlação ' + self.__ID_disponivel[2],normcolor=True,cmap=cm1)
-            savefig(base_path+base_dir+'correlacao_fl'+str(fluxo)+'_'+self.__ID_disponivel[2]+'_autocorrelacao')
+            savefig(base_path+base_dir+self.__ID_disponivel[2]+'_fl'+str(fluxo)+'_'+'pcolor_matriz-correlacao')
             close()
 
         if self.__ID_disponivel[3] in ID: # Gráfico Pcolor para parâmetros
-            listalabel=[]
-            for elemento in self.labelGraficos(printunit=False):
-                listalabel.append(elemento)
 
-            plot_corr(self.matriz_correlacao, xnames=listalabel, ynames=listalabel, title=u'Matriz de correlação ' + self.__ID_disponivel[3],normcolor=True, cmap=cm1)
-            savefig(base_path+base_dir+'correlacao_fl'+str(fluxo)+'_'+self.__ID_disponivel[3]+'_autocorrelacao')
+            plot_corr(self.matriz_correlacao, xnames=self.labelGraficos(printunit=False), ynames=self.labelGraficos(printunit=False), title=u'Matriz de correlação ' + self.__ID_disponivel[3],normcolor=True, cmap=cm1)
+            savefig(base_path+base_dir+self.__ID_disponivel[3]+'_fl'+str(fluxo)+'_'+'pcolor_matriz-correlacao')
             close()
 
         if 'residuo' in ID:
@@ -680,7 +665,7 @@ class Grandeza:
                 ax.xaxis.grid(color='gray', linestyle='dashed')
                 ax.axhline(0, color='black', lw=2)
                 #TODO Uso lag ou Defasagem ?
-                ax.set(xlabel='Lag', ylabel= u'Autocorrelação de ' + self.labelGraficos(printunit=False)[i])
+                ax.set(xlabel='Lag', ylabel= u'Autocorrelação de {}'.format(self.labelGraficos(printunit=False)[i]))
                 xlim((0,size(dados)))
                 fig.savefig(base_path+base_dir+'residuos_fl'+str(fluxo)+'_autocorrelacao')
                 close()
@@ -695,7 +680,7 @@ class Grandeza:
                 ax.stem(autocorr)
                 ax.yaxis.grid(color='gray', linestyle='dashed')                        
                 ax.xaxis.grid(color='gray', linestyle='dashed')
-                ax.set(xlabel='Lag', ylabel= u'Autocorrelação de ' + self.labelGraficos(printunit=False)[i])
+                ax.set(xlabel='Lag', ylabel= u'Autocorrelação de {}'.format(self.labelGraficos(printunit=False)[i]))
                 xlim((0,size(dados)))
                 fig.savefig(base_path+base_dir+'residuos_fl'+str(fluxo)+'_autocorrelacao2')
                 close()
@@ -718,7 +703,7 @@ class Grandeza:
                     fig = figure()
                     plot(res[0][0], res[0][1], 'o', res[0][0], res[1][0]*res[0][0] + res[1][1])
                     xlabel('Quantis')
-                    ylabel('Valores ordenados de ' + self.labelGraficos(printunit=False)[i])
+                    ylabel('Valores ordenados de {}'.format(self.labelGraficos(printunit=False)[i]))
                     xmin = amin(res[0][0])
                     xmax = amax(res[0][0])
                     ymin = amin(dados)
@@ -772,29 +757,29 @@ class Grandeza:
                     close()
 
             if 'experimental' in ID:
-                # AUTO CORRELAÇÃO
-                # Gera um gráfico de barras que verifica a autocorrelação
 
                 for i,nome in enumerate(self.simbolos):
                     # Gráficos da estimação
+
                     base_dir = sep + self.simbolos[i] + sep
                     Validacao_Diretorio(base_path,base_dir)
 
                     dados = self.experimental.matriz_estimativa[:,i]
+
+                    # AUTO CORRELAÇÃO
+                    # Gera um gráfico de barras que verifica a autocorrelação
                     fig = figure()
                     ax = fig.add_subplot(1,1,1)
                     ax.acorr(dados,usevlines=True, normed=True,maxlags=None)
                     ax.yaxis.grid(color='gray', linestyle='dashed')
                     ax.xaxis.grid(color='gray', linestyle='dashed')
                     ax.axhline(0, color='black', lw=2)
-                    ax.set(xlabel='Lag', ylabel= u'Autocorrelação de ' + self.labelGraficos(printunit=False)[i])
+                    ax.set(xlabel='Lag', ylabel= u'Autocorrelação de {}'.format(self.labelGraficos(printunit=False)[i]))
                     xlim((0,size(dados)))
                     fig.savefig(base_path+base_dir+'experimental_fl'+str(fluxo)+'_autocorrelacao')
                     close()
 
             if 'validacao' in ID:
-                # AUTO CORRELAÇÃO
-                # Gera um gráfico de barras que verifica a autocorrelação
 
                 for i,nome in enumerate(self.simbolos):
                     # Gráficos da estimação
@@ -802,13 +787,16 @@ class Grandeza:
                     Validacao_Diretorio(base_path,base_dir)
 
                     dados = self.validacao.matriz_estimativa[:,i]
+
+                    # AUTO CORRELAÇÃO
+                    # Gera um gráfico de barras que verifica a autocorrelação
                     fig = figure()
                     ax = fig.add_subplot(1,1,1)
                     ax.acorr(dados,usevlines=True, normed=True,maxlags=None)
                     ax.yaxis.grid(color='gray', linestyle='dashed')
                     ax.xaxis.grid(color='gray', linestyle='dashed')
                     ax.axhline(0, color='black', lw=2)
-                    ax.set(xlabel='Lag', ylabel= u'Autocorrelação de ' + self.labelGraficos(printunit=False)[i])
+                    ax.set(xlabel='Lag', ylabel= u'Autocorrelação de {}'.format(self.labelGraficos(printunit=False)[i]))
                     xlim((0,size(dados)))
                     fig.savefig(base_path+base_dir+'validacao_fl'+str(fluxo)+'_autocorrelacao')
                     close()
