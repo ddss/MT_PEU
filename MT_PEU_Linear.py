@@ -201,11 +201,15 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # ---------------------------------------------------------------------
         # Validação dos dados de entrada x, y, xval e yval - É tomado como referência
         # a quantidade de observações das variáveis x.
-        self._EstimacaoNaoLinear__validacaoDadosEntrada(x  ,ux   ,self.x.NV,size(x,0)) 
-        self._EstimacaoNaoLinear__validacaoDadosEntrada(y  ,uy   ,self.y.NV,size(x,0))
+        self._EstimacaoNaoLinear__validacaoDadosEntrada(x  ,ux   ,self.x.NV)
+        self._EstimacaoNaoLinear__validacaoDadosEntrada(y  ,uy   ,self.y.NV)
         
         self._EstimacaoNaoLinear__validacaoArgumentosEntrada('gerarEntradas',None,tipo)       
-         
+
+        # Validação do número de dados experimentais
+        if x.shape[0] != y.shape[0]:
+            raise ValueError('Foram inseridos {:d} dados para as grandezas dependentes, mas {:d} para as independentes'.format(y.shape[0],x.shape[0]))
+
         # ---------------------------------------------------------------------
         # MODIFICAÇÕES DAS MATRIZES DE DADOS 
         # ---------------------------------------------------------------------
