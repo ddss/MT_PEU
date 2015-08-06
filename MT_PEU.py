@@ -772,6 +772,11 @@ class EstimacaoNaoLinear:
         * inf           : limite inferior de busca
         
         Obs.: Para outros argumentos de entrada do PSO e keywords, verifique a documentação do método
+
+        ==========
+        Observação
+        ==========
+        * Toda vez que a otimização é executada toda informação anterior sobre parâmetros é perdida
         '''
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
@@ -835,7 +840,9 @@ class EstimacaoNaoLinear:
             # ---------------------------------------------------------------------
             # ATRIBUIÇÃO A GRANDEZAS
             # ---------------------------------------------------------------------
-            self.parametros._SETparametro(self.Otimizacao.gbest,None,None) # Atribuindo o valor ótimo dos parâmetros
+            # Atribuindo o valor ótimo dos parâmetros
+            # Toda vez que a otimização é executada toda informação anterior sobre parâmetros é perdida
+            self.parametros._SETparametro(self.Otimizacao.gbest,None,None)
 
         # ---------------------------------------------------------------------
         # VARIÁVEIS INTERNAS
@@ -955,7 +962,7 @@ class EstimacaoNaoLinear:
         # VALIDAÇÃO
         # ---------------------------------------------------------------------
         if (regiao is not None) and (variancia is None):
-            raise TypeError(u'A região de abrangência deve ser definida juntamente com a matriz de covariância dos parâmetros.')
+            raise TypeError('A região de abrangência deve ser definida juntamente com a matriz de covariância dos parâmetros.')
 
         # Validação das keywords obrigatórias para o método de otimização
         self.__validacaoArgumentosEntrada('SETparametro',None)
@@ -970,6 +977,7 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # OBTENÇÃO DO PONTO ÓTIMO
         # ---------------------------------------------------------------------
+        # Só usa o método GETFOotimo se este não fora executado
         if self.__etapasdisponiveis[11] not in self.__etapasGlobal():
             self.__GETFOotimo()
 
@@ -989,12 +997,10 @@ class EstimacaoNaoLinear:
         if regiao is not None:
             self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[4])
 
-    
     def incertezaParametros(self,PA=0.95,delta=1e-5,metodo='2InvHessiana'):       
         u'''
         
-        Método para avaliação da matriz covariãncia dos parâmetros da matriz de covariância
-        dos valores preditos pelo modelo.
+        Método para avaliação da matriz de covariãncia dos parâmetros e região de abrangência.
         
         ===================
         Método predescessor
@@ -1005,16 +1011,21 @@ class EstimacaoNaoLinear:
         =======================
         Entradas (opcionais)
         =======================
-        * PA         : probabilidade de abrangência para gerar a região de abrangência
-        * delta      : incremento para o cálculo das derivadas (derivada numérica)
-        * metodo_parametros (string): método para cálculo da matriz de covariãncia dos
+        * PA     (float)  : probabilidade de abrangência para gerar a região de abrangência
+        * delta  (float)  : incremento para o cálculo das derivadas (derivada numérica)
+        * metodo (string) : método para cálculo da matriz de covariãncia dos
         parâmetros. Métodos disponíveis: 2InvHessiana, Geral, SensibilidadeModelo
         
         ======
         Saídas
         ======
         * a matriz de covariância dos parâmetros é salva na Grandeza parâmetros
-        * a matriz de covariância da predição é salva na Grandeza y
+
+        ==========
+        Observação
+        ==========
+        * A região de abrangência só é executada caso haja histórico da otimização e o atributo regiao_abrangencia
+        de parâmetros não esteja definido.
         '''
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
@@ -1024,63 +1035,59 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # MATRIZ DE COVARIÂNCIA DOS PARÂMETROS
         # ---------------------------------------------------------------------
-        # Esta só é avaliada caso a matriz de covariância dos parâmetros não esteja definida
 
-        if self.parametros.matriz_covariancia is None:
-            # ---------------------------------------------------------------------
-            # AVALIAÇÃO DAS MATRIZES AUXILIARES
-            # ---------------------------------------------------------------------
-            # Matriz Hessiana da função objetivo em relação aos parâmetros
-            Hess   = self.__Hessiana_FO_Param(delta)
+        # Avaliação de matrizes auxiliares
+        # Matriz Hessiana da função objetivo em relação aos parâmetros
+        Hess   = self.__Hessiana_FO_Param(delta)
 
-            # Inversa da matriz hessiana a função objetivo em relação aos parâmetros
-            invHess = inv(Hess)
+        # Inversa da matriz hessiana a função objetivo em relação aos parâmetros
+        invHess = inv(Hess)
 
-            # Gy: derivadas parciais segundas da função objetivo em relação aos parâmetros e
-            # dados experimentais
-            Gy  = self.__Matriz_Gy(delta)
+        # Gy: derivadas parciais segundas da função objetivo em relação aos parâmetros e
+        # dados experimentais
+        Gy  = self.__Matriz_Gy(delta)
 
-            # Matriz de sensibilidade do modelo em relação aos parâmetros
+        # Matriz de sensibilidade do modelo em relação aos parâmetros
 
-            S   = self.__Matriz_S(delta)
+        S   = self.__Matriz_S(delta)
 
-            # ---------------------------------------------------------------------
-            # AVALIAÇÃO DA INCERTEZA DOS PARÂMETROS
-            # ---------------------------------------------------------------------
+        # ---------------------------------------------------------------------
+        # AVALIAÇÃO DA INCERTEZA DOS PARÂMETROS
+        # ---------------------------------------------------------------------
 
-            # MATRIZ DE COVARIÂNCIA
-            # Método: 2InvHessiana ->  2*inv(Hess)
-            if metodo == self.__metodosIncerteza[0]:
-                matriz_covariancia = 2*invHess
+        # MATRIZ DE COVARIÂNCIA
+        # Método: 2InvHessiana ->  2*inv(Hess)
+        if metodo == self.__metodosIncerteza[0]:
+            matriz_covariancia = 2*invHess
 
-            # Método: geral - > inv(H)*Gy*Uyy*GyT*inv(H)
-            elif metodo == self.__metodosIncerteza[1]:
-                matriz_covariancia  = invHess.dot(Gy).dot(self.y.experimental.matriz_covariancia).dot(Gy.transpose()).dot(invHess)
+        # Método: geral - > inv(H)*Gy*Uyy*GyT*inv(H)
+        elif metodo == self.__metodosIncerteza[1]:
+            matriz_covariancia  = invHess.dot(Gy).dot(self.y.experimental.matriz_covariancia).dot(Gy.transpose()).dot(invHess)
 
-            # Método: simplificado -> inv(trans(S)*inv(Uyy)*S)
-            elif metodo == self.__metodosIncerteza[2]:
-                matriz_covariancia = inv(S.transpose().dot(inv(self.y.experimental.matriz_covariancia)).dot(S))
+        # Método: simplificado -> inv(trans(S)*inv(Uyy)*S)
+        elif metodo == self.__metodosIncerteza[2]:
+            matriz_covariancia = inv(S.transpose().dot(inv(self.y.experimental.matriz_covariancia)).dot(S))
 
-            # ---------------------------------------------------------------------
-            # ATRIBUIÇÃO A GRANDEZA
-            # ---------------------------------------------------------------------
-            self.parametros._SETparametro(self.parametros.estimativa, matriz_covariancia, self.parametros.regiao_abrangencia)
+        # ---------------------------------------------------------------------
+        # ATRIBUIÇÃO A GRANDEZA
+        # ---------------------------------------------------------------------
+        self.parametros._SETparametro(self.parametros.estimativa, matriz_covariancia, self.parametros.regiao_abrangencia)
 
-            # ---------------------------------------------------------------------
-            # VARIÁVEIS INTERNAS
-            # ---------------------------------------------------------------------
-            # Inclusão desta etapa da lista de etapas
-            self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[3])
+        # ---------------------------------------------------------------------
+        # VARIÁVEIS INTERNAS
+        # ---------------------------------------------------------------------
+        # Inclusão desta etapa da lista de etapas
+        self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[3])
 
         # ---------------------------------------------------------------------
         # REGIÃO DE ABRANGÊNCIA
         # ---------------------------------------------------------------------
-        # A região de abrangência só pode ser avaliada com o histórico da otimização
-        if self.__etapasdisponiveis[12] in self.__etapasGlobal():
+        # A região de abrangência só é executada caso haja histórico da otimização e o atributo regiao_abrangencia
+        # da grandeza self.parâmetros não esteja definido
+        if self.__etapasdisponiveis[12] in self.__etapasGlobal() and self.parametros.regiao_abrangencia is None:
             regiao = self.regiaoAbrangencia(PA)
             # ATRIBUIÇÃO A GRANDEZA
-            self.parametros._SETparametro(self.parametros.estimativa,matriz_covariancia,regiao)
-
+            self.parametros._SETparametro(self.parametros.estimativa,self.parametros.matriz_covariancia,regiao)
 
     def predicao(self,delta=1e-5):
         u'''
@@ -1171,8 +1178,7 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------         
         # Inclusão desta etapa da lista de etapas
         self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[7])        
-        
-        
+
     def __Hessiana_FO_Param(self,delta=1e-5):
         u'''
         Método para calcular a matriz Hessiana da função objetivo em relaçao aos parâmetros.

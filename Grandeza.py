@@ -6,23 +6,24 @@ Created on Mon Feb  2 11:05:02 2015
 """
 # Importação de pacotes de terceiros
 from numpy import array, transpose ,size, diag, linspace, min, max, \
-    mean,  std, amin, amax, ndarray, ones, sqrt, insert, nan, shape, corrcoef, correlate
+    mean,  std, amin, amax, ndarray, insert, nan, correlate, isfinite
+
+from numpy.linalg import cond
 
 from statsmodels.stats.weightstats import ztest
+from statsmodels.stats.diagnostic import acorr_ljungbox, het_breushpagan, het_white, normal_ad
+from statsmodels.stats.stattools import durbin_watson
+from statsmodels.graphics.correlation import plot_corr
 
-from scipy.stats import normaltest, anderson, shapiro, ttest_1samp, kstest,\
- norm, probplot, ttest_ind
+from scipy.stats import normaltest, shapiro, ttest_1samp, kstest, probplot
 
 from matplotlib.pyplot import figure, axes, axis, plot, errorbar, subplot, xlabel, ylabel,\
-    title, legend, savefig, xlim, ylim, close, grid, text, hist, boxplot, show
+    title, legend, savefig, xlim, ylim, close, grid, text, hist, boxplot
     
 from matplotlib.colors import LinearSegmentedColormap
     
 
 from os import getcwd, sep
-from statsmodels.stats.diagnostic import acorr_breush_godfrey, acorr_ljungbox, het_breushpagan, het_white, normal_ad
-from statsmodels.stats.stattools import durbin_watson
-from statsmodels.graphics.correlation import plot_corr
 
 # Subrotinas próprias (desenvolvidas pelo GI-UFBA)
 from subrotinas import matriz2vetor, vetor2matriz, Validacao_Diretorio, matrizcorrelacao
@@ -102,8 +103,8 @@ class Organizador:
                     raise TypeError(u'Os dados de entrada precisam ser arrays.')            
         
         if not isinstance(gL,list):
-			raise TypeError(u'os graus de liberdade precisam ser listas')
-		
+            raise TypeError(u'os graus de liberdade precisam ser listas')
+
 		# TODO: Corrigir este teste
         #if (len(gL) != size(estimativa)) and (len(gL) != 0) :
 	    #		raise ValueError(u'Os graus de liberdade devem ter o mesmo tamanho das estimativas')    
@@ -135,6 +136,14 @@ class Organizador:
                 self.matriz_covariancia = incerteza     
                 self.matriz_incerteza   = vetor2matriz(array(diag(self.matriz_covariancia)**0.5,ndmin=2).transpose(),NE)
                 self.matriz_correlacao  = matrizcorrelacao(self.matriz_covariancia)
+
+        # ---------------------------------------------------------------------
+        # VALIDAÇÃO: MATRIZ SINGULAR
+        # ---------------------------------------------------------------------
+        if incerteza is not None:
+
+            if not isfinite(cond(self.matriz_covariancia)):
+                raise TypeError('A matriz de covariância da grandeza é singular.')
 
         # ---------------------------------------------------------------------
         # Criação dos atributos na forma de LISTAS
@@ -334,17 +343,15 @@ class Grandeza:
         # variância
         if variancia is not None:
             if not isinstance(variancia,ndarray):
-                    raise TypeError(u'A variância precisa ser um array.')
-            try:
-                shape(variancia)[1]
-            except:
+                raise TypeError(u'A variância precisa ser um array.')
+            if not variancia.ndim == 2:
                 raise TypeError(u'A variância precisa ser um array com duas dimensões.')
 
-            if shape(variancia)[0] != shape(variancia)[1]:
+            if variancia.shape[0] != variancia.shape[1]:
                 raise TypeError(u'A variância precisa ser quadrada.')
 
-            if shape(variancia)[0] != self.NV:
-                    raise ValueError(u'A dimensão da matriz de covariãncia deve ser coerente com os simbolos dos parâmetros')
+            if variancia.shape[0] != self.NV:
+                raise ValueError(u'A dimensão da matriz de covariância deve ser coerente com os simbolos dos parâmetros')
 
         # regiao
         if regiao is not None:
@@ -364,6 +371,13 @@ class Grandeza:
             self.matriz_incerteza   = vetor2matriz(array(diag(self.matriz_covariancia)**0.5,ndmin=2).transpose(),self.NV)
         self.regiao_abrangencia = regiao
 
+        # --------------------------------------
+        # VALIDAÇÃO
+        # --------------------------------------
+        if variancia is not None:
+
+            if not isfinite(cond(self.matriz_covariancia)):
+                raise TypeError('A matriz de covariância dos parâmetros é singular.')
  
     def labelGraficos(self,add=None, printunit=True):
         u'''
