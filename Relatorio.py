@@ -85,7 +85,7 @@ class Relatorio:
 
             f.write('\n')
             # Valor da função objetivo no ponto ótimo
-            f.write( 'FObj ótima : '+ '{:.3e} '.format(pontoOtimo)+'- {:<} \n'.format('Valor da função objetivo no ponto ótimo'))
+            f.write( 'FObj : '+ '{:.3f} '.format(pontoOtimo)+'- {:<} \n'.format('Valor da função objetivo no ponto ótimo'))
         f.close()
 
     def Predicao(self,x,y,estatisticas,**kwargs):
