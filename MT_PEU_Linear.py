@@ -78,9 +78,9 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         * ``projeto`` (string)      : nome do projeto (Náo podem haver caracteres especiais)
         
         **AVISO**:
-        Para cálculo do coeficiente linear, basta que o número de parâmetros seja igual ao número de grandezas
+        * Para cálculo do coeficiente linear, basta que o número de parâmetros seja igual ao número de grandezas
         independentes + 1.
-        
+        * Esta classe não aceita a keyword args (definida em EstimacaoNaoLinear). Sempre é assumido None
         ==============================
         Keywords (Entradas opcionais):
         ==============================
@@ -159,6 +159,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # ---------------------------------------------------------------------
         # INICIANDO A CLASSE INIT
         # ---------------------------------------------------------------------
+        kwargs['args'] = None # O MT-PEU linear não aceita argumentos extras
 
         EstimacaoNaoLinear.__init__(self,WLS,Modelo,simbolos_y,simbolos_x,simbolos_param,projeto,**kwargs)
 
@@ -232,16 +233,6 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             self.x._SETexperimental(x,ux,glx,{'estimativa':'matriz','incerteza':'incerteza'})
             self.y._SETexperimental(y,uy,gly,{'estimativa':'matriz','incerteza':'incerteza'})
 
-            # ---------------------------------------------------------------------
-            # LISTA DE ATRIBUTOS A SEREM INSERIDOS NA FUNÇÃO OBJETIVO
-            # ---------------------------------------------------------------------
-
-            self._EstimacaoNaoLinear__args_model = [self.y.experimental.vetor_estimativa, self.x.experimental.matriz_estimativa,
-                                                    self.y.experimental.matriz_covariancia, self.x.experimental.matriz_covariancia,
-                                                    None, self._EstimacaoNaoLinear__modelo,
-                                                    self.x.simbolos, self.y.simbolos, self.parametros.simbolos]
-
-        
         if tipo == 'validacao':
             self._EstimacaoNaoLinear__flag.ToggleActive('dadosvalidacao')
             self._EstimacaoNaoLinear__novoFluxo() # Variável para controlar a execução dos métodos PEU
@@ -295,7 +286,6 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # ---------------------------------------------------------------------
         # ATRIBUIÇÃO A GRANDEZA
         # ---------------------------------------------------------------------
-
         self.parametros._SETparametro(parametros.transpose()[0].tolist(),variancia,None)
 
         # ---------------------------------------------------------------------
@@ -404,7 +394,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             kwargsbusca['printit'] = kwargs.get('printit')
             del kwargs['printit']
 
-        self.Otimizacao = PSO(sup,inf,args_model=self._EstimacaoNaoLinear__args_model,**kwargs)
+        self.Otimizacao = PSO(sup,inf,args_model=self._args_FO(),**kwargs)
         self.Otimizacao.Busca(self._EstimacaoNaoLinear__FO,**kwargsbusca)
 
         # ---------------------------------------------------------------------

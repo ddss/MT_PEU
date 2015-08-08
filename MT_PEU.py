@@ -330,9 +330,6 @@ class EstimacaoNaoLinear:
         # Argumentos extras a serem passados para o modelo definidos pelo usuário.
         self.__args_user = kwargs.get(self.__keywordsEntrada[10])
 
-        # Argumentos extras a serem passados para o modelo
-        self.__args_model = None # Foi criado, para que a variável exista nas heranças sem execução do método otimiza.
-
         # Caminho base para os arquivos, caso seja definido a keyword base_path ela será utilizada.
         if kwargs.get(self.__keywordsEntrada[9]) is None:
             self.__base_path = getcwd()+ sep +str(projeto)+sep
@@ -348,6 +345,34 @@ class EstimacaoNaoLinear:
         # reconciliacao: indicar se reconciliacao está sendo executada
         # graficootimizacao: indicar se na etapa de otimização são utilizados algoritmos de otimização que possuem
         # gráficos de desempenho
+
+    def _args_FO(self):
+        """
+        Método que retorna argumentos extras a serem passados para a função objetivo
+
+        :return: lista (list) com argumentos extras
+        """
+        # ---------------------------------------------------------------------
+        # LISTA DE ATRIBUTOS A SEREM INSERIDOS NA FUNÇÃO OBJETIVO
+        # ---------------------------------------------------------------------
+
+        return [self.y.experimental.vetor_estimativa, self.x.experimental.matriz_estimativa,
+                self.y.experimental.matriz_covariancia, self.x.experimental.matriz_covariancia,
+                self.__args_user, self.__modelo,
+                self.x.simbolos, self.y.simbolos, self.parametros.simbolos]
+
+    def _args_model(self):
+        """
+        Método que retorna argumentos extras a serem passados para o modelo
+
+        :return: lista (list) com argumentos extras
+        """
+        # ---------------------------------------------------------------------
+        # LISTA DE ATRIBUTOS A SEREM INSERIDOS NO MODELO
+        # ---------------------------------------------------------------------
+
+        return [self.__args_user,self.x.simbolos,self.y.simbolos,self.parametros.simbolos]
+
     def __novoFluxo(self,reiniciar=False):
         u'''Método para criar um novo fluxo de informações.
         ===
@@ -632,14 +657,6 @@ class EstimacaoNaoLinear:
             self.x._SETexperimental(x,ux,glx,{'estimativa':'matriz','incerteza':'incerteza'})
             self.y._SETexperimental(y,uy,gly,{'estimativa':'matriz','incerteza':'incerteza'})
 
-            # ---------------------------------------------------------------------
-            # LISTA DE ATRIBUTOS A SEREM INSERIDOS NA FUNÇÃO OBJETIVO
-            # ---------------------------------------------------------------------
-            self.__args_model = [self.y.experimental.vetor_estimativa, self.x.experimental.matriz_estimativa,
-                                 self.y.experimental.matriz_covariancia, self.x.experimental.matriz_covariancia,
-                                 self.__args_user, self.__modelo,
-                                 self.x.simbolos, self.y.simbolos, self.parametros.simbolos]
-
         if tipo == self.__tiposDisponiveisEntrada[1]: # validação
             self.__flag.ToggleActive('dadosvalidacao')
             self.__novoFluxo() # Variável para controlar a execução dos métodos PEU
@@ -817,14 +834,14 @@ class EstimacaoNaoLinear:
             # ---------------------------------------------------------------------            
             # Verificação se o modelo é executável nos limites de busca
             
-            self.__ThreadExceptionHandling(self.__modelo,sup,self.x.validacao.matriz_estimativa,[self.__args_user,self.x.simbolos,self.y.simbolos,self.parametros.simbolos])
-            self.__ThreadExceptionHandling(self.__modelo,inf,self.x.validacao.matriz_estimativa,[self.__args_user,self.x.simbolos,self.y.simbolos,self.parametros.simbolos])
+            self.__ThreadExceptionHandling(self.__modelo,sup,self.x.validacao.matriz_estimativa,self._args_model())
+            self.__ThreadExceptionHandling(self.__modelo,inf,self.x.validacao.matriz_estimativa,self._args_model())
             
             # ---------------------------------------------------------------------
             # EXECUÇÃO OTIMIZAÇÃO
             # ---------------------------------------------------------------------
             # OS argumentos extras (kwargs e kwrsbusca) são passados diretamente para o algoritmo
-            self.Otimizacao = PSO(sup,inf,args_model=self.__args_model,**kwargs)
+            self.Otimizacao = PSO(sup,inf,args_model=self._args_FO(),**kwargs)
             self.Otimizacao.Busca(self.__FO,**kwargsbusca)
 
             # ---------------------------------------------------------------------
@@ -866,7 +883,7 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # OBTENÇÃO DO PONTO ÓTIMO DA FUNÇÃO OBJETIVO
         # ---------------------------------------------------------------------
-        FO = self.__FO(self.parametros.estimativa, self.__args_model)
+        FO = self.__FO(self.parametros.estimativa, self._args_FO())
         FO.start()
         FO.join()
         self.FOotimo = FO.result
@@ -1135,8 +1152,7 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # PREDIÇÃO
         # ---------------------------------------------------------------------
-        aux = self.__modelo(self.parametros.estimativa,self.x.validacao.matriz_estimativa,\
-        [self.__args_user,self.x.simbolos,self.y.simbolos,self.parametros.simbolos])
+        aux = self.__modelo(self.parametros.estimativa,self.x.validacao.matriz_estimativa,self._args_model())
 
         aux.start()
         aux.join()
@@ -1235,11 +1251,11 @@ class EstimacaoNaoLinear:
 
                     # Cálculo da função objetivo para seu respectivo vetor alterado para utilização na derivação numérica.
                     # Inicialização das threads
-                    FO_delta_positivo=self.__FO(vetor_parametro_delta_positivo,self.__args_model)
+                    FO_delta_positivo=self.__FO(vetor_parametro_delta_positivo,self._args_FO())
                     FO_delta_positivo.start()
                     FO_delta_positivo.join()
 
-                    FO_delta_negativo=self.__FO(vetor_parametro_delta_negativo,self.__args_model)
+                    FO_delta_negativo=self.__FO(vetor_parametro_delta_negativo,self._args_FO())
                     FO_delta_negativo.start()
                     FO_delta_negativo.join()
 
@@ -1253,25 +1269,25 @@ class EstimacaoNaoLinear:
                     # vetor com o incremento do parâmetro i,j
                     vetor_parametro_delta_ipositivo_jpositivo = vetor_delta(self.parametros.estimativa,[i,j],[delta1,delta2])
                     
-                    FO_ipositivo_jpositivo=self.__FO(vetor_parametro_delta_ipositivo_jpositivo,self.__args_model)
+                    FO_ipositivo_jpositivo=self.__FO(vetor_parametro_delta_ipositivo_jpositivo,self._args_FO())
                     FO_ipositivo_jpositivo.start()
                     FO_ipositivo_jpositivo.join()
 
                     vetor_parametro_delta_inegativo_jpositivo=vetor_delta(self.parametros.estimativa,[i,j],[-delta1,delta2])
  
-                    FO_inegativo_jpositivo=self.__FO(vetor_parametro_delta_inegativo_jpositivo,self.__args_model)
+                    FO_inegativo_jpositivo=self.__FO(vetor_parametro_delta_inegativo_jpositivo,self._args_FO())
                     FO_inegativo_jpositivo.start()
                     FO_inegativo_jpositivo.join()
 
                     vetor_parametro_delta_ipositivo_jnegativo=vetor_delta(self.parametros.estimativa,[i,j],[delta1,-delta2])
    
-                    FO_ipositivo_jnegativo=self.__FO(vetor_parametro_delta_ipositivo_jnegativo,self.__args_model)
+                    FO_ipositivo_jnegativo=self.__FO(vetor_parametro_delta_ipositivo_jnegativo,self._args_FO())
                     FO_ipositivo_jnegativo.start()
                     FO_ipositivo_jnegativo.join()
 
                     vetor_parametro_delta_inegativo_jnegativo=vetor_delta(self.parametros.estimativa,[i,j],[-delta1,-delta2])
                     
-                    FO_inegativo_jnegativo=self.__FO(vetor_parametro_delta_inegativo_jnegativo,self.__args_model)
+                    FO_inegativo_jnegativo=self.__FO(vetor_parametro_delta_inegativo_jnegativo,self._args_FO())
                     FO_inegativo_jnegativo.start()
                     FO_inegativo_jnegativo.join()
                     
@@ -1328,7 +1344,7 @@ class EstimacaoNaoLinear:
                 vetor_y_delta_jpositivo         = vetor_delta(self.y.experimental.vetor_estimativa,j,delta2)
                 
                 # Agumentos extras a serem passados para a FO.
-                args                            = copy(self.__args_model).tolist()
+                args                            = copy(self._args_FO()).tolist()
                 # Posição [0] da lista de argumantos contem o vetor das variáveis dependentes que será alterado.
                 args[0]                         = vetor_y_delta_jpositivo 
                 
@@ -1344,7 +1360,7 @@ class EstimacaoNaoLinear:
                 FO_inegativo_jpositivo.join()
 
                 vetor_y_delta_jnegativo         = vetor_delta(self.y.experimental.vetor_estimativa,j,-delta2) 
-                args                            = copy(self.__args_model).tolist()
+                args                            = copy(self._args_FO()).tolist()
                 args[0]                         = vetor_y_delta_jnegativo
 
                 FO_ipositivo_jnegativo          = self.__FO(vetor_parametro_delta_ipositivo,args) #Mesma ideia, fazendo isso para aplicar a equação de derivada central de segunda ordem.
@@ -1422,15 +1438,13 @@ class EstimacaoNaoLinear:
                 vetor_parametro_delta_i_negativo = vetor_delta(self.parametros.estimativa,i,-delta_alpha)
                 
                 #Valores para o modelo com os parâmetros acrescidos (matriz na foma de array).                
-                ycalculado_delta_positivo       = self.__modelo(vetor_parametro_delta_i_positivo,x,\
-                                        [self.__args_model[4],self.x.simbolos,self.y.simbolos,self.parametros.simbolos])
+                ycalculado_delta_positivo       = self.__modelo(vetor_parametro_delta_i_positivo,x,self._args_model())
                 
                 ycalculado_delta_positivo.start()
                 ycalculado_delta_positivo.join()
 
                 #Valores para o modelo com os parâmetros decrescidos (matriz na foma de array).
-                ycalculado_delta_negativo       = self.__modelo(vetor_parametro_delta_i_negativo,x,\
-                                        [self.__args_model[4],self.x.simbolos,self.y.simbolos,self.parametros.simbolos])
+                ycalculado_delta_negativo       = self.__modelo(vetor_parametro_delta_i_negativo,x,self._args_model())
                 
                 ycalculado_delta_negativo.start()
                 ycalculado_delta_negativo.join()
