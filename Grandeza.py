@@ -109,9 +109,9 @@ class Organizador:
         #if (len(gL) != size(estimativa)) and (len(gL) != 0) :
 	    #		raise ValueError(u'Os graus de liberdade devem ter o mesmo tamanho das estimativas')    
 		
-        # ---------------------------------------------------------------------
-        # CRIAÇÃO dos atributos na forma de ARRAYS
-        # ---------------------------------------------------------------------
+        # ---------------------------------------------------------------------------
+        # CRIAÇÃO dos atributos estimativa e matriz de covariância na forma de ARRAYS
+        # ---------------------------------------------------------------------------
                
         if tipos['estimativa'] == 'matriz':
 
@@ -128,28 +128,17 @@ class Organizador:
             if incerteza is not None:
                 self.matriz_incerteza   = incerteza            
                 self.matriz_covariancia = diag(transpose(matriz2vetor(self.matriz_incerteza**2)).tolist()[0])
-                self.matriz_correlacao  = matrizcorrelacao(self.matriz_covariancia)
 
         if tipos['incerteza'] == 'variancia':
 
             if incerteza is not None:
                 self.matriz_covariancia = incerteza     
                 self.matriz_incerteza   = vetor2matriz(array(diag(self.matriz_covariancia)**0.5,ndmin=2).transpose(),NE)
-                self.matriz_correlacao  = matrizcorrelacao(self.matriz_covariancia)
-
-        # ---------------------------------------------------------------------
-        # VALIDAÇÃO: MATRIZ SINGULAR
-        # ---------------------------------------------------------------------
-        if incerteza is not None:
-
-            if not isfinite(cond(self.matriz_covariancia)):
-                raise TypeError('A matriz de covariância da grandeza é singular.')
 
         # ---------------------------------------------------------------------
         # Criação dos atributos na forma de LISTAS
         # ---------------------------------------------------------------------
         self.lista_estimativa = self.matriz_estimativa.transpose().tolist()
-        
         if incerteza is not None:
             self.lista_incerteza  = self.matriz_incerteza.transpose().tolist()
             self.lista_variancia  = diag(self.matriz_covariancia).tolist()
@@ -158,15 +147,32 @@ class Organizador:
             self.lista_variancia  = None
 
         # ---------------------------------------------------------------------
+        # VALIDAÇÃO: MATRIZ SINGULAR E INCERTEZA NEGATIVA E ZERO
+        # ---------------------------------------------------------------------
+        if incerteza is not None:
+
+            if not isfinite(cond(self.matriz_covariancia)):
+                raise TypeError('A matriz de covariância da grandeza é singular.')
+
+            for lista in self.lista_incerteza:
+                teste = [elemento == 0. or elemento < 0. for elemento in lista]
+                if True in teste:
+                    raise TypeError('A variância de uma grandeza não pode ser zero ou assumir valores negativos.')
+
+        if incerteza is not None:
+
+            self.matriz_correlacao = matrizcorrelacao(self.matriz_covariancia)
+
+        # ---------------------------------------------------------------------
         # Número de pontos experimentais e de variáveis
         # ---------------------------------------------------------------------
 
-        self.NE = size(self.matriz_estimativa,0)
+        self.NE = self.matriz_estimativa.shape[0]
 
         # ---------------------------------------------------------------------
         # Graus de liberdade
         # ---------------------------------------------------------------------   
-        self.gL = gL if len(gL) !=0 else [[100]*self.NE]*size(self.matriz_estimativa,1)
+        self.gL = gL if len(gL) !=0 else [[100]*self.NE]*self.matriz_estimativa.shape[1]
 
 class Grandeza:
     
@@ -352,6 +358,11 @@ class Grandeza:
 
             if variancia.shape[0] != self.NV:
                 raise ValueError(u'A dimensão da matriz de covariância deve ser coerente com os simbolos dos parâmetros')
+
+            for lista in variancia.tolist():
+                teste = [elemento == 0. or elemento < 0. for elemento in lista]
+                if True in teste:
+                    raise TypeError('A variância dos parâmetros não pode ser zero ou assumir valores negativos')
 
         # regiao
         if regiao is not None:
