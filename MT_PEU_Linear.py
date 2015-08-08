@@ -357,7 +357,8 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # CÁLCULO DA REGIÃO DE ABRANGÊNCIA
         # ---------------------------------------------------------------------
         # A região de abrangência só é calculada caso não esteja definida
-        if self.parametros.regiao_abrangencia is None:
+        if self._EstimacaoNaoLinear__etapasdisponiveis[12] in self._EstimacaoNaoLinear__etapasGlobal() and \
+           self.parametros.regiao_abrangencia is None:
 
             regiao = self.regiaoAbrangencia(PA,**kwargs)
 
