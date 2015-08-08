@@ -932,7 +932,7 @@ class EstimacaoNaoLinear:
 
     def SETparametro(self,estimativa,variancia=None,regiao=None):
         u'''
-        Método para atribuir uma estimativa aos parâmetros e, opcionamente, sua matriz de covarância, região de abrangência.
+        Método para atribuir uma estimativa aos parâmetros e, opcionamente, sua matriz de covarância e região de abrangência.
         Substitui o métodos otimiza e, opcionalmente, incertezaParametros.
 
         Caso seja incluída somente uma estimativa para os parâmetros, o método incertezaParametro deve ser executado.
@@ -961,8 +961,6 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------
-        if (regiao is not None) and (variancia is None):
-            raise TypeError('A região de abrangência deve ser definida juntamente com a matriz de covariância dos parâmetros.')
 
         # Validação das keywords obrigatórias para o método de otimização
         self.__validacaoArgumentosEntrada('SETparametro',None)
@@ -1049,7 +1047,7 @@ class EstimacaoNaoLinear:
 
         # Matriz de sensibilidade do modelo em relação aos parâmetros
 
-        S   = self.__Matriz_S(delta)
+        S   = self.__Matriz_S(self.x.experimental.matriz_estimativa,delta)
 
         # ---------------------------------------------------------------------
         # AVALIAÇÃO DA INCERTEZA DOS PARÂMETROS
@@ -1132,7 +1130,7 @@ class EstimacaoNaoLinear:
         Gy  = self.__Matriz_Gy(delta) 
         
         # Matriz de sensibilidade do modelo em relação aos parâmetros
-        S   = self.__Matriz_S(delta) 
+        S   = self.__Matriz_S(self.x.validacao.matriz_estimativa,delta)
           
         # ---------------------------------------------------------------------
         # PREDIÇÃO
@@ -1239,14 +1237,12 @@ class EstimacaoNaoLinear:
                     # Inicialização das threads
                     FO_delta_positivo=self.__FO(vetor_parametro_delta_positivo,self.__args_model)
                     FO_delta_positivo.start()
+                    FO_delta_positivo.join()
 
                     FO_delta_negativo=self.__FO(vetor_parametro_delta_negativo,self.__args_model)
                     FO_delta_negativo.start()
+                    FO_delta_negativo.join()
 
-                    # Aguardando as threads finalizarem a execução
-                    FO_delta_positivo.join()
-                    FO_delta_negativo.join()                    
-                    
                     # Fórmula de diferença finita para i=j. (Disponível em, Gilat, Amos; MATLAB Com Aplicação em Engenharia, 2a ed, Bookman, 2006.)
                     matriz_hessiana[i][j]=(FO_delta_positivo.result-2*FO_otimo+FO_delta_negativo.result)/(delta1*delta2)
                     
@@ -1259,25 +1255,24 @@ class EstimacaoNaoLinear:
                     
                     FO_ipositivo_jpositivo=self.__FO(vetor_parametro_delta_ipositivo_jpositivo,self.__args_model)
                     FO_ipositivo_jpositivo.start()
-                    
+                    FO_ipositivo_jpositivo.join()
+
                     vetor_parametro_delta_inegativo_jpositivo=vetor_delta(self.parametros.estimativa,[i,j],[-delta1,delta2])
  
                     FO_inegativo_jpositivo=self.__FO(vetor_parametro_delta_inegativo_jpositivo,self.__args_model)
                     FO_inegativo_jpositivo.start()
+                    FO_inegativo_jpositivo.join()
 
                     vetor_parametro_delta_ipositivo_jnegativo=vetor_delta(self.parametros.estimativa,[i,j],[delta1,-delta2])
    
                     FO_ipositivo_jnegativo=self.__FO(vetor_parametro_delta_ipositivo_jnegativo,self.__args_model)
                     FO_ipositivo_jnegativo.start()
+                    FO_ipositivo_jnegativo.join()
 
                     vetor_parametro_delta_inegativo_jnegativo=vetor_delta(self.parametros.estimativa,[i,j],[-delta1,-delta2])
                     
                     FO_inegativo_jnegativo=self.__FO(vetor_parametro_delta_inegativo_jnegativo,self.__args_model)
                     FO_inegativo_jnegativo.start()
-                    
-                    FO_ipositivo_jpositivo.join()
-                    FO_inegativo_jpositivo.join()
-                    FO_ipositivo_jnegativo.join()
                     FO_inegativo_jnegativo.join()
                     
                     # Fórmula de diferença finita para i=~j. Dedução do próprio autor, baseado em intruções da bibliografia:\
@@ -1339,30 +1334,27 @@ class EstimacaoNaoLinear:
                 
                 FO_ipositivo_jpositivo          = self.__FO(vetor_parametro_delta_ipositivo,args) # Valor da _FO para vetores de Ys e parametros alterados.
                 FO_ipositivo_jpositivo.start()
-                
+                FO_ipositivo_jpositivo.join()
+
                 # Processo similar ao anterior. Uso de subrrotina vetor_delta.
                 vetor_parametro_delta_inegativo = vetor_delta(self.parametros.estimativa,i,-delta1)
                 
                 FO_inegativo_jpositivo          = self.__FO(vetor_parametro_delta_inegativo,args) # Valor da _FO para vetores de Ys e parametros alterados.
                 FO_inegativo_jpositivo.start()
-                
+                FO_inegativo_jpositivo.join()
+
                 vetor_y_delta_jnegativo         = vetor_delta(self.y.experimental.vetor_estimativa,j,-delta2) 
                 args                            = copy(self.__args_model).tolist()
                 args[0]                         = vetor_y_delta_jnegativo
 
                 FO_ipositivo_jnegativo          = self.__FO(vetor_parametro_delta_ipositivo,args) #Mesma ideia, fazendo isso para aplicar a equação de derivada central de segunda ordem.
                 FO_ipositivo_jnegativo.start()
+                FO_ipositivo_jnegativo.join()
 
                 FO_inegativo_jnegativo          = self.__FO(vetor_parametro_delta_inegativo,args) #Idem
                 FO_inegativo_jnegativo.start()
-                
-                # Método para fazer a função objetivo funcionar(start(), join(), .result).
-                
-                FO_ipositivo_jpositivo.join()
-                FO_inegativo_jpositivo.join()
-                FO_ipositivo_jnegativo.join()
                 FO_inegativo_jnegativo.join()
-                    
+
                 # Fórmula de diferença finita para i=~j. Dedução do próprio autor, baseado em intruções da bibliografia:\
                 # (Gilat, Amos; MATLAB Com Aplicação em Engenharia, 2a ed, Bookman, 2006.)
                 matriz_Gy[i][j]=((FO_ipositivo_jpositivo.result-FO_inegativo_jpositivo.result)/(2*delta1)\
@@ -1390,7 +1382,7 @@ class EstimacaoNaoLinear:
         '''
         pass
 
-    def __Matriz_S(self,delta=1e-5):
+    def __Matriz_S(self,x,delta=1e-5):
         u'''
         Método para calcular a matriz S(derivadas primeiras da função do modelo em relação aos parâmetros).
         
@@ -1399,7 +1391,7 @@ class EstimacaoNaoLinear:
         ========
         Entradas
         ========
-        
+        * x (array): vetor contendo a matriz das estimativas das grandezas independentes
         * delta(float): valor do incremento relativo para o cálculo da derivada. Incremento relativo à ordem de grandeza do parâmetro.
 
         =====
@@ -1412,7 +1404,7 @@ class EstimacaoNaoLinear:
         #Criação de matriz de ones com dimenção:(número de Y*NE X número de parâmetros) a\
         #qual terá seus elementos substituidos pelo resultado da derivada das  função em relação aos\
         #parâmetros i de acordo o seguinte ''for''.
-        
+
         matriz_S = ones((self.y.NV*self.y.validacao.NE,self.parametros.NV))
         
         for i in xrange(self.parametros.NV): 
@@ -1430,23 +1422,19 @@ class EstimacaoNaoLinear:
                 vetor_parametro_delta_i_negativo = vetor_delta(self.parametros.estimativa,i,-delta_alpha)
                 
                 #Valores para o modelo com os parâmetros acrescidos (matriz na foma de array).                
-                ycalculado_delta_positivo       = self.__modelo(vetor_parametro_delta_i_positivo,self.x.validacao.matriz_estimativa,\
+                ycalculado_delta_positivo       = self.__modelo(vetor_parametro_delta_i_positivo,x,\
                                         [self.__args_model[4],self.x.simbolos,self.y.simbolos,self.parametros.simbolos])
                 
                 ycalculado_delta_positivo.start()
-                
+                ycalculado_delta_positivo.join()
+
                 #Valores para o modelo com os parâmetros decrescidos (matriz na foma de array).
-                ycalculado_delta_negativo       = self.__modelo(vetor_parametro_delta_i_negativo,self.x.validacao.matriz_estimativa,\
+                ycalculado_delta_negativo       = self.__modelo(vetor_parametro_delta_i_negativo,x,\
                                         [self.__args_model[4],self.x.simbolos,self.y.simbolos,self.parametros.simbolos])
                 
                 ycalculado_delta_negativo.start()
-                
-                # Método para fazer a função do modelo funcionar(start(), join(), .result).
-                
-                ycalculado_delta_positivo.join()
                 ycalculado_delta_negativo.join()
-                
-                
+
                 # Fórmula de diferença finita de primeira ordem. Fonte bibliográfica bibliográfia:\
                 #(Gilat, Amos; MATLAB Com Aplicação em Engenharia, 2a ed, Bookman, 2006.) - página (?)
                 matriz_S[:,i:i+1] =  (matriz2vetor(ycalculado_delta_positivo.result) - matriz2vetor(ycalculado_delta_negativo.result))/(2*delta_alpha)
