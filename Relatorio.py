@@ -67,7 +67,7 @@ class Relatorio:
             if parametros.matriz_covariancia is not None:
                 # Matriz de covariância, incerteza e matriz de correlação
                 f.write(('Variância  : '+ '{:^10.3e} '*parametros.NV).format(*[parametros.matriz_covariancia[i,i] for i in xrange(parametros.NV)]) + '\n')
-                f.write(('Incerteza  : '+ '{:^10.3e} '*parametros.NV).format(*[parametros.matriz_incerteza[i,0] for i in xrange(parametros.NV)]) + '\n')
+                f.write(('Incerteza  : '+ '{:^10.3e} '*parametros.NV).format(*[parametros.matriz_incerteza[0,i] for i in xrange(parametros.NV)]) + '\n')
                 f.write('\n')
                 f.write('Matriz de covariância:\n')
                 f.write(str(parametros.matriz_covariancia)+'\n')

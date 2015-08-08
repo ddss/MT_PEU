@@ -26,7 +26,7 @@ from matplotlib.colors import LinearSegmentedColormap
 from os import getcwd, sep
 
 # Subrotinas próprias (desenvolvidas pelo GI-UFBA)
-from subrotinas import matriz2vetor, vetor2matriz, Validacao_Diretorio, matrizcorrelacao
+from subrotinas import Validacao_Diretorio, matrizcorrelacao
 
 class Organizador:
     
@@ -111,30 +111,17 @@ class Organizador:
 
 
         # ---------------------------------------------------------------------------
-        # CRIAÇÃO dos atributos estimativa e matriz de covariância na forma de ARRAYS
+        # CRIAÇÃO DA MATRIZ ESTIMATIVA E VETOR ESTIMATIVA (ARRAYS)
         # ---------------------------------------------------------------------------
-
         if tipos['estimativa'] == 'matriz':
 
             self.matriz_estimativa  = estimativa
-            self.vetor_estimativa   = matriz2vetor(self.matriz_estimativa) # conversão de matriz para vetor
+            self.vetor_estimativa   = self.matriz_estimativa.reshape((self.matriz_estimativa.shape[0]*self.matriz_estimativa.shape[1],1),order='F') # conversão de matriz para vetor
 
         if tipos['estimativa'] == 'vetor':
             
             self.vetor_estimativa   = estimativa
-            self.matriz_estimativa  = vetor2matriz(self.vetor_estimativa,NE) # Conversão de vetor para uma matriz  
-        
-        if tipos['incerteza'] == 'incerteza':
-
-            if incerteza is not None:
-                self.matriz_incerteza   = incerteza            
-                self.matriz_covariancia = diag(transpose(matriz2vetor(self.matriz_incerteza**2)).tolist()[0])
-
-        if tipos['incerteza'] == 'variancia':
-
-            if incerteza is not None:
-                self.matriz_covariancia = incerteza     
-                self.matriz_incerteza   = vetor2matriz(array(diag(self.matriz_covariancia)**0.5,ndmin=2).transpose(),NE)
+            self.matriz_estimativa  = self.vetor_estimativa.reshape((NE,self.vetor_estimativa.shape[0]/NE),order='F') # Conversão de vetor para uma matriz
 
         # ---------------------------------------------------------------------
         # Número de pontos experimentais
@@ -142,13 +129,30 @@ class Organizador:
 
         self.NE = self.matriz_estimativa.shape[0]
 
+        # ---------------------------------------------------------------------------
+        # CRIAÇÃO DA MATRIZ COVARIÂNCIA E MATRIZ INCERTEZA (ARRAYS)
+        # ---------------------------------------------------------------------------
+
+        if tipos['incerteza'] == 'incerteza':
+
+            if incerteza is not None:
+                self.matriz_incerteza   = incerteza            
+                self.matriz_covariancia = diag((self.matriz_incerteza**2).reshape((self.NE*self.matriz_incerteza.shape[1],1),order='F').transpose().tolist()[0])
+
+        if tipos['incerteza'] == 'variancia':
+
+            if incerteza is not None:
+                self.matriz_covariancia = incerteza
+                self.matriz_incerteza   = diag(self.matriz_covariancia**0.5).reshape((NE,self.matriz_estimativa.shape[1]),order='F')
+
         # ---------------------------------------------------------------------
         # Criação dos atributos na forma de LISTAS
         # ---------------------------------------------------------------------
         self.lista_estimativa = self.matriz_estimativa.transpose().tolist()
+
         if incerteza is not None:
             self.lista_incerteza  = self.matriz_incerteza.transpose().tolist()
-            self.lista_variancia  = vetor2matriz(array(diag(self.matriz_covariancia),ndmin=2).transpose(),self.NE).transpose().tolist()
+            self.lista_variancia  = (self.matriz_incerteza**2).transpose().tolist()
         else:
             self.lista_incerteza  = None
             self.lista_variancia  = None
@@ -381,7 +385,7 @@ class Grandeza:
         # Cálculo da matriz de correlação
         if variancia is not None:
             self.matriz_correlacao  = matrizcorrelacao(self.matriz_covariancia)
-            self.matriz_incerteza   = vetor2matriz(array(diag(self.matriz_covariancia)**0.5,ndmin=2).transpose(),self.NV)
+            self.matriz_incerteza   = diag(self.matriz_covariancia**0.5).reshape((1,self.NV),order='F')
         self.regiao_abrangencia = regiao
 
         # --------------------------------------
