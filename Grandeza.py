@@ -18,7 +18,7 @@ from statsmodels.graphics.correlation import plot_corr
 from scipy.stats import normaltest, shapiro, ttest_1samp, kstest, probplot
 
 from matplotlib.pyplot import figure, axes, axis, plot, errorbar, subplot, xlabel, ylabel,\
-    title, legend, savefig, xlim, ylim, close, grid, text, hist, boxplot
+    title, legend, savefig, xlim, ylim, close, grid, text, hist, boxplot, stem, acorr
     
 from matplotlib.colors import LinearSegmentedColormap
     
@@ -561,8 +561,78 @@ class Grandeza:
 
         self.estatisticas = pvalor
         
-
-            
+    def graph(self, Xlabel, Ylabel,x,y,base_path,base_dir,fluxo, ID, tipo, **kwards):
+        u'''
+         Método para gerar os gráficos.
+        =======
+        Entrada
+        =======
+        * ``Xlabel`` : Label do eixo x \
+        * ``Ylabel``  : Label do eixo y \
+        * ``x`` : conjuntos de dados pro eixo x, caso tenha.\
+        * ``y ``  : conjuntos de dados pro eixo y, caso tenha.  \
+        *  ``base_path`` : caminho onde os gráficos deverão ser salvos    \
+        *  ``ID``       : Identificação da grandeza. Este ID é útil apenas para as grandezas \
+        dependentes e independentes, ele identifica para qual atributo os gráficos devem ser avaliados. \
+        Caso seja None, será feito os gráficos para TODOS os atributos disponíveis. \
+        *  ``Fluxo``     : identificação do fluxo de trabalho   \
+        * ``Tipo``  : tipo de gráfico a ser feito, deve ser string, opções:'boxplot', 'hist', 'tendencia', 'autocorrelacao_acorr', 'autocorrelacao_stem', 'probplot'
+        '''
+    
+        fig = figure()
+        ax=fig.add_subplot(1,1,1)
+        self.tipos(tipo, x, y)
+        if tipo != 'boxplot':
+           xlabel(Xlabel)
+           ylabel(Ylabel)
+           if tipo != 'hist' and  tipo !='probplot':
+              xlim((0,size(y)))
+           ax.yaxis.grid(color='gray', linestyle='dashed')                        
+           ax.xaxis.grid(color='gray', linestyle='dashed')
+        else:
+           ax.set_xticklabels(Ylabel)
+        if legend== True:
+           legend(loc='best')
+        fig.savefig(base_path+base_dir+'{}_fl'.format(ID)+str(fluxo)+'_{}_'.format(tipo)+'_'.join(self.simbolos))
+        close()
+    def tipos(self, tipo, x, y):
+        ''' Define o tipo de gráfico plotado
+        =======
+        Entrada
+        =======
+        *´´ x ´´ : conjuntos de dados pro eixo x, caso tenha.  \
+        *´´ y ´´ : conjuntos de dados pro eixo y, caso tenha.   \
+        *´´Tipo´´ : tipo de gráfico a ser feito, deve ser string, opções:'boxplot', 'hist', 'tendencia', 'autocorrelacao_acorr', 'autocorrelacao_stem', 'probplot' \
+        
+        '''
+        if tipo=='tendencia':
+           plot(linspace(1,size(y),num=size(y)),y, 'o',label=u'Ordem de coleta')
+           plot(linspace(1,size(y),num=size(y)),[mean(y)]*size(y),'-r', label=u'Valor médio')
+       
+        if tipo=='autocorrelacao_acorr':
+           acorr(y,usevlines=True, normed=True,maxlags=None)
+        if tipo=='autocorrelacao_stem':
+           y = y - mean(y)
+           autocorr = correlate(y, y, mode='full')
+           autocorr = autocorr[len(y) - 1:]
+           autocorr /= autocorr.max()
+           stem(autocorr)
+        if tipo== 'boxplot':
+           boxplot(y, sym='k.')
+        if tipo=='hist':
+           hist(y, normed=True)
+        if tipo=='probplot':
+          res = probplot(y, dist='norm', sparams=(mean(y),std(y,ddof=1)))
+          if not (nan in res[0][0].tolist() or nan in res[0][1].tolist() or nan in res[1]):
+             plot(res[0][0], res[0][1], 'o', res[0][0], res[1][0]*res[0][0] + res[1][1])
+             xmin = amin(res[0][0])
+             xmax = amax(res[0][0])
+             ymin = amin(y)
+             ymax = amax(y)
+             posx = xmin + 0.70 * (xmax - xmin)
+             posy = ymin + 0.01 * (ymax - ymin)
+             text(posx, posy, "$R^2$=%1.4f" % res[1][2])        
+             
     def Graficos(self,base_path=None,ID=None,fluxo=None, cmap=['k','r','0.75','w','0.75','r','k']):
         u'''
         Método para gerar os gráficos das grandezas, cujas informações só dependam dela.
@@ -655,95 +725,35 @@ class Grandeza:
         if 'residuo' in ID:
             # BOXPLOT
             #checa a variabilidade dos dados, assim como a existência de possíveis outliers
-            fig = figure()
-            ax = fig.add_subplot(1,1,1)
-            boxplot(self.residuos.matriz_estimativa, sym='k.')
-            ax.set_xticklabels(self.labelGraficos(printunit=False))
-            fig.savefig(base_path+base_dir+'residuos_fl'+str(fluxo)+'_boxplot_'+'_'.join(self.simbolos))
-            close()
+            self.graph(None, self.labelGraficos(printunit=False),None,self.residuos.matriz_estimativa,base_path,base_dir,fluxo, ID, 'boxplot')
             
             base_path = base_path + base_dir
             for i,nome in enumerate(self.simbolos):
                 # Gráficos da estimação
                 base_dir = sep + self.simbolos[i] + sep
                 Validacao_Diretorio(base_path,base_dir)
-
                 dados = self.residuos.matriz_estimativa[:,i]
         
                 # TENDÊNCIA
                 #Testa a aleatoriedade dos dados, plotando os valores do residuo versus a ordem em que foram obtidos
                 #dessa forma verifica-se há alguma tendência
-                fig = figure()
-                ax = fig.add_subplot(1,1,1)
-                plot(linspace(1,size(dados),num=size(dados)),dados, 'o',label=u'Ordem de coleta')
-                plot(linspace(1,size(dados),num=size(dados)),[mean(dados)]*size(dados),'-r', label=u'Valor médio')
-                xlabel('Ordem de Coleta')
-                ylabel(self.labelGraficos()[i])
-                ax.yaxis.grid(color='gray', linestyle='dashed')                        
-                ax.xaxis.grid(color='gray', linestyle='dashed')
-                xlim((0,size(dados)))
-                ax.axhline(0, color='black', lw=2)
-                legend()
-                fig.savefig(base_path+base_dir+'residuos_fl'+str(fluxo)+'_ordem')
-                close()        
+                self.graph('Ordem de Coleta', self.labelGraficos()[i],None,dados,base_path,base_dir,fluxo, ID, 'tendencia', legend=True)
         
                 # AUTO CORRELAÇÃO
                 #Gera um gráfico de barras que verifica a autocorrelação
-                fig = figure()
-                ax = fig.add_subplot(1,1,1)
-                ax.acorr(dados,usevlines=True, normed=True,maxlags=None)
-                ax.yaxis.grid(color='gray', linestyle='dashed')                        
-                ax.xaxis.grid(color='gray', linestyle='dashed')
-                ax.axhline(0, color='black', lw=2)
-                #TODO Uso lag ou Defasagem ?
-                ax.set(xlabel='Lag', ylabel= u'Autocorrelação de {}'.format(self.labelGraficos(printunit=False)[i]))
-                xlim((0,size(dados)))
-                fig.savefig(base_path+base_dir+'residuos_fl'+str(fluxo)+'_autocorrelacao')
-                close()
-                
+                self.graph('Lag', u'Autocorrelação de {}'.format(self.labelGraficos(printunit=False)[i]),None,dados,base_path,base_dir,fluxo, ID,'autocorrelacao_acorr', legend=False)
+                 
                 #Gera um gráfico que verifica a autocorrelação 2  
-                #TODO verificar se é util
-                fig = figure()
-                ax = fig.add_subplot(1,1,1)
-                dados= dados - dados.mean()
-                autocorr = correlate(dados, dados, mode='full')
-                autocorr /= autocorr.max()
-                ax.stem(autocorr)
-                ax.yaxis.grid(color='gray', linestyle='dashed')                        
-                ax.xaxis.grid(color='gray', linestyle='dashed')
-                ax.set(xlabel='Lag', ylabel= u'Autocorrelação de {}'.format(self.labelGraficos(printunit=False)[i]))
-                xlim((0,size(dados)))
-                fig.savefig(base_path+base_dir+'residuos_fl'+str(fluxo)+'_autocorrelacao2')
-                close()
-
+                self.graph('Lag', u'Autocorrelação de {}'.format(self.labelGraficos(printunit=False)[i]),None,dados,base_path,base_dir,fluxo, ID,'autocorrelacao_stem', legend=False )
+               
                 # HISTOGRAMA                
                 #Gera um gráfico de histograma, importante na verificação da pdf
-                fig = figure()
-                hist(dados, normed=True)
-                xlabel(self.labelGraficos()[i])
-                ylabel(u'Frequência')
-                grid(color='gray', linestyle='dashed')                        
-                fig.savefig(base_path+base_dir+'residuos_fl'+str(fluxo)+'_histograma')
-                close()
+                self.graph(self.labelGraficos()[i], u'Frequência',None,dados,base_path,base_dir,fluxo, ID,'hist')
 
                 # NORMALIDADE 
-                #Verifica se os dados são oriundos de uma pdf normal, o indicativo disto é a obtenção de uma reta              
-                res = probplot(dados, dist='norm', sparams=(mean(dados),std(dados,ddof=1)))
-                if not (nan in res[0][0].tolist() or nan in res[0][1].tolist() or nan in res[1]):
-
-                    fig = figure()
-                    plot(res[0][0], res[0][1], 'o', res[0][0], res[1][0]*res[0][0] + res[1][1])
-                    xlabel('Quantis')
-                    ylabel('Valores ordenados de {}'.format(self.labelGraficos(printunit=False)[i]))
-                    xmin = amin(res[0][0])
-                    xmax = amax(res[0][0])
-                    ymin = amin(dados)
-                    ymax = amax(dados)
-                    posx = xmin + 0.70 * (xmax - xmin)
-                    posy = ymin + 0.01 * (ymax - ymin)
-                    text(posx, posy, "$R^2$=%1.4f" % res[1][2])
-                    fig.savefig(base_path+base_dir+'residuos_fl'+str(fluxo)+'_probplot')
-                    close()
+                #Verifica se os dados são oriundos de uma pdf normal, o indicativo disto é a obtenção de uma reta 
+                self.graph('Quantis', 'Valores ordenados de {}'.format(self.labelGraficos(printunit=False)[i]),None,dados,base_path,base_dir,fluxo, ID,'probplot', legend=False)             
+              
                 
         if ('experimental' in ID or 'validacao' in ID or 'calculado' in ID):
                 
@@ -799,17 +809,8 @@ class Grandeza:
 
                     # AUTO CORRELAÇÃO
                     # Gera um gráfico de barras que verifica a autocorrelação
-                    fig = figure()
-                    ax = fig.add_subplot(1,1,1)
-                    ax.acorr(dados,usevlines=True, normed=True,maxlags=None)
-                    ax.yaxis.grid(color='gray', linestyle='dashed')
-                    ax.xaxis.grid(color='gray', linestyle='dashed')
-                    ax.axhline(0, color='black', lw=2)
-                    ax.set(xlabel='Lag', ylabel= u'Autocorrelação de {}'.format(self.labelGraficos(printunit=False)[i]))
-                    xlim((0,size(dados)))
-                    fig.savefig(base_path+base_dir+'experimental_fl'+str(fluxo)+'_autocorrelacao')
-                    close()
-
+                    self.graph('Lag', u'Autocorrelação de {}'.format(self.labelGraficos(printunit=False)[i]),None,dados,base_path,base_dir,fluxo, ID,'autocorrelacao_acorr', legend=False)
+                    
             if 'validacao' in ID:
 
                 for i,nome in enumerate(self.simbolos):
@@ -821,13 +822,4 @@ class Grandeza:
 
                     # AUTO CORRELAÇÃO
                     # Gera um gráfico de barras que verifica a autocorrelação
-                    fig = figure()
-                    ax = fig.add_subplot(1,1,1)
-                    ax.acorr(dados,usevlines=True, normed=True,maxlags=None)
-                    ax.yaxis.grid(color='gray', linestyle='dashed')
-                    ax.xaxis.grid(color='gray', linestyle='dashed')
-                    ax.axhline(0, color='black', lw=2)
-                    ax.set(xlabel='Lag', ylabel= u'Autocorrelação de {}'.format(self.labelGraficos(printunit=False)[i]))
-                    xlim((0,size(dados)))
-                    fig.savefig(base_path+base_dir+'validacao_fl'+str(fluxo)+'_autocorrelacao')
-                    close()
+                    self.graph('Lag', u'Autocorrelação de {}'.format(self.labelGraficos(printunit=False)[i]),None,dados,base_path,base_dir,fluxo, ID,'autocorrelacao_acorr', legend=False)
