@@ -101,7 +101,6 @@ class EstimacaoNaoLinear:
         * ``label_latex_param`` (list): lista com os símbolos das variáveis em formato LATEX
         
         * ``base_path`` (string): String que define o diretório pai que serão criados/salvos os arquivos gerados pelo motor de cálculo
-        * ``args``      (list): lista que define os argumentos extras a serem passados para o modelo.
 
         =======        
         Métodos
@@ -287,11 +286,11 @@ class EstimacaoNaoLinear:
         # CONTROLE DO FLUXO DE INFORMAÇÕES DO ALGORITMO
         # ---------------------------------------------------------------------
         # Etapas de execução disponíveis (métodos)
-        self.__etapasdisponiveis = ['__init__','gerarEntradas','otimizacao',\
-                                    'incertezaParametros','regiaoAbrangencia',\
-                                    'analiseResiduos','armazenarDicionario',\
-                                    'Predicao','SETparametro','graficos',\
-                                    'novoFluxo','GETFOotimo','historicoOtimizacao']# Lista de etapas que o algoritmo irá executar
+        self.__etapasdisponiveis = ('__init__','gerarEntradas','otimizacao',
+                                    'incertezaParametros','regiaoAbrangencia',
+                                    'analiseResiduos','armazenarDicionario',
+                                    'Predicao','SETparametro','graficos',
+                                    'novoFluxo','GETFOotimo','historicoOtimizacao')# Lista de etapas que o algoritmo irá executar
         
         # FLUXO DE INFORMAÇÕES -> conjunto de etapas que se inicia com o método gerarEntradas.
         
@@ -328,7 +327,7 @@ class EstimacaoNaoLinear:
         self.__modelo    = Modelo
 
         # Argumentos extras a serem passados para o modelo definidos pelo usuário.
-        self.__args_user = kwargs.get(self.__keywordsEntrada[10])
+        self.__args_user = None # Aqui iniciado para que possa existir na herança
 
         # Caminho base para os arquivos, caso seja definido a keyword base_path ela será utilizada.
         if kwargs.get(self.__keywordsEntrada[9]) is None:
@@ -436,13 +435,13 @@ class EstimacaoNaoLinear:
         # INICIALIZAÇÃO
         # --------------------------------------------------------------------- 
         # Keywords disponíveis        
-        self.__keywordsEntrada  = ['nomes_x','unidades_x','label_latex_x','nomes_y','unidades_y','label_latex_y','nomes_param','unidades_param','label_latex_param','base_path','args'] # Keywords disponíveis para a entrada
+        self.__keywordsEntrada  = ('nomes_x','unidades_x','label_latex_x','nomes_y','unidades_y','label_latex_y','nomes_param','unidades_param','label_latex_param','base_path') # Keywords disponíveis para a entrada
         if etapa == self.__etapasdisponiveis[0]:
             # Validação se houve keywords digitadas incorretamente:
             keyincorreta  = [key for key in keywargs.keys() if not key in self.__keywordsEntrada]
         
             if len(keyincorreta) != 0:
-                raise NameError('keyword(s) incorretas: '+', '.join(keyincorreta)+'.'+' Keywords disponíveis: '+', '.join(self.__keywordsEntrada)+'.')
+                raise NameError('keyword(s) incorreta(s): '+', '.join(keyincorreta)+'.'+' Keywords disponíveis: '+', '.join(self.__keywordsEntrada)+'.')
     
             # Verificação se o nome do projeto é um string
             # args[0] = projeto
@@ -458,7 +457,7 @@ class EstimacaoNaoLinear:
         # GERAR ENTRADAS
         # --------------------------------------------------------------------- 
         if etapa == self.__etapasdisponiveis[1]:
-            self.__tiposDisponiveisEntrada = ['experimental','validacao']
+            self.__tiposDisponiveisEntrada = ('experimental','validacao')
             if not set([args]).issubset(self.__tiposDisponiveisEntrada):
                 raise ValueError('A(s) entrada(s) '+','.join(set([args]).difference(self.__tiposDisponiveisEntrada))+' não estão disponíveis. Usar: '+','.join(self.__tiposDisponiveisEntrada)+'.')
  
@@ -466,40 +465,42 @@ class EstimacaoNaoLinear:
         # OTIMIZAÇÃO
         # --------------------------------------------------------------------- 
         # Keywords disponíveis        
-        self.__AlgoritmosOtimizacao = ['PSO']        
-        self.__keywordsOtimizacaoObrigatorias = {'PSO':['sup','inf']}
+        self.__AlgoritmosOtimizacao = ('PSO')
 
         if etapa == self.__etapasdisponiveis[2]:
             # se gerar entradas não foi executado no Global
             if (self.__etapasdisponiveis[1] not in self.__etapasGlobal()) or (self.__flag.info['dadosexperimentais']==False):
                 raise SyntaxError('Para executar a otimização, faz-se necessário primeiro executar método {} informando os dados experimentais.'.format(self.__etapasdisponiveis[1]))
+
             # se SETparametro não pode ser executado antes de otimiza, em nenhum fluxo.
             if self.__etapasdisponiveis[8] in self.__etapas[self.__etapasID]:
                 raise SyntaxError('O método {} não pode ser executado com {}'.format(self.__etapasdisponiveis[2], self.__etapasdisponiveis[8]))
 
+            # verificação se o algoritmo é um string
+            if not isinstance(args[3],str):
+                raise TypeError('O nome do algoritmo de ser uma string.')
+
             # verificação se o algoritmo está disponível
-            if (not args in self.__AlgoritmosOtimizacao) and args is not None:
+            if not args[3] in self.__AlgoritmosOtimizacao:
                 raise NameError('A opção {} de algoritmo não está correta. Algoritmos disponíveis: '.format(args)+', '.join(self.__AlgoritmosOtimizacao)+'.')
-            
-            # Validação das keywords obrigatórias por algoritmo
-            keyobrigatoria = [key for key in self.__keywordsOtimizacaoObrigatorias[args] if not key in keywargs.keys()]
-                
-            if len(keyobrigatoria) != 0:
-                raise NameError('Para o método de {} a(s) keyword(s) obrigatória(s) não foram (foi) definida(s): '.format(args)+', '.join(keyobrigatoria)+'.')
-        
-            # validação se as keywords foram corretamente definidas
-            if args == self.__AlgoritmosOtimizacao[0]: # PSO
-                # verificação de os tamanhos das listas sup e inf são iguais ao número de parâmetros
-                if (not isinstance(keywargs.get('sup'),list)) or (not isinstance(keywargs.get('inf'),list)):
-                    raise TypeError('As keywords sup e inf devem ser LISTAS.')
-                    
-                if (len(keywargs.get('sup')) != self.parametros.NV) or (len(keywargs.get('inf')) != self.parametros.NV):
-                    raise ValueError('As keywords sup e inf devem ter o mesmo tamanho do número de parâmetros, definido pelos símbolos. Número de parâmetros: {}'.format(self.parametros.NV))
-                    
+
+            # validação dos limites de busca - tipo lista
+            if not isinstance(args[0],list) and not isinstance(args[1],list):
+                raise TypeError('Os limites de busca inferior e superior devem ser listas.')
+
+            # validação dos limites de busca - tamanho
+            if len(args[0]) != self.parametros.NV or len(args[1]) != self.parametros.NV:
+                raise TypeError('Os limites de busca devem ter a mesma dimensão do número de parâmetros, definida nos símbolos. Número de parâmetros: {}'.format(self.parametros.NV))
+
+            # validação da estimativa inicial:
+            if args[2] is not None:
+                if not isinstance(args[2],list) or len(args[2]) != self.parametros.NV:
+                    raise TypeError('A estimativa inicial deve ser uma lista de dimensão do número de parâmetros, definida nos símbolos. Número de parâmetros: {}'.format(self.parametros.NV))
+
         # ---------------------------------------------------------------------
         # INCERTEZA DOS PARÂMETROS
         # --------------------------------------------------------------------- 
-        self.__metodosIncerteza = ['2InvHessiana','Geral','SensibilidadeModelo']
+        self.__metodosIncerteza = ('2InvHessiana','Geral','SensibilidadeModelo')
         if etapa == self.__etapasdisponiveis[3]:
             # se otimiza não tiver sido executado no contexto global ou SETparametro não tiver sido executado no contexto Global,
             # não se pode executar incertezaParametros
@@ -556,7 +557,7 @@ class EstimacaoNaoLinear:
         # GRÁFICOS
         # ---------------------------------------------------------------------     
 
-        self.__tipoGraficos = ['regiaoAbrangencia', 'grandezas-entrada', 'predicao', 'grandezas-calculadas', 'otimizacao', 'analiseResiduos']
+        self.__tipoGraficos = ('regiaoAbrangencia', 'grandezas-entrada', 'predicao', 'grandezas-calculadas', 'otimizacao', 'analiseResiduos')
 
         if etapa == self.__etapasdisponiveis[9]:
             # validando se os tipos de gráficos
@@ -762,7 +763,7 @@ class EstimacaoNaoLinear:
         return grandeza
     
 
-    def otimiza(self,algoritmo='PSO',**kwargs):
+    def otimiza(self,limite_inferior,limite_superior,estimativa_inicial=None,algoritmo='PSO',args=None,**kwargs):
         u'''
         Método para realização da otimização        
     
@@ -774,21 +775,27 @@ class EstimacaoNaoLinear:
         antes de executar a otimização.        
         
         =======================
-        Entradas (Obrigatórias)
+        Entradas (obrigatórias)
         =======================
 
-        * algoritmo : string informando o algoritmo de otimização a ser utilizado. Cada algoritmo tem suas próprias keywords
+        * limite_inferior (list): lista com os limites inferior para os parâmetros. **Usado para o método de PSO**
+        * limite_superior (list): lista com os limites inferior para os parâmetros. **Usado para o método de PSO**
 
-        =======================
-        Keywords (Obrigatórias)
-        =======================
+        ====================
+        Entradas (opcionais)
+        ====================
+
+        * estimativa_inicial (list): lista com as estimativas iniciais para os parâmetros. **Usado para outros métodos de otimização**
+        * algoritmo (string): string informando o algoritmo de otimização a ser utilizado. Cada algoritmo tem suas próprias keywords
+        * args: argumentos extras a serem passados para o modelo
+
+        ===============================
+        Keywords (argumentos opcionais)
+        ===============================
         
         algoritmo = PSO
-        
-        * sup           : limite superior de busca
-        * inf           : limite inferior de busca
-        
-        Obs.: Para outros argumentos de entrada do PSO e keywords, verifique a documentação do método
+
+        Para os argumentos extras para o algoritmo de PSO, vide documentação.
 
         ==========
         Observação
@@ -798,13 +805,12 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------
-        if not isinstance(algoritmo,str):
-            raise TypeError(u'O algoritmo precisa ser uma string.')
-            
         # Validação das keywords obrigatórias para o método de otimização
-        self.__validacaoArgumentosEntrada('otimizacao',kwargs,algoritmo)       
+        self.__validacaoArgumentosEntrada('otimizacao',kwargs,[limite_inferior,limite_superior,estimativa_inicial,algoritmo])
  
         self.__flag.ToggleInactive('reconciliacao')
+
+        self.__args_user = args
 
         # ---------------------------------------------------------------------
         # ALGORITMOS DE OTIMIZAÇÃO
@@ -812,36 +818,27 @@ class EstimacaoNaoLinear:
         if algoritmo == 'PSO':
             # indica que este algoritmo possui gráficos de desempenho
             self.__flag.ToggleActive('graficootimizacao')
-            # ---------------------------------------------------------------------
-            # KEYWORDS
-            # ---------------------------------------------------------------------
-            # Atributos obrigatórios
-            sup = kwargs.get('sup')
-            inf = kwargs.get('inf')
-            # Exclusão dos atributos obrigatórios da listas de keywords, mantendo somente
-            # os opcionais
-            del kwargs['sup']
-            del kwargs['inf']
+
             # Separação de keywords para os diferentes métodos
             # keywarg para a etapa de busca:
             kwargsbusca = {}
-            if kwargs.get('printit')  != None:
+            if kwargs.get('printit') is not None:
                 kwargsbusca['printit'] = kwargs.get('printit')
-                del kwargs['printit']
+                kwargs.pop('printit')
 
             # ---------------------------------------------------------------------
             # VALIDAÇÃO DO MODELO
             # ---------------------------------------------------------------------            
             # Verificação se o modelo é executável nos limites de busca
             
-            self.__ThreadExceptionHandling(self.__modelo,sup,self.x.validacao.matriz_estimativa,self._args_model())
-            self.__ThreadExceptionHandling(self.__modelo,inf,self.x.validacao.matriz_estimativa,self._args_model())
+            self.__ThreadExceptionHandling(self.__modelo,limite_superior,self.x.validacao.matriz_estimativa,self._args_model())
+            self.__ThreadExceptionHandling(self.__modelo,limite_inferior,self.x.validacao.matriz_estimativa,self._args_model())
             
             # ---------------------------------------------------------------------
             # EXECUÇÃO OTIMIZAÇÃO
             # ---------------------------------------------------------------------
             # OS argumentos extras (kwargs e kwrsbusca) são passados diretamente para o algoritmo
-            self.Otimizacao = PSO(sup,inf,args_model=self._args_FO(),**kwargs)
+            self.Otimizacao = PSO(limite_superior,limite_inferior,args_model=self._args_FO(),**kwargs)
             self.Otimizacao.Busca(self.__FO,**kwargsbusca)
 
             # ---------------------------------------------------------------------

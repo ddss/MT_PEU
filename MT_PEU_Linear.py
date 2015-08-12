@@ -80,7 +80,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         **AVISO**:
         * Para cálculo do coeficiente linear, basta que o número de parâmetros seja igual ao número de grandezas
         independentes + 1.
-        * Esta classe não aceita a keyword args (definida em EstimacaoNaoLinear). Sempre é assumido None
+
         ==============================
         Keywords (Entradas opcionais):
         ==============================
@@ -159,7 +159,6 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # ---------------------------------------------------------------------
         # INICIANDO A CLASSE INIT
         # ---------------------------------------------------------------------
-        kwargs['args'] = None # O MT-PEU linear não aceita argumentos extras
 
         EstimacaoNaoLinear.__init__(self,WLS,Modelo,simbolos_y,simbolos_x,simbolos_param,projeto,**kwargs)
 
