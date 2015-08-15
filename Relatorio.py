@@ -102,10 +102,10 @@ class Relatorio:
         ========
         Keywargs
         ========
-        export_y     (bool): exporta os dados calculados de y e sua incerteza em um txt com separação por vírgula
+        export_y     (bool): exporta os dados calculados de y, sua incerteza e graus de liberdade em um txt com separação por vírgula
         export_cov_y (bool): exporta a matriz de covariância de y
 
-        export_x     (bool): exporta os dados calculados de x e sua incerteza em um txt com separação  por vírgula
+        export_x     (bool): exporta os dados calculados de x, sua incerteza e graus de liberdade em um txt com separação  por vírgula
         export_cov_x (bool): exporta a matriz de covariância de x
         ==========
         Referência
@@ -309,7 +309,7 @@ class Relatorio:
             for symb in y.simbolos:
                 with open(self.__base_path+symb+'-calculado-predicao.txt','wb') as f:
                     for i in xrange(y.calculado.NE):
-                        f.write('{:.5f},{:.5f}\n'.format(y.calculado.matriz_estimativa[i,cont],y.calculado.matriz_incerteza[i,cont]))
+                        f.write('{:.5f},{:.5f},{:.5f}\n'.format(y.calculado.matriz_estimativa[i,cont],y.calculado.matriz_incerteza[i,cont],y.calculado.gL[cont][i]))
                 f.close()
                 cont+=1
 

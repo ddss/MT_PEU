@@ -103,18 +103,6 @@ def Validacao_Diretorio(base_path,diretorio=None):
         if not path.exists(directory):
             makedirs(directory)
 
-def Coef_R2(residuo,yexp):
-        residuo = residuo
-        yexp    = yexp.tolist()[0]
-        
-        SEline  = residuo**2
-        SEy     = sum([(ye - sum(yexp)/size(residuo))**2 for ye in yexp])
-        
-        return 1 -  SEline/SEy
-
-def CovarianciaXY(matriz_cov_x,matriz_cov_y):
-    matriz_cov_xy = concatenate((matriz_cov_x,matriz_cov_y))
-
 def plot_cov_ellipse(cov, pos, c2=2, ax=None, **kwargs):
     """
     Plots an `nstd` sigma error ellipse based on the specified covariance
