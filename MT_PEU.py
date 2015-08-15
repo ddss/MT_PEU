@@ -71,7 +71,7 @@ class EstimacaoNaoLinear:
         * Scipy
         * Matplotlib
         * Math
-        * PSO - **Obtida no link http://github.com/ddss/PSO. Os códigos devem estar dentro de uma pasta de nome PSO**
+        * PSO - versão 0.1-beta **Obtida no link https://github.com/ddss/PSO/releases. Os códigos devem estar dentro de uma pasta de nome PSO**
         * statsmodels
 
         =======================
@@ -281,6 +281,14 @@ class EstimacaoNaoLinear:
                             self.runEquacoes()
                         except:
                             self.bucket.put(exc_info())
+
+        ======================
+        Comportamento avançado
+        ======================
+        * ._configFolder: variável que contém o nome de todas as pastas criadas pelo algoritmo nas etapas de Gráficos e
+         relatórios. Alterando o conteúdo de uma chave, altera-se o nomes das pastas
+        * .__args_user: variável que contém os argumentos extras a serem passados para o modelo. Equivale ao argumento
+        args em otimiza.
         '''
         # ---------------------------------------------------------------------
         # CONTROLE DO FLUXO DE INFORMAÇÕES DO ALGORITMO
@@ -337,13 +345,24 @@ class EstimacaoNaoLinear:
                     
         # Flags para controle
         self.__flag = flag()
-        self.__flag.setCaracteristica(['dadosexperimentais','dadosvalidacao','reconciliacao','graficootimizacao'])
+        self.__flag.setCaracteristica(['dadosexperimentais','dadosvalidacao','reconciliacao','graficootimizacao','relatoriootimizacao'])
         # uso das caracterśiticas:
         # dadosexperimentais: indicar se dadosexperimentais foram inseridos
         # dadosvalidacao: indicar se dadosvalidacao foram inseridos
         # reconciliacao: indicar se reconciliacao está sendo executada
         # graficootimizacao: indicar se na etapa de otimização são utilizados algoritmos de otimização que possuem
         # gráficos de desempenho
+
+        # Variável que controla o nome das pastas criadas pelos métodos gráficos e relatórios
+        self._configFolder = {'graficos':'Graficos',
+                              'graficos-grandezas-entrada-experimental':'Grandezas',
+                              'graficos-grandezas-entrada-validacao':'Grandezas',
+                              'graficos-grandezas-calculadas':'Grandezas',
+                              'graficos-predicao':'Predicao',
+                              'graficos-regiaoAbrangencia':'Regiao',
+                              'graficos-otimizacao':'Otimizacao',
+                              'graficos-analiseResiduos':'Grandezas',
+                              'relatorio':'Relatorios'}
 
     def _args_FO(self):
         """
@@ -452,7 +471,10 @@ class EstimacaoNaoLinear:
             # set: conjunto de elementos distintos não ordenados (trabalha com teoria de conjuntos)
             if set('[~!@#$%^&*()+{}":;\']+$').intersection(args):
                 raise NameError('O nome do projeto não pode conter caracteres especiais')  
-            
+
+            # Verificação se o base_path é uma string
+            if keywargs.get(self.__keywordsEntrada[9]) is not None and not isinstance(keywargs.get(self.__keywordsEntrada[9]),str):
+                raise TypeError('A keyword {} deve ser um string.'.format(self.__keywordsEntrada[9]))
         # ---------------------------------------------------------------------
         # GERAR ENTRADAS
         # --------------------------------------------------------------------- 
@@ -818,6 +840,8 @@ class EstimacaoNaoLinear:
         if algoritmo == 'PSO':
             # indica que este algoritmo possui gráficos de desempenho
             self.__flag.ToggleActive('graficootimizacao')
+            # indica que esta algoritmo possui relatório de desempenho
+            self.__flag.ToggleActive('relatoriootimizacao')
 
             # Separação de keywords para os diferentes métodos
             # keywarg para a etapa de busca:
@@ -1625,7 +1649,7 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # CAMINHO BASE
         # ---------------------------------------------------------------------         
-        base_path  = self.__base_path + sep + 'Graficos' + sep
+        base_path  = self.__base_path + sep + self._configFolder['graficos'] + sep
         
         # ---------------------------------------------------------------------
         # GRÁFICOS
@@ -1635,12 +1659,12 @@ class EstimacaoNaoLinear:
         if (self.__tipoGraficos[1] in tipos):
             # se gerarEntradas foi executado alguma vez:
             if self.__etapasdisponiveis[1] in self.__etapasGlobal():
-                base_dir = sep + 'Grandezas' + sep
+                base_dir = sep + self._configFolder['graficos-grandezas-entrada-experimental'] + sep
                 Validacao_Diretorio(base_path,base_dir)
                 # gráficos gerados para os dados experimentais
                 if self.__flag.info['dadosexperimentais'] == True:
-                    self.x.Graficos(base_path, ID=['experimental'], fluxo=0)
-                    self.y.Graficos(base_path, ID=['experimental'], fluxo=0)
+                    self.x.Graficos(base_path, base_dir, ID=['experimental'], fluxo=0)
+                    self.y.Graficos(base_path, base_dir, ID=['experimental'], fluxo=0)
 
                     # Gráficos das grandezas y em função de x
                     for iy in xrange(self.y.NV):
@@ -1650,8 +1674,10 @@ class EstimacaoNaoLinear:
                 # gráficos gerados para os dados de validação, apenas se estes forem diferentes dos experimentais,
                 # apesar dos atributos de validação sempre existirem
                 if self.__flag.info['dadosvalidacao'] == True:
-                    self.x.Graficos(base_path, ID=['validacao'], fluxo=self.__etapasID)
-                    self.y.Graficos(base_path, ID=['validacao'], fluxo=self.__etapasID)
+                    base_dir = sep + self._configFolder['graficos-grandezas-entrada-validacao'] + sep
+                    Validacao_Diretorio(base_path, base_dir)
+                    self.x.Graficos(base_path, base_dir, ID=['validacao'], fluxo=self.__etapasID)
+                    self.y.Graficos(base_path, base_dir, ID=['validacao'], fluxo=self.__etapasID)
 
                     # Gráficos das grandezas y em função de x
                     for iy in xrange(self.y.NV):
@@ -1663,34 +1689,32 @@ class EstimacaoNaoLinear:
         # Gráficos referentes aos dados de saída (calculados)
         # grandezas-calculado
         if self.__tipoGraficos[3] in tipos:
+            base_dir = sep + self._configFolder['graficos-grandezas-calculadas'] + sep
+            Validacao_Diretorio(base_path, base_dir)
 
             # a incerteza dos parâmetros foi alguma vez executada
             if self.__etapasdisponiveis[3] in self.__etapasGlobal():
-                base_dir = sep + 'Grandezas' + sep
 
-                Validacao_Diretorio(base_path,base_dir)
-                self.parametros.Graficos(base_path, ID=['parametro'], fluxo=self.__etapasID)
+                self.parametros.Graficos(base_path, base_dir, ID=['parametro'], fluxo=self.__etapasID)
             else:
                 warn('Os gráficos envolvendo somente as grandezas calculadas (PARÂMETROS) não puderam ser criados, pois o método {} não foi executado.'.format(self.__etapasdisponiveis[3]),UserWarning)
 
             # Predição deve ter sido executada no fluxo de trabalho
             if self.__etapasdisponiveis[7] in self.__etapas[self.__etapasID]:
-                base_dir = sep + 'Grandezas' + sep
 
-                Validacao_Diretorio(base_path,base_dir)
-                self.x.Graficos(base_path, ID=['calculado'], fluxo=self.__etapasID)
-                self.y.Graficos(base_path, ID=['calculado'], fluxo=self.__etapasID)
+                self.x.Graficos(base_path, base_dir, ID=['calculado'], fluxo=self.__etapasID)
+                self.y.Graficos(base_path, base_dir, ID=['calculado'], fluxo=self.__etapasID)
 
             else:
                 warn('Os gráficos envolvendo somente as grandezas calculadas (X e Y) não puderam ser criados, pois o método {} não foi executado.'.format(self.__etapasdisponiveis[7]),UserWarning)
         # otimização
         if self.__tipoGraficos[4] in tipos:
+            base_dir = sep + self._configFolder['graficos-otimizacao'] + sep
+            Validacao_Diretorio(base_path, base_dir)
             # otimiza deve ter sido alguma vez no contexto global e o algoritmo de otimização possui gráficos de desempenho
             if self.__etapasdisponiveis[2] in self.__etapasGlobal() and self.__flag.info['graficootimizacao']:
                 # Gráficos da otimização
-                base_dir = sep + 'Otimizacao' + sep
-                Validacao_Diretorio(base_path,base_dir)
-        
+
                 self.Otimizacao.Graficos(base_path+base_dir,Nome_param=self.parametros.simbolos,Unid_param=self.parametros.unidades,FO2a2=True)
     
             else:
@@ -1701,7 +1725,7 @@ class EstimacaoNaoLinear:
             # os gráficos da região de abrangência sõ são executados se houver dados disponíveis
             if self.parametros.regiao_abrangencia is not None:
                 # Gráficos da estimação
-                base_dir = sep + 'Regiao' + sep
+                base_dir = sep + self._configFolder['graficos-regiaoAbrangencia'] + sep
                 Validacao_Diretorio(base_path, base_dir)
                 # os gráficos só podem ser executado se o número de parâmetros for
                 # maior do que 1
@@ -1765,7 +1789,8 @@ class EstimacaoNaoLinear:
 
             if self.__etapasdisponiveis[7] in self.__etapas[self.__etapasID]:
 
-                base_dir = sep + 'Grandezas' + sep
+                base_dir = sep + self._configFolder['graficos-predicao'] + sep
+                Validacao_Diretorio(base_path,base_dir)
                 #gráficos de y em função de y
                 for iy in xrange(self.y.NV):
                     for ix in xrange(self.x.NV):
@@ -1777,8 +1802,6 @@ class EstimacaoNaoLinear:
                 t_cal=t.ppf((1-PA)/2, self.y.calculado.gL[0][0])
                 t_val=t.ppf((1-PA)/2, self.y.validacao.gL[0][0])
 
-                base_dir = sep + 'Predicao' + sep
-                Validacao_Diretorio(base_path,base_dir)
                 for iy in xrange(self.y.NV):
                         # Gráfico comparativo entre valores experimentais e calculados pelo modelo, sem variância         
                         y  = self.y.validacao.matriz_estimativa[:,iy]
@@ -1902,17 +1925,19 @@ class EstimacaoNaoLinear:
             # o método análise de resíduos deve ter sido executado
             if self.__etapasdisponiveis[5] in self.__etapas[self.__etapasID]:
 
+                base_dir = sep + self._configFolder['graficos-analiseResiduos'] + sep
+                Validacao_Diretorio(base_path,base_dir)
                 # Gráficos relacionados aos resíduos das grandezas independentes, caso
                 # seja realizada a reconciliação
                 if self.__flag.info['reconciliacao'] == True:
-                    self.x.Graficos(self.__base_path + sep + 'Graficos' + sep, ID=['residuo'])
+                    self.x.Graficos(base_path, base_dir, ID=['residuo'], fluxo=self.__etapasID)
 
                 # Gráficos relacionados aos resíduos das grandezas dependentes
-                self.y.Graficos(self.__base_path + sep + 'Graficos' + sep, ID=['residuo'], fluxo=self.__etapasID)
+                self.y.Graficos(base_path, base_dir, ID=['residuo'], fluxo=self.__etapasID)
 
                 # Grafico dos resíduos em função dos dados de validação (ou experimentais)
                 for i,simb in enumerate(self.y.simbolos):
-                    base_dir = sep + 'Grandezas' + sep + self.y.simbolos[i] + sep
+                    base_dir = sep + self._configFolder['graficos-analiseResiduos'] + sep + self.y.simbolos[i] + sep
 
                     Validacao_Diretorio(base_path,base_dir)
 
@@ -1945,7 +1970,7 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # DEFINIÇÃO DA CLASSE
         # ---------------------------------------------------------------------
-        saida = Relatorio(self.__base_path,sep +'Relatorios'+ sep)
+        saida = Relatorio(self.__base_path,sep +self._configFolder['relatorio']+ sep)
 
         # ---------------------------------------------------------------------
         # RELATÓRIO DOS PARÂMETROS
@@ -1969,5 +1994,8 @@ class EstimacaoNaoLinear:
         else:
             warn('O relatório sobre a predição e análise de resíduos não foi criado, pois o método {} não foi executado'.format(self.__etapasdisponiveis[7]))
 
-
-
+        # ---------------------------------------------------------------------
+        # RELATÓRIO DA PREDIÇÃO E ANÁLISE DE RESÍDUOS
+        # ---------------------------------------------------------------------
+        if self.__flag.info['relatoriootimizacao']:
+            self.Otimizacao.Result_txt(base_path=self.__base_path + sep +self._configFolder['relatorio'] + sep)

@@ -633,7 +633,7 @@ class Grandeza:
              posy = ymin + 0.01 * (ymax - ymin)
              text(posx, posy, "$R^2$=%1.4f" % res[1][2])        
              
-    def Graficos(self,base_path=None,ID=None,fluxo=None, cmap=['k','r','0.75','w','0.75','r','k']):
+    def Graficos(self,base_path=None,base_dir=None,ID=None,fluxo=None, cmap=['k','r','0.75','w','0.75','r','k']):
         u'''
         Método para gerar os gráficos das grandezas, cujas informações só dependam dela.
         
@@ -673,7 +673,7 @@ class Grandeza:
         # ---------------------------------------------------------------------
         # CRIAÇÃO DOS GRÁFICOS
         # ---------------------------------------------------------------------
-        base_dir  = sep + 'Grandezas' + sep
+        base_dir  = sep + 'Grandezas' + sep if base_dir is None else sep + base_dir + sep
         Validacao_Diretorio(base_path,base_dir)
         
         #Gráfico Pcolor para auto correlação
