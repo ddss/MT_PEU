@@ -1934,26 +1934,20 @@ class EstimacaoNaoLinear:
 
                 # Gráficos relacionados aos resíduos das grandezas dependentes
                 self.y.Graficos(base_path, base_dir, ID=['residuo'], fluxo=self.__etapasID)
+                
+                # Gráficos relacionados aos resíduos das grandezas independentes
+                for i,simb in enumerate(self.x.simbolos):
+                    ID=['residuo']
+                    base_dir = sep + self._configFolder['graficos-analiseResiduos'] + sep + self.x.simbolos[i] + sep
+                    Validacao_Diretorio(base_path,base_dir)
+                    self.x.graph( self.x.labelGraficos()[i] + ' experimental' ,u'Resíduos '+self.y.labelGraficos()[i], self.x.experimental.matriz_estimativa[:,i],self.y.residuos.matriz_estimativa[:,i],base_path, base_dir, self.__etapasID, ID, 'tendencia', legenda=True, media=True )
 
                 # Grafico dos resíduos em função dos dados de validação (ou experimentais)
                 for i,simb in enumerate(self.y.simbolos):
                     base_dir = sep + self._configFolder['graficos-analiseResiduos'] + sep + self.y.simbolos[i] + sep
 
                     Validacao_Diretorio(base_path,base_dir)
-
-                    #ymodelo vs. Resíduos
-                    fig = figure()
-                    ax = fig.add_subplot(1,1,1)
-                    plot(self.y.calculado.matriz_estimativa[:,i],self.y.residuos.matriz_estimativa[:,i], 'o')
-                    plot([min(self.y.calculado.matriz_estimativa[:,i]),max(self.y.calculado.matriz_estimativa[:,i])],[mean(self.y.residuos.matriz_estimativa[:,i])]*2, '-.r', label=u'Média resíduos '+self.y.simbolos[i])
-                    xlabel(u'Valores calculados '+self.y.labelGraficos()[i])
-                    ylabel(u'Resíduos '+self.y.labelGraficos()[i])
-                    ax.yaxis.grid(color='gray', linestyle='dashed')
-                    ax.xaxis.grid(color='gray', linestyle='dashed')
-                    ax.axhline(0, color='black', lw=2)
-                    legend()
-                    fig.savefig(base_path+base_dir+'residuos_fl'+str(self.__etapasID)+'_versus_ycalculado.png')
-                    close()
+                    self.y.graph( u'Valores calculados '+self.y.labelGraficos()[i] ,u'Resíduos '+self.y.labelGraficos()[i],self.y.calculado.matriz_estimativa[:,i],self.y.residuos.matriz_estimativa[:,i],base_path, base_dir, self.__etapasID, ID, 'tendencia', legenda=True, media=True )
 
             else:
                 warn('Os gráficos envolvendo a análise de resíduos não puderam ser criados, pois o método {} não foi executado.'.format(self.__etapasdisponiveis[5]),UserWarning)
