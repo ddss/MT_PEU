@@ -1743,8 +1743,12 @@ class EstimacaoNaoLinear:
                         ax = fig.add_subplot(1,1,1)
 
                         if self.__etapasdisponiveis[4] in self.__etapasGlobal():
+                            aux1 = []
+                            aux2 = []
                             for it in xrange(size(self.parametros.regiao_abrangencia)/self.parametros.NV):     
-                                PSO, = plot(self.parametros.regiao_abrangencia[it][p1],self.parametros.regiao_abrangencia[it][p2],'bo',linewidth=2.0,zorder=1)
+                                aux1.append(self.parametros.regiao_abrangencia[it][p1])
+                                aux2.append(self.parametros.regiao_abrangencia[it][p2])
+                            PSO, = plot(aux1,aux2,'bo',linewidth=2.0,zorder=1)
                             
                         Fisher = f.ppf(PA,self.parametros.NV,(self.y.experimental.NE*self.y.NV-self.parametros.NV))            
                         Comparacao = self.FOotimo*(float(self.parametros.NV)/(self.y.experimental.NE*self.y.NV-float(self.parametros.NV))*Fisher)
@@ -1767,12 +1771,12 @@ class EstimacaoNaoLinear:
     
                         xauto = [ax.get_xticks()[0],ax.get_xticks()[-1]]
                         yauto = [ax.get_yticks()[0],ax.get_yticks()[-1]]
-                        xlim((min([self.parametros.estimativa[p1] - 1.15*hx,xauto[0]]), \
+                        xlim((min([self.parametros.estimativa[p1] - 1.15*hx,xauto[0]]),
                               max([self.parametros.estimativa[p1] + 1.15*hx,xauto[-1]])))
-                        ylim((min([self.parametros.estimativa[p2] - 1.15*hy,yauto[0]]),\
+                        ylim((min([self.parametros.estimativa[p2] - 1.15*hy,yauto[0]]),
                               max([self.parametros.estimativa[p2] + 1.15*hy,yauto[-1]])))
                         if self.__etapasdisponiveis[4] in self.__etapasGlobal() and self.parametros.regiao_abrangencia != []:
-                            legend([ellipse,PSO],['Elipse','Verossimilhança'])
+                            legend([ellipse,PSO],['Elipse',u'Verossimilhança'])
                         elif self.__etapasdisponiveis[4] in self.__etapasGlobal() and self.parametros.regiao_abrangencia == []:
                             legend([ellipse],['Ellipse'])
                         fig.savefig(base_path+base_dir+'regiao_verossimilhanca_fl'+str(0)+'_'+str(self.parametros.simbolos[p1])+'_'+str(self.parametros.simbolos[p2])+'.png')
