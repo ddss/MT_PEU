@@ -593,7 +593,8 @@ class Grandeza:
            ax.set_xticklabels(Ylabel)
         if legend== True:
            legend(loc='best')
-        fig.savefig(base_path+base_dir+'{}_fl'.format(ID)+str(fluxo)+'_{}_'.format(tipo)+'_'.join(self.simbolos))
+           
+        fig.savefig(base_path+base_dir+'{}_fl'.format(ID[0])+str(fluxo)+'_{}_'.format(tipo)+'_'.join(self.simbolos))        
         close()
     def tipos(self, tipo, x, y):
         ''' Define o tipo de gráfico plotado
@@ -611,12 +612,6 @@ class Grandeza:
        
         if tipo=='autocorrelacao_acorr':
            acorr(y,usevlines=True, normed=True,maxlags=None)
-        if tipo=='autocorrelacao_stem':
-           y = y - mean(y)
-           autocorr = correlate(y, y, mode='full')
-           autocorr = autocorr[len(y) - 1:]
-           autocorr /= autocorr.max()
-           stem(autocorr)
         if tipo== 'boxplot':
            boxplot(y, sym='k.')
         if tipo=='hist':
@@ -743,8 +738,6 @@ class Grandeza:
                 #Gera um gráfico de barras que verifica a autocorrelação
                 self.graph('Lag', u'Autocorrelação de {}'.format(self.labelGraficos(printunit=False)[i]),None,dados,base_path,base_dir,fluxo, ID,'autocorrelacao_acorr', legend=False)
                  
-                #Gera um gráfico que verifica a autocorrelação 2  
-                self.graph('Lag', u'Autocorrelação de {}'.format(self.labelGraficos(printunit=False)[i]),None,dados,base_path,base_dir,fluxo, ID,'autocorrelacao_stem', legend=False )
                
                 # HISTOGRAMA                
                 #Gera um gráfico de histograma, importante na verificação da pdf
