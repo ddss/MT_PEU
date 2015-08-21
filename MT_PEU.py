@@ -1942,9 +1942,7 @@ class EstimacaoNaoLinear:
                 # Grafico dos resíduos em função dos dados de validação (ou experimentais)
                 for i,simb in enumerate(self.y.simbolos):
                     base_dir = sep + self._configFolder['graficos-analiseResiduos'] + sep + self.y.simbolos[i] + sep
-
                     Validacao_Diretorio(base_path,base_dir)
-
                     #ymodelo vs. Resíduos
                     fig = figure()
                     ax = fig.add_subplot(1,1,1)
@@ -1958,6 +1956,22 @@ class EstimacaoNaoLinear:
                     legend()
                     fig.savefig(base_path+base_dir+'residuos_fl'+str(self.__etapasID)+'_versus_ycalculado.png')
                     close()
+                    for j, simbol in enumerate(self.x.simbolos):
+                        base_dir = sep + self._configFolder['graficos-analiseResiduos'] + sep + self.x.simbolos[j] + sep
+                        Validacao_Diretorio(base_path,base_dir)
+                        #X experimental vs. Resíduos
+                        fig = figure()
+                        ax = fig.add_subplot(1,1,1)
+                        plot(self.x.experimental.matriz_estimativa[:,j],self.y.residuos.matriz_estimativa[:,i], 'o')
+                        plot([min(self.x.experimental.matriz_estimativa[:,j]),max(self.x.experimental.matriz_estimativa[:,j])],[mean(self.y.residuos.matriz_estimativa[:,i])]*2, '-.r', label=u'Média resíduos '+self.y.simbolos[i])
+                        xlabel(self.x.labelGraficos()[j] + ' experimental')
+                        ylabel(u'Resíduos '+self.y.labelGraficos()[i])
+                        ax.yaxis.grid(color='gray', linestyle='dashed')
+                        ax.xaxis.grid(color='gray', linestyle='dashed')
+                        ax.axhline(0, color='black', lw=2)
+                        legend()
+                        fig.savefig(base_path+base_dir+'residuos_fl'+str(self.__etapasID)+'_versus_xexperimental.png')
+                        close()
 
             else:
                 warn('Os gráficos envolvendo a análise de resíduos não puderam ser criados, pois o método {} não foi executado.'.format(self.__etapasdisponiveis[5]),UserWarning)
