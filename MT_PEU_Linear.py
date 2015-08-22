@@ -56,7 +56,7 @@ class Modelo(Thread):
 
 class EstimacaoLinear(EstimacaoNaoLinear):
     
-    def __init__(self,simbolos_y,simbolos_x,simbolos_param,projeto='Projeto',**kwargs):
+    def __init__(self,simbolos_y,simbolos_x,simbolos_param,PA=0.95,projeto='Projeto',**kwargs):
         u'''
         Classe para executar a estimação de parâmetros de modelos MISO lineares nos parâmetros       
 
@@ -75,8 +75,13 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         * ``simbolos_y`` (list)     : lista com os simbolos das variáveis y (Não podem haver caracteres especiais)
         * ``simbolos_x`` (list)     : lista com os simbolos das variáveis x (Não podem haver caracteres especiais)
         * ``simbolos_param`` (list) : lista com o simbolos dos parâmetros (Não podem haver caracteres especiais)
-        * ``projeto`` (string)      : nome do projeto (Náo podem haver caracteres especiais)
-        
+
+        ====================
+        Entradas (opcionais)
+        ====================
+        * ``PA`` (float): probabilidade de abrangência da análise. Deve estar entre 0 e 1. Default: 0.95
+        * ``projeto`` (string): nome do projeto (Náo podem haver caracteres especiais)
+
         **AVISO**:
         * Para cálculo do coeficiente linear, basta que o número de parâmetros seja igual ao número de grandezas
         independentes + 1.
@@ -160,7 +165,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # INICIANDO A CLASSE INIT
         # ---------------------------------------------------------------------
 
-        EstimacaoNaoLinear.__init__(self,WLS,Modelo,simbolos_y,simbolos_x,simbolos_param,projeto,**kwargs)
+        EstimacaoNaoLinear.__init__(self,WLS,Modelo,simbolos_y,simbolos_x,simbolos_param,PA,projeto,**kwargs)
 
         self._EstimacaoNaoLinear__flag.setCaracteristica(['calc_termo_independente'])
 
@@ -301,19 +306,13 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # Inclusão da incertezaParametros na lista de etapas
         self._EstimacaoNaoLinear__etapas[self._EstimacaoNaoLinear__etapasID].append(self._EstimacaoNaoLinear__etapasdisponiveis[3])
 
-    def incertezaParametros(self,PA=0.95,**kwargs):
+    def incertezaParametros(self,**kwargs):
         u'''
         Método para avaliar a região de abrangência dos parâmetros.
 
         **Observação**:
         A matriz de covariância dos parâmetros é calculada juntamente com a otimização, por ser parte constituinte da solução analítica. Entretanto,
         caso o método SETparametros seja executado e neste não seja definida a matriz de covariância, ela é calculada.
-
-        =======
-        Entrada
-        =======
-
-        PA: Probabilidade de abragência (deve ser um número entre 0 e 1)
 
 
         ========
@@ -347,7 +346,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # A região de abrangência só é calculada caso não esteja definida
         if self.parametros.regiao_abrangencia is None:
 
-            regiao = self.regiaoAbrangencia(PA,**kwargs)
+            regiao = self.regiaoAbrangencia(**kwargs)
 
             # ---------------------------------------------------------------------
             # ATRIBUIÇÃO A GRANDEZA
@@ -355,13 +354,11 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             self.parametros._SETparametro(self.parametros.estimativa, self.parametros.matriz_covariancia, regiao)
 
 
-    def regiaoAbrangencia(self,PA=0.95,**kwargs):
+    def regiaoAbrangencia(self,**kwargs):
         u'''
         Método para cálculo da região de abrangência de verossimilhança. 
 
-        PA: probabilidade de abrangência
-        kwargs: argumentos para o algoritmo de PSO
-
+        kwargs: argumentos para o algoritmo de PSO. Vide documentação do PSO
         '''
 
         # ---------------------------------------------------------------------
@@ -372,12 +369,12 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         inf = kwargs.get('inf')
 
         if sup is None:
-            sup = [self.parametros.estimativa[i] + 5*t.ppf(PA+(1-PA)/2,100)*self.parametros.matriz_incerteza[0,i] for i in xrange(self.parametros.NV)]
+            sup = [self.parametros.estimativa[i] + 5*t.ppf(self.PA+(1-self.PA)/2,100)*self.parametros.matriz_incerteza[0,i] for i in xrange(self.parametros.NV)]
         else:
             del kwargs['sup'] # retira sup dos argumentos extras
 
         if inf is None:
-            inf = [self.parametros.estimativa[i] - 5*t.ppf(PA+(1-PA)/2,100)*self.parametros.matriz_incerteza[0,i] for i in xrange(self.parametros.NV)]
+            inf = [self.parametros.estimativa[i] - 5*t.ppf(self.PA+(1-self.PA)/2,100)*self.parametros.matriz_incerteza[0,i] for i in xrange(self.parametros.NV)]
         else:
             del kwargs['inf'] # retira inf dos argumentos extras
 
@@ -409,4 +406,4 @@ class EstimacaoLinear(EstimacaoNaoLinear):
 
         self._EstimacaoNaoLinear__etapas[self._EstimacaoNaoLinear__etapasID].append(self._EstimacaoNaoLinear__etapasdisponiveis[12])
 
-        return EstimacaoNaoLinear.regiaoAbrangencia(self, PA)
+        return EstimacaoNaoLinear.regiaoAbrangencia(self)

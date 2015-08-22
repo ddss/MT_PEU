@@ -49,7 +49,7 @@ from Flag import flag
 
 class EstimacaoNaoLinear:
     
-    def __init__(self,FO,Modelo,simbolos_y,simbolos_x,simbolos_param,projeto='Projeto',**kwargs):
+    def __init__(self,FO,Modelo,simbolos_y,simbolos_x,simbolos_param,PA=0.95,projeto='Projeto',**kwargs):
         u'''
         Classe para executar a estimação de parâmetros de modelos não lineares.
 
@@ -82,7 +82,12 @@ class EstimacaoNaoLinear:
         * ``simbolos_y`` (list)     : lista com os simbolos das variáveis y (Não podem haver caracteres especiais)
         * ``simbolos_x`` (list)     : lista com os simbolos das variáveis x (Não podem haver caracteres especiais)
         * ``simbolos_param`` (list) : lista com o simbolos dos parâmetros   (Não podem haver caracteres especiais)
-        * ``projeto`` (string)      : nome do projeto (Náo podem haver caracteres especiais)
+
+        ====================
+        Entradas (opcionais)
+        ====================
+        * ``PA`` (float): probabilidade de abrangência da análise. Deve estar entre 0 e 1. Default: 0.95.
+        * ``projeto`` (string): nome do projeto (Náo podem haver caracteres especiais)
         
         ==============================
         Keywords (Entradas opcionais):
@@ -185,50 +190,15 @@ class EstimacaoNaoLinear:
             * ``regiao_abrangencia`` : pontos contidos na região de abrangência
         
         Obs.: Para informações mais detalhadas, consultar os Atributos da classe Grandeza.        
-        
+
+        * ``PA``: probabilidade de abrangência da análise
+        *
         ===============
         Função objetivo
         ===============
         
-        A função objetivo deve ser um objeto com uma estrutura específica, conforme detalha \
-        o exemplo: ::
-            
-            from threading import Thread
+        A função objetivo deve ser um objeto com uma estrutura específica. Consulte arquivo Funcao_Objetivo.
 
-            class WLS(Thread):
-                result = 0
-                def __init__(self,p,argumentos):
-                    Thread.__init__(self)
-
-                    self.param  = p
-
-                    self.y      = argumentos[0]
-                    self.x      = argumentos[1]
-                    self.Vy     = argumentos[2]
-                    self.Vx     = argumentos[3]
-                    self.args   = argumentos[4]
-
-                    # Modelo
-                    self.modelo     = argumentos[5]
-
-                    # Simbologia
-                    self.simb_x     = argumentos[6]
-                    self.simb_y     = argumentos[7]
-                    self.simb_param = argumentos[8]
-
-                def run(self):
-
-                    ym = self.modelo(self.param,self.x,[self.args,self.simb_x,self.simb_y,self.simb_param])
-                    ym.start()
-                    ym.join()
-
-                    ym = matriz2vetor(ym.result)
-                    #print '-------------'
-                    #print ym
-                    #print '-------------'
-                    d     = self.y - ym
-                    self.result =  float(dot(dot(transpose(d),linalg.inv(self.Vy)),d))
-        
         OBSERVAÇÃO:
         O Motor de cálculo sempre irá enviar como uma lista argumentos para a função objetivo \
         nesta ordem: 
@@ -246,59 +216,56 @@ class EstimacaoNaoLinear:
         =======
         Modelo
         ======
+        O modelo deve ser um objeto com uma estrutura específica. Consulte arquivo Modelo.
 
-        O modelo deve ser um objeto com uma estrutura específica, conforme detalha \
-        o exemplo abaixo: ::
-        
-            from threading import Thread
-            from sys import exc_info
-    
-            class Modelo(Thread):
-                result = 0
-                def __init__(self,param,x,args,**kwargs):
-                    Thread.__init__(self)
-                    self.param  = param
-                    self.x      = x
-                    
-                    self.args  = args
-            
-                    # LIDAR COM EXCEPTIONS THREAD
-                    self.bucket = kwargs.get('bucket')
-                    
-                def runEquacoes(self):
-                    
-                    # Conjunto de equaçoes
-            
-                    self.result = # matriz em que cada coluna representa uma grandeza dependente
-                    
-                    
-                def run(self):
-                
-                    if self.bucket == None:
-                        self.runEquacoes()
-                    else:
-                        try:
-                            self.runEquacoes()
-                        except:
-                            self.bucket.put(exc_info())
+        =====================
+        Atributos em destaque
+        =====================
 
-        ======================
-        Comportamento avançado
-        ======================
+        CONFIGURAÇÕES:
+
         * ._configFolder: variável que contém o nome de todas as pastas criadas pelo algoritmo nas etapas de Gráficos e
-         relatórios. Alterando o conteúdo de uma chave, altera-se o nomes das pastas
+         relatórios. Alterando o conteúdo de uma chave, altera-se o nomes das pastas. Não altere as chaves.
         * .__args_user: variável que contém os argumentos extras a serem passados para o modelo. Equivale ao argumento
         args em otimiza.
+
+        * .__flag: classe flag que controla o comportamento do algoritmo. Flags disponíveis:
+            *'dadosexperimentais': identifica se dados para a estimação doram inseridos
+            * 'dadosvalidacao'   : identifica se dados para validação forma inseridos
+            * 'reconciliacao'    : identifica se foi solicitada reconciliação de dados (HOLD: aguarda implementação da
+            reconciliação)
+            * 'graficootimizacao': identifica se o algoritmo de otimização tem gráficos de desempenho
+            * 'relatoriootimizacao': identifica se o algoritmo de otimização possui relatório na forma de um arquivo
+
+        * .__etapas: identifica quais etapas o algoritmo executou em cada fluxo.
+        * .__base_path: identifica o caminho raiz nos quais todos gráficos e relatórios serão salvos
+
+        OUTROS:
+
+        * .Otimizacao: salva todas as informações do algorimo de otimização. [Só existe após execução do método otimização].
+        * ._deltaHessiana: incremento a ser utilizado para avaliar a matriz Hessiana (pode ser definido via kwargs no método
+        incertezaParametros e/ou Predicao)
+        * ._self._deltaGy: incremento a ser utilizado para avaliar a matriz Gy (derivadas segundas da função objetivo em relação
+        a dados experimentias de y e parâmetros) (pode ser definido via kwargs no método incertezaParametros e/ou Predicao)
+        * ._deltaS: incremento a ser utilizado para avalair a transposta da matriz jacobiana do modelo em relação aos
+        parâmetros (pode ser definido via kwargs no método incertezaParametros e/ou Predicao)
+        * .Hessiana: salva a matriz Hessiana (somente avaliada após incertezaParametros ou Predicao - a depender do método solicitado)
+        * .Gy: salva amatriz Gy (somente avaliada após incertezaParametros ou Predicao - a depender do método solicitado)
+        * .S: salva matriz S (somente avaliada após incertezaParametros ou Predicao - a depender do método solicitado)
+        * .estatisticas: dicionário que contém aguns testes estatístcicos (Para outras estatísticas aqui não incluídas
+        consulte Grandezas)
+        * FOotimo: valor da função objetivo no ponto ótimo
         '''
         # ---------------------------------------------------------------------
         # CONTROLE DO FLUXO DE INFORMAÇÕES DO ALGORITMO
         # ---------------------------------------------------------------------
-        # Etapas de execução disponíveis (métodos)
+        # Etapas de execução disponíveis (métodos) - Lista de etapas que o algoritmo irá executar
         self.__etapasdisponiveis = ('__init__','gerarEntradas','otimizacao',
                                     'incertezaParametros','regiaoAbrangencia',
                                     'analiseResiduos','armazenarDicionario',
                                     'Predicao','SETparametro','graficos',
-                                    'novoFluxo','GETFOotimo','historicoOtimizacao')# Lista de etapas que o algoritmo irá executar
+                                    'novoFluxo','GETFOotimo','historicoOtimizacao',
+                                    'Hessiana','Gy','S')
         
         # FLUXO DE INFORMAÇÕES -> conjunto de etapas que se inicia com o método gerarEntradas.
         
@@ -311,7 +278,7 @@ class EstimacaoNaoLinear:
         # VALIDAÇÕES GERAIS DE KEYWORDS
         # ---------------------------------------------------------------------
 
-        self.__validacaoArgumentosEntrada('__init__',kwargs,projeto)
+        self.__validacaoArgumentosEntrada('__init__',kwargs,[PA,projeto])
         
         # ---------------------------------------------------------------------
         # INICIALIZAÇÃO DAS GRANDEZAS
@@ -325,7 +292,19 @@ class EstimacaoNaoLinear:
         # set: conjunto de elementos distintos não ordenados (trabalha com teoria de conjuntos)
         if len(set(self.y.simbolos).intersection(self.x.simbolos)) != 0 or len(set(self.y.simbolos).intersection(self.parametros.simbolos)) != 0 or len(set(self.x.simbolos).intersection(self.parametros.simbolos)) != 0:
             raise NameError('Os símbolos das grandezas devem ser diferentes.')
-            
+
+        # ---------------------------------------------------------------------
+        # OUTRAS VARIÁVEIS
+        # ---------------------------------------------------------------------
+        # Propabilidade de abrangência
+        self.PA = PA
+
+        # Incremento das derivadas numéricas
+        self._deltaHessiana = 1e-5  # Hessiana da função objetivo
+        self._deltaGy = 1e-5  # Gy (derivada parcial segunda da função objetivo em relação aos parâmetros e dados experimentais)
+        self._deltaS = 1e-5  # S (transposto do jacobiano do modelo)
+
+
         # ---------------------------------------------------------------------
         # CRIAÇÃO DAS VARIÁVEIS INTERNAS
         # ---------------------------------------------------------------------
@@ -342,7 +321,7 @@ class EstimacaoNaoLinear:
             self.__base_path = getcwd()+ sep +str(projeto)+sep
         else:
             self.__base_path = kwargs.get(self.__keywordsEntrada[9])
-                    
+
         # Flags para controle
         self.__flag = flag()
         self.__flag.setCaracteristica(['dadosexperimentais','dadosvalidacao','reconciliacao','graficootimizacao','relatoriootimizacao'])
@@ -460,16 +439,21 @@ class EstimacaoNaoLinear:
             keyincorreta  = [key for key in keywargs.keys() if not key in self.__keywordsEntrada]
         
             if len(keyincorreta) != 0:
-                raise NameError('keyword(s) incorreta(s): '+', '.join(keyincorreta)+'.'+' Keywords disponíveis: '+', '.join(self.__keywordsEntrada)+'.')
-    
+                raise NameError('keyword(s) incorreta(s): '+', '.join(keyincorreta)+'.'+
+                                ' Keywords disponíveis: '+', '.join(self.__keywordsEntrada)+'.')
+
+            # Verificação de PA está entre 0 e 1
+            if not 0 < args[0] < 1:
+                raise ValueError('A probabilidade de abrangência deve estar entre 0 e 1.')
+
             # Verificação se o nome do projeto é um string
-            # args[0] = projeto
-            if not isinstance(args,str):
+            # args[1] = projeto
+            if not isinstance(args[1],str):
                 raise TypeError('O nome do projeto deve ser um string.')
             
             # Verificação se o nome do projeto possui caracteres especiais
             # set: conjunto de elementos distintos não ordenados (trabalha com teoria de conjuntos)
-            if set('[~!@#$%^&*()+{}":;\']+$').intersection(args):
+            if set('[~!@#$%^&*()+{}":;\']+$').intersection(args[1]):
                 raise NameError('O nome do projeto não pode conter caracteres especiais')  
 
             # Verificação se o base_path é uma string
@@ -523,6 +507,8 @@ class EstimacaoNaoLinear:
         # INCERTEZA DOS PARÂMETROS
         # --------------------------------------------------------------------- 
         self.__metodosIncerteza = ('2InvHessiana','Geral','SensibilidadeModelo')
+        self.__keywordsDerivadas = ('deltaHess','deltaGy','deltaS', 'delta')
+
         if etapa == self.__etapasdisponiveis[3]:
             # se otimiza não tiver sido executado no contexto global ou SETparametro não tiver sido executado no contexto Global,
             # não se pode executar incertezaParametros
@@ -532,6 +518,14 @@ class EstimacaoNaoLinear:
             if args not in self.__metodosIncerteza:
                 raise NameError('O método solicitado para cálculo da incerteza dos parâmetros {}'.format(args)+' não está disponível. Métodos disponíveis '+', '.join(self.__metodosIncerteza)+'.')
 
+            # Validação se houve keywords digitadas incorretamente:
+
+            keyincorreta = [key for key in keywargs.keys() if not key in self.__keywordsDerivadas]
+
+            if len(keyincorreta) != 0:
+                raise NameError('keyword(s) incorreta(s): ' + ', '.join(keyincorreta) + '.' +
+                                ' Keywords disponíveis: ' + ', '.join(self.__keywordsDerivadas) + '.')
+
         # ---------------------------------------------------------------------
         # REGIÃO DE ABRANGÊNCIA
         # ---------------------------------------------------------------------
@@ -539,9 +533,6 @@ class EstimacaoNaoLinear:
             # se historicoOtimizacao não tiver sido executado, não se pode criar a Região de abrangência
             if self.__etapasdisponiveis[12] not in self.__etapasGlobal():
                 raise SyntaxError('Para executar a região de abrangência, faz-se necessário primeiro executar um método que avalie o histórico da otimização. Normalmente é {}'.format(self.__etapasdisponiveis[2]))
-            # a probabilidade de abrangência deve estar entre 0 e 1
-            if not (0 <= args <= 1):
-                raise ValueError('O valor da probabilidade de abrangência deve estar entre 0 e 1.')
 
         # ---------------------------------------------------------------------
         # ANÁLISE RESÍDUOS
@@ -558,14 +549,22 @@ class EstimacaoNaoLinear:
             # para armazenar os dicionários, é necessário, pelo menos, executar gerarEntradas
             if self.__etapasdisponiveis[1] not in self.__etapasGlobal():
                 raise SyntaxError('Para executar o método armazenarDicionario, faz-se necessário, pelo menos, executar método {}.'.format(self.__etapasdisponiveis[1]))
-           
+
         # ---------------------------------------------------------------------
         # PREDIÇÃO
-        # ---------------------------------------------------------------------     
+        # ---------------------------------------------------------------------
         if etapa == self.__etapasdisponiveis[7]:
             # para executar a predição deve ser executado otimiza (Global), incertezaParametros (Global), SETparametro(Global), incertezaParametros (Global)
             if ((self.__etapasdisponiveis[2] not in self.__etapasGlobal()) or (self.__etapasdisponiveis[3] not in self.__etapasGlobal())) and ((self.__etapasdisponiveis[8] not in self.__etapasGlobal()) or (self.__etapasdisponiveis[3] not in self.__etapasGlobal())):
                 raise SyntaxError('Para executar de predição, faz-se necessário primeiro executar o método {} seguido de {} OU {} seguido de {}. Outra opção é executar o método {}, definindo a matriz de covariância dos parâmetros.'.format(self.__etapasdisponiveis[2],self.__etapasdisponiveis[3],self.__etapasdisponiveis[8],self.__etapasdisponiveis[3],self.__etapasdisponiveis[8]))
+
+            # Validação se houve keywords digitadas incorretamente
+            # Aqui as keywords são as mesmas do método de incerteza parâmetros
+            keyincorreta = [key for key in keywargs.keys() if not key in self.__keywordsDerivadas]
+
+            if len(keyincorreta) != 0:
+                raise NameError('keyword(s) incorreta(s): ' + ', '.join(keyincorreta) + '.' +
+                                ' Keywords disponíveis: ' + ', '.join(self.__keywordsDerivadas) + '.')
 
         # ---------------------------------------------------------------------
         # SETparametro
@@ -588,10 +587,6 @@ class EstimacaoNaoLinear:
             # validando se os tipos de gráficos foram corretamente definidos
             if not set(args[0]).issubset(self.__tipoGraficos):
                 raise NameError('O(s) tipo(s) de gráfico(s) selecionado(s) não está(ão) disponível(is): '+', '.join(set(args[0]).difference(self.__tipoGraficos))+'. Tipos disponíveis: '+', '.join(self.__tipoGraficos)+'.')
-
-            # a probbailidade de abrangência deve estar entre 0 e 1
-            if not (0 <= args[1] <= 1):
-                raise ValueError('O valor da probabilidade de abrangência deve estar entre 0 e 1.')
 
         # ---------------------------------------------------------------------
         # GETFOotimo
@@ -1033,7 +1028,7 @@ class EstimacaoNaoLinear:
         if regiao is not None:
             self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[4])
 
-    def incertezaParametros(self,PA=0.95,delta=1e-5,metodo='2InvHessiana'):       
+    def incertezaParametros(self,metodo='2InvHessiana',**kwargs):
         u'''
         
         Método para avaliação da matriz de covariãncia dos parâmetros e região de abrangência.
@@ -1047,7 +1042,7 @@ class EstimacaoNaoLinear:
         =======================
         Entradas (opcionais)
         =======================
-        * PA     (float)  : probabilidade de abrangência para gerar a região de abrangência
+
         * delta  (float)  : incremento para o cálculo das derivadas (derivada numérica)
         * metodo (string) : método para cálculo da matriz de covariãncia dos
         parâmetros. Métodos disponíveis: 2InvHessiana, Geral, SensibilidadeModelo
@@ -1062,11 +1057,33 @@ class EstimacaoNaoLinear:
         ==========
         * A região de abrangência só é executada caso haja histórico da otimização e o atributo regiao_abrangencia
         de parâmetros não esteja definido.
+
+        ==========================
+        Keyword Arguments (kwargs)
+        ==========================
+
+        * deltaHess: delta a ser utilizado para a matriz Hessiana
+        * deltaGy: delta a ser utilzido para a matriz de derivadas parciais segunda da função objetivo em relação
+        aos parâmetros e dados experimentais (y)
+        * deltaS: delta a ser utilizado na matriz de derivadas do modelo em relação dos parâmetros.
+        * delta: quando definido, ajusta deltaHess, deltaGy e deltaS para o valor definido
         '''
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------         
-        self.__validacaoArgumentosEntrada('incertezaParametros',None,metodo) 
+        self.__validacaoArgumentosEntrada('incertezaParametros',kwargs,metodo)
+
+        # ---------------------------------------------------------------------
+        # DELTAS (INCREMENTO) DAS DERIVADAS
+        # ---------------------------------------------------------------------
+        if kwargs.get('delta') is not None:
+            kwargs['deltaHess'] = kwargs['delta']
+            kwargs['deltaGy'] = kwargs['delta']
+            kwargs['deltaS'] = kwargs['delta']
+
+        self._deltaHessiana = kwargs.get('deltaHess') if kwargs.get('deltaHess') is not None else self._deltaHessiana
+        self._deltaGy = kwargs.get('deltaGy') if kwargs.get('deltaGy') is not None else self._deltaGy
+        self._deltaS = kwargs.get('deltaS') if kwargs.get('deltaS') is not None else self._deltaS
 
         # ---------------------------------------------------------------------
         # MATRIZ DE COVARIÂNCIA DOS PARÂMETROS
@@ -1074,18 +1091,23 @@ class EstimacaoNaoLinear:
 
         # Avaliação de matrizes auxiliares
         # Matriz Hessiana da função objetivo em relação aos parâmetros
-        Hess   = self.__Hessiana_FO_Param(delta)
+        # somente avaliada se o método é 2InvHess ou Geral
+        if metodo == self.__metodosIncerteza[0] or metodo == self.__metodosIncerteza[1]:
+            self.Hessiana   = self.__Hessiana_FO_Param(self._deltaHessiana)
 
-        # Inversa da matriz hessiana a função objetivo em relação aos parâmetros
-        invHess = inv(Hess)
+            # Inversa da matriz hessiana a função objetivo em relação aos parâmetros
+            invHess = inv(self.Hessiana)
 
         # Gy: derivadas parciais segundas da função objetivo em relação aos parâmetros e
         # dados experimentais
-        Gy  = self.__Matriz_Gy(delta)
+        # Somente avaliada caso o método seja Geral
+        if metodo == self.__metodosIncerteza[1]:
+            self.Gy  = self.__Matriz_Gy(self._deltaGy)
 
         # Matriz de sensibilidade do modelo em relação aos parâmetros
-
-        S   = self.__Matriz_S(self.x.experimental.matriz_estimativa,delta)
+        # Somente avaliada caso o método seja o simplificado
+        if metodo == self.__metodosIncerteza[2]:
+            self.S   = self.__Matriz_S(self.x.experimental.matriz_estimativa,self._deltaS)
 
         # ---------------------------------------------------------------------
         # AVALIAÇÃO DA INCERTEZA DOS PARÂMETROS
@@ -1098,11 +1120,11 @@ class EstimacaoNaoLinear:
 
         # Método: geral - > inv(H)*Gy*Uyy*GyT*inv(H)
         elif metodo == self.__metodosIncerteza[1]:
-            matriz_covariancia  = invHess.dot(Gy).dot(self.y.experimental.matriz_covariancia).dot(Gy.transpose()).dot(invHess)
+            matriz_covariancia  = invHess.dot(self.Gy).dot(self.y.experimental.matriz_covariancia).dot(self.Gy.transpose()).dot(invHess)
 
         # Método: simplificado -> inv(trans(S)*inv(Uyy)*S)
         elif metodo == self.__metodosIncerteza[2]:
-            matriz_covariancia = inv(S.transpose().dot(inv(self.y.experimental.matriz_covariancia)).dot(S))
+            matriz_covariancia = inv(self.S.transpose().dot(inv(self.y.experimental.matriz_covariancia)).dot(self.S))
 
         # ---------------------------------------------------------------------
         # ATRIBUIÇÃO A GRANDEZA
@@ -1121,11 +1143,11 @@ class EstimacaoNaoLinear:
         # A região de abrangência só é executada caso haja histórico da otimização e o atributo regiao_abrangencia
         # da grandeza self.parâmetros não esteja definido
         if self.__etapasdisponiveis[12] in self.__etapasGlobal() and self.parametros.regiao_abrangencia is None:
-            regiao = self.regiaoAbrangencia(PA)
+            regiao = self.regiaoAbrangencia()
             # ATRIBUIÇÃO A GRANDEZA
             self.parametros._SETparametro(self.parametros.estimativa,self.parametros.matriz_covariancia,regiao)
 
-    def predicao(self,delta=1e-5):
+    def predicao(self,**kwargs):
         u'''
         Método para realizar a predição.
         
@@ -1137,44 +1159,64 @@ class EstimacaoNaoLinear:
         método ``SETparametro``.
 
 
-        =======
-        Entrada
-        =======
-        * delta: incremento a ser utilizado nas derivadas.        
-        
-        ========
-        Keywords
-        ========
+        =================
+        Keyword arguments
+        =================
+        ** Por default, este método vai utilizar os últimos deltas definidos na etapa de avaliação da incerteza **
+
+        * deltaHess: delta a ser utilizado para a matriz Hessiana
+        * deltaGy: delta a ser utilzido para a matriz de derivadas parciais da função objetivo em relação
+        aos parâmetros e dados experimentais
+        * deltaS: delta a ser utilizado na matriz de derivadas do modelo em relação dos parâmetros.
+        * delta: quando definido, ajusta deltaHess, deltaGy e deltaS para o valor definido.
         '''
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------      
-        self.__validacaoArgumentosEntrada('Predicao',None)
+        self.__validacaoArgumentosEntrada('Predicao',kwargs)
+
+        # ---------------------------------------------------------------------
+        # DELTAS (INCREMENTO) DAS DERIVADAS
+        # ---------------------------------------------------------------------
+        if kwargs.get('delta') is not None:
+            kwargs['deltaHess'] = kwargs['delta']
+            kwargs['deltaGy'] = kwargs['delta']
+            kwargs['deltaS'] = kwargs['delta']
+
+        self._deltaHessiana = kwargs.get('deltaHess') if kwargs.get('deltaHess') is not None else self._deltaHessiana
+        self._deltaGy = kwargs.get('deltaGy') if kwargs.get('deltaGy') is not None else self._deltaGy
+        self._deltaS = kwargs.get('deltaS') if kwargs.get('deltaS') is not None else self._deltaS
 
         # ---------------------------------------------------------------------
         # AVALIAÇÃO DAS MATRIZES AUXILIARES
         # ---------------------------------------------------------------------
-        # só é possível avaliar a matriz Hessiana, caso seja conhecido o valor da função objetivo
-        # no ponto ótimo
 
         # Matriz Hessiana da função objetivo em relação aos parâmetros
-        Hess = self.__Hessiana_FO_Param(delta)
+        # Somente reavaliada caso o método que a avalia não tenha sido executado E não tenha dados validacao
+        if self.__etapasdisponiveis[13] not in self.__etapasGlobal() and not self.__flag.info['dadosvalidacao']:
+            self.Hessiana = self.__Hessiana_FO_Param(self._deltaHessiana)
 
         # Inversa da matriz hessiana a função objetivo em relação aos parâmetros
-        invHess = inv(Hess)
+        # Só avaliada se o método de avaliação da Hessiana for executado E não tenha dados validacao
+        if self.__etapasdisponiveis[13] in self.__etapasGlobal():
+            invHess = inv(self.Hessiana)
 
         # Gy: derivadas parciais segundas da função objetivo em relação aos parâmetros e 
         # dados experimentais
-        Gy  = self.__Matriz_Gy(delta) 
-        
-        # Matriz de sensibilidade do modelo em relação aos parâmetros
-        S   = self.__Matriz_S(self.x.validacao.matriz_estimativa,delta)
+        # Somente reavaliada caso o método que a avalia não tenha sido executado E não tenha dados validacao
+        if self.__etapasdisponiveis[14] not in self.__etapasGlobal() and not self.__flag.info['dadosvalidacao']:
+            self.Gy  = self.__Matriz_Gy(self._deltaGy)
+
+        # S: transposto do jacobiano do modelo em relação aos parâmetros
+        # Somente reavaliada caso não tenha sido avaliada OU se tenha dados de validação
+        if (self.__etapasdisponiveis[15] not in self.__etapasGlobal()) or (self.__flag.info['dadosvalidacao']):
+            # Matriz de sensibilidade do modelo em relação aos parâmetros
+            self.S   = self.__Matriz_S(self.x.validacao.matriz_estimativa,self._deltaS)
           
         # ---------------------------------------------------------------------
         # PREDIÇÃO
         # ---------------------------------------------------------------------
         aux = self.__modelo(self.parametros.estimativa,self.x.validacao.matriz_estimativa,self._args_model())
-
         aux.start()
         aux.join()
     
@@ -1185,20 +1227,20 @@ class EstimacaoNaoLinear:
         # Se os dados de validação forem diferentes dos experimentais, será desconsiderado
         # a covariância entre os parâmetros e dados experimentais
         if self.__flag.info['dadosvalidacao']:
-            # TODO: incluir a propagação de incerteza de x para y (com Sx)
-            Uyycalculado = S.dot(self.parametros.matriz_covariancia).dot(S.transpose()) + self.y.validacao.matriz_covariancia
+
+            Uyycalculado = self.S.dot(self.parametros.matriz_covariancia).dot(self.S.transpose()) + self.y.validacao.matriz_covariancia
 
         else:
             # Neste caso, os dados de validação são os dados experimentais e será considerada
             # a covariância entre os parâmetros e dados experimentais
             # COVARIÃNCIA ENTRE PARÂMETROS E DADOS EXPERIMENTAIS
-            Covar_param_y_experimental = -invHess.dot(Gy).dot(self.y.validacao.matriz_covariancia)
+            Covar_param_y_experimental = -invHess.dot(self.Gy).dot(self.y.validacao.matriz_covariancia)
             # PRIMEIRA PARCELA
-            Uyycalculado_1 = S.dot(self.parametros.matriz_covariancia).dot(S.transpose())
+            Uyycalculado_1 = self.S.dot(self.parametros.matriz_covariancia).dot(self.S.transpose())
             # SEGUNDA PARCELA            
-            Uyycalculado_2 = S.dot(Covar_param_y_experimental)
+            Uyycalculado_2 = self.S.dot(Covar_param_y_experimental)
             # TERCEIRA PARCELA
-            Uyycalculado_3 = Covar_param_y_experimental.transpose().dot(S.transpose())
+            Uyycalculado_3 = Covar_param_y_experimental.transpose().dot(self.S.transpose())
             # MATRIZ DE COVARIÃNCIA DE Y
             Uyycalculado   = Uyycalculado_1 + Uyycalculado_2 + Uyycalculado_3 + self.y.experimental.matriz_covariancia
 
@@ -1316,7 +1358,13 @@ class EstimacaoNaoLinear:
                     #(Gilat, Amos; MATLAB Com Aplicação em Engenharia, 2a ed, Bookman, 2006.)
                     matriz_hessiana[i][j]=((FO_ipositivo_jpositivo.result-FO_inegativo_jpositivo.result)/(2*delta1)\
                     -(FO_ipositivo_jnegativo.result-FO_inegativo_jnegativo.result)/(2*delta1))/(2*delta2)
- 
+
+        # ---------------------------------------------------------------------
+        # VARIÁVEIS INTERNAS
+        # ---------------------------------------------------------------------
+        # Inclusão desta etapa na lista de etapas: Hessiana
+        self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[13])
+
         return array(matriz_hessiana)
         
     def __Matriz_Gy(self,delta=1e-5):
@@ -1396,7 +1444,13 @@ class EstimacaoNaoLinear:
                 # (Gilat, Amos; MATLAB Com Aplicação em Engenharia, 2a ed, Bookman, 2006.)
                 matriz_Gy[i][j]=((FO_ipositivo_jpositivo.result-FO_inegativo_jpositivo.result)/(2*delta1)\
                 -(FO_ipositivo_jnegativo.result-FO_inegativo_jnegativo.result)/(2*delta1))/(2*delta2)
-                
+
+        # ---------------------------------------------------------------------
+        # VARIÁVEIS INTERNAS
+        # ---------------------------------------------------------------------
+        # Inclusão desta etapa na lista de etapas: Gy
+        self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[14])
+
         return array(matriz_Gy)
 
     def __Matriz_Sx(self,delta=1e-5):
@@ -1473,10 +1527,15 @@ class EstimacaoNaoLinear:
                 # Fórmula de diferença finita de primeira ordem. Fonte bibliográfica bibliográfia:\
                 #(Gilat, Amos; MATLAB Com Aplicação em Engenharia, 2a ed, Bookman, 2006.) - página (?)
                 matriz_S[:,i:i+1] =  (matriz2vetor(ycalculado_delta_positivo.result) - matriz2vetor(ycalculado_delta_negativo.result))/(2*delta_alpha)
-                
+        # ---------------------------------------------------------------------
+        # VARIÁVEIS INTERNAS
+        # ---------------------------------------------------------------------
+        # Inclusão desta etapa na lista de etapas: Gy
+        self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[15])
+
         return matriz_S
  
-    def regiaoAbrangencia(self,PA=0.95):
+    def regiaoAbrangencia(self):
         u'''
         Método para avaliação da região de abrangência pelo critério de Fisher, conhecidas
         como região de verossimilhança [1].
@@ -1489,13 +1548,13 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------
-        self.__validacaoArgumentosEntrada('regiaoAbrangencia',None,PA)
+        self.__validacaoArgumentosEntrada('regiaoAbrangencia',None)
 
         # ---------------------------------------------------------------------
         # DETERMINAÇÃO DA REGIÃO DE ABRANGÊNCIA PELO CRITÉRIO DE FISHER
         # ---------------------------------------------------------------------
         # TesteF = F(PA,NP,NE*NY-NP)
-        fisher = f.ppf(PA,self.parametros.NV,(self.y.experimental.NE*self.y.NV-self.parametros.NV))
+        fisher = f.ppf(self.PA,self.parametros.NV,(self.y.experimental.NE*self.y.NV-self.parametros.NV))
 
         # Valor máximo da função objetivo que um certo conjunto de parâmetros pode gerar para estar contido
         # na região de abrangência
@@ -1523,16 +1582,11 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         return regiao
         
-    def analiseResiduos(self,PA):
+    def analiseResiduos(self):
         u'''
         Método para realização da análise de resíduos.
         A análise da sempre preferência aos dados de validação.
 
-        ========
-        Entradas
-        ========
-        PA= Probabilidade de Abrângência
-        
         ======
         Saídas
         ======
@@ -1548,7 +1602,6 @@ class EstimacaoNaoLinear:
               * FO > chi2max: o modelo não é capaz de explicar os erros experimentais
               ou pode haver subestimação dos erros esperimentais
         '''
-        # TODO: avaliar se PA deve ser self
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------         
@@ -1612,8 +1665,8 @@ class EstimacaoNaoLinear:
         # TODO: substituir pelo grau de liberdade dos parâmetros, após merge com INcertezaParametros
         gL = self.y.experimental.NE*self.y.NV - self.parametros.NV
         
-        chi2max = chi2.ppf(PA+(1-PA)/2,gL)
-        chi2min = chi2.ppf((1-PA)/2,gL)
+        chi2max = chi2.ppf(self.PA+(1-self.PA)/2,gL)
+        chi2min = chi2.ppf((1-self.PA)/2,gL)
 
         self.estatisticas['FuncaoObjetivo'] = {'chi2max':chi2max,'chi2min':chi2min,'FO':self.FOotimo}
 
@@ -1623,7 +1676,7 @@ class EstimacaoNaoLinear:
         # Inclusão desta etapa na lista de etapas
         self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[5]) 
 
-    def graficos(self,tipos,PA=0.95):
+    def graficos(self,tipos):
         u"""
         Métodos para gerar e salvar os gráficos
 
@@ -1637,14 +1690,12 @@ class EstimacaoNaoLinear:
             * 'grandezas-calculadas': gráficos dos valores calculados de cada grandeza
             * 'otimizacao': gráficos referentes à otimização (depende do algoritmo utilizado)
             * 'analiseResiduos': gráficos referentes à análise de resíduos.
-
-        * ``PA``: probabilidade de abrangência a ser utilizada para definição dos intervalos de abrangência.
         """
         
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------         
-        self.__validacaoArgumentosEntrada('graficos', None, [tipos, PA])
+        self.__validacaoArgumentosEntrada('graficos', None, [tipos])
 
         # ---------------------------------------------------------------------
         # CAMINHO BASE
@@ -1750,7 +1801,7 @@ class EstimacaoNaoLinear:
                                 aux2.append(self.parametros.regiao_abrangencia[it][p2])
                             PSO, = plot(aux1,aux2,'bo',linewidth=2.0,zorder=1)
                             
-                        Fisher = f.ppf(PA,self.parametros.NV,(self.y.experimental.NE*self.y.NV-self.parametros.NV))            
+                        Fisher = f.ppf(self.PA,self.parametros.NV,(self.y.experimental.NE*self.y.NV-self.parametros.NV))
                         Comparacao = self.FOotimo*(float(self.parametros.NV)/(self.y.experimental.NE*self.y.NV-float(self.parametros.NV))*Fisher)
                         cov = array([[self.parametros.matriz_covariancia[p1,p1],self.parametros.matriz_covariancia[p1,p2]],[self.parametros.matriz_covariancia[p2,p1],self.parametros.matriz_covariancia[p2,p2]]])
                         ellipse, width, height, theta = plot_cov_ellipse(cov, [self.parametros.estimativa[p1],self.parametros.estimativa[p2]], Comparacao, fill = False, color = 'r', linewidth=2.0,zorder=2)
@@ -1803,8 +1854,8 @@ class EstimacaoNaoLinear:
                 #incerteza_expandida_Yc=ones((self.y.calculado.NE,self.y.NV))
                 #incerteza_expandida_Ye=ones((self.y.validacao.NE,self.y.NV))
 
-                t_cal=t.ppf((1-PA)/2, self.y.calculado.gL[0][0])
-                t_val=t.ppf((1-PA)/2, self.y.validacao.gL[0][0])
+                t_cal=t.ppf((1-self.PA)/2, self.y.calculado.gL[0][0])
+                t_val=t.ppf((1-self.PA)/2, self.y.validacao.gL[0][0])
 
                 for iy in xrange(self.y.NV):
                         # Gráfico comparativo entre valores experimentais e calculados pelo modelo, sem variância         
@@ -1883,11 +1934,11 @@ class EstimacaoNaoLinear:
 
                                 ycalc_inferior_F.append(self.y.calculado.matriz_estimativa[iNE,iy]+\
                                             t_val\
-                                            *(f.ppf((PA+(1-PA)/2),self.y.calculado.gL[iy][iNE],\
+                                            *(f.ppf((self.PA+(1-self.PA)/2),self.y.calculado.gL[iy][iNE],\
                                             self.y.validacao.gL[iy][iNE])*self.y.validacao.matriz_covariancia[iNE,iNE])**0.5)
 
                                 ycalc_superior_F.append(self.y.calculado.matriz_estimativa[iNE,iy]-t_val\
-                                               *(f.ppf((PA+(1-PA)/2),self.y.calculado.gL[iy][iNE],\
+                                               *(f.ppf((self.PA+(1-self.PA)/2),self.y.calculado.gL[iy][iNE],\
                                             self.y.validacao.gL[iy][iNE])*self.y.validacao.matriz_covariancia[iNE,iNE])**0.5)
 
                             fig = figure()
