@@ -71,7 +71,7 @@ class EstimacaoNaoLinear:
         * Scipy
         * Matplotlib
         * Math
-        * PSO - versão 0.1-beta **Obtida no link https://github.com/ddss/PSO/releases. Os códigos devem estar dentro de uma pasta de nome PSO**
+        * PSO - versão 0.2-beta **Obtida no link https://github.com/ddss/PSO/releases/tag/v0.2-beta. Os códigos devem estar dentro de uma pasta de nome PSO**
         * statsmodels
 
         =======================
@@ -483,23 +483,15 @@ class EstimacaoNaoLinear:
                 raise SyntaxError('O método {} não pode ser executado com {}'.format(self.__etapasdisponiveis[2], self.__etapasdisponiveis[8]))
 
             # verificação se o algoritmo é um string
-            if not isinstance(args[3],str):
+            if not isinstance(args[1],str):
                 raise TypeError('O nome do algoritmo de ser uma string.')
 
             # verificação se o algoritmo está disponível
-            if not args[3] in self.__AlgoritmosOtimizacao:
+            if not args[1] in self.__AlgoritmosOtimizacao:
                 raise NameError('A opção {} de algoritmo não está correta. Algoritmos disponíveis: '.format(args)+', '.join(self.__AlgoritmosOtimizacao)+'.')
 
-            # validação dos limites de busca - tipo lista
-            if not isinstance(args[0],list) and not isinstance(args[1],list):
-                raise TypeError('Os limites de busca inferior e superior devem ser listas.')
-
-            # validação dos limites de busca - tamanho
-            if len(args[0]) != self.parametros.NV or len(args[1]) != self.parametros.NV:
-                raise TypeError('Os limites de busca devem ter a mesma dimensão do número de parâmetros, definida nos símbolos. Número de parâmetros: {}'.format(self.parametros.NV))
-
             # validação da estimativa inicial:
-            if args[2] is not None:
+            if args[0] is not None:
                 if not isinstance(args[2],list) or len(args[2]) != self.parametros.NV:
                     raise TypeError('A estimativa inicial deve ser uma lista de dimensão do número de parâmetros, definida nos símbolos. Número de parâmetros: {}'.format(self.parametros.NV))
 
@@ -823,7 +815,7 @@ class EstimacaoNaoLinear:
         # VALIDAÇÃO
         # ---------------------------------------------------------------------
         # Validação das keywords obrigatórias para o método de otimização
-        self.__validacaoArgumentosEntrada('otimizacao',kwargs,[limite_inferior,limite_superior,estimativa_inicial,algoritmo])
+        self.__validacaoArgumentosEntrada('otimizacao',kwargs,[estimativa_inicial,algoritmo])
  
         self.__flag.ToggleInactive('reconciliacao')
 
@@ -845,6 +837,7 @@ class EstimacaoNaoLinear:
                 kwargsbusca['printit'] = kwargs.get('printit')
                 kwargs.pop('printit')
 
+            kwargs['NP'] = self.parametros.NV
             # ---------------------------------------------------------------------
             # VALIDAÇÃO DO MODELO
             # ---------------------------------------------------------------------            
@@ -865,7 +858,7 @@ class EstimacaoNaoLinear:
             # ---------------------------------------------------------------------
             self.__hist_Posicoes = []; self.__hist_Fitness = []
 
-            for it in xrange(self.Otimizacao.itmax):
+            for it in xrange(self.Otimizacao.n_historico):
                 for ID_particula in xrange(self.Otimizacao.Num_particulas):
                     self.__hist_Posicoes.append(self.Otimizacao.historico_posicoes[it][ID_particula])
                     self.__hist_Fitness.append(self.Otimizacao.historico_fitness[it][ID_particula])
@@ -1766,7 +1759,7 @@ class EstimacaoNaoLinear:
             if self.__etapasdisponiveis[2] in self.__etapasGlobal() and self.__flag.info['graficootimizacao']:
                 # Gráficos da otimização
 
-                self.Otimizacao.Graficos(base_path+base_dir,Nome_param=self.parametros.simbolos,Unid_param=self.parametros.unidades,FO2a2=True)
+                self.Otimizacao.Graficos(base_path+base_dir,Nome_param=self.parametros.labelGraficos(),FO2a2=True)
     
             else:
                 warn('Os gráficos de otimizacao não puderam ser criados, o algoritmo de otimização utilizado não possui gráficos de desempenho OU o método {} não foi executado.'.format(self.__etapasdisponiveis[2]),UserWarning)
@@ -2067,4 +2060,4 @@ class EstimacaoNaoLinear:
         # RELATÓRIO DA PREDIÇÃO E ANÁLISE DE RESÍDUOS
         # ---------------------------------------------------------------------
         if self.__flag.info['relatoriootimizacao']:
-            self.Otimizacao.Result_txt(base_path=self.__base_path + sep +self._configFolder['relatorio'] + sep)
+            self.Otimizacao.Relatorios(base_path=self.__base_path + sep +self._configFolder['relatorio'] + sep,titulo_relatorio='relatorio-otimizacao.txt')

@@ -365,21 +365,25 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # KEYWORDS
         # ---------------------------------------------------------------------
         # Atributos obrigatórios
-        sup = kwargs.get('sup')
-        inf = kwargs.get('inf')
+        limite_superior = kwargs.get('limite_superior')
+        limite_inferior = kwargs.get('limite_inferior')
 
-        if sup is None:
-            sup = [self.parametros.estimativa[i] + 5*t.ppf(self.PA+(1-self.PA)/2,100)*self.parametros.matriz_incerteza[0,i] for i in xrange(self.parametros.NV)]
+        if limite_superior is None:
+            limite_superior = [self.parametros.estimativa[i] + 5*t.ppf(self.PA+(1-self.PA)/2,100)*self.parametros.matriz_incerteza[0,i] for i in xrange(self.parametros.NV)]
         else:
-            del kwargs['sup'] # retira sup dos argumentos extras
+            del kwargs['limite_superior'] # retira limite_superior dos argumentos extras
 
-        if inf is None:
-            inf = [self.parametros.estimativa[i] - 5*t.ppf(self.PA+(1-self.PA)/2,100)*self.parametros.matriz_incerteza[0,i] for i in xrange(self.parametros.NV)]
+        if limite_inferior is None:
+            limite_inferior = [self.parametros.estimativa[i] - 5*t.ppf(self.PA+(1-self.PA)/2,100)*self.parametros.matriz_incerteza[0,i] for i in xrange(self.parametros.NV)]
         else:
-            del kwargs['inf'] # retira inf dos argumentos extras
+            del kwargs['limite_inferior'] # retira limite_inferior dos argumentos extras
 
         if kwargs.get('itmax') is None:
-            kwargs['itmax'] = 300
+            kwargs['itmax'] = 500
+
+        if kwargs.get('metodo') is None:
+            kwargs['metodo'] = {'busca':'Regiao','algoritmo':'PSO','inercia':'Constante'}
+            kwargs['otimo']  = self.parametros.estimativa
 
         # Separação de keywords para os diferentes métodos
         # keywarg para a etapa de busca:
@@ -388,7 +392,9 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             kwargsbusca['printit'] = kwargs.get('printit')
             del kwargs['printit']
 
-        self.Otimizacao = PSO(sup,inf,args_model=self._args_FO(),**kwargs)
+        kwargs['NP'] = self.parametros.NV
+
+        self.Otimizacao = PSO(limite_superior,limite_inferior,args_model=self._args_FO(),**kwargs)
         self.Otimizacao.Busca(self._EstimacaoNaoLinear__FO,**kwargsbusca)
 
         # ---------------------------------------------------------------------
@@ -396,7 +402,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # ---------------------------------------------------------------------
         self._EstimacaoNaoLinear__hist_Posicoes = []; self._EstimacaoNaoLinear__hist_Fitness = []
 
-        for it in xrange(self.Otimizacao.itmax):
+        for it in xrange(self.Otimizacao.n_historico):
             for ID_particula in xrange(self.Otimizacao.Num_particulas):
                 self._EstimacaoNaoLinear__hist_Posicoes.append(self.Otimizacao.historico_posicoes[it][ID_particula])
                 self._EstimacaoNaoLinear__hist_Fitness.append(self.Otimizacao.historico_fitness[it][ID_particula])
