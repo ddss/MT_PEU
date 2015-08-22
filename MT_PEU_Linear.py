@@ -331,23 +331,21 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # CÁLCULO DA MATRIZ DE COVARIÂNCIA
         # ---------------------------------------------------------------------
         # Caso a matriz de covariância não seja calculada, ela será aqui calculada
-        if self.parametros.matriz_covariancia is None:
-            X   = self.x.experimental.matriz_estimativa
-            Uyy = self.y.experimental.matriz_covariancia
-            variancia = inv(X.transpose().dot(inv(Uyy)).dot(X))
-            self.parametros._SETparametro(self.parametros.estimativa, variancia, self.parametros.regiao_abrangencia)
+        X   = self.x.experimental.matriz_estimativa
+        Uyy = self.y.experimental.matriz_covariancia
+        variancia = inv(X.transpose().dot(inv(Uyy)).dot(X))
+        self.parametros._SETparametro(self.parametros.estimativa, variancia, self.parametros.regiao_abrangencia)
 
-            # ---------------------------------------------------------------------
-            # VARIÁVEIS INTERNAS
-            # ---------------------------------------------------------------------
-            self._EstimacaoNaoLinear__etapas[self._EstimacaoNaoLinear__etapasID].append(self._EstimacaoNaoLinear__etapasdisponiveis[3])
+        # ---------------------------------------------------------------------
+        # VARIÁVEIS INTERNAS
+        # ---------------------------------------------------------------------
+        self._EstimacaoNaoLinear__etapas[self._EstimacaoNaoLinear__etapasID].append(self._EstimacaoNaoLinear__etapasdisponiveis[3])
 
         # ---------------------------------------------------------------------
         # CÁLCULO DA REGIÃO DE ABRANGÊNCIA
         # ---------------------------------------------------------------------
         # A região de abrangência só é calculada caso não esteja definida
-        if self._EstimacaoNaoLinear__etapasdisponiveis[12] in self._EstimacaoNaoLinear__etapasGlobal() and \
-           self.parametros.regiao_abrangencia is None:
+        if self.parametros.regiao_abrangencia is None:
 
             regiao = self.regiaoAbrangencia(PA,**kwargs)
 
@@ -373,23 +371,23 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         sup = kwargs.get('sup')
         inf = kwargs.get('inf')
 
-        if sup == None:
-            sup = (self.parametros.estimativa + 5*t.ppf(PA+(1-PA)/2,100)*self.parametros.matriz_incerteza).transpose().tolist()[0]
+        if sup is None:
+            sup = [self.parametros.estimativa[i] + 5*t.ppf(PA+(1-PA)/2,100)*self.parametros.matriz_incerteza[0,i] for i in xrange(self.parametros.NV)]
         else:
             del kwargs['sup'] # retira sup dos argumentos extras
 
-        if inf == None:
-            inf = (self.parametros.estimativa - 5*t.ppf(PA+(1-PA)/2,100)*self.parametros.matriz_incerteza).transpose().tolist()[0]
+        if inf is None:
+            inf = [self.parametros.estimativa[i] - 5*t.ppf(PA+(1-PA)/2,100)*self.parametros.matriz_incerteza[0,i] for i in xrange(self.parametros.NV)]
         else:
             del kwargs['inf'] # retira inf dos argumentos extras
 
-        if kwargs.get('itmax') == None:
+        if kwargs.get('itmax') is None:
             kwargs['itmax'] = 300
 
         # Separação de keywords para os diferentes métodos
         # keywarg para a etapa de busca:
         kwargsbusca = {}
-        if kwargs.get('printit')  != None:
+        if kwargs.get('printit') is not None:
             kwargsbusca['printit'] = kwargs.get('printit')
             del kwargs['printit']
 
