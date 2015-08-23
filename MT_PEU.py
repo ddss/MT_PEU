@@ -2001,8 +2001,6 @@ class EstimacaoNaoLinear:
                     fig.savefig(base_path+base_dir+'residuos_fl'+str(self.__etapasID)+'_versus_ycalculado.png')
                     close()
                     for j, simbol in enumerate(self.x.simbolos):
-                        base_dir = sep + self._configFolder['graficos-analiseResiduos'] + sep + self.x.simbolos[j] + sep
-                        Validacao_Diretorio(base_path,base_dir)
                         #X experimental vs. Resíduos
                         fig = figure()
                         ax = fig.add_subplot(1,1,1)
