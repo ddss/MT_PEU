@@ -1998,7 +1998,7 @@ class EstimacaoNaoLinear:
                     ax.xaxis.grid(color='gray', linestyle='dashed')
                     ax.axhline(0, color='black', lw=2)
                     legend()
-                    fig.savefig(base_path+base_dir+'residuos_fl'+str(self.__etapasID)+'_versus_ycalculado.png')
+                    fig.savefig(base_path+base_dir+'residuos_fl'+str(self.__etapasID)+'_versus_'+self.y.simbolos[i]+'_calculado.png')
                     close()
                     for j, simbol in enumerate(self.x.simbolos):
                         #X experimental vs. Resíduos
@@ -2012,7 +2012,7 @@ class EstimacaoNaoLinear:
                         ax.xaxis.grid(color='gray', linestyle='dashed')
                         ax.axhline(0, color='black', lw=2)
                         legend()
-                        fig.savefig(base_path+base_dir+'residuos_fl'+str(self.__etapasID)+'_versus_xexperimental.png')
+                        fig.savefig(base_path+base_dir+'residuos_fl'+str(self.__etapasID)+'_versus_'+self.x.simbolos[j]+'_experimental.png')
                         close()
 
             else:
