@@ -306,7 +306,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # Inclusão da incertezaParametros na lista de etapas
         self._EstimacaoNaoLinear__etapas[self._EstimacaoNaoLinear__etapasID].append(self._EstimacaoNaoLinear__etapasdisponiveis[3])
 
-    def incertezaParametros(self,**kwargs):
+    def incertezaParametros(self,preencherregiao=True,**kwargs):
         u'''
         Método para avaliar a região de abrangência dos parâmetros.
 
@@ -314,6 +314,11 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         A matriz de covariância dos parâmetros é calculada juntamente com a otimização, por ser parte constituinte da solução analítica. Entretanto,
         caso o método SETparametros seja executado e neste não seja definida a matriz de covariância, ela é calculada.
 
+        ==================
+        Entradas opcionais
+        ==================
+
+        * preencherregiao (bool): identifica se será realizado o preenchimento da região ou não.
 
         ========
         Keywords
@@ -333,7 +338,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         X   = self.x.experimental.matriz_estimativa
         Uyy = self.y.experimental.matriz_covariancia
         variancia = inv(X.transpose().dot(inv(Uyy)).dot(X))
-        self.parametros._SETparametro(self.parametros.estimativa, variancia, self.parametros.regiao_abrangencia)
+        self.parametros._updateParametro(matriz_covariancia=variancia)
 
         # ---------------------------------------------------------------------
         # VARIÁVEIS INTERNAS
@@ -345,71 +350,12 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # ---------------------------------------------------------------------
         # A região de abrangência só é calculada caso não esteja definida
         if self.parametros.regiao_abrangencia is None:
+            if preencherregiao:
+                self._EstimacaoNaoLinear__preencherRegiao(**kwargs)
 
-            regiao = self.regiaoAbrangencia(**kwargs)
+            regiao = self.regiaoAbrangencia()
 
             # ---------------------------------------------------------------------
             # ATRIBUIÇÃO A GRANDEZA
             # ---------------------------------------------------------------------
-            self.parametros._SETparametro(self.parametros.estimativa, self.parametros.matriz_covariancia, regiao)
-
-
-    def regiaoAbrangencia(self,**kwargs):
-        u'''
-        Método para cálculo da região de abrangência de verossimilhança. 
-
-        kwargs: argumentos para o algoritmo de PSO. Vide documentação do PSO
-        '''
-
-        # ---------------------------------------------------------------------
-        # KEYWORDS
-        # ---------------------------------------------------------------------
-        # Atributos obrigatórios
-        limite_superior = kwargs.get('limite_superior')
-        limite_inferior = kwargs.get('limite_inferior')
-
-        if limite_superior is None:
-            limite_superior = [self.parametros.estimativa[i] + 5*t.ppf(self.PA+(1-self.PA)/2,100)*self.parametros.matriz_incerteza[0,i] for i in xrange(self.parametros.NV)]
-        else:
-            del kwargs['limite_superior'] # retira limite_superior dos argumentos extras
-
-        if limite_inferior is None:
-            limite_inferior = [self.parametros.estimativa[i] - 5*t.ppf(self.PA+(1-self.PA)/2,100)*self.parametros.matriz_incerteza[0,i] for i in xrange(self.parametros.NV)]
-        else:
-            del kwargs['limite_inferior'] # retira limite_inferior dos argumentos extras
-
-        if kwargs.get('itmax') is None:
-            kwargs['itmax'] = 500
-
-        if kwargs.get('metodo') is None:
-            kwargs['metodo'] = {'busca':'Regiao','algoritmo':'PSO','inercia':'Constante'}
-            kwargs['otimo']  = self.parametros.estimativa
-
-        # Separação de keywords para os diferentes métodos
-        # keywarg para a etapa de busca:
-        kwargsbusca = {}
-        if kwargs.get('printit') is not None:
-            kwargsbusca['printit'] = kwargs.get('printit')
-            del kwargs['printit']
-
-        kwargs['NP'] = self.parametros.NV
-
-        self.Otimizacao = PSO(limite_superior,limite_inferior,args_model=self._args_FO(),**kwargs)
-        self.Otimizacao.Busca(self._EstimacaoNaoLinear__FO,**kwargsbusca)
-
-        # ---------------------------------------------------------------------
-        # HISTÓRICO DA OTIMIZAÇÃO
-        # ---------------------------------------------------------------------
-        self._EstimacaoNaoLinear__hist_Posicoes = []; self._EstimacaoNaoLinear__hist_Fitness = []
-
-        for it in xrange(self.Otimizacao.n_historico):
-            for ID_particula in xrange(self.Otimizacao.Num_particulas):
-                self._EstimacaoNaoLinear__hist_Posicoes.append(self.Otimizacao.historico_posicoes[it][ID_particula])
-                self._EstimacaoNaoLinear__hist_Fitness.append(self.Otimizacao.historico_fitness[it][ID_particula])
-
-        # Como o histórico da otimização foi avaliado nesta função e ele é requisito para o cálculo da região
-        # de abrangência, ele foi adicinado à lista de etapas.
-
-        self._EstimacaoNaoLinear__etapas[self._EstimacaoNaoLinear__etapasID].append(self._EstimacaoNaoLinear__etapasdisponiveis[12])
-
-        return EstimacaoNaoLinear.regiaoAbrangencia(self)
+            self.parametros._updateParametro(regiao_abrangencia=regiao)

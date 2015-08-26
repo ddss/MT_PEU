@@ -334,7 +334,7 @@ class Grandeza:
         self.__ID.append('residuo')
         self.residuos = Organizador(estimativa,variancia,gL,tipo)  
 
-    def _SETparametro(self, estimativa, variancia, regiao):
+    def _SETparametro(self, estimativa, variancia, regiao,limite_inferior=None,limite_superior=None):
 
         # --------------------------------------
         # VALIDAÇÃO
@@ -386,7 +386,13 @@ class Grandeza:
         if variancia is not None:
             self.matriz_correlacao  = matrizcorrelacao(self.matriz_covariancia)
             self.matriz_incerteza   = diag(self.matriz_covariancia**0.5).reshape((1,self.NV),order='F')
+        else:
+            self.matriz_correlacao  = None
+            self.matriz_incerteza   = None
+
         self.regiao_abrangencia = regiao
+        self.limite_superior = limite_superior
+        self.limite_inferior = limite_inferior
 
         # --------------------------------------
         # VALIDAÇÃO
@@ -395,7 +401,31 @@ class Grandeza:
 
             if not isfinite(cond(self.matriz_covariancia)):
                 raise TypeError('A matriz de covariância dos parâmetros é singular.')
- 
+
+    def _updateParametro(self,**kwargs):
+        u'''
+        Método para fazer atualização de informação contida em Parametro.
+        Evita repetição de uso do método _SETParametros.
+
+        =================
+        Keyword Arguments
+        =================
+        Nome dos parâmetros que se deseja atualizar:
+
+        * estimativa
+        * matriz_covariancia
+        * regiao_abrangencia
+        * limite_superior
+        * limite_inferior
+        '''
+        estimativa = kwargs.get('estimativa') if kwargs.get('estimativa') is not None else self.estimativa
+        variancia = kwargs.get('matriz_covariancia') if kwargs.get('matriz_covariancia') is not None else self.matriz_covariancia
+        regiao = kwargs.get('regiao_abrangencia') if kwargs.get('regiao_abrangencia') is not None else self.regiao_abrangencia
+        limite_superior = kwargs.get('limite_superior') if kwargs.get('limite_superior') is not None else self.limite_superior
+        limite_inferior = kwargs.get('limite_inferior') if kwargs.get('limite_inferior') is not None else self.limite_inferior
+
+        self._SETparametro(estimativa, variancia, regiao, limite_inferior, limite_superior)
+
     def labelGraficos(self,add=None, printunit=True):
         u'''
         Método para definição do label dos gráficos relacionado às grandezas.

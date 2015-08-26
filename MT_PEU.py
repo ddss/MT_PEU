@@ -265,7 +265,7 @@ class EstimacaoNaoLinear:
                                     'analiseResiduos','armazenarDicionario',
                                     'Predicao','SETparametro','graficos',
                                     'novoFluxo','GETFOotimo','historicoOtimizacao',
-                                    'Hessiana','Gy','S')
+                                    'Hessiana','Gy','S','preencherRegiao')
         
         # FLUXO DE INFORMAÇÕES -> conjunto de etapas que se inicia com o método gerarEntradas.
         
@@ -312,10 +312,14 @@ class EstimacaoNaoLinear:
         self.__FO        = FO
         # Modelo
         self.__modelo    = Modelo
-
         # Argumentos extras a serem passados para o modelo definidos pelo usuário.
         self.__args_user = None # Aqui iniciado para que possa existir na herança
-
+        # Histórico das posições (parâmetros) do algoritmo de otimização (usado em otimiza e/ou preencher
+        #  regiao e/ou regiaoAbrangencia)
+        self.__hist_Posicoes = []
+        # Histórico do fitness (valor funcao objetivo) do algoritmo de otimização (usado em otimiza e/ou preencher
+        #  regiao e/ou regiaoAbrangencia)
+        self.__hist_Fitness = []
         # Caminho base para os arquivos, caso seja definido a keyword base_path ela será utilizada.
         if kwargs.get(self.__keywordsEntrada[9]) is None:
             self.__base_path = getcwd()+ sep +str(projeto)+sep
@@ -507,16 +511,11 @@ class EstimacaoNaoLinear:
             if (self.__etapasdisponiveis[2] not in self.__etapasGlobal()) and (self.__etapasdisponiveis[8] not in self.__etapasGlobal()):
                 raise SyntaxError('Para executar a incertezaParametros, faz-se necessário primeiro executar os métodos {} OU {}.'.format(self.__etapasdisponiveis[2],self.__etapasdisponiveis[8]))
 
-            if args not in self.__metodosIncerteza:
+            if args[0] not in self.__metodosIncerteza:
                 raise NameError('O método solicitado para cálculo da incerteza dos parâmetros {}'.format(args)+' não está disponível. Métodos disponíveis '+', '.join(self.__metodosIncerteza)+'.')
 
-            # Validação se houve keywords digitadas incorretamente:
-
-            keyincorreta = [key for key in keywargs.keys() if not key in self.__keywordsDerivadas]
-
-            if len(keyincorreta) != 0:
-                raise NameError('keyword(s) incorreta(s): ' + ', '.join(keyincorreta) + '.' +
-                                ' Keywords disponíveis: ' + ', '.join(self.__keywordsDerivadas) + '.')
+            if not isinstance(args[1],bool):
+                raise TypeError('O argumento preencherregião deve ser booleano (True ou False).')
 
         # ---------------------------------------------------------------------
         # REGIÃO DE ABRANGÊNCIA
@@ -524,7 +523,8 @@ class EstimacaoNaoLinear:
         if etapa == self.__etapasdisponiveis[4]:
             # se historicoOtimizacao não tiver sido executado, não se pode criar a Região de abrangência
             if self.__etapasdisponiveis[12] not in self.__etapasGlobal():
-                raise SyntaxError('Para executar a região de abrangência, faz-se necessário primeiro executar um método que avalie o histórico da otimização. Normalmente é {}'.format(self.__etapasdisponiveis[2]))
+                raise SyntaxError('Para executar a região de abrangência, faz-se necessário primeiro executar um método que avalie o histórico da otimização. Normalmente é {} ou {}'.format(self.__etapasdisponiveis[2],self.__etapasdisponiveis[16]))
+
 
         # ---------------------------------------------------------------------
         # ANÁLISE RESÍDUOS
@@ -856,8 +856,6 @@ class EstimacaoNaoLinear:
             # ---------------------------------------------------------------------
             # HISTÓRICO DA OTIMIZAÇÃO
             # ---------------------------------------------------------------------
-            self.__hist_Posicoes = []; self.__hist_Fitness = []
-
             for it in xrange(self.Otimizacao.n_historico):
                 for ID_particula in xrange(self.Otimizacao.Num_particulas):
                     self.__hist_Posicoes.append(self.Otimizacao.historico_posicoes[it][ID_particula])
@@ -868,7 +866,7 @@ class EstimacaoNaoLinear:
             # ---------------------------------------------------------------------
             # Atribuindo o valor ótimo dos parâmetros
             # Toda vez que a otimização é executada toda informação anterior sobre parâmetros é perdida
-            self.parametros._SETparametro(self.Otimizacao.gbest,None,None)
+            self.parametros._SETparametro(self.Otimizacao.gbest,None,None,limite_superior=limite_superior,limite_inferior=limite_inferior)
 
         # ---------------------------------------------------------------------
         # VARIÁVEIS INTERNAS
@@ -956,7 +954,7 @@ class EstimacaoNaoLinear:
             else:
                 break
 
-    def SETparametro(self,estimativa,variancia=None,regiao=None):
+    def SETparametro(self,estimativa,variancia=None,regiao=None,**kwargs):
         u'''
         Método para atribuir uma estimativa aos parâmetros e, opcionamente, sua matriz de covarância e região de abrangência.
         Substitui o métodos otimiza e, opcionalmente, incertezaParametros.
@@ -979,6 +977,12 @@ class EstimacaoNaoLinear:
         executar o método regiaoAbrangencia, devido à não execução da otimização.
         * Inclusão da estimativa dos parâmetros, variancia e regiao:  irá substituir o método de otimização e incertezaParametros
 
+        =================
+        Keyword Arguments
+        =================
+        * limite_superior: limite superior dos parâmetros
+        * limtie_inferior: limite_inferior dos parâmetros
+
         =========
         ATRIBUTOS
         =========
@@ -996,7 +1000,7 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------     
         # Atribuindo o valores para a estimativa dos parâmetros e sua matriz de 
         # covariância
-        self.parametros._SETparametro(estimativa, variancia, regiao)
+        self.parametros._SETparametro(estimativa, variancia, regiao,**kwargs)
 
         # ---------------------------------------------------------------------
         # OBTENÇÃO DO PONTO ÓTIMO
@@ -1021,7 +1025,7 @@ class EstimacaoNaoLinear:
         if regiao is not None:
             self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[4])
 
-    def incertezaParametros(self,metodo='2InvHessiana',**kwargs):
+    def incertezaParametros(self,metodo='2InvHessiana',preencherregiao=True,**kwargs):
         u'''
         
         Método para avaliação da matriz de covariãncia dos parâmetros e região de abrangência.
@@ -1036,10 +1040,10 @@ class EstimacaoNaoLinear:
         Entradas (opcionais)
         =======================
 
-        * delta  (float)  : incremento para o cálculo das derivadas (derivada numérica)
         * metodo (string) : método para cálculo da matriz de covariãncia dos
         parâmetros. Métodos disponíveis: 2InvHessiana, Geral, SensibilidadeModelo
-        
+        * preencherregiao (bool): identifica de será executado algoritmo para preenchimento da região de abrangência.
+
         ======
         Saídas
         ======
@@ -1060,23 +1064,25 @@ class EstimacaoNaoLinear:
         aos parâmetros e dados experimentais (y)
         * deltaS: delta a ser utilizado na matriz de derivadas do modelo em relação dos parâmetros.
         * delta: quando definido, ajusta deltaHess, deltaGy e deltaS para o valor definido
+        * kwargs para o algoritmo de PSO para executar o preenchimento da região.
         '''
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------         
-        self.__validacaoArgumentosEntrada('incertezaParametros',kwargs,metodo)
+        self.__validacaoArgumentosEntrada('incertezaParametros',kwargs,[metodo,preencherregiao])
 
         # ---------------------------------------------------------------------
         # DELTAS (INCREMENTO) DAS DERIVADAS
         # ---------------------------------------------------------------------
         if kwargs.get('delta') is not None:
             kwargs['deltaHess'] = kwargs['delta']
-            kwargs['deltaGy'] = kwargs['delta']
-            kwargs['deltaS'] = kwargs['delta']
+            kwargs['deltaGy']   = kwargs['delta']
+            kwargs['deltaS']    = kwargs['delta']
+            kwargs.pop('delta')
 
-        self._deltaHessiana = kwargs.get('deltaHess') if kwargs.get('deltaHess') is not None else self._deltaHessiana
-        self._deltaGy = kwargs.get('deltaGy') if kwargs.get('deltaGy') is not None else self._deltaGy
-        self._deltaS = kwargs.get('deltaS') if kwargs.get('deltaS') is not None else self._deltaS
+        self._deltaHessiana = kwargs.pop('deltaHess') if kwargs.get('deltaHess') is not None else self._deltaHessiana
+        self._deltaGy = kwargs.pop('deltaGy') if kwargs.get('deltaGy') is not None else self._deltaGy
+        self._deltaS = kwargs.pop('deltaS') if kwargs.get('deltaS') is not None else self._deltaS
 
         # ---------------------------------------------------------------------
         # MATRIZ DE COVARIÂNCIA DOS PARÂMETROS
@@ -1122,7 +1128,7 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # ATRIBUIÇÃO A GRANDEZA
         # ---------------------------------------------------------------------
-        self.parametros._SETparametro(self.parametros.estimativa, matriz_covariancia, self.parametros.regiao_abrangencia)
+        self.parametros._updateParametro(matriz_covariancia=matriz_covariancia)
 
         # ---------------------------------------------------------------------
         # VARIÁVEIS INTERNAS
@@ -1136,9 +1142,13 @@ class EstimacaoNaoLinear:
         # A região de abrangência só é executada caso haja histórico da otimização e o atributo regiao_abrangencia
         # da grandeza self.parâmetros não esteja definido
         if self.__etapasdisponiveis[12] in self.__etapasGlobal() and self.parametros.regiao_abrangencia is None:
+            # PREENCHIMENTO DE REGIÃO:
+            if preencherregiao:
+                self.__preencherRegiao(**kwargs)
+            # OBTENÇÃO DA REGIÃO:
             regiao = self.regiaoAbrangencia()
             # ATRIBUIÇÃO A GRANDEZA
-            self.parametros._SETparametro(self.parametros.estimativa,self.parametros.matriz_covariancia,regiao)
+            self.parametros._updateParametro(regiao_abrangencia=regiao)
 
     def predicao(self,**kwargs):
         u'''
@@ -1527,7 +1537,75 @@ class EstimacaoNaoLinear:
         self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[15])
 
         return matriz_S
- 
+
+    def __preencherRegiao(self,**kwargs):
+        u'''
+        Método utilizado para preenchimento da região de abrangência
+
+        =================
+        Keyword arguments
+        =================
+        * argumentos extras a serem passados para o PSO
+
+        '''
+        # ---------------------------------------------------------------------
+        # KEYWORDS
+        # ---------------------------------------------------------------------
+        # Atributos obrigatórios
+        limite_superior = kwargs.get('limite_superior')
+        limite_inferior = kwargs.get('limite_inferior')
+
+        if limite_superior is None:
+            if self.parametros.limite_superior is not None:
+                limite_superior = [min([self.parametros.estimativa[i] + 3*t.ppf(self.PA+(1-self.PA)/2,100)*self.parametros.matriz_incerteza[0,i],
+                                       self.parametros.limite_superior[i]]) for i in xrange(self.parametros.NV)]
+            else:
+                 limite_superior = [self.parametros.estimativa[i] + 3*t.ppf(self.PA+(1-self.PA)/2,100)*self.parametros.matriz_incerteza[0,i] for i in xrange(self.parametros.NV)]
+        else:
+            kwargs.pop('limite_superior') # retira limite_superior dos argumentos extras
+
+        if limite_inferior is None:
+            if self.parametros.limite_inferior is not None:
+                limite_inferior = [max([self.parametros.estimativa[i] - 3*t.ppf(self.PA+(1-self.PA)/2,100)*self.parametros.matriz_incerteza[0,i],
+                                       self.parametros.limite_inferior[i]])for i in xrange(self.parametros.NV)]
+            else:
+                limite_inferior = [self.parametros.estimativa[i] - 3*t.ppf(self.PA+(1-self.PA)/2,100)*self.parametros.matriz_incerteza[0,i] for i in xrange(self.parametros.NV)]
+        else:
+            kwargs.pop('limite_inferior') # retira limite_inferior dos argumentos extras
+
+        if kwargs.get('itmax') is None:
+            kwargs['itmax'] = 500
+
+        if kwargs.get('metodo') is None:
+            kwargs['metodo'] = {'busca':'Regiao','algoritmo':'PSO','inercia':'Constante'}
+            kwargs['otimo']  = self.parametros.estimativa
+
+        # Separação de keywords para os diferentes métodos
+        # keywarg para a etapa de busca:
+        kwargsbusca = {}
+        if kwargs.get('printit') is not None:
+            kwargsbusca['printit'] = kwargs.get('printit')
+            del kwargs['printit']
+
+        kwargs['NP'] = self.parametros.NV
+
+        PSO_preenchimento = PSO(limite_superior,limite_inferior,args_model=self._args_FO(),**kwargs)
+        PSO_preenchimento.Busca(self.__FO,**kwargsbusca)
+
+        # ---------------------------------------------------------------------
+        # HISTÓRICO DA OTIMIZAÇÃO
+        # ---------------------------------------------------------------------
+        for it in xrange(PSO_preenchimento.n_historico):
+            for ID_particula in xrange(PSO_preenchimento.Num_particulas):
+                self.__hist_Posicoes.append(PSO_preenchimento.historico_posicoes[it][ID_particula])
+                self.__hist_Fitness.append(PSO_preenchimento.historico_fitness[it][ID_particula])
+
+        # ---------------------------------------------------------------------
+        # VARIÁVEIS INTERNAS
+        # ---------------------------------------------------------------------
+        self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[16])# Inclusão desta etapa da lista de etapas
+        self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[12])# Inclusão do histórico da otimização na lista de etapas
+
     def regiaoAbrangencia(self):
         u'''
         Método para avaliação da região de abrangência pelo critério de Fisher, conhecidas

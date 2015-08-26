@@ -61,7 +61,7 @@ class Relatorio:
             f.write(('{:#^'+str(max([70,parametros.NV*18]))+'}\n').format('PARÂMETROS'))
 
             # Estimativa dos parâmetros
-            f.write(('Simbolos   : '+ '{:^10} '*parametros.NV).format(*parametros.simbolos)    + '\n')
+            f.write(('Simbolos   : '+ '{:^10} '*parametros.NV).format(*parametros.simbolos) + '\n')
             f.write(('Estimativa : '+ '{:^10.3e} '*parametros.NV).format(*parametros.estimativa) + '\n')
 
             if parametros.matriz_covariancia is not None:
@@ -86,7 +86,18 @@ class Relatorio:
             f.write('\n')
             # Valor da função objetivo no ponto ótimo
             f.write( 'FObj : '+ '{:.3f} '.format(pontoOtimo)+'- {:<} \n'.format('Valor da função objetivo no ponto ótimo'))
-        f.close()
+            f.write('\n')
+            f.write(('{:-^'+str(max([70,parametros.NV*18]))+'}\n').format('RESTRIÇÕES'))
+            f.write(('Simbolos        : '+ '{:^10} '*parametros.NV).format(*parametros.simbolos) + '\n')
+            if parametros.limite_superior is not None:
+                f.write(('Limite superior : '+ '{:^10.3e} '*parametros.NV).format(*parametros.limite_superior) + '\n')
+            else:
+                f.write(('Limite superior : '+ '{:^10} '*parametros.NV).format(*['N/A']*parametros.NV) + '\n')
+            if parametros.limite_inferior is not None:
+                f.write(('Limite inferior : '+ '{:^10.3e} '*parametros.NV).format(*parametros.limite_inferior) + '\n')
+            else:
+                f.write(('Limite inferior : '+ '{:^10} '*parametros.NV).format(*['N/A']*parametros.NV) + '\n')
+            f.close()
 
     def Predicao(self,x,y,estatisticas,**kwargs):
         '''
