@@ -5,7 +5,7 @@ Arquivo que contém subrotinas genéricas para uso pelo MT_PEU.
 @author: Daniel
 """
 
-from numpy import concatenate, size, arctan2, degrees, sqrt, copy, ones, array
+from numpy import concatenate, size, arctan2, degrees, sqrt, copy, ones, array, cos, sin, radians
 from numpy.linalg import eigh
 from os import path, makedirs
 
@@ -141,7 +141,21 @@ def plot_cov_ellipse(cov, pos, c2=2, ax=None, **kwargs):
     ellip = Ellipse(xy=pos, width=width, height=height, angle=theta, **kwargs)
     
     ax.add_artist(ellip)
-    return (ellip, width, height, theta)
+
+    # Obtenção dos incremetos para cálculo
+    # dos pontos da elipse
+    a = height/2.
+    b = width/2.
+    if theta >= 0:
+        h_maior_eixo = (abs(cos(radians((180.-theta)))*b),abs(sin(radians(180.-theta))*b))
+        h_menor_eixo = (abs(cos(radians(theta-90))*a), abs(sin(radians(theta-90))*a))
+    else:
+        alpha = 180 + theta
+        h_maior_eixo = (abs(cos(radians(alpha))*b), abs(b*sin(radians(alpha))))
+        h_menor_eixo = (abs(cos(radians(90.-alpha))*a), abs(a*sin(radians(90-alpha))))
+
+
+    return (ellip, h_maior_eixo, h_menor_eixo, theta)
     
 def vetor_delta(entrada_vetor,posicao,delta):
     u"""

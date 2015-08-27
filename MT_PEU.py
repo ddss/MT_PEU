@@ -1875,28 +1875,33 @@ class EstimacaoNaoLinear:
                         Fisher = f.ppf(self.PA,self.parametros.NV,(self.y.experimental.NE*self.y.NV-self.parametros.NV))
                         Comparacao = self.FOotimo*(float(self.parametros.NV)/(self.y.experimental.NE*self.y.NV-float(self.parametros.NV))*Fisher)
                         cov = array([[self.parametros.matriz_covariancia[p1,p1],self.parametros.matriz_covariancia[p1,p2]],[self.parametros.matriz_covariancia[p2,p1],self.parametros.matriz_covariancia[p2,p2]]])
-                        ellipse, width, height, theta = plot_cov_ellipse(cov, [self.parametros.estimativa[p1],self.parametros.estimativa[p2]], Comparacao, fill = False, color = 'r', linewidth=2.0,zorder=2)
+                        ellipse, h_maior_eixo, h_menor_eixo,theta = plot_cov_ellipse(cov, [self.parametros.estimativa[p1],self.parametros.estimativa[p2]], Comparacao, fill = False, color = 'r', linewidth=2.0,zorder=2)
                         plot(self.parametros.estimativa[p1],self.parametros.estimativa[p2],'r*',markersize=10.0,zorder=2)
                         ax.yaxis.grid(color='gray', linestyle='dashed')                        
                         ax.xaxis.grid(color='gray', linestyle='dashed')
                         xlabel(self.parametros.labelGraficos()[p1],fontsize=20)
                         ylabel(self.parametros.labelGraficos()[p2],fontsize=20)
-                        if abs(theta)>=179.9:
-                            hx = width / 2.
-                            hy = height /2.
-                        elif 89.9 <= abs(theta) <= 90.1:
-                            hx = height / 2.
-                            hy=  width  / 2.
+
+                        # Cálculos dos pontos extremos da elipse:
+                        folga = 1.1
+                        if theta >= 0:
+                            pontos_maior_eixo = ((self.parametros.estimativa[p1] + folga*h_maior_eixo[0], self.parametros.estimativa[p2] - folga*h_maior_eixo[1]),
+                                                 (self.parametros.estimativa[p1] - folga*h_maior_eixo[0], self.parametros.estimativa[p2] + folga*h_maior_eixo[1]))
+                            pontos_menor_eixo = ((self.parametros.estimativa[p1] + folga*h_menor_eixo[0], self.parametros.estimativa[p2] + folga*h_menor_eixo[1]),
+                                                 (self.parametros.estimativa[p1] - folga*h_menor_eixo[0], self.parametros.estimativa[p2] - folga*h_menor_eixo[1]))
                         else:
-                            hx = abs(width*cos(radians(theta))/2.)
-                            hy = max([abs(width*sin(radians(theta))/2.),abs(height*sin(radians(theta))/2.)])
-    
+                            pontos_maior_eixo = ((self.parametros.estimativa[p1] + folga*h_maior_eixo[0], self.parametros.estimativa[p2] + folga*h_maior_eixo[1]),
+                                                 (self.parametros.estimativa[p1] - folga*h_maior_eixo[0], self.parametros.estimativa[p2] - folga*h_maior_eixo[1]))
+                            pontos_menor_eixo = ((self.parametros.estimativa[p1] + folga*h_menor_eixo[0], self.parametros.estimativa[p2] - folga*h_menor_eixo[1]),
+                                                 (self.parametros.estimativa[p1] - folga*h_menor_eixo[0], self.parametros.estimativa[p2] + folga*h_menor_eixo[1]))
+                        coordenadas_x = [pontos_maior_eixo[0][0],pontos_maior_eixo[1][0],pontos_menor_eixo[0][0],pontos_menor_eixo[1][0]]
+                        coordenadas_y = [pontos_maior_eixo[0][1],pontos_maior_eixo[1][1],pontos_menor_eixo[0][1],pontos_menor_eixo[1][1]]
+                        xlimpontos        = (min(coordenadas_x),max(coordenadas_x))
+                        ylimpontos        = (min(coordenadas_y),max(coordenadas_y))
                         xauto = [ax.get_xticks()[0],ax.get_xticks()[-1]]
                         yauto = [ax.get_yticks()[0],ax.get_yticks()[-1]]
-                        xlim((min([self.parametros.estimativa[p1] - 1.15*hx,xauto[0]]),
-                              max([self.parametros.estimativa[p1] + 1.15*hx,xauto[-1]])))
-                        ylim((min([self.parametros.estimativa[p2] - 1.15*hy,yauto[0]]),
-                              max([self.parametros.estimativa[p2] + 1.15*hy,yauto[-1]])))
+                        xlim((min([xlimpontos[0],xauto[0]]),max([xlimpontos[1],xauto[-1]])))
+                        ylim((min([ylimpontos[0],yauto[0]]),max([ylimpontos[1],yauto[-1]])))
                         if self.__etapasdisponiveis[4] in self.__etapasGlobal() and self.parametros.regiao_abrangencia != []:
                             legend([ellipse,PSO],['Elipse',u'Verossimilhança'])
                         elif self.__etapasdisponiveis[4] in self.__etapasGlobal() and self.parametros.regiao_abrangencia == []:
