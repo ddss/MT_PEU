@@ -56,7 +56,7 @@ class Modelo(Thread):
 
 class EstimacaoLinear(EstimacaoNaoLinear):
     
-    def __init__(self,simbolos_y,simbolos_x,simbolos_param,projeto='Projeto',**kwargs):
+    def __init__(self,simbolos_y,simbolos_x,simbolos_param,PA=0.95,projeto='Projeto',**kwargs):
         u'''
         Classe para executar a estimação de parâmetros de modelos MISO lineares nos parâmetros       
 
@@ -75,12 +75,17 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         * ``simbolos_y`` (list)     : lista com os simbolos das variáveis y (Não podem haver caracteres especiais)
         * ``simbolos_x`` (list)     : lista com os simbolos das variáveis x (Não podem haver caracteres especiais)
         * ``simbolos_param`` (list) : lista com o simbolos dos parâmetros (Não podem haver caracteres especiais)
-        * ``projeto`` (string)      : nome do projeto (Náo podem haver caracteres especiais)
-        
+
+        ====================
+        Entradas (opcionais)
+        ====================
+        * ``PA`` (float): probabilidade de abrangência da análise. Deve estar entre 0 e 1. Default: 0.95
+        * ``projeto`` (string): nome do projeto (Náo podem haver caracteres especiais)
+
         **AVISO**:
-        Para cálculo do coeficiente linear, basta que o número de parâmetros seja igual ao número de grandezas
+        * Para cálculo do coeficiente linear, basta que o número de parâmetros seja igual ao número de grandezas
         independentes + 1.
-        
+
         ==============================
         Keywords (Entradas opcionais):
         ==============================
@@ -160,7 +165,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # INICIANDO A CLASSE INIT
         # ---------------------------------------------------------------------
 
-        EstimacaoNaoLinear.__init__(self,WLS,Modelo,simbolos_y,simbolos_x,simbolos_param,projeto,**kwargs)
+        EstimacaoNaoLinear.__init__(self,WLS,Modelo,simbolos_y,simbolos_x,simbolos_param,PA,projeto,**kwargs)
 
         self._EstimacaoNaoLinear__flag.setCaracteristica(['calc_termo_independente'])
 
@@ -180,7 +185,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         if (self.parametros.NV == self.x.NV+1):
             self._EstimacaoNaoLinear__flag.ToggleActive('calc_termo_independente')
 
-    def gerarEntradas(self, x, y, ux, uy, tipo='experimental', uxy=None):
+    def gerarEntradas(self,x,y,ux,uy,glx=[],gly=[],tipo='experimental',uxy=None):
         u'''
         Método para incluir os dados de entrada da estimação
         
@@ -201,11 +206,15 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # ---------------------------------------------------------------------
         # Validação dos dados de entrada x, y, xval e yval - É tomado como referência
         # a quantidade de observações das variáveis x.
-        self._EstimacaoNaoLinear__validacaoDadosEntrada(x  ,ux   ,self.x.NV,size(x,0)) 
-        self._EstimacaoNaoLinear__validacaoDadosEntrada(y  ,uy   ,self.y.NV,size(x,0))
+        self._EstimacaoNaoLinear__validacaoDadosEntrada(x  ,ux   ,self.x.NV)
+        self._EstimacaoNaoLinear__validacaoDadosEntrada(y  ,uy   ,self.y.NV)
         
         self._EstimacaoNaoLinear__validacaoArgumentosEntrada('gerarEntradas',None,tipo)       
-         
+
+        # Validação do número de dados experimentais
+        if x.shape[0] != y.shape[0]:
+            raise ValueError('Foram inseridos {:d} dados para as grandezas dependentes, mas {:d} para as independentes'.format(y.shape[0],x.shape[0]))
+
         # ---------------------------------------------------------------------
         # MODIFICAÇÕES DAS MATRIZES DE DADOS 
         # ---------------------------------------------------------------------
@@ -219,25 +228,15 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         if tipo == 'experimental':
             self._EstimacaoNaoLinear__flag.ToggleActive('dadosexperimentais')
             if not self._EstimacaoNaoLinear__etapasID == 0: # Se a execução do motor de Cálculo não for a primeira, é
-                self._EstimacaoNaoLinear__novoFluxo() # Inclusão de novo fluxo
+                self._EstimacaoNaoLinear__novoFluxo(reiniciar=True) # Inclusão de novo fluxo
 
             # ---------------------------------------------------------------------
             # ATRIBUIÇÃO A GRANDEZAS
             # ---------------------------------------------------------------------
             # Salvando os dados experimentais nas variáveis.
-            self.x._SETexperimental(x,ux,{'estimativa':'matriz','incerteza':'incerteza'})
-            self.y._SETexperimental(y,uy,{'estimativa':'matriz','incerteza':'incerteza'}) 
+            self.x._SETexperimental(x,ux,glx,{'estimativa':'matriz','incerteza':'incerteza'})
+            self.y._SETexperimental(y,uy,gly,{'estimativa':'matriz','incerteza':'incerteza'})
 
-            # ---------------------------------------------------------------------
-            # LISTA DE ATRIBUTOS A SEREM INSERIDOS NA FUNÇÃO OBJETIVO
-            # ---------------------------------------------------------------------
-
-            self._EstimacaoNaoLinear__args_model = [self.y.experimental.vetor_estimativa, self.x.experimental.matriz_estimativa,
-                                                    self.y.experimental.matriz_covariancia, self.x.experimental.matriz_covariancia,
-                                                    None, self._EstimacaoNaoLinear__modelo,
-                                                    self.x.simbolos, self.y.simbolos, self.parametros.simbolos]
-
-        
         if tipo == 'validacao':
             self._EstimacaoNaoLinear__flag.ToggleActive('dadosvalidacao')
             self._EstimacaoNaoLinear__novoFluxo() # Variável para controlar a execução dos métodos PEU
@@ -245,8 +244,8 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             # ATRIBUIÇÃO A GRANDEZAS
             # ---------------------------------------------------------------------
             # Salvando os dados de validação.
-            self.x._SETvalidacao(x,ux,{'estimativa':'matriz','incerteza':'incerteza'})
-            self.y._SETvalidacao(y,uy,{'estimativa':'matriz','incerteza':'incerteza'}) 
+            self.x._SETvalidacao(x,ux,glx,{'estimativa':'matriz','incerteza':'incerteza'})
+            self.y._SETvalidacao(y,uy,gly,{'estimativa':'matriz','incerteza':'incerteza'})
 
 
         if self._EstimacaoNaoLinear__flag.info['dadosvalidacao'] == False:
@@ -257,8 +256,8 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             # ATRIBUIÇÃO A GRANDEZAS
             # ---------------------------------------------------------------------
             # Salvando os dados de validação.
-            self.x._SETvalidacao(x,ux,{'estimativa':'matriz','incerteza':'incerteza'})
-            self.y._SETvalidacao(y,uy,{'estimativa':'matriz','incerteza':'incerteza'}) 
+            self.x._SETvalidacao(x,ux,glx,{'estimativa':'matriz','incerteza':'incerteza'})
+            self.y._SETvalidacao(y,uy,gly,{'estimativa':'matriz','incerteza':'incerteza'})
             
         # ---------------------------------------------------------------------
         # VARIÁVEIS INTERNAS
@@ -291,7 +290,6 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # ---------------------------------------------------------------------
         # ATRIBUIÇÃO A GRANDEZA
         # ---------------------------------------------------------------------
-
         self.parametros._SETparametro(parametros.transpose()[0].tolist(),variancia,None)
 
         # ---------------------------------------------------------------------
@@ -308,7 +306,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # Inclusão da incertezaParametros na lista de etapas
         self._EstimacaoNaoLinear__etapas[self._EstimacaoNaoLinear__etapasID].append(self._EstimacaoNaoLinear__etapasdisponiveis[3])
 
-    def incertezaParametros(self,PA=0.95,**kwargs):
+    def incertezaParametros(self,preencherregiao=True,**kwargs):
         u'''
         Método para avaliar a região de abrangência dos parâmetros.
 
@@ -316,12 +314,11 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         A matriz de covariância dos parâmetros é calculada juntamente com a otimização, por ser parte constituinte da solução analítica. Entretanto,
         caso o método SETparametros seja executado e neste não seja definida a matriz de covariância, ela é calculada.
 
-        =======
-        Entrada
-        =======
+        ==================
+        Entradas opcionais
+        ==================
 
-        PA: Probabilidade de abragência (deve ser um número entre 0 e 1)
-
+        * preencherregiao (bool): identifica se será realizado o preenchimento da região ou não.
 
         ========
         Keywords
@@ -338,83 +335,27 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # CÁLCULO DA MATRIZ DE COVARIÂNCIA
         # ---------------------------------------------------------------------
         # Caso a matriz de covariância não seja calculada, ela será aqui calculada
-        if self.parametros.matriz_covariancia is None:
-            X   = self.x.experimental.matriz_estimativa
-            Uyy = self.y.experimental.matriz_covariancia
-            variancia = inv(X.transpose().dot(inv(Uyy)).dot(X))
-            self.parametros._SETparametro(self.parametros.estimativa, variancia, self.parametros.regiao_abrangencia)
+        X   = self.x.experimental.matriz_estimativa
+        Uyy = self.y.experimental.matriz_covariancia
+        variancia = inv(X.transpose().dot(inv(Uyy)).dot(X))
+        self.parametros._updateParametro(matriz_covariancia=variancia)
 
-            # ---------------------------------------------------------------------
-            # VARIÁVEIS INTERNAS
-            # ---------------------------------------------------------------------
-            self._EstimacaoNaoLinear__etapas[self._EstimacaoNaoLinear__etapasID].append(self._EstimacaoNaoLinear__etapasdisponiveis[3])
+        # ---------------------------------------------------------------------
+        # VARIÁVEIS INTERNAS
+        # ---------------------------------------------------------------------
+        self._EstimacaoNaoLinear__etapas[self._EstimacaoNaoLinear__etapasID].append(self._EstimacaoNaoLinear__etapasdisponiveis[3])
 
         # ---------------------------------------------------------------------
         # CÁLCULO DA REGIÃO DE ABRANGÊNCIA
         # ---------------------------------------------------------------------
         # A região de abrangência só é calculada caso não esteja definida
         if self.parametros.regiao_abrangencia is None:
+            if preencherregiao:
+                self._EstimacaoNaoLinear__preencherRegiao(**kwargs)
 
-            regiao = self.regiaoAbrangencia(PA,**kwargs)
+            regiao = self.regiaoAbrangencia()
 
             # ---------------------------------------------------------------------
             # ATRIBUIÇÃO A GRANDEZA
             # ---------------------------------------------------------------------
-            self.parametros._SETparametro(self.parametros.estimativa, self.parametros.matriz_covariancia, regiao)
-
-
-    def regiaoAbrangencia(self,PA=0.95,**kwargs):
-        u'''
-        Método para cálculo da região de abrangência de verossimilhança. 
-
-        PA: probabilidade de abrangência
-        kwargs: argumentos para o algoritmo de PSO
-
-        '''
-
-        # ---------------------------------------------------------------------
-        # KEYWORDS
-        # ---------------------------------------------------------------------
-        # Atributos obrigatórios
-        sup = kwargs.get('sup')
-        inf = kwargs.get('inf')
-
-        if sup == None:
-            sup = (self.parametros.estimativa + 5*t.ppf(PA+(1-PA)/2,100)*self.parametros.matriz_incerteza).transpose().tolist()[0]
-        else:
-            del kwargs['sup'] # retira sup dos argumentos extras
-
-        if inf == None:
-            inf = (self.parametros.estimativa - 5*t.ppf(PA+(1-PA)/2,100)*self.parametros.matriz_incerteza).transpose().tolist()[0]
-        else:
-            del kwargs['inf'] # retira inf dos argumentos extras
-
-        if kwargs.get('itmax') == None:
-            kwargs['itmax'] = 300
-
-        # Separação de keywords para os diferentes métodos
-        # keywarg para a etapa de busca:
-        kwargsbusca = {}
-        if kwargs.get('printit')  != None:
-            kwargsbusca['printit'] = kwargs.get('printit')
-            del kwargs['printit']
-
-        self.Otimizacao = PSO(sup,inf,args_model=self._EstimacaoNaoLinear__args_model,**kwargs)
-        self.Otimizacao.Busca(self._EstimacaoNaoLinear__FO,**kwargsbusca)
-
-        # ---------------------------------------------------------------------
-        # HISTÓRICO DA OTIMIZAÇÃO
-        # ---------------------------------------------------------------------
-        self._EstimacaoNaoLinear__hist_Posicoes = []; self._EstimacaoNaoLinear__hist_Fitness = []
-
-        for it in xrange(self.Otimizacao.itmax):
-            for ID_particula in xrange(self.Otimizacao.Num_particulas):
-                self._EstimacaoNaoLinear__hist_Posicoes.append(self.Otimizacao.historico_posicoes[it][ID_particula])
-                self._EstimacaoNaoLinear__hist_Fitness.append(self.Otimizacao.historico_fitness[it][ID_particula])
-
-        # Como o histórico da otimização foi avaliado nesta função e ele é requisito para o cálculo da região
-        # de abrangência, ele foi adicinado à lista de etapas.
-
-        self._EstimacaoNaoLinear__etapas[self._EstimacaoNaoLinear__etapasID].append(self._EstimacaoNaoLinear__etapasdisponiveis[12])
-
-        return EstimacaoNaoLinear.regiaoAbrangencia(self, PA)
+            self.parametros._updateParametro(regiao_abrangencia=regiao)

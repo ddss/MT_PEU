@@ -29,7 +29,7 @@ class Modelo(Thread):
 
         y1 = alpha1*x1/(1+beta1*x1)
         y2 = alpha2*(x2**beta2)
-        
+
         y1 = concatenate((y1,y2),axis=1)
 
         self.result = y1
@@ -45,8 +45,7 @@ class Modelo(Thread):
         # y1 = [exp(-(ko*10**17)*tempo*exp(-E/T)),exp(-tempo*exp(ko-E/T)),exp(-ko*tempo*exp(-E*(1/T-1./630.)))]
         #
         # self.result = y1[tipo]
-        
-        
+
     def run(self):
     
         if self.bucket == None:

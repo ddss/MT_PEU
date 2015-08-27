@@ -6,23 +6,31 @@ Created on Mon Feb  2 11:05:02 2015
 """
 # Importação de pacotes de terceiros
 from numpy import array, transpose ,size, diag, linspace, min, max, \
- mean,  std, amin, amax, ndarray, ones, sqrt, nan, shape
+    mean,  std, amin, amax, ndarray, insert, nan, correlate, isfinite
 
-from scipy.stats import normaltest, anderson, shapiro, ttest_1samp, kstest,\
- norm, probplot, ttest_ind
+from numpy.linalg import cond
+
+from statsmodels.stats.weightstats import ztest
+from statsmodels.stats.diagnostic import acorr_ljungbox, het_breushpagan, het_white, normal_ad
+from statsmodels.stats.stattools import durbin_watson
+from statsmodels.graphics.correlation import plot_corr
+
+from scipy.stats import normaltest, shapiro, ttest_1samp, kstest, probplot
 
 from matplotlib.pyplot import figure, axes, axis, plot, errorbar, subplot, xlabel, ylabel,\
-    title, legend, savefig, xlim, ylim, close, grid, text, hist, boxplot
+    title, legend, savefig, xlim, ylim, close, grid, text, hist, boxplot, stem, acorr
+    
+from matplotlib.colors import LinearSegmentedColormap
+    
 
 from os import getcwd, sep
 
-
 # Subrotinas próprias (desenvolvidas pelo GI-UFBA)
-from subrotinas import matriz2vetor, vetor2matriz, Validacao_Diretorio, matrizcorrelacao
+from subrotinas import Validacao_Diretorio, matrizcorrelacao
 
 class Organizador:
     
-    def __init__(self,estimativa,incerteza,tipos={'estimativa':'matriz','incerteza':'incerteza'},NE=None):
+    def __init__(self,estimativa,incerteza,gL=[],tipos={'estimativa':'matriz','incerteza':'incerteza'},NE=None):
         '''
         Classe para organizar os dados das estimativas e suas respectivas incertezas, disponibilizando-os na forma de matriz, vetores e listas.
         
@@ -35,6 +43,7 @@ class Organizador:
         numa única coluna, sendo necessário fornecer a entrada NE.
         * ``incerteza``  (array) : incerteza (ou variância) para os valores das estimativas. Esta informação sempre será uma matriz. No entanto, \
         caso sejam as incertezas, cada coluna da contém a incerteza para os pontos de uma variável. Caso seja as variâncias, será a matriz de covariância.
+        * ``gL''(lista)           : graus de liberdade
         * ``tipos``      (dicionário): dicionário que define como as entradas estimativa e incerteza foram definidas:\
         As chaves e conteúdos são: estimativa (conteúdo: ``matriz`` ou ``vetor``) e incerteza (conteúdo: ``incerteza`` ou `variancia``).
         * ``NE`` (int): quantidade de pontos experimentais. Necessário apenas quanto a estimativa é um vetor.
@@ -64,6 +73,7 @@ class Organizador:
 
         * Caso a incerteza seja definida como None, os atributos relacionados a ela NÃO serão criados.
         '''
+        # TODO: grau de liberade como ARRAY
         # ---------------------------------------------------------------------
         # VALIDAÇÃO da entrada tipos:
         # ---------------------------------------------------------------------
@@ -88,54 +98,87 @@ class Organizador:
         if not isinstance(estimativa,ndarray):
                 raise TypeError(u'Os dados de entrada precisam ser arrays.')
         
-        if incerteza != None:        
+        if incerteza is not None:
             if not isinstance(incerteza,ndarray):
                     raise TypeError(u'Os dados de entrada precisam ser arrays.')            
         
-        # ---------------------------------------------------------------------
-        # CRIAÇÃO dos atributos na forma de ARRAYS
-        # ---------------------------------------------------------------------
+        if not isinstance(gL,list):
+            raise TypeError(u'os graus de liberdade precisam ser listas')
+
+		# TODO: Corrigir este teste
+        #if (len(gL) != size(estimativa)) and (len(gL) != 0) :
+	    #		raise ValueError(u'Os graus de liberdade devem ter o mesmo tamanho das estimativas')    
+
+
+        # ---------------------------------------------------------------------------
+        # CRIAÇÃO DA MATRIZ ESTIMATIVA E VETOR ESTIMATIVA (ARRAYS)
+        # ---------------------------------------------------------------------------
         if tipos['estimativa'] == 'matriz':
-            
+
             self.matriz_estimativa  = estimativa
-            self.vetor_estimativa   = matriz2vetor(self.matriz_estimativa) # conversão de matriz para vetor
+            self.vetor_estimativa   = self.matriz_estimativa.reshape((self.matriz_estimativa.shape[0]*self.matriz_estimativa.shape[1],1),order='F') # conversão de matriz para vetor
 
         if tipos['estimativa'] == 'vetor':
             
             self.vetor_estimativa   = estimativa
-            self.matriz_estimativa  = vetor2matriz(self.vetor_estimativa,NE) # Conversão de vetor para uma matriz  
-        
+            self.matriz_estimativa  = self.vetor_estimativa.reshape((NE,self.vetor_estimativa.shape[0]/NE),order='F') # Conversão de vetor para uma matriz
+
+        # ---------------------------------------------------------------------
+        # Número de pontos experimentais
+        # ---------------------------------------------------------------------
+
+        self.NE = self.matriz_estimativa.shape[0]
+
+        # ---------------------------------------------------------------------------
+        # CRIAÇÃO DA MATRIZ COVARIÂNCIA E MATRIZ INCERTEZA (ARRAYS)
+        # ---------------------------------------------------------------------------
+
         if tipos['incerteza'] == 'incerteza':
 
             if incerteza is not None:
                 self.matriz_incerteza   = incerteza            
-                self.matriz_covariancia = diag(transpose(matriz2vetor(self.matriz_incerteza**2)).tolist()[0])
-                self.matriz_correlacao  = matrizcorrelacao(self.matriz_covariancia)
+                self.matriz_covariancia = diag((self.matriz_incerteza**2).reshape((self.NE*self.matriz_incerteza.shape[1],1),order='F').transpose().tolist()[0])
 
         if tipos['incerteza'] == 'variancia':
 
             if incerteza is not None:
-                self.matriz_covariancia = incerteza     
-                self.matriz_incerteza   = vetor2matriz(array(diag(self.matriz_covariancia)**0.5,ndmin=2).transpose(),NE)
-                self.matriz_correlacao  = matrizcorrelacao(self.matriz_covariancia)
+                self.matriz_covariancia = incerteza
+                self.matriz_incerteza   = diag(self.matriz_covariancia**0.5).reshape((NE,self.matriz_estimativa.shape[1]),order='F')
 
         # ---------------------------------------------------------------------
         # Criação dos atributos na forma de LISTAS
         # ---------------------------------------------------------------------
         self.lista_estimativa = self.matriz_estimativa.transpose().tolist()
-        
+
         if incerteza is not None:
             self.lista_incerteza  = self.matriz_incerteza.transpose().tolist()
-            self.lista_variancia  = diag(self.matriz_covariancia).tolist()
+            self.lista_variancia  = (self.matriz_incerteza**2).transpose().tolist()
         else:
             self.lista_incerteza  = None
             self.lista_variancia  = None
-            
+
         # ---------------------------------------------------------------------
-        # Número de pontos experimentais e de variáveis
+        # VALIDAÇÃO: MATRIZ SINGULAR E INCERTEZA NEGATIVA E ZERO
         # ---------------------------------------------------------------------
-        self.NE = size(self.matriz_estimativa,0)
-        
+        if incerteza is not None:
+
+            if not isfinite(cond(self.matriz_covariancia)):
+                raise TypeError('A matriz de covariância da grandeza é singular.')
+
+            for lista in self.lista_variancia:
+                teste = [elemento == 0. or elemento < 0. for elemento in lista]
+                if True in teste:
+                    raise TypeError('A variância de uma grandeza não pode ser zero ou assumir valores negativos.')
+
+        if incerteza is not None:
+
+            self.matriz_correlacao = matrizcorrelacao(self.matriz_covariancia)
+
+        # ---------------------------------------------------------------------
+        # Graus de liberdade
+        # ---------------------------------------------------------------------   
+        self.gL = gL if len(gL) !=0 else [[100]*self.NE]*self.matriz_estimativa.shape[1]
+
 class Grandeza:
     
     def __init__(self,simbolos,nomes=None,unidades=None,label_latex=None):
@@ -205,89 +248,93 @@ class Grandeza:
         * ``.matriz_correlcao``   (array): array representando a matriz dos coeficientes de correlação. 
         * ``.regiao_abrangencia`` (list): lista representando os pontos pertencentes à região de abrangência.
         '''
-        
+        # ------------------------------------------------------------------------------------
+        # VALIDAÇÂO
+        # -------------------------------------------------------------------------------------
         if simbolos is None:
             raise NameError('Os símbolos das grandezas são obrigatórios')
 
-        self.simbolos    = simbolos        
+        self.__validacaoEntrada(simbolos,nomes,unidades,label_latex)
 
-        self.nomes       = nomes
-        if nomes is None:
-            self.nomes = [None]*len(simbolos)
-
-        self.unidades    = unidades
-        if unidades is None:
-            self.unidades = [None]*len(simbolos)
-        
-        self.label_latex = label_latex
-        if label_latex is None:
-            self.label_latex = [None]*len(simbolos)
-        
         # ------------------------------------------------------------------------------------
-        # VALIDAÇÂO referente ao tamanho das listas de simbolos, unidades, nomes e label_latex
+        # CRIAÇÃO DE ATRIBUTOS
         # -------------------------------------------------------------------------------------
-        self.__validacaoEntrada()
-    
-        # ---------------------------------------------------------------------
+        # simbolos: usado como referência para a quantdade de variáveis da grandeza
+        self.simbolos    = simbolos
+
+        # nomes, unidades e label_latex: utilizados para plotagem
+        # caso não definidos, eles serão uma lista de elementos None, para manter a consistência dimensional
+        self.nomes       = nomes if nomes is not None else [None]*len(simbolos)
+        self.unidades    = unidades if unidades is not None else [None]*len(simbolos)
+        self.label_latex = label_latex if label_latex is not None else [None]*len(simbolos)
+
         # Número de pontos experimentais e de variáveis
-        # ---------------------------------------------------------------------   
         self.NV = len(simbolos)
         
         # ---------------------------------------------------------------------
-        # Identificação da grandeza
+        # VARIÁVEIS INTERNAS
         # ---------------------------------------------------------------------   
-        self.__ID = []
-        self.__ID_disponivel = ['experimental','validacao','calculado','parametro','residuo']
+        self.__ID = [] # ID`s que a grandeza possui
+        self.__ID_disponivel = ['experimental','validacao','calculado','parametro','residuo'] # Todos os ID's disponíveis
 
-    def __validacaoEntrada(self):
+    def __validacaoEntrada(self,simbolos,nomes,unidades,label_latex):
         u'''
-        Verificação:
+        Validação:
         
-        * se os atributos de simbologia, nome, unidades e label_latex são Listas.
-        * se os tamanhos dos atributos de simbologia, nome, unidades e label_latex são os mesmos.
+        * se os simbolos, nome, unidades e label_latex são Listas.
+        * se os elementos de simbolos, nome, unidades e label_latex são strings (ou caracteres unicode)
+        * se os elementos de simbolos possuem caracteres não permitidos (caracteres especiais)
         * se os simbolos são distintos
+        * se os tamanhos dos atributos de simbologia, nome, unidades e label_latex são os mesmos.
         '''
         # Verificação se nomes, unidade e label_latex são listas
-        for elemento in [self.nomes,self.unidades,self.label_latex]:
-            if not isinstance(elemento,list):
-                raise TypeError(u'A simbologia, nomes, unidades e label_latex de uma grandeza devem ser LISTAS.')        
-       
-       # Verificação se nomes, unidade e label_latex possuem mesmo tamanho
-        for elemento in [self.nomes,self.unidades,self.label_latex]:
-            if len(elemento) != len(self.simbolos):
-                raise ValueError(u'A simbologia, nomes, unidades e label_latex de uma grandeza devem ser listas de MESMO tamanho.')        
-        
+        for elemento in [simbolos,nomes,unidades,label_latex]:
+            if elemento is not None:
+                if not isinstance(elemento,list):
+                    raise TypeError('A simbologia, nomes, unidades e label_latex de uma grandeza devem ser LISTAS.')
+                # verificação se os elementos são strings
+                for value in elemento:
+                    if value is not None:
+                        if not isinstance(value,str) and not isinstance(value,unicode):
+                            raise TypeError('Os elementos de simbolos, nomes, unidades e label_latex devem ser STRINGS.')
+
         # Verificação se os símbolos possuem caracteres especiais
-        for simb in self.simbolos:
+        for simb in simbolos:
             if set('[~!@#$%^&*()+{}":;\']+$').intersection(simb):
-                raise NameError('Os nomes das grandezas não podem ter caracteres especiais. Simbolo incorreto: '+simb)       
-    
+                raise NameError('Os simbolos das grandezas não podem ter caracteres especiais. Simbolo incorreto: '+simb)
+
         # Verificação se os símbolos são distintos
         # set: conjunto de elementos distintos não ordenados (trabalha com teoria de conjuntos)
-        if len(set(self.simbolos)) != len(self.simbolos):
+        if len(set(simbolos)) != len(simbolos):
             raise NameError('Os símbolos de cada grandeza devem ser distintos.')
-    
-    def _SETexperimental(self,estimativa,variancia,tipo):
-        
+
+       # Verificação se nomes, unidade e label_latex possuem mesmo tamanho
+        for elemento in [nomes,unidades,label_latex]:
+            if elemento is not None:
+                if len(elemento) != len(simbolos):
+                    raise ValueError('A simbologia, nomes, unidades e label_latex de uma grandeza devem ser listas de MESMO tamanho.')
+
+    def _SETexperimental(self,estimativa,variancia,gL,tipo):
+
         self.__ID.append('experimental')
-        self.experimental = Organizador(estimativa,variancia,tipo)        
+        self.experimental = Organizador(estimativa,variancia,gL,tipo)        
         
-    def _SETvalidacao(self,estimativa,variancia,tipo):
+    def _SETvalidacao(self,estimativa,variancia,gL,tipo):
         
         self.__ID.append('validacao')
-        self.validacao = Organizador(estimativa,variancia,tipo)
+        self.validacao = Organizador(estimativa,variancia,gL,tipo)
 
-    def _SETcalculado(self,estimativa,variancia,tipo,NE):
+    def _SETcalculado(self,estimativa,variancia,gL,tipo,NE):
         
         self.__ID.append('calculado')
-        self.calculado = Organizador(estimativa,variancia,tipo,NE)     
+        self.calculado = Organizador(estimativa,variancia,gL,tipo,NE)     
  
-    def _SETresiduos(self,estimativa,variancia,tipo):
+    def _SETresiduos(self,estimativa,variancia,gL,tipo):
         
         self.__ID.append('residuo')
-        self.residuos = Organizador(estimativa,variancia,tipo)  
+        self.residuos = Organizador(estimativa,variancia,gL,tipo)  
 
-    def _SETparametro(self, estimativa, variancia, regiao):
+    def _SETparametro(self, estimativa, variancia, regiao,limite_inferior=None,limite_superior=None):
 
         # --------------------------------------
         # VALIDAÇÃO
@@ -301,17 +348,27 @@ class Grandeza:
             if not isinstance(elemento,float):
                 raise TypeError(u'A estimativa precisa ser uma lista de floats.')
 
+        if len(estimativa) != self.NV:
+            raise ValueError(u'Devem ser fornecidas estimativas para todos os parãmetros definidos em símbolos')
+
         # variância
         if variancia is not None:
             if not isinstance(variancia,ndarray):
-                    raise TypeError(u'A variância precisa ser um array.')
-            try:
-                shape(variancia)[1]
-            except:
+                raise TypeError(u'A variância precisa ser um array.')
+            if not variancia.ndim == 2:
                 raise TypeError(u'A variância precisa ser um array com duas dimensões.')
 
-            if shape(variancia)[0] != shape(variancia)[1]:
+            if variancia.shape[0] != variancia.shape[1]:
                 raise TypeError(u'A variância precisa ser quadrada.')
+
+            if variancia.shape[0] != self.NV:
+                raise ValueError(u'A dimensão da matriz de covariância deve ser coerente com os simbolos dos parâmetros')
+
+            cont = 0
+            for linha in variancia.tolist():
+                if linha[cont] <= 0.:
+                    raise TypeError('A variância dos parâmetros não pode ser zero ou assumir valores negativos')
+                cont+=1
 
         # regiao
         if regiao is not None:
@@ -328,11 +385,48 @@ class Grandeza:
         # Cálculo da matriz de correlação
         if variancia is not None:
             self.matriz_correlacao  = matrizcorrelacao(self.matriz_covariancia)
-            self.matriz_incerteza   = vetor2matriz(array(diag(self.matriz_covariancia)**0.5,ndmin=2).transpose(),self.NV)
-        self.regiao_abrangencia = regiao
+            self.matriz_incerteza   = diag(self.matriz_covariancia**0.5).reshape((1,self.NV),order='F')
+        else:
+            self.matriz_correlacao  = None
+            self.matriz_incerteza   = None
 
- 
-    def labelGraficos(self,add=None):
+        self.regiao_abrangencia = regiao
+        self.limite_superior = limite_superior
+        self.limite_inferior = limite_inferior
+
+        # --------------------------------------
+        # VALIDAÇÃO
+        # --------------------------------------
+        if variancia is not None:
+
+            if not isfinite(cond(self.matriz_covariancia)):
+                raise TypeError('A matriz de covariância dos parâmetros é singular.')
+
+    def _updateParametro(self,**kwargs):
+        u'''
+        Método para fazer atualização de informação contida em Parametro.
+        Evita repetição de uso do método _SETParametros.
+
+        =================
+        Keyword Arguments
+        =================
+        Nome dos parâmetros que se deseja atualizar:
+
+        * estimativa
+        * matriz_covariancia
+        * regiao_abrangencia
+        * limite_superior
+        * limite_inferior
+        '''
+        estimativa = kwargs.get('estimativa') if kwargs.get('estimativa') is not None else self.estimativa
+        variancia = kwargs.get('matriz_covariancia') if kwargs.get('matriz_covariancia') is not None else self.matriz_covariancia
+        regiao = kwargs.get('regiao_abrangencia') if kwargs.get('regiao_abrangencia') is not None else self.regiao_abrangencia
+        limite_superior = kwargs.get('limite_superior') if kwargs.get('limite_superior') is not None else self.limite_superior
+        limite_inferior = kwargs.get('limite_inferior') if kwargs.get('limite_inferior') is not None else self.limite_inferior
+
+        self._SETparametro(estimativa, variancia, regiao, limite_inferior, limite_superior)
+
+    def labelGraficos(self,add=None, printunit=True):
         u'''
         Método para definição do label dos gráficos relacionado às grandezas.
         
@@ -347,29 +441,49 @@ class Grandeza:
             
         # Definição dos labels: latex ou nomes ou simbolos (nesta ordem)
         label = [None]*len(self.nomes)
+        if printunit is False:
+            
+            for z in xrange(len(self.nomes)):
+    
+                if self.label_latex[z] is not None:
+                    label[z] = self.label_latex[z]
+                elif self.nomes[z] is not None:
+                    label[z] = self.nomes[z]
+                elif self.simbolos[z] is not None:
+                    label[z] = self.simbolos[z]
+    
+                if add is not None:
+                    label[z] = label[z] +' '+ add
+                    
+        else:
         
-        for z in xrange(len(self.nomes)):
+            for z in xrange(len(self.nomes)):
+    
+                if self.label_latex[z] is not None:
+                    label[z] = self.label_latex[z]
+                elif self.nomes[z] is not None:
+                    label[z] = self.nomes[z]
+                elif self.simbolos[z] is not None:
+                    label[z] = self.simbolos[z]
+    
+                if add is not None:
+                    label[z] = label[z] +' '+ add
+                
+                # Caso seja definido uma unidade, esta será incluída no label
+                if self.unidades[z] is not None:
+                    label[z] = label[z]+' '+"/"+self.unidades[z]
 
-            if self.label_latex[z] is not None:
-                label[z] = self.label_latex[z]
-            elif self.nomes[z] is not None:
-                label[z] = self.nomes[z]
-            elif self.simbolos[z] is not None:
-                label[z] = self.simbolos[z]
-
-            if add is not None:
-                label[z] = label[z] +' '+ add
-            
-            # Caso seja definido uma unidade, esta será incluída no label
-            if self.unidades[z] is not None:
-                label[z] = label[z]+' '+"/"+self.unidades[z]
-            
         return label
 
-    def _testesEstatisticos(self):
+    def _testesEstatisticos(self,Explic):
         u'''
         Subrotina para realizar testes estatísticos nos resíduos
-        
+
+        =======
+        Entrada
+        =======
+        * Explic: variáveis para explicadores (Independentes/Regressores). Objetivo: avaliar homocedasticidade
+
         =================
         Testes realizados
         =================
@@ -377,57 +491,209 @@ class Grandeza:
         **NORMALIDADE**:
         
         * normaltest: Retorna o pvalor do teste de normalidade. Hipótese nula: a amostra vem de distribuição normal
-        * shapiro   : Retorna o valor de normalidade. Hipótese nula: a amostra vem de uma distribuição normal
-        * anderson  : Retorna o valor do Teste para os dados provenientes de uma distribuição em particular. Hipotese nula: a amostra vem de uma normal
-        * probplot  : Gera um gráfico de probabilidade de dados de exemplo contra os quantis de uma distribuição teórica especificado (a distribuição normal por padrão).
-                      Calcula uma linha de melhor ajuste para os dados se "encaixar" é verdadeiro e traça os resultados usando Matplotlib.
-                      tornar um conjunto de dados positivos transformados por uma transformação Box-Cox power.
+        * shapiro   : Retorna o pvalor de normalidade. Hipótese nula: a amostra vem de uma distribuição normal
+        * anderson  : Retorna o pvalor de normalidade. Hipótese nula: a amostra vem de uma distribuição normal
+                      
+        * kstest    : Retorna o pvalor de normalidade. Hipótese nula: a amostra vem de uma distribuição normal
+
         **MÉDIA**:
         
         * ttest_1sam: Retorna o pvalor para média determinada. Hipótese nula: a amostra tem a média determinada
-      
-        **SAÍDA** (sobe a forma de ATRIBUTO)
+        * ztest : Retorna o pvalor para média determinada. Hipótese nula: a amostra tem a média determinada
+       
+       **AUTOCORRELAÇÃO**:
         
-        * estatisticas (float):  Valor das hipóteses testadas. Para a hipótese nula tida como verdadeira, um valor abaixo de 0.05 nos diz que para 95% de confiança pode-se rejeitar essa hipótese
+        *durbin_watson: Teste de autocorrelação Interpretativo. Há duas formas de analisar o resultado:
+        1 Forma: Comparação com valores tabelados:
+            Podemos tomar a decisão comparando o valor de dw (estatística) com os valores críticos
+            dL e dU da Tabela de Durbin-Watson (https://www3.nd.edu/~wevans1/econ30331/Durbin_Watson_tables.pdf) .
+            Assim,
+            se 0 ≤ dw < dL então rejeitamos H0 (dependência);
+            se dL ≤ dw ≤ dU então o teste é inconclusivo;
+            se dU < dw < 4-dU então não rejeitamos H0 (independência);
+            se 4-dU ≤ dw ≤ 4-dL então o teste é inconclusivo;
+            se 4-dL < dw ≤ 4 então rejeitamos H0 (dependência).
+
+            Quando 0<= dw < dL temos evidência de uma correlação positiva. Já quando 4-dL <= dw <= 4 ,
+            a correlação é negativa.No caso em que não rejeitamos H0,
+            temos que não existe autocorrelação, ou seja, os resíduos são independentes.
+
+        2 Forma: Simplificada
+            A estatística de teste é aproximadamente igual a 2 * (1-r) em que r é a autocorrelação das amostras residuais.
+            Assim, por r == 0, indicando que não há correlação, a estatística de teste é igual a 2.
+            Quanto mais próximo de 0 a estatística, o mais evidências para correlação serial positiva.
+            Quanto mais próximo de 4, mais evidências de correlação serial negativa.
+
+        **HOMOCEDÁSTICIDADE**:
+
+        *het_white [1]: Testa se os residuos são homocedásticos, foi proposto por Halbert White em 1980.
+         Para este teste, a hipótese nula é de que todas as observações têm a mesma variância do erro, ou seja, os erros são homocedásticas.
+
+        *Bresh Pagan:Testa a hipótese de os residuos são homocedásticos, recomendado para funções lineares  
+        **Obs** :  O teste de bresh pagan não é indicado pra formas não lineares de heterocedasticidade
+        =====
+        SAÍDA
+        =====
+        Sob a forma de atributo:
+        * estatisticas (dict):  p-valor das hipóteses testadas. Para a hipótese nula tida como verdadeira,
+        um valor abaixo de (1-PA) nos diz que para PA de confiança pode-se rejeitar essa hipótese.
+
+        OBS: para o teste de durbin_watson , é retornado uma estatística e não p-valores.
+
+        =================
+        Referências
+        =================
+        [1] White, H. (1980). "A Heteroskedasticity-Consistente Covariance Matrix Estimador e um teste direto para Heteroskedasticity". Econometrica 48 (4):. 817-838 JSTOR 1.912.934 . MR 575027 .
+
         '''
     
         if 'residuo' in self.__ID: # Testes para os resíduos
-            
+            # Variável para salvar os nomes dos testes estatísticos - consulta
+            # identifica o nome do teste, e o tipo de resposta (1.0 - float, {} - dicionário, [] - lista)
+            # É nessa variável que o Relatório se baseia para obter as informações
+            self.__nomesTestes = {'residuo-Normalidade':{'normaltest':1.0,'shapiro':1.0, 'anderson':1.0,'kstest':1.0},
+                                  'residuo-Media':{'ttest':1.0, 'ztest': 1.0},
+                                  'residuo-Autocorrelacao':{'Durbin Watson':{'estatistica':1.0}, 'Ljung-Box':{'p-valor chi2':1.0,'p-valor Box-Pierce':1.0}},
+                                  'residuo-Homocedasticidade':{'white test':{'p-valor multiplicador de Lagrange':1.0,'p-valor Teste F':1.0},'Bresh Pagan':{'p-valor multiplicador de Lagrange':1.0,'p-valor Teste F':1.0}}}
+           
+            self.__TestesInfo = {'residuo-Autocorrelacao':{'Ljung-Box':{'p-valor chi2':{'H0':'resíduos não são autocorrelacionados'},'p-valor Box-Pierce':{'H0':'resíduos não são autocorrelacionados'}}},'residuo-Normalidade':{'shapiro':{'H0':'resíduos normais'},'normaltest':{'H0':'resíduos normais'},'anderson':{'H0':'resíduos normais'},'kstest':{'H0':'resíduos normais'}}, 'residuo-Media':{'ttest':{'H0':'resíduos com média zero'}, 'ztest':{'H0':'resíduos com média zero'}}, 'residuo-Homocedasticidade':{'white test':{'p-valor multiplicador de Lagrange':{'H0':'resíduos são homocedásticos'},'p-valor Teste F':{'H0':'resíduos são homocedásticos'}}, 'Bresh Pagan':{'p-valor multiplicador de Lagrange':{'H0':'resíduos são homocedásticos'},'p-valor Teste F':{'H0':'resíduos são homocedásticos'}}}}
             pvalor = {}
             for nome in self.simbolos:
                 pvalor[nome] = {}
 
             for i,nome in enumerate(self.simbolos):
                 dados = self.residuos.matriz_estimativa[:,i]
-                
-                # Testes para normalidade
+        
                 # Lista que contém as chamadas das funções de teste:
                 if size(dados) < 3: # Se for menor do que 3, não se pode executar o teste de shapiro
-                    pnormal=[None, None, anderson(dados, dist='norm'),kstest(dados,'norm',args=(mean(dados),std(dados,ddof=1)))]                
-                    pvalor[nome]['residuo-Normalidade'] = {'normaltest':None, 'shapiro':None, 'anderson':[pnormal[2][0], pnormal[2][1][1]],'kstest':pnormal[3][1]}
+                    pnormal=[None, None, normal_ad(dados),kstest(dados,'norm',args=(mean(dados),std(dados,ddof=1)))]
+                    pvalor[nome]['residuo-Normalidade'] = {'normaltest':None, 'shapiro':None, 'anderson':pnormal[2][1],'kstest':pnormal[3][1]}
 
                 elif size(dados) < 20: # Se for menor do que 20 não será realizado no normaltest, pois ele só é válido a partir dste número de dados
-                    pnormal=[None, shapiro(dados), anderson(dados, dist='norm'),kstest(dados,'norm',args=(mean(dados),std(dados,ddof=1)))]                
-                    pvalor[nome]['residuo-Normalidade'] = {'normaltest':None, 'shapiro':pnormal[1][1], 'anderson':[pnormal[2][0], pnormal[2][1][1]],'kstest':pnormal[3][1]}
+                    pnormal=[None, shapiro(dados), normal_ad(dados),kstest(dados,'norm',args=(mean(dados),std(dados,ddof=1)))]                
+                    pvalor[nome]['residuo-Normalidade'] = {'normaltest':None, 'shapiro':pnormal[1][1], 'anderson':pnormal[2][1],'kstest':pnormal[3][1]}
                 else:
-                    pnormal=[normaltest(dados), shapiro(dados), anderson(dados, dist='norm'),kstest(dados,'norm',args=(mean(dados),std(dados,ddof=1)))]                
-                    pvalor[nome]['residuo-Normalidade'] = {'normaltest':pnormal[0][1], 'shapiro':pnormal[1][1], 'anderson':[pnormal[2][0], pnormal[2][1][1]],'kstest':pnormal[3][1]}
+                    pnormal=[normaltest(dados), shapiro(dados), normal_ad(dados),kstest(dados,'norm',args=(mean(dados),std(dados,ddof=1)))]                
+                    pvalor[nome]['residuo-Normalidade'] = {'normaltest':pnormal[0][1], 'shapiro':pnormal[1][1], 'anderson':pnormal[2][1],'kstest':pnormal[3][1]}
 
-                # Dicionário para salvar os resultados                
                 # Testes para a média:
-                pmedia = [ttest_1samp(dados,0.), ttest_ind(dados,norm.rvs(loc=0.,scale=std(dados,ddof=1),size=size(dados)))]
-                pvalor[nome]['residuo-Media'] = {'ttest':pmedia[0][1],'ttest_ind':pmedia[1][1]}
-
-                # Variável para salvar os nomes dos testes estatísticos - consulta
-                self.__nomesTestes = {'residuo-Normalidade':['normaltest','shapiro', 'anderson','kstest'],
-                                      'residuo-Media':['ttest']}
-
+                pvalor[nome]['residuo-Media'] = {'ttest':float(ttest_1samp(dados,0.)[1]), 'ztest':ztest(dados, x2=None, value=0, alternative='two-sided', usevar='pooled', ddof=1.0)[1]}
+             
+                # Testes para a autocorrelação:
+                ljungbox = acorr_ljungbox(dados, lags=1, boxpierce=True)
+                pvalor[nome]['residuo-Autocorrelacao'] = {'Durbin Watson':{'estatistica':durbin_watson(dados)}, 'Ljung-Box':{'p-valor chi2':float(ljungbox[1]),'p-valor Box-Pierce':float(ljungbox[3])}}
+                
+                # Testes para a Homocedásticidade:
+                pheter = [het_white(dados,insert(Explic, 0, 1, axis=1)),het_breushpagan(dados,Explic)]
+                pvalor[nome]['residuo-Homocedasticidade'] = {'white test':{'p-valor multiplicador de Lagrange':pheter[0][1], 'p-valor Teste F':pheter[0][3]},'Bresh Pagan':{'p-valor multiplicador de Lagrange':pheter[1][1],'p-valor Teste F':pheter[1][3]}}
         else:
             raise NameError(u'Os testes estatísticos são válidos apenas para o resíduos')
 
         self.estatisticas = pvalor
-            
-    def Graficos(self,base_path=None,ID=None):
+        
+    def __construtor_graficos(self, Xlabel, Ylabel,x,y,base_path,base_dir,fluxo, ID, tipo, **kwargs):
+        u'''
+         Método para gerar os gráficos.
+        =======
+        Entrada
+        =======
+        * ``Xlabel`` : Label do eixo x \
+        * ``Ylabel``  : Label do eixo y \
+        * ``x`` : conjuntos de dados pro eixo x, caso tenha.\
+        * ``y ``  : conjuntos de dados pro eixo y, caso tenha.  \
+        *  ``base_path`` : caminho onde os gráficos deverão ser salvos    \
+        *  ``ID``       : Identificação da grandeza. Este ID é útil apenas para as grandezas \
+        dependentes e independentes, ele identifica para qual atributo os gráficos devem ser avaliados. \
+        Caso seja None, será feito os gráficos para TODOS os atributos disponíveis. \
+        *  ``Fluxo``     : identificação do fluxo de trabalho   \
+        * ``Tipo``  : tipo de gráfico a ser feito, deve ser string, opções:'boxplot': usa boxplot, 'hist': usa hist, 'tendencia: usa plot normal', 'autocorrelacao': usa acorr, 'probplot'
+        *`` kwargs`` : qualquer kwarg extra do gráfico pode ser passada para o construtor, desde que seja propriedade do gráfico e que esteja na lista de argumentos esperados
+        '''
+    
+        kwargsdict = {}
+        #obs: adicionar qualquer kwarg de um gráfico em especifico que possua tal propriedade nesta lista, exemplo: o plot normal possui a kwarg marker, logo marker teve que ser passado
+        expected_args = ["legenda", "media","sym", "usevlines", "normed", "maxlags", 'label', 'marker', 'ls',\
+        'xnames', 'ynames', 'title', 'normcolor', 'cmap']
+        for key in kwargs.keys():
+            if key in expected_args:
+                kwargsdict[key] = kwargs[key]
+            else:
+                raise Exception("Argumentos esperados ".format(expected_args))
+        fig = figure()
+        ax=fig.add_subplot(1,1,1)
+        legenda=False
+        media=False
+        if kwargs.has_key('media') or kwargs.has_key('legenda'):
+             media=kwargs.pop('media')
+             legenda= kwargs.pop('legenda')
+        if tipo== 'boxplot':
+           boxplot(y, **kwargs)
+           #ylabel deve ser passado como uma lista com os nomes de cada conjunto de dados que vai construir o boxplot
+           ax.set_xticklabels(Ylabel)
+           ax.yaxis.grid(color='gray', linestyle='dashed')
+           ax.xaxis.grid(color='gray', linestyle='dashed')
+        if tipo=='autocorrelacao':
+           acorr(y, **kwargs)
+           xlim(0,len(y))
+           ax.yaxis.grid(color='gray', linestyle='dashed')
+           ax.xaxis.grid(color='gray', linestyle='dashed')
+           xlabel(Xlabel)
+           ylabel(Ylabel)
+        if tipo=='tendencia':
+#           plot(x,y, 'o',label=u'Ordem de coleta')
+#           plot(x,y, **kwargs)
+           plot(x, y,**kwargs)
+           ax.axhline(0, color='black', lw=1)
+           ax.axvline(0,color='black', lw=1)
+           if media==True:
+                  plot(linspace(0,len(y)+1,num=len(y+1)),[mean(y)]*len(y), 'r', label=u'Valor médio')
+#                 plot(x,[mean(y)]*size(y), kwargs['label'][1])     
+          
+            # obtençao do tick do grafico
+           # eixo x
+           label_tick_x   = ax.get_xticks().tolist()
+           tamanho_tick_x = (label_tick_x[1] - label_tick_x[0])/2
+           # eixo y
+           label_tick_y = ax.get_yticks().tolist()
+           tamanho_tick_y = (label_tick_y[1] - label_tick_y[0])/2
+           # Modificação do limite dos gráficos
+           xmin   = min(x)     - tamanho_tick_x
+           xmax   = max(x)     + tamanho_tick_x
+           ymin   = min(y) - tamanho_tick_y
+           ymax   = max(y) + tamanho_tick_y
+           xlim(xmin,xmax)
+           ylim(ymin,ymax)
+           xlabel(Xlabel)
+           ylabel(Ylabel)
+           ax.yaxis.grid(color='gray', linestyle='dashed')
+           ax.xaxis.grid(color='gray', linestyle='dashed')
+        if tipo=='hist':
+           hist(y, normed=True)
+           xlabel(Xlabel)
+           ylabel(Ylabel)
+        if tipo=='probplot':
+          res = probplot(y, dist='norm', sparams=(mean(y),std(y,ddof=1)))
+          if not (nan in res[0][0].tolist() or nan in res[0][1].tolist() or nan in res[1]):
+             plot(res[0][0], res[0][1], 'o', res[0][0], res[1][0]*res[0][0] + res[1][1])
+             xlabel(Xlabel)
+             ylabel(Ylabel)
+             xmin = amin(res[0][0])
+             xmax = amax(res[0][0])
+             ymin = amin(y)
+             ymax = amax(y)
+             posx = xmin + 0.70 * (xmax - xmin)
+             posy = ymin + 0.01 * (ymax - ymin)
+             text(posx, posy, "$R^2$=%1.4f" % res[1][2])    
+             ax.yaxis.grid(color='gray', linestyle='dashed')
+             ax.xaxis.grid(color='gray', linestyle='dashed')  
+#        if tipo== 'pcolor':
+#           plot_corr(y,   ynames=listalabel, title=u'Matriz de correlação ' + self.__ID_disponivel[0],normcolor=True, cmap=cm1)
+
+        if legenda==True:
+              legend(loc='best')      
+        fig.savefig(base_path+base_dir+'{}_fl'.format(ID[0])+str(fluxo)+'_{}'.format(tipo))        
+        close()              
+    def Graficos(self,base_path=None,base_dir=None,ID=None,fluxo=None, cmap=['k','r','0.75','w','0.75','r','k']):
         u'''
         Método para gerar os gráficos das grandezas, cujas informações só dependam dela.
         
@@ -439,129 +705,157 @@ class Grandeza:
         * ``ID``        : Identificação da grandeza. Este ID é útil apenas para as grandezas \
         dependentes e independentes, ele identifica para qual atributo os gráficos devem ser avaliados. \
         Caso seja None, será feito os gráficos para TODOS os atributos disponíveis.
+        * Fluxo       : identificação do fluxo de trabalho
+        * cmap : definição de cores para o pcolor:
+         b: blue ;  g: green; r: red;    c: cyan;  m: magenta; y: yellow; k: black; w: white; 0.75: grey
+       
+       Funções: 
+        * probplot  : Gera um gráfico de probabilidade de dados de exemplo contra os quantis de uma distribuição teórica especificado (a distribuição normal por padrão).
+                      Calcula uma linha de melhor ajuste para os dados se "encaixar" é verdadeiro e traça os resultados usando Matplotlib.
+        *BOXPLOT    : O boxplot (gráfico de caixa) é um gráfico utilizado para avaliar a distribuição empírica do dados. 
+                      O boxplot é formado pelo primeiro e terceiro quartil e pela mediana.
         '''
         # ---------------------------------------------------------------------
-        # VALIDAÇÃO DOS IDs:
+        # VALIDAÇÃO DAS ENTRADAS
         # ---------------------------------------------------------------------
         if ID is None:
             ID = self.__ID
         
         if False in [ele in self.__ID_disponivel for ele in ID]:
-            raise NameError(u'Foi inserido uma ID indiponível. IDs disponíveis: '+','.join(self.__ID_disponivel))
+            raise NameError(u'Foi inserido uma ID indiponível. IDs disponíveis: '+','.join(self.__ID_disponivel)+'.')
 
         if base_path is None:
             base_path = getcwd()
 
-        base_dir  = sep + 'Grandezas' + sep
+        if fluxo is None:
+            fluxo = 0
+
+        # ---------------------------------------------------------------------
+        # CRIAÇÃO DOS GRÁFICOS
+        # ---------------------------------------------------------------------
+        base_dir  = sep + 'Grandezas' + sep if base_dir is None else sep + base_dir + sep
         Validacao_Diretorio(base_path,base_dir)
+        
+        #Gráfico Pcolor para auto correlação
+
+        #Variável local para alterl a cor do cmap
+        cores   = set(['b', 'g', 'r', 'c','m', 'y', 'k', 'w', '0.75'])
+        setcmap = set(cmap)
+        if not setcmap.issubset(cores):
+            raise TypeError('As cores devem pertencer à lista: {}'.format(cores))
+           
+        cm1 = LinearSegmentedColormap.from_list("Correlacao-cmap",cmap)   
+
+        if self.__ID_disponivel[0] in ID: # Gráfico Pcolor para experimental
+            listalabel=[]
+            for elemento in self.labelGraficos(printunit=False):
+                for i in xrange(self.experimental.NE):
+                    listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
+
+            plot_corr(self.experimental.matriz_correlacao, xnames=listalabel,  ynames=listalabel, title=u'Matriz de correlação ' + self.__ID_disponivel[0],normcolor=True, cmap=cm1)
+            savefig(base_path+base_dir+self.__ID_disponivel[0]+'_fl'+str(fluxo)+'_'+'pcolor_matriz-correlacao')
+            close()
+
+        if self.__ID_disponivel[1] in ID: # Gráfico Pcolor para validação
+            listalabel=[]
+            for elemento in self.labelGraficos(printunit=False):
+                for i in xrange(self.validacao.NE):
+                    listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
+
+            plot_corr(self.validacao.matriz_correlacao, xnames=listalabel, ynames=listalabel, title=u'Matriz de correlação ' + self.__ID_disponivel[1],normcolor=True,cmap=cm1)
+            savefig(base_path+base_dir+self.__ID_disponivel[1]+'_fl'+str(fluxo)+'_'+'pcolor_matriz-correlacao')
+            close()
+
+        if self.__ID_disponivel[2] in ID: # Gráfico Pcolor para calculado
+            listalabel=[]
+            for elemento in self.labelGraficos(printunit=False):
+                for i in xrange(self.calculado.NE):
+                    listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
+
+            plot_corr(self.calculado.matriz_correlacao, xnames=listalabel, ynames=listalabel, title=u'Matriz de correlação ' + self.__ID_disponivel[2],normcolor=True,cmap=cm1)
+            savefig(base_path+base_dir+self.__ID_disponivel[2]+'_fl'+str(fluxo)+'_'+'pcolor_matriz-correlacao')
+            close()
+
+        if self.__ID_disponivel[3] in ID: # Gráfico Pcolor para parâmetros
+
+            plot_corr(self.matriz_correlacao, xnames=self.labelGraficos(printunit=False), ynames=self.labelGraficos(printunit=False), title=u'Matriz de correlação ' + self.__ID_disponivel[3],normcolor=True, cmap=cm1)
+            savefig(base_path+base_dir+self.__ID_disponivel[3]+'_fl'+str(fluxo)+'_'+'pcolor_matriz-correlacao')
+            close()
 
         if 'residuo' in ID:
             # BOXPLOT
-            fig = figure()
-            ax = fig.add_subplot(1,1,1)
-            boxplot(self.residuos.matriz_estimativa)
-            ax.set_xticklabels(self.simbolos)
-            fig.savefig(base_path+base_dir+'residuos_boxplot'+'_'.join(self.simbolos))
-            close()
+            #checa a variabilidade dos dados, assim como a existência de possíveis outliers
+            self.__construtor_graficos(None,self.labelGraficos(printunit=False),None, self.residuos.matriz_estimativa,base_path,base_dir,fluxo, ID, 'boxplot', sym='.k')
             
             base_path = base_path + base_dir
             for i,nome in enumerate(self.simbolos):
                 # Gráficos da estimação
                 base_dir = sep + self.simbolos[i] + sep
                 Validacao_Diretorio(base_path,base_dir)
-
                 dados = self.residuos.matriz_estimativa[:,i]
-        
-                # TENDENCIA
-                fig = figure()
-                ax = fig.add_subplot(1,1,1)
-                plot(linspace(1,size(dados),num=size(dados)),dados, 'o')
-                xlabel('Ordem de Coleta')
-                ylabel(self.simbolos[i])
-                ax.yaxis.grid(color='gray', linestyle='dashed')                        
-                ax.xaxis.grid(color='gray', linestyle='dashed')
-                xlim((0,size(dados)))
-                ax.axhline(0, color='black', lw=2)
-                fig.savefig(base_path+base_dir+'residuos_ordem')
-                close()        
+                x=linspace(0, len(dados), num=len(dados))
+    
+                # TENDÊNCIA
+                #Testa a aleatoriedade dos dados, plotando os valores do residuo versus a ordem em que foram obtidos
+                #dessa forma verifica-se há alguma tendência
+                self.__construtor_graficos('Ordem de Coleta',self.labelGraficos()[i],x,dados,base_path,base_dir,fluxo, ID, 'tendencia', legenda=True, media=True, label='Pontos', marker='o', ls='None')
         
                 # AUTO CORRELAÇÃO
-                fig = figure()
-                ax = fig.add_subplot(1,1,1)
-                ax.acorr(dados,usevlines=True, normed=True,maxlags=None)
-                ax.yaxis.grid(color='gray', linestyle='dashed')                        
-                ax.xaxis.grid(color='gray', linestyle='dashed')
-                ax.axhline(0, color='black', lw=2)
-                xlim((0,size(dados)))
-                fig.savefig(base_path+base_dir+'residuos_autocorrelacao')
-                close()
-
+                #Gera um gráfico de barras que verifica a autocorrelação
+                self.__construtor_graficos('Lag', u'Autocorrelação de {}'.format(self.labelGraficos(printunit=False)[i]),None,dados,base_path,base_dir,fluxo, ID,'autocorrelacao' , usevlines=True,normed=True, maxlags=None)
+                 
+               
                 # HISTOGRAMA                
-                fig = figure()
-                hist(dados, normed=True)
-                xlabel(self.labelGraficos()[i])
-                ylabel(u'Frequência')
-                fig.savefig(base_path+base_dir+'residuos_histograma')
-                close()
+                #Gera um gráfico de histograma, importante na verificação da pdf
+                self.__construtor_graficos(self.labelGraficos()[i], u'Frequência',None,dados,base_path,base_dir,fluxo, ID,'hist')
 
-                # NORMALIDADE               
-                res = probplot(dados, dist='norm', sparams=(mean(dados),std(dados,ddof=1)))
-
-                if nan in res[0][0].tolist() or nan in res[0][1].tolist() or  nan in res[1]:   
-                    fig = figure()
-                    plot(res[0][0], res[0][1], 'o', res[0][0], res[1][0]*res[0][0] + res[1][1])
-                    xlabel('Quantis')
-                    ylabel('Valores ordenados')
-                    xmin = amin(res[0][0])
-                    xmax = amax(res[0][0])
-                    ymin = amin(dados)
-                    ymax = amax(dados)
-                    posx = xmin + 0.70 * (xmax - xmin)
-                    posy = ymin + 0.01 * (ymax - ymin)
-                    text(posx, posy, "$R^2$=%1.4f" % res[1][2])
-                    fig.savefig(base_path+base_dir+'residuos_probplot')
-                    close()
+                # NORMALIDADE 
+                #Verifica se os dados são oriundos de uma pdf normal, o indicativo disto é a obtenção de uma reta 
+                self.__construtor_graficos('Quantis', 'Valores ordenados de {}'.format(self.labelGraficos(printunit=False)[i]),None,dados,base_path,base_dir,fluxo, ID,'probplot')         
+              
                 
         if ('experimental' in ID or 'validacao' in ID or 'calculado' in ID):
                 
-                if 'residuo' in ID: # remover de ID o resíduo, pois foi tratado separadamente
-                    ID.remove('residuo')
-                
-                base_path = base_path + base_dir
-                for atributo in ID:
-                    y  = eval('self.'+atributo+'.matriz_estimativa')
-                    NE = eval('self.'+atributo+'.NE')
+            if 'residuo' in ID:  # remover de ID o resíduo, pois foi tratado separadamente
+                ID.remove('residuo')
+
+            base_path = base_path + base_dir
+            for atributo in ID:
+                y  = eval('self.'+atributo+'.matriz_estimativa')
+                NE = eval('self.'+atributo+'.NE')
+
+                for i,symb in enumerate(self.simbolos):
+                    # Gráficos da estimação
+                    base_dir = sep + symb + sep
+                    Validacao_Diretorio(base_path,base_dir)
+                    dados = y[:,i]
+                    x   = linspace(1,NE,num=NE)
+                    #Gráfico em função do numero de observações
+                    self.__construtor_graficos(u'Número de pontos',self.labelGraficos(atributo)[i],x,dados,base_path,base_dir,fluxo, ID, 'tendencia', marker='o', ls='None')
+
+            if 'experimental' in ID:
+
+                for i,nome in enumerate(self.simbolos):
+                    # Gráficos da estimação
+
+                    base_dir = sep + self.simbolos[i] + sep
+                    Validacao_Diretorio(base_path,base_dir)
+                    dados = self.experimental.matriz_estimativa[:,i]
                     
-                    for i,symb in enumerate(self.simbolos):
-                        # Gráficos da estimação
-                        base_dir = sep + symb + sep
-                        Validacao_Diretorio(base_path,base_dir)
-                        dados = y[:,i]
-                        x   = linspace(1,NE,num=NE)
-                        
-                        fig = figure()
-                        ax  = fig.add_subplot(1,1,1)
-                        plot(x,dados,'o')
-                        # obtençao do tick do grafico
-                        # eixo x
-                        label_tick_x   = ax.get_xticks().tolist()                 
-                        tamanho_tick_x = (label_tick_x[1] - label_tick_x[0])/2
-                        # eixo y
-                        label_tick_y = ax.get_yticks().tolist()
-                        tamanho_tick_y = (label_tick_y[1] - label_tick_y[0])/2
-                        # Modificação do limite dos gráficos
-                        xmin   = min(x)     - tamanho_tick_x
-                        xmax   = max(x)     + tamanho_tick_x
-                        ymin   = min(dados) - tamanho_tick_y
-                        ymax   = max(dados) + tamanho_tick_y
-                        xlim(xmin,xmax)
-                        ylim(ymin,ymax)
-                        # Labels
-                        xlabel(u'Número de pontos',fontsize=20)
-                        ylabel(self.labelGraficos(atributo)[i],fontsize=20)
-                        #Grades
-                        grid(b = 'on', which = 'major', axis = 'both')
-                        savefig(base_path+base_dir+atributo+'_observacoes.png')
-                        close()   
 
+                    # AUTO CORRELAÇÃO
+                    # Gera um gráfico de barras que verifica a autocorrelação
+                    self.__construtor_graficos('Lag', u'Autocorrelação de {}'.format(self.labelGraficos(printunit=False)[i]),None,dados,base_path,base_dir,fluxo, ID,'autocorrelacao', usevlines=True,normed=True, maxlags=None)
+                    
+            if 'validacao' in ID:
 
+                for i,nome in enumerate(self.simbolos):
+                    # Gráficos da estimação
+                    base_dir = sep + self.simbolos[i] + sep
+                    Validacao_Diretorio(base_path,base_dir)
+
+                    dados = self.validacao.matriz_estimativa[:,i]
+
+                    # AUTO CORRELAÇÃO
+                    # Gera um gráfico de barras que verifica a autocorrelação
+                    self.__construtor_graficos('Lag', u'Autocorrelação de {}'.format(self.labelGraficos(printunit=False)[i]),None,dados,base_path,base_dir,fluxo, ID,'autocorrelacao', usevlines=True,normed=True, maxlags=None)
