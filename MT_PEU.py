@@ -1025,7 +1025,7 @@ class EstimacaoNaoLinear:
         if regiao is not None:
             self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[4])
 
-    def incertezaParametros(self,metodo='2InvHessiana',preencherregiao=True,**kwargs):
+    def incertezaParametros(self,metodo='2InvHessiana',preencherregiao=False,**kwargs):
         u'''
         
         Método para avaliação da matriz de covariãncia dos parâmetros e região de abrangência.
