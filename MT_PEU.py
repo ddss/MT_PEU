@@ -476,7 +476,7 @@ class EstimacaoNaoLinear:
         # OTIMIZAÇÃO
         # --------------------------------------------------------------------- 
         # Keywords disponíveis        
-        self.__AlgoritmosOtimizacao = ('PSO')
+        self.__AlgoritmosOtimizacao = ('PSO',)
 
         if etapa == self.__etapasdisponiveis[2]:
             # se gerar entradas não foi executado no Global
@@ -493,7 +493,7 @@ class EstimacaoNaoLinear:
 
             # verificação se o algoritmo está disponível
             if not args[1] in self.__AlgoritmosOtimizacao:
-                raise NameError('A opção {} de algoritmo não está correta. Algoritmos disponíveis: '.format(args)+', '.join(self.__AlgoritmosOtimizacao)+'.')
+                raise NameError('A opção {} de algoritmo não está correta. Algoritmos disponíveis: '.format(args[1])+', '.join(self.__AlgoritmosOtimizacao)+'.')
 
             # validação da estimativa inicial:
             if args[0] is not None:
@@ -513,7 +513,8 @@ class EstimacaoNaoLinear:
                 raise SyntaxError('Para executar a incertezaParametros, faz-se necessário primeiro executar os métodos {} OU {}.'.format(self.__etapasdisponiveis[2],self.__etapasdisponiveis[8]))
 
             if args[0] not in self.__metodosIncerteza:
-                raise NameError('O método solicitado para cálculo da incerteza dos parâmetros {}'.format(args)+' não está disponível. Métodos disponíveis '+', '.join(self.__metodosIncerteza)+'.')
+                raise NameError('O método solicitado para cálculo da incerteza dos parâmetros {}'.format(args[0])
+                                +' não está disponível. Métodos disponíveis '+', '.join(self.__metodosIncerteza)+'.')
 
             if not isinstance(args[1],bool):
                 raise TypeError('O argumento preencherregião deve ser booleano (True ou False).')
@@ -1057,7 +1058,7 @@ class EstimacaoNaoLinear:
         if regiao is not None:
             self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[4])
 
-    def incertezaParametros(self,metodo='2InvHessiana',preencherregiao=False,**kwargs):
+    def incertezaParametros(self,metodoIncerteza='2InvHessiana',preencherregiao=False,**kwargs):
         u'''
         
         Método para avaliação da matriz de covariãncia dos parâmetros e região de abrangência.
@@ -1072,7 +1073,7 @@ class EstimacaoNaoLinear:
         Entradas (opcionais)
         =======================
 
-        * metodo (string) : método para cálculo da matriz de covariãncia dos
+        * metodoIncerteza (string) : método para cálculo da matriz de covariãncia dos
         parâmetros. Métodos disponíveis: 2InvHessiana, Geral, SensibilidadeModelo
         * preencherregiao (bool): identifica de será executado algoritmo para preenchimento da região de abrangência.
 
@@ -1101,7 +1102,7 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------         
-        self.__validacaoArgumentosEntrada('incertezaParametros',kwargs,[metodo,preencherregiao])
+        self.__validacaoArgumentosEntrada('incertezaParametros',kwargs,[metodoIncerteza,preencherregiao])
 
         # ---------------------------------------------------------------------
         # DELTAS (INCREMENTO) DAS DERIVADAS
@@ -1123,7 +1124,7 @@ class EstimacaoNaoLinear:
         # Avaliação de matrizes auxiliares
         # Matriz Hessiana da função objetivo em relação aos parâmetros
         # somente avaliada se o método é 2InvHess ou Geral
-        if metodo == self.__metodosIncerteza[0] or metodo == self.__metodosIncerteza[1]:
+        if metodoIncerteza == self.__metodosIncerteza[0] or metodoIncerteza == self.__metodosIncerteza[1]:
             self.Hessiana   = self.__Hessiana_FO_Param(self._deltaHessiana)
 
             # Inversa da matriz hessiana a função objetivo em relação aos parâmetros
@@ -1132,12 +1133,12 @@ class EstimacaoNaoLinear:
         # Gy: derivadas parciais segundas da função objetivo em relação aos parâmetros e
         # dados experimentais
         # Somente avaliada caso o método seja Geral
-        if metodo == self.__metodosIncerteza[1]:
+        if metodoIncerteza == self.__metodosIncerteza[1]:
             self.Gy  = self.__Matriz_Gy(self._deltaGy)
 
         # Matriz de sensibilidade do modelo em relação aos parâmetros
         # Somente avaliada caso o método seja o simplificado
-        if metodo == self.__metodosIncerteza[2]:
+        if metodoIncerteza == self.__metodosIncerteza[2]:
             self.S   = self.__Matriz_S(self.x.experimental.matriz_estimativa,self._deltaS)
 
         # ---------------------------------------------------------------------
@@ -1146,15 +1147,15 @@ class EstimacaoNaoLinear:
 
         # MATRIZ DE COVARIÂNCIA
         # Método: 2InvHessiana ->  2*inv(Hess)
-        if metodo == self.__metodosIncerteza[0]:
+        if metodoIncerteza == self.__metodosIncerteza[0]:
             matriz_covariancia = 2*invHess
 
         # Método: geral - > inv(H)*Gy*Uyy*GyT*inv(H)
-        elif metodo == self.__metodosIncerteza[1]:
+        elif metodoIncerteza == self.__metodosIncerteza[1]:
             matriz_covariancia  = invHess.dot(self.Gy).dot(self.y.experimental.matriz_covariancia).dot(self.Gy.transpose()).dot(invHess)
 
         # Método: simplificado -> inv(trans(S)*inv(Uyy)*S)
-        elif metodo == self.__metodosIncerteza[2]:
+        elif metodoIncerteza == self.__metodosIncerteza[2]:
             matriz_covariancia = inv(self.S.transpose().dot(inv(self.y.experimental.matriz_covariancia)).dot(self.S))
 
         # ---------------------------------------------------------------------
@@ -1171,12 +1172,11 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # REGIÃO DE ABRANGÊNCIA
         # ---------------------------------------------------------------------
-        # A região de abrangência só é executada caso haja histórico da otimização e o atributo regiao_abrangencia
-        # da grandeza self.parâmetros não esteja definido
-        if self.__etapasdisponiveis[12] in self.__etapasGlobal() and self.parametros.regiao_abrangencia is None:
-            # PREENCHIMENTO DE REGIÃO:
-            if preencherregiao:
-                self.__preencherRegiao(**kwargs)
+        # PREENCHIMENTO DE REGIÃO:
+        if preencherregiao:
+            self.__preencherRegiao(**kwargs)
+        # A região de abrangência só é executada caso haja histórico de posicoes e fitness
+        if self.__etapasdisponiveis[12] in self.__etapasGlobal():
             # OBTENÇÃO DA REGIÃO:
             regiao = self.regiaoAbrangencia()
             # ATRIBUIÇÃO A GRANDEZA
@@ -1973,7 +1973,7 @@ class EstimacaoNaoLinear:
                     warn('Os gráficos de regiao de abrangencia não puderam ser criados, pois há apenas um parâmetro.',UserWarning)
 
             else:
-                warn('Os gráficos de regiao de abrangencia não puderam ser criados, pois o método {} não foi executado após {} OU no método {} não foi incluída a região de abrangência. Observe que em {} é avaliado a região de abrangência, apenas quando {} é executado.'.format(self.__etapasdisponiveis[3], self.__etapasdisponiveis[2], self.__etapasdisponiveis[8], self.__etapasdisponiveis[3],self.__etapasdisponiveis[2]),UserWarning)
+                warn('Os gráficos de regiao de abrangência não puderam ser criados, pois o método {} não foi executado após {} OU no método {} não foi solicitado preenchimento de região.'.format(self.__etapasdisponiveis[3], self.__etapasdisponiveis[2], self.__etapasdisponiveis[3]),UserWarning)
         # predição
         if self.__tipoGraficos[2] in tipos:
             # Predição deve ter sido executada neste fluxo
