@@ -14,6 +14,7 @@ Principais classes do motor de cálculo do PEU
 from numpy import array, size, linspace, min, max, copy, cos, sin, radians,\
     mean, ones, ndarray
 
+from numpy.random import uniform
 from scipy.stats import f, t, chi2
 from scipy.misc import factorial
 from numpy.linalg import inv
@@ -587,6 +588,24 @@ class EstimacaoNaoLinear:
             # Depende da execução de otimiza e SETparametro
             if self.__etapasdisponiveis[2] not in self.__etapasGlobal() or self.__etapasdisponiveis[8] not in self.__etapasGlobal():
                 raise TypeError('O método GETFOotimo deve ser executado após {} ou {}'.format(self.__etapasdisponiveis[8], self.__etapasdisponiveis[2]))
+
+        # ---------------------------------------------------------------------
+        # PREENCHER REGIÃO
+        # ---------------------------------------------------------------------
+        if etapa == self.__etapasdisponiveis[16]:
+            self.__tipoPreenchimento = ('PSO', 'MonteCarlo')
+
+            if args not in self.__tipoPreenchimento:
+                raise NameError('O método solicitado para preenchimento da região de abrangência {}'.format(
+                    args) + ' não está disponível. Métodos disponíveis ' + ', '.join(self.__tipoPreenchimento) + '.')
+
+            if args == self.__tipoPreenchimento[1]:
+                kwargsdisponiveis = ('iteracoes','limite_superior','limite_inferior')
+
+                if not set(keywargs.keys()).issubset(kwargsdisponiveis):
+                    raise NameError('O(s) keyword(s) argument digitado(s) está(ão) incorreto(s). Keyword disponíveis: '+
+                                    ', '.join(kwargsdisponiveis)+'.')
+
 
     def __validacaoDadosEntrada(self,dados,udados,NV):
         u'''
@@ -1502,7 +1521,7 @@ class EstimacaoNaoLinear:
         matriz_S = ones((self.y.NV*self.y.validacao.NE,self.parametros.NV))
         
         for i in xrange(self.parametros.NV): 
-            
+
                 # Incrementos para as derivadas dos parâmetros, tendo delta_alpha aplicados a qual parâmetro está ocorrendo a alteração\
                 #no vetor de parâmetros que é argumento da FO.
                 
@@ -1510,11 +1529,11 @@ class EstimacaoNaoLinear:
                 #OBS.: SE O VALOR DO PARÂMETRO FOR ZERO, APLICA-SE OS VALORES DE ''delta'' para delta_alpha, pois não existe log de zero, causando erro.
                 #--------------------------------------------------------------
                 delta_alpha = (10**(floor(log10(abs(self.parametros.estimativa[i])))))*delta if self.parametros.estimativa[i] != 0 else delta
-                
+
                 #Vetores alterados dos parâmetros para entrada na função do modelo
                 vetor_parametro_delta_i_positivo = vetor_delta(self.parametros.estimativa,i,delta_alpha) 
                 vetor_parametro_delta_i_negativo = vetor_delta(self.parametros.estimativa,i,-delta_alpha)
-                
+
                 #Valores para o modelo com os parâmetros acrescidos (matriz na foma de array).                
                 ycalculado_delta_positivo       = self.__modelo(vetor_parametro_delta_i_positivo,x,self._args_model())
                 
@@ -1538,20 +1557,32 @@ class EstimacaoNaoLinear:
 
         return matriz_S
 
-    def __preencherRegiao(self,**kwargs):
+    def __preencherRegiao(self,tipo,**kwargs):
         u'''
         Método utilizado para preenchimento da região de abrangência
+
+        ================
+        Entrada opcional
+        ================
+        * tipo ('string'): define qual o método utilizado no preenchimento da região de abrangência. Se: PSO ou MC (
+         Monte Carlo)
 
         =================
         Keyword arguments
         =================
-        * argumentos extras a serem passados para o PSO
-
+        PSO:
+            * argumentos extras a serem passados para o PSO (Vide documentação do método)
+        MonteCarlo:
+            * iteracoes (int): número de iterações a serem realizadas. Default: 10000.
         '''
         # ---------------------------------------------------------------------
-        # KEYWORDS
+        # VALIDAÇÃO
         # ---------------------------------------------------------------------
-        # Atributos obrigatórios
+        self.__validacaoArgumentosEntrada(self.__etapasdisponiveis[16],kwargs,tipo)
+
+        # ---------------------------------------------------------------------
+        # LIMTES DE BUSCA
+        # ---------------------------------------------------------------------
         limite_superior = kwargs.get('limite_superior')
         limite_inferior = kwargs.get('limite_inferior')
 
@@ -1573,33 +1604,49 @@ class EstimacaoNaoLinear:
         else:
             kwargs.pop('limite_inferior') # retira limite_inferior dos argumentos extras
 
-        if kwargs.get('itmax') is None:
-            kwargs['itmax'] = 500
+        # ---------------------------------------------------------------------
+        # MÉTODO DO PSO
+        # ---------------------------------------------------------------------
+        if tipo == self.__tipoPreenchimento[0]:
 
-        if kwargs.get('metodo') is None:
-            kwargs['metodo'] = {'busca':'Regiao','algoritmo':'PSO','inercia':'Constante'}
-            kwargs['otimo']  = self.parametros.estimativa
+            if kwargs.get('itmax') is None:
+                kwargs['itmax'] = 500
 
-        # Separação de keywords para os diferentes métodos
-        # keywarg para a etapa de busca:
-        kwargsbusca = {}
-        if kwargs.get('printit') is not None:
-            kwargsbusca['printit'] = kwargs.get('printit')
-            del kwargs['printit']
+            if kwargs.get('metodo') is None:
+                kwargs['metodo'] = {'busca':'Regiao','algoritmo':'PSO','inercia':'Constante'}
+                kwargs['otimo']  = self.parametros.estimativa
 
-        kwargs['NP'] = self.parametros.NV
+            # Separação de keywords para os diferentes métodos
+            # keywarg para a etapa de busca:
+            kwargsbusca = {}
+            if kwargs.get('printit') is not None:
+                kwargsbusca['printit'] = kwargs.get('printit')
+                del kwargs['printit']
 
-        PSO_preenchimento = PSO(limite_superior,limite_inferior,args_model=self._args_FO(),**kwargs)
-        PSO_preenchimento.Busca(self.__FO,**kwargsbusca)
+            kwargs['NP'] = self.parametros.NV
+
+            PSO_preenchimento = PSO(limite_superior,limite_inferior,args_model=self._args_FO(),**kwargs)
+            PSO_preenchimento.Busca(self.__FO,**kwargsbusca)
+
+            # ---------------------------------------------------------------------
+            # HISTÓRICO DA OTIMIZAÇÃO
+            # ---------------------------------------------------------------------
+            for it in xrange(PSO_preenchimento.n_historico):
+                for ID_particula in xrange(PSO_preenchimento.Num_particulas):
+                    self.__hist_Posicoes.append(PSO_preenchimento.historico_posicoes[it][ID_particula])
+                    self.__hist_Fitness.append(PSO_preenchimento.historico_fitness[it][ID_particula])
 
         # ---------------------------------------------------------------------
-        # HISTÓRICO DA OTIMIZAÇÃO
+        # MÉTODO MONTE CARLO
         # ---------------------------------------------------------------------
-        for it in xrange(PSO_preenchimento.n_historico):
-            for ID_particula in xrange(PSO_preenchimento.Num_particulas):
-                self.__hist_Posicoes.append(PSO_preenchimento.historico_posicoes[it][ID_particula])
-                self.__hist_Fitness.append(PSO_preenchimento.historico_fitness[it][ID_particula])
-
+        if tipo == self.__tipoPreenchimento[1]:
+            iteracoes = int(kwargs.get('iteracoes') if kwargs.get('iteracoes') is not None else 10000)
+            for cont in xrange(iteracoes):
+                amostra = [uniform(limite_inferior[i],limite_superior[i],1)[0] for i in xrange(self.parametros.NV)]
+                FO = self.__FO(amostra, self._args_FO())
+                FO.run()
+                self.__hist_Posicoes.append(amostra)
+                self.__hist_Fitness.append(FO.result)
         # ---------------------------------------------------------------------
         # VARIÁVEIS INTERNAS
         # ---------------------------------------------------------------------
