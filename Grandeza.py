@@ -418,11 +418,24 @@ class Grandeza:
         * limite_superior
         * limite_inferior
         '''
+        # Estimativa e variância
         estimativa = kwargs.get('estimativa') if kwargs.get('estimativa') is not None else self.estimativa
         variancia = kwargs.get('matriz_covariancia') if kwargs.get('matriz_covariancia') is not None else self.matriz_covariancia
-        regiao = kwargs.get('regiao_abrangencia') if kwargs.get('regiao_abrangencia') is not None else self.regiao_abrangencia
+
+        # limites dos parâmetros
         limite_superior = kwargs.get('limite_superior') if kwargs.get('limite_superior') is not None else self.limite_superior
         limite_inferior = kwargs.get('limite_inferior') if kwargs.get('limite_inferior') is not None else self.limite_inferior
+
+        # região de abrangência
+        if self.regiao_abrangencia is None:
+            regiao = [] # Caso a região não esteja definida, será utilizado uma lista para permitir o extend
+        else:
+            regiao = self.regiao_abrangencia
+
+        if kwargs.get('regiao_abrangencia') is not None:
+            regiao.extend(kwargs.get('regiao_abrangencia'))
+        else:
+            regiao = self.regiao_abrangencia
 
         self._SETparametro(estimativa, variancia, regiao, limite_inferior, limite_superior)
 
