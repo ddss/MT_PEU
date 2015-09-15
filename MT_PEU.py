@@ -1001,6 +1001,7 @@ class EstimacaoNaoLinear:
         =================
         * limite_superior: limite superior dos parâmetros
         * limtie_inferior: limite_inferior dos parâmetros
+        * args           : argumentos extras a serem passados para o modelo
 
         =========
         ATRIBUTOS
@@ -1010,9 +1011,14 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------
-
-        # Validação das keywords obrigatórias para o método de otimização
         self.__validacaoArgumentosEntrada('SETparametro',None)
+
+        # ---------------------------------------------------------------------
+        # ARGUMENTOS EXTRAS A SEREM PASSADOS PARA O MODELO
+        # ---------------------------------------------------------------------
+        # Obtenção de args_user
+        if kwargs.get('args') is not None:
+            self.__args_user = kwargs.pop('args')
 
         # ---------------------------------------------------------------------
         # ATRIBUIÇÃO A GRANDEZAS
@@ -1020,6 +1026,13 @@ class EstimacaoNaoLinear:
         # Atribuindo o valores para a estimativa dos parâmetros e sua matriz de 
         # covariância
         self.parametros._SETparametro(estimativa, variancia, regiao,**kwargs)
+
+        # ---------------------------------------------------------------------
+        # AVALIAÇÃO DO MODELO
+        # ---------------------------------------------------------------------
+        # Avaliação do modelo no ponto ótimo informado
+        self.__ThreadExceptionHandling(self.__modelo,self.parametros.estimativa,self.x.validacao.matriz_estimativa,
+                                       self._args_model())
 
         # ---------------------------------------------------------------------
         # OBTENÇÃO DO PONTO ÓTIMO
