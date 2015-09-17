@@ -329,7 +329,9 @@ class EstimacaoNaoLinear:
 
         # Flags para controle
         self.__flag = flag()
-        self.__flag.setCaracteristica(['dadosexperimentais','dadosvalidacao','reconciliacao','graficootimizacao','relatoriootimizacao'])
+        self.__flag.setCaracteristica(['dadosexperimentais','dadosvalidacao',
+                                       'reconciliacao','preenchimentoRegiao',
+                                       'graficootimizacao','relatoriootimizacao'])
         # uso das caracterśiticas:
         # dadosexperimentais: indicar se dadosexperimentais foram inseridos
         # dadosvalidacao: indicar se dadosvalidacao foram inseridos
@@ -594,6 +596,10 @@ class EstimacaoNaoLinear:
         # PREENCHER REGIÃO
         # ---------------------------------------------------------------------
         if etapa == self.__etapasdisponiveis[16]:
+
+            if self.__etapasdisponiveis[3] not in self.__etapasGlobal():
+                raise TypeError('O método preencherRegiao deve ser executado após {}'.format(self.__etapasdisponiveis[3]))
+
             self.__tipoPreenchimento = ('PSO', 'MonteCarlo')
 
             if args not in self.__tipoPreenchimento:
@@ -601,7 +607,7 @@ class EstimacaoNaoLinear:
                     args) + ' não está disponível. Métodos disponíveis ' + ', '.join(self.__tipoPreenchimento) + '.')
 
             if args == self.__tipoPreenchimento[1]:
-                kwargsdisponiveis = ('iteracoes','limite_superior','limite_inferior')
+                kwargsdisponiveis = ('iteracoes','limite_superior','limite_inferior','metodoPreenchimento')
 
                 if not set(keywargs.keys()).issubset(kwargsdisponiveis):
                     raise NameError('O(s) keyword(s) argument digitado(s) está(ão) incorreto(s). Keyword disponíveis: '+
@@ -1175,6 +1181,8 @@ class EstimacaoNaoLinear:
         # PREENCHIMENTO DE REGIÃO:
         if preencherregiao:
             self.__preencherRegiao(**kwargs)
+            self.__flag.ToggleActive('preenchimentoRegiao')
+
         # A região de abrangência só é executada caso haja histórico de posicoes e fitness
         if self.__etapasdisponiveis[12] in self.__etapasGlobal():
             # OBTENÇÃO DA REGIÃO:
@@ -1570,19 +1578,15 @@ class EstimacaoNaoLinear:
 
         return matriz_S
 
-    def __preencherRegiao(self,tipo,**kwargs):
+    def __preencherRegiao(self,**kwargs):
         u'''
         Método utilizado para preenchimento da região de abrangência
-
-        ================
-        Entrada opcional
-        ================
-        * tipo ('string'): define qual o método utilizado no preenchimento da região de abrangência. Se: PSO ou MC (
-         Monte Carlo)
 
         =================
         Keyword arguments
         =================
+            * metodoPreenchimento ('string'): define qual o método utilizado no preenchimento da região de abrangência. Se: PSO ou MC (
+         Monte Carlo)
         PSO:
             * argumentos extras a serem passados para o PSO (Vide documentação do método)
         MonteCarlo:
@@ -1591,6 +1595,8 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------
+        tipo = kwargs.get('metodoPreenchimento') if kwargs.get('metodoPreenchimento') is not None else 'MonteCarlo'
+
         self.__validacaoArgumentosEntrada(self.__etapasdisponiveis[16],kwargs,tipo)
 
         # ---------------------------------------------------------------------

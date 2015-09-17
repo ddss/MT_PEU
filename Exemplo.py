@@ -101,7 +101,7 @@ Estime.gerarEntradas(x,y,ux,uy,tipo='experimental')
 Estime.otimiza(limite_superior=sup,limite_inferior=inf,algoritmo='PSO',itmax=500,
                 Num_particulas=30,metodo={'busca':'Otimo','algoritmo':'PSO','inercia':'TVIW-linear'},args=[tipo],printit=True)
 #Estime.SETparametro([0.0075862408745003265, 27642.662773759967],args=[tipo])
-Estime.incertezaParametros(delta=1e-5,metodoIncerteza='SensibilidadeModelo',preencherregiao=True,metodo={'busca':'Regiao','algoritmo':'PSO'},limite_superior=[0.008,29000],limite_inferior=[0.006,25000],otimo=Estime.parametros.estimativa,itmax=1000)
+Estime.incertezaParametros(delta=1e-5,metodoIncerteza='SensibilidadeModelo',preencherregiao=True)
 Estime.predicao()
 Estime.analiseResiduos()
 etapas = ['otimizacao','grandezas-entrada', 'predicao','grandezas-calculadas','analiseResiduos', 'regiaoAbrangencia']
@@ -137,7 +137,7 @@ ER.gerarEntradas(x,y,array([[1],[1],[1],[1],[1],[1]]),array([[1],[1],[1],[1],[1]
 
 ER.otimiza()
 #ER.SETparametro([0.9571428571428567, 0.12380952380952503])
-ER.incertezaParametros()
+ER.incertezaParametros(iteracoes=100000,metodoPreenchimento='MonteCarlo')
 ER.predicao(delta=1e-6)
 ER.analiseResiduos()
 ER.graficos(['analiseResiduos','regiaoAbrangencia', 'grandezas-entrada', 'predicao','grandezas-calculadas','otimizacao'])
