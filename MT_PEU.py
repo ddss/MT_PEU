@@ -1947,19 +1947,22 @@ class EstimacaoNaoLinear:
                         ax.xaxis.grid(color='gray', linestyle='dashed')
                         xlabel(self.parametros.labelGraficos()[p1],fontsize=20)
                         ylabel(self.parametros.labelGraficos()[p2],fontsize=20)
-
+                        label_tick_x   = ax.get_xticks().tolist()
+                        tamanho_tick_x = (label_tick_x[1] - label_tick_x[0])/2
+                        # eixo y
+                        label_tick_y = ax.get_yticks().tolist()
+                        tamanho_tick_y = (label_tick_y[1] - label_tick_y[0])/2
                         # Cálculos dos pontos extremos da elipse:
-                        folga = 1.1
                         if theta >= 0:
-                            pontos_maior_eixo = ((self.parametros.estimativa[p1] + folga*h_maior_eixo[0], self.parametros.estimativa[p2] - folga*h_maior_eixo[1]),
-                                                 (self.parametros.estimativa[p1] - folga*h_maior_eixo[0], self.parametros.estimativa[p2] + folga*h_maior_eixo[1]))
-                            pontos_menor_eixo = ((self.parametros.estimativa[p1] + folga*h_menor_eixo[0], self.parametros.estimativa[p2] + folga*h_menor_eixo[1]),
-                                                 (self.parametros.estimativa[p1] - folga*h_menor_eixo[0], self.parametros.estimativa[p2] - folga*h_menor_eixo[1]))
+                            pontos_maior_eixo = ((self.parametros.estimativa[p1] + h_maior_eixo[0]+tamanho_tick_x, self.parametros.estimativa[p2] - h_maior_eixo[1]-tamanho_tick_y),
+                                                 (self.parametros.estimativa[p1] - h_maior_eixo[0]-tamanho_tick_x, self.parametros.estimativa[p2] + h_maior_eixo[1]+tamanho_tick_y))
+                            pontos_menor_eixo = ((self.parametros.estimativa[p1] + h_menor_eixo[0]+tamanho_tick_x, self.parametros.estimativa[p2] + h_menor_eixo[1]+tamanho_tick_y),
+                                                 (self.parametros.estimativa[p1] - h_menor_eixo[0]-tamanho_tick_x, self.parametros.estimativa[p2] - h_menor_eixo[1]-tamanho_tick_y))
                         else:
-                            pontos_maior_eixo = ((self.parametros.estimativa[p1] + folga*h_maior_eixo[0], self.parametros.estimativa[p2] + folga*h_maior_eixo[1]),
-                                                 (self.parametros.estimativa[p1] - folga*h_maior_eixo[0], self.parametros.estimativa[p2] - folga*h_maior_eixo[1]))
-                            pontos_menor_eixo = ((self.parametros.estimativa[p1] + folga*h_menor_eixo[0], self.parametros.estimativa[p2] - folga*h_menor_eixo[1]),
-                                                 (self.parametros.estimativa[p1] - folga*h_menor_eixo[0], self.parametros.estimativa[p2] + folga*h_menor_eixo[1]))
+                            pontos_maior_eixo = ((self.parametros.estimativa[p1] + h_maior_eixo[0]+tamanho_tick_x, self.parametros.estimativa[p2] + h_maior_eixo[1]+tamanho_tick_y),
+                                                 (self.parametros.estimativa[p1] - h_maior_eixo[0]-tamanho_tick_x, self.parametros.estimativa[p2] - h_maior_eixo[1]-tamanho_tick_y))
+                            pontos_menor_eixo = ((self.parametros.estimativa[p1] + h_menor_eixo[0]+tamanho_tick_x, self.parametros.estimativa[p2] - h_menor_eixo[1]-tamanho_tick_y),
+                                                 (self.parametros.estimativa[p1] - h_menor_eixo[0]-tamanho_tick_x, self.parametros.estimativa[p2] + h_menor_eixo[1]+tamanho_tick_y))
                         coordenadas_x = [pontos_maior_eixo[0][0],pontos_maior_eixo[1][0],pontos_menor_eixo[0][0],pontos_menor_eixo[1][0]]
                         coordenadas_y = [pontos_maior_eixo[0][1],pontos_maior_eixo[1][1],pontos_menor_eixo[0][1],pontos_menor_eixo[1][1]]
                         xlimpontos        = (min(coordenadas_x),max(coordenadas_x))
@@ -1969,9 +1972,9 @@ class EstimacaoNaoLinear:
                         xlim((min([xlimpontos[0],xauto[0]]),max([xlimpontos[1],xauto[-1]])))
                         ylim((min([ylimpontos[0],yauto[0]]),max([ylimpontos[1],yauto[-1]])))
                         if self.__etapasdisponiveis[4] in self.__etapasGlobal() and self.parametros.regiao_abrangencia != []:
-                            legend([ellipse,PSO],['Elipse',u'Verossimilhança'])
+                            legend([ellipse,PSO],['Elipse',u'Verossimilhança'],loc='best')
                         elif self.__etapasdisponiveis[4] in self.__etapasGlobal() and self.parametros.regiao_abrangencia == []:
-                            legend([ellipse],['Ellipse'])
+                            legend([ellipse],['Ellipse'],loc='best')
                         fig.savefig(base_path+base_dir+'regiao_verossimilhanca_fl'+str(0)+'_'+str(self.parametros.simbolos[p1])+'_'+str(self.parametros.simbolos[p2])+'.png')
                         close()
                         p2+=1
