@@ -2155,7 +2155,7 @@ class EstimacaoNaoLinear:
                 # Gráficos relacionados aos resíduos das grandezas dependentes
                 self.y.Graficos(base_path, base_dir, ID=['residuo'], fluxo=self.__etapasID)
 
-                # Grafico dos resíduos em função dos dados de validação (ou experimentais)
+                # Grafico dos resíduos em função dos dados de validação (ou experimentais) e calculados
                 for i,simb in enumerate(self.y.simbolos):
                     base_dir = sep + self._configFolder['graficos-analiseResiduos'] + sep + self.y.simbolos[i] + sep
                     Validacao_Diretorio(base_path,base_dir)
@@ -2172,6 +2172,25 @@ class EstimacaoNaoLinear:
                     legend()
                     fig.savefig(base_path+base_dir+'residuos_fl'+str(self.__etapasID)+'_versus_'+self.y.simbolos[i]+'_calculado.png')
                     close()
+
+                    fig = figure()
+                    ax = fig.add_subplot(1,1,1)
+                    plot(self.y.validacao.matriz_estimativa[:,i],self.y.residuos.matriz_estimativa[:,i], 'o')
+                    plot([min(self.y.validacao.matriz_estimativa[:,i]),max(self.y.validacao.matriz_estimativa[:,i])],[mean(self.y.residuos.matriz_estimativa[:,i])]*2, '-.r', label=u'Média resíduos '+self.y.simbolos[i])
+                    ax.yaxis.grid(color='gray', linestyle='dashed')
+                    ax.xaxis.grid(color='gray', linestyle='dashed')
+                    ax.axhline(0, color='black', lw=2)
+                    legend()
+                    if self.__flag.info['dadosvalidacao']:
+                        xlabel(u'Valores de validação '+self.y.labelGraficos()[i])
+                        ylabel(u'Resíduos '+self.y.labelGraficos()[i])
+                        fig.savefig(base_path+base_dir+'residuos_fl'+str(self.__etapasID)+'_versus_'+self.y.simbolos[i]+'_validacao.png')
+                    else:
+                        xlabel(u'Valores de experimentais '+self.y.labelGraficos()[i])
+                        ylabel(u'Resíduos '+self.y.labelGraficos()[i])
+                        fig.savefig(base_path+base_dir+'residuos_fl'+str(self.__etapasID)+'_versus_'+self.y.simbolos[i]+'_experimental.png')
+                    close()
+
                     for j, simbol in enumerate(self.x.simbolos):
                         #X experimental vs. Resíduos
                         fig = figure()
