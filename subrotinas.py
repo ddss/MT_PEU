@@ -142,20 +142,29 @@ def plot_cov_ellipse(cov, pos, c2=2, ax=None, **kwargs):
     
     ax.add_artist(ellip)
 
-    # Obtenção dos incremetos para cálculo
-    # dos pontos da elipse
+    # Comprimento dos eixos da elipse
     a = height/2.
     b = width/2.
     if theta >= 0:
         h_maior_eixo = (abs(cos(radians((180.-theta)))*b),abs(sin(radians(180.-theta))*b))
         h_menor_eixo = (abs(cos(radians(theta-90))*a), abs(sin(radians(theta-90))*a))
+        # Cálculo dos pontos extremos para cada eixo
+        pontos_maior_eixo = ((pos[0] + h_maior_eixo[0], pos[1] - h_maior_eixo[1]),
+                             (pos[0] - h_maior_eixo[0], pos[1] + h_maior_eixo[1]))
+        pontos_menor_eixo = ((pos[0] + h_menor_eixo[0], pos[1] + h_menor_eixo[1]),
+                             (pos[0] - h_menor_eixo[0], pos[1] - h_menor_eixo[1]))
+
     else:
         alpha = 180 + theta
         h_maior_eixo = (abs(cos(radians(alpha))*b), abs(b*sin(radians(alpha))))
         h_menor_eixo = (abs(cos(radians(90.-alpha))*a), abs(a*sin(radians(90-alpha))))
+        # Cálculo dos pontos extremos para cada eixo
+        pontos_maior_eixo = ((pos[0] + h_maior_eixo[0], pos[1] + h_maior_eixo[1]),
+                             (pos[0] - h_maior_eixo[0], pos[1] - h_maior_eixo[1]))
+        pontos_menor_eixo = ((pos[0] + h_menor_eixo[0], pos[1] - h_menor_eixo[1]),
+                             (pos[0] - h_menor_eixo[0], pos[1] + h_menor_eixo[1]))
 
-
-    return (ellip, h_maior_eixo, h_menor_eixo, theta)
+    return (ellip, pontos_maior_eixo, pontos_menor_eixo)
     
 def vetor_delta(entrada_vetor,posicao,delta):
     u"""

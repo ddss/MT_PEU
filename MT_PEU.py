@@ -1605,21 +1605,50 @@ class EstimacaoNaoLinear:
         limite_superior = kwargs.get('limite_superior')
         limite_inferior = kwargs.get('limite_inferior')
 
+        if limite_superior is None or limite_inferior is None:
+            extremo_elipse_superior = [0 for i in xrange(self.parametros.NV)]
+            extremo_elipse_inferior = [0 for i in xrange(self.parametros.NV)]
+
+            Fisher = f.ppf(self.PA, self.parametros.NV, (self.y.experimental.NE * self.y.NV - self.parametros.NV))
+            Comparacao = self.FOotimo * \
+                         (float(self.parametros.NV) / (self.y.experimental.NE * self.y.NV - float(self.parametros.NV))
+                          * Fisher)
+
+            Combinacoes = int(factorial(self.parametros.NV) / (factorial(self.parametros.NV - 2) * factorial(2)))
+            p1 = 0
+            p2 = 1
+            cont = 0
+            passo = 1
+
+            for pos in xrange(Combinacoes):
+                if pos == (self.parametros.NV - 1) + cont:
+                    p1 += 1
+                    p2 = p1 + 1
+                    passo += 1
+                    cont += self.parametros.NV - passo
+
+                cov = array([[self.parametros.matriz_covariancia[p1, p1], self.parametros.matriz_covariancia[p1, p2]],
+                             [self.parametros.matriz_covariancia[p2, p1], self.parametros.matriz_covariancia[p2, p2]]])
+
+                ellipse, pontos_maior_eixo, pontos_menor_eixo = plot_cov_ellipse(cov, [self.parametros.estimativa[p1], self.parametros.estimativa[p2]],
+                                                                     Comparacao)
+
+                coordenadas_x = [pontos_maior_eixo[0][0], pontos_maior_eixo[1][0],
+                                 pontos_menor_eixo[0][0], pontos_menor_eixo[1][0]]
+                coordenadas_y = [pontos_maior_eixo[0][1], pontos_maior_eixo[1][1],
+                                 pontos_menor_eixo[0][1], pontos_menor_eixo[1][1]]
+                extremo_elipse_superior[p1] = max(coordenadas_x)
+                extremo_elipse_superior[p2] = max(coordenadas_y)
+                extremo_elipse_inferior[p1] = min(coordenadas_x)
+                extremo_elipse_inferior[p2] = min(coordenadas_y)
+
         if limite_superior is None:
-            if self.parametros.limite_superior is not None:
-                limite_superior = [min([self.parametros.estimativa[i] + 3*t.ppf(self.PA+(1-self.PA)/2,100)*self.parametros.matriz_incerteza[0,i],
-                                       self.parametros.limite_superior[i]]) for i in xrange(self.parametros.NV)]
-            else:
-                 limite_superior = [self.parametros.estimativa[i] + 3*t.ppf(self.PA+(1-self.PA)/2,100)*self.parametros.matriz_incerteza[0,i] for i in xrange(self.parametros.NV)]
+            limite_superior = [extremo_elipse_superior[i] + (extremo_elipse_superior[i]-extremo_elipse_inferior[i])/2. for i in xrange(self.parametros.NV)]
         else:
             kwargs.pop('limite_superior') # retira limite_superior dos argumentos extras
 
         if limite_inferior is None:
-            if self.parametros.limite_inferior is not None:
-                limite_inferior = [max([self.parametros.estimativa[i] - 3*t.ppf(self.PA+(1-self.PA)/2,100)*self.parametros.matriz_incerteza[0,i],
-                                       self.parametros.limite_inferior[i]])for i in xrange(self.parametros.NV)]
-            else:
-                limite_inferior = [self.parametros.estimativa[i] - 3*t.ppf(self.PA+(1-self.PA)/2,100)*self.parametros.matriz_incerteza[0,i] for i in xrange(self.parametros.NV)]
+            limite_inferior = [extremo_elipse_inferior[i] - (extremo_elipse_superior[i]-extremo_elipse_inferior[i])/2. for i in xrange(self.parametros.NV)]
         else:
             kwargs.pop('limite_inferior') # retira limite_inferior dos argumentos extras
 
@@ -1941,32 +1970,23 @@ class EstimacaoNaoLinear:
                         Fisher = f.ppf(self.PA,self.parametros.NV,(self.y.experimental.NE*self.y.NV-self.parametros.NV))
                         Comparacao = self.FOotimo*(float(self.parametros.NV)/(self.y.experimental.NE*self.y.NV-float(self.parametros.NV))*Fisher)
                         cov = array([[self.parametros.matriz_covariancia[p1,p1],self.parametros.matriz_covariancia[p1,p2]],[self.parametros.matriz_covariancia[p2,p1],self.parametros.matriz_covariancia[p2,p2]]])
-                        ellipse, h_maior_eixo, h_menor_eixo,theta = plot_cov_ellipse(cov, [self.parametros.estimativa[p1],self.parametros.estimativa[p2]], Comparacao, fill = False, color = 'r', linewidth=2.0,zorder=2)
+                        ellipse, pontos_maior_eixo, pontos_menor_eixo = plot_cov_ellipse(cov, [self.parametros.estimativa[p1],self.parametros.estimativa[p2]], Comparacao, fill = False, color = 'r', linewidth=2.0,zorder=2)
                         plot(self.parametros.estimativa[p1],self.parametros.estimativa[p2],'r*',markersize=10.0,zorder=2)
                         ax.yaxis.grid(color='gray', linestyle='dashed')                        
                         ax.xaxis.grid(color='gray', linestyle='dashed')
                         xlabel(self.parametros.labelGraficos()[p1],fontsize=20)
                         ylabel(self.parametros.labelGraficos()[p2],fontsize=20)
+                        # Obtenção do comprimento entre ticks do gráfico
                         label_tick_x   = ax.get_xticks().tolist()
                         tamanho_tick_x = (label_tick_x[1] - label_tick_x[0])/2
                         # eixo y
                         label_tick_y = ax.get_yticks().tolist()
                         tamanho_tick_y = (label_tick_y[1] - label_tick_y[0])/2
-                        # Cálculos dos pontos extremos da elipse:
-                        if theta >= 0:
-                            pontos_maior_eixo = ((self.parametros.estimativa[p1] + h_maior_eixo[0]+tamanho_tick_x, self.parametros.estimativa[p2] - h_maior_eixo[1]-tamanho_tick_y),
-                                                 (self.parametros.estimativa[p1] - h_maior_eixo[0]-tamanho_tick_x, self.parametros.estimativa[p2] + h_maior_eixo[1]+tamanho_tick_y))
-                            pontos_menor_eixo = ((self.parametros.estimativa[p1] + h_menor_eixo[0]+tamanho_tick_x, self.parametros.estimativa[p2] + h_menor_eixo[1]+tamanho_tick_y),
-                                                 (self.parametros.estimativa[p1] - h_menor_eixo[0]-tamanho_tick_x, self.parametros.estimativa[p2] - h_menor_eixo[1]-tamanho_tick_y))
-                        else:
-                            pontos_maior_eixo = ((self.parametros.estimativa[p1] + h_maior_eixo[0]+tamanho_tick_x, self.parametros.estimativa[p2] + h_maior_eixo[1]+tamanho_tick_y),
-                                                 (self.parametros.estimativa[p1] - h_maior_eixo[0]-tamanho_tick_x, self.parametros.estimativa[p2] - h_maior_eixo[1]-tamanho_tick_y))
-                            pontos_menor_eixo = ((self.parametros.estimativa[p1] + h_menor_eixo[0]+tamanho_tick_x, self.parametros.estimativa[p2] - h_menor_eixo[1]-tamanho_tick_y),
-                                                 (self.parametros.estimativa[p1] - h_menor_eixo[0]-tamanho_tick_x, self.parametros.estimativa[p2] + h_menor_eixo[1]+tamanho_tick_y))
+
                         coordenadas_x = [pontos_maior_eixo[0][0],pontos_maior_eixo[1][0],pontos_menor_eixo[0][0],pontos_menor_eixo[1][0]]
                         coordenadas_y = [pontos_maior_eixo[0][1],pontos_maior_eixo[1][1],pontos_menor_eixo[0][1],pontos_menor_eixo[1][1]]
-                        xlimpontos        = (min(coordenadas_x),max(coordenadas_x))
-                        ylimpontos        = (min(coordenadas_y),max(coordenadas_y))
+                        xlimpontos        = (min(coordenadas_x)-tamanho_tick_x,max(coordenadas_x)+tamanho_tick_x)
+                        ylimpontos        = (min(coordenadas_y)-tamanho_tick_y,max(coordenadas_y)+tamanho_tick_y)
                         xauto = [ax.get_xticks()[0],ax.get_xticks()[-1]]
                         yauto = [ax.get_yticks()[0],ax.get_yticks()[-1]]
                         xlim((min([xlimpontos[0],xauto[0]]),max([xlimpontos[1],xauto[-1]])))
