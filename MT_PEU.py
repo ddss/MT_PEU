@@ -1970,7 +1970,7 @@ class EstimacaoNaoLinear:
                         Fisher = f.ppf(self.PA,self.parametros.NV,(self.y.experimental.NE*self.y.NV-self.parametros.NV))
                         Comparacao = self.FOotimo*(float(self.parametros.NV)/(self.y.experimental.NE*self.y.NV-float(self.parametros.NV))*Fisher)
                         cov = array([[self.parametros.matriz_covariancia[p1,p1],self.parametros.matriz_covariancia[p1,p2]],[self.parametros.matriz_covariancia[p2,p1],self.parametros.matriz_covariancia[p2,p2]]])
-                        ellipse, pontos_maior_eixo, pontos_menor_eixo = plot_cov_ellipse(cov, [self.parametros.estimativa[p1],self.parametros.estimativa[p2]], Comparacao, fill = False, color = 'r', linewidth=2.0,zorder=2)
+                        ellipse, pontos_maior_eixo, pontos_menor_eixo = plot_cov_ellipse(cov, [self.parametros.estimativa[p1],self.parametros.estimativa[p2]], Comparacao, fill = False, color = 'r', linewidth=2.0,zorder=2,ax=ax)
                         plot(self.parametros.estimativa[p1],self.parametros.estimativa[p2],'r*',markersize=10.0,zorder=2)
                         ax.yaxis.grid(color='gray', linestyle='dashed')                        
                         ax.xaxis.grid(color='gray', linestyle='dashed')
@@ -1982,9 +1982,9 @@ class EstimacaoNaoLinear:
                         # eixo y
                         label_tick_y = ax.get_yticks().tolist()
                         tamanho_tick_y = (label_tick_y[1] - label_tick_y[0])/2
-
                         coordenadas_x = [pontos_maior_eixo[0][0],pontos_maior_eixo[1][0],pontos_menor_eixo[0][0],pontos_menor_eixo[1][0]]
                         coordenadas_y = [pontos_maior_eixo[0][1],pontos_maior_eixo[1][1],pontos_menor_eixo[0][1],pontos_menor_eixo[1][1]]
+                        plot(coordenadas_x,coordenadas_y,'*m')
                         xlimpontos        = (min(coordenadas_x)-tamanho_tick_x,max(coordenadas_x)+tamanho_tick_x)
                         ylimpontos        = (min(coordenadas_y)-tamanho_tick_y,max(coordenadas_y)+tamanho_tick_y)
                         xauto = [ax.get_xticks()[0],ax.get_xticks()[-1]]

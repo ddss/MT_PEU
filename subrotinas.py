@@ -5,7 +5,8 @@ Arquivo que contém subrotinas genéricas para uso pelo MT_PEU.
 @author: Daniel
 """
 
-from numpy import concatenate, size, arctan2, degrees, sqrt, copy, ones, array, cos, sin, radians
+from numpy import concatenate, size, arctan2, degrees, sqrt, \
+    copy, ones, array, cos, sin, pi
 from numpy.linalg import eigh
 from os import path, makedirs
 
@@ -135,7 +136,6 @@ def plot_cov_ellipse(cov, pos, c2=2, ax=None, **kwargs):
 
     vals, vecs = eigsorted(cov)
     theta = degrees(arctan2(*vecs[:,0][::-1]))
-
     # Width and height are "full" widths, not radius
     width, height = 2 * sqrt(c2*vals)
     ellip = Ellipse(xy=pos, width=width, height=height, angle=theta, **kwargs)
@@ -143,26 +143,31 @@ def plot_cov_ellipse(cov, pos, c2=2, ax=None, **kwargs):
     ax.add_artist(ellip)
 
     # Comprimento dos eixos da elipse
-    a = height/2.
-    b = width/2.
-    if theta >= 0:
-        h_maior_eixo = (abs(cos(radians((180.-theta)))*b),abs(sin(radians(180.-theta))*b))
-        h_menor_eixo = (abs(cos(radians(theta-90))*a), abs(sin(radians(theta-90))*a))
+    b = height/2. # MENOR EIXO
+    a = width/2.  # MAIOR EIXO
+
+    alpha = theta*pi/180.
+
+    if theta < 0:
+        alpha += pi
+
+    if 0 <= alpha <= pi/2.:
+        h_maior_eixo = (cos(alpha)*a, sin(alpha)*a)
+        h_menor_eixo = (cos(pi-alpha-pi/2.)*b,sin(pi-alpha-pi/2.)*b)
+        # Cálculo dos pontos extremos para cada eixo
+        pontos_maior_eixo = ((pos[0] + h_maior_eixo[0], pos[1] + h_maior_eixo[1]),
+                             (pos[0] - h_maior_eixo[0], pos[1] - h_maior_eixo[1]))
+        pontos_menor_eixo = ((pos[0] - h_menor_eixo[0], pos[1] + h_menor_eixo[1]),
+                             (pos[0] + h_menor_eixo[0], pos[1] - h_menor_eixo[1]))
+
+    else:
+        h_maior_eixo = (cos(pi-alpha)*a,sin(pi-alpha)*a)
+        h_menor_eixo = (cos(alpha-pi/2.)*b,sin(alpha-pi/2.)*b)
         # Cálculo dos pontos extremos para cada eixo
         pontos_maior_eixo = ((pos[0] + h_maior_eixo[0], pos[1] - h_maior_eixo[1]),
                              (pos[0] - h_maior_eixo[0], pos[1] + h_maior_eixo[1]))
         pontos_menor_eixo = ((pos[0] + h_menor_eixo[0], pos[1] + h_menor_eixo[1]),
                              (pos[0] - h_menor_eixo[0], pos[1] - h_menor_eixo[1]))
-
-    else:
-        alpha = 180 + theta
-        h_maior_eixo = (abs(cos(radians(alpha))*b), abs(b*sin(radians(alpha))))
-        h_menor_eixo = (abs(cos(radians(90.-alpha))*a), abs(a*sin(radians(90-alpha))))
-        # Cálculo dos pontos extremos para cada eixo
-        pontos_maior_eixo = ((pos[0] + h_maior_eixo[0], pos[1] + h_maior_eixo[1]),
-                             (pos[0] - h_maior_eixo[0], pos[1] - h_maior_eixo[1]))
-        pontos_menor_eixo = ((pos[0] + h_menor_eixo[0], pos[1] - h_menor_eixo[1]),
-                             (pos[0] - h_menor_eixo[0], pos[1] + h_menor_eixo[1]))
 
     return (ellip, pontos_maior_eixo, pontos_menor_eixo)
     
