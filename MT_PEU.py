@@ -1939,8 +1939,9 @@ class EstimacaoNaoLinear:
 
         # regiaoAbrangencia
         if self.__tipoGraficos[0] in tipos:
-            # os gráficos da região de abrangência sõ são executados se houver dados disponíveis
-            if self.parametros.regiao_abrangencia is not None:
+            # os gráficos da região de abrangência só são executados se a matriz de covariância
+            # dos parâmetros existir.
+            if self.parametros.matriz_covariancia is not None:
                 # Gráficos da estimação
                 base_dir = sep + self._configFolder['graficos-regiaoAbrangencia'] + sep
                 Validacao_Diretorio(base_path, base_dir)
