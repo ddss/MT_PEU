@@ -1018,9 +1018,7 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # OBTENÇÃO DO PONTO ÓTIMO
         # ---------------------------------------------------------------------
-        # Só usa o método GETFOotimo se este não fora executado
-        if self.__etapasdisponiveis[11] not in self.__etapasGlobal():
-            self.__GETFOotimo()
+        self.__GETFOotimo()
 
         # ---------------------------------------------------------------------
         # VARIÁVEIS INTERNAS
