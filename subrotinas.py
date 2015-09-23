@@ -142,111 +142,15 @@ def plot_cov_ellipse(cov, pos, c2=2, ax=None, **kwargs):
     
     ax.add_artist(ellip)
 
-    # Comprimento dos eixos da elipse
-    b = height/2. # MENOR EIXO
-    a = width/2.  # MAIOR EIXO
-
-    alpha = theta*pi/180.
-
-    if theta < 0:
-        alpha += pi
-
-    if alpha >= pi:
-        alpha -= pi
-
-    if 0 <= alpha <= pi/2.:
-        h_maior_eixo = (cos(alpha)*a, sin(alpha)*a)
-        h_menor_eixo = (cos(pi-alpha-pi/2.)*b,sin(pi-alpha-pi/2.)*b)
-        # Cálculo dos pontos extremos para cada eixo
-        pontos_maior_eixo = ((pos[0] + h_maior_eixo[0], pos[1] + h_maior_eixo[1]),
-                             (pos[0] - h_maior_eixo[0], pos[1] - h_maior_eixo[1]))
-        pontos_menor_eixo = ((pos[0] - h_menor_eixo[0], pos[1] + h_menor_eixo[1]),
-                             (pos[0] + h_menor_eixo[0], pos[1] - h_menor_eixo[1]))
-
-    else:
-        h_maior_eixo = (cos(pi-alpha)*a,sin(pi-alpha)*a)
-        h_menor_eixo = (cos(alpha-pi/2.)*b,sin(alpha-pi/2.)*b)
-        # Cálculo dos pontos extremos para cada eixo
-        pontos_maior_eixo = ((pos[0] + h_maior_eixo[0], pos[1] - h_maior_eixo[1]),
-                             (pos[0] - h_maior_eixo[0], pos[1] + h_maior_eixo[1]))
-        pontos_menor_eixo = ((pos[0] + h_menor_eixo[0], pos[1] + h_menor_eixo[1]),
-                             (pos[0] - h_menor_eixo[0], pos[1] - h_menor_eixo[1]))
-
     invcov = inv(cov)
+    alpha  = [vecs[1,0]/vecs[0,0],vecs[1,1]/vecs[0,1]]
+    lamb   = [sqrt(c2/(invcov[0,0]+2*alpha_i*invcov[0,1] + alpha_i**2*invcov[1,1])) for alpha_i in alpha]
 
-    # Equação da Elipse
-    coordenadas_x = [pontos_maior_eixo[0][0],pontos_maior_eixo[1][0],pontos_menor_eixo[0][0],pontos_menor_eixo[1][0]]
-    limite_max = max(coordenadas_x)
-    limite_min = min(coordenadas_x)
-    teste = True
-    h = (limite_max - limite_min)/1000
-    theta1 = limite_max
-    while teste:
-        theta1 = theta1 + h
-        deltatheta1 = theta1 - pos[0]
-        a = invcov[1,1]
-        b = 2*invcov[0,1]*deltatheta1
-        c = deltatheta1**2*invcov[0,0]-c2
-        deltatheta2 = roots([a,b,c])
-        if iscomplex(deltatheta2[0]):
-            teste = False
-    limite_max = theta1-h
-    theta1 = limite_min
-    teste = True
-    while teste:
-        theta1 = theta1 - h
-        deltatheta1 = theta1 - pos[0]
-        a = invcov[1,1]
-        b = 2*invcov[0,1]*deltatheta1
-        c = deltatheta1**2*invcov[0,0]-c2
-        deltatheta2 = roots([a,b,c])
-        if iscomplex(deltatheta2[0]):
-            teste = False
-    limite_min = theta1+h
+    coordenadas_x = [pos[0]+lamb[0],pos[0]-lamb[0],pos[0]+lamb[1],pos[0]-lamb[1]]
+    coordenadas_y = [pos[1]+alpha[0]*lamb[0],pos[1]-alpha[0]*lamb[0],pos[1]+alpha[1]*lamb[1],pos[1]-alpha[1]*lamb[1]]
 
-    coordenadas_y =  [pontos_maior_eixo[0][1],pontos_maior_eixo[1][1],pontos_menor_eixo[0][1],pontos_menor_eixo[1][1]]
-    limite_max_y = max(coordenadas_y)
-    limite_min_y = min(coordenadas_y)
+    return ellip, coordenadas_x, coordenadas_y, vecs
 
-    teste = True
-    h = (limite_max_y - limite_min_y)/1000
-    theta2 = limite_max_y
-    while teste:
-        theta2 = theta2 + h
-        deltatheta2 = theta2 - pos[1]
-        a = invcov[0,0]
-        b = 2*invcov[1,0]*deltatheta2
-        c = deltatheta2**2*invcov[1,1]-c2
-        deltatheta1 = roots([a,b,c])
-        if iscomplex(deltatheta1[0]):
-            teste = False
-    limite_max_y = theta2-h
-    theta2 = limite_min_y
-    teste = True
-    while teste:
-        theta2 = theta2 - h
-        deltatheta2 = theta2 - pos[1]
-        a = invcov[0,0]
-        b = 2*invcov[1,0]*deltatheta2
-        c = deltatheta2**2*invcov[1,1]-c2
-        deltatheta1 = roots([a,b,c])
-        if iscomplex(deltatheta1[0]):
-            teste = False
-    limite_min_y = theta2+h
-
-    lista_t1 = []
-    lista_t2 = []
-    for theta1 in linspace(limite_min,limite_max,num=1000):
-        deltatheta1 = theta1 - pos[0]
-        a = invcov[1,1]
-        b = 2*invcov[0,1]*deltatheta1
-        c = deltatheta1**2*invcov[0,0]-c2
-        deltatheta2 = roots([a,b,c])
-        lista_t1.extend([theta1,theta1])
-        lista_t2.extend([deltatheta2[0]+pos[1],deltatheta2[1]+pos[1]])
-
-    return ellip, pontos_maior_eixo, pontos_menor_eixo,limite_max,limite_min, limite_max_y, limite_min_y, lista_t1, lista_t2
-    
 def vetor_delta(entrada_vetor,posicao,delta):
     u"""
     Subrotina para alterar o(s) elementos de um vetor, acrescentando ou retirando um determinado ''delta''.
