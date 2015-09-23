@@ -607,12 +607,19 @@ class EstimacaoNaoLinear:
                     args) + ' não está disponível. Métodos disponíveis ' + ', '.join(self.__tipoPreenchimento) + '.')
 
             if args == self.__tipoPreenchimento[1]:
-                kwargsdisponiveis = ('iteracoes','limite_superior','limite_inferior','metodoPreenchimento')
+                kwargsdisponiveis = ('iteracoes','limite_superior','limite_inferior','metodoPreenchimento','fatorlimitebusca')
 
                 if not set(keywargs.keys()).issubset(kwargsdisponiveis):
                     raise NameError('O(s) keyword(s) argument digitado(s) está(ão) incorreto(s). Keyword disponíveis: '+
                                     ', '.join(kwargsdisponiveis)+'.')
 
+                if keywargs.get(kwargsdisponiveis[0]) is not None:
+                    if keywargs.get(kwargsdisponiveis[0]) < 1:
+                        raise ValueError('O número de iterações deve ser inteiro e positivo.')
+
+                if keywargs.get('fatorlimitebusca') is not None:
+                    if keywargs.get(kwargsdisponiveis[4]) < 0:
+                        raise ValueError('O fator limite busca deve positivo.')
 
     def __validacaoDadosEntrada(self,dados,udados,NV):
         u'''
@@ -1591,6 +1598,7 @@ class EstimacaoNaoLinear:
             * argumentos extras a serem passados para o PSO (Vide documentação do método)
         MonteCarlo:
             * iteracoes (int): número de iterações a serem realizadas. Default: 10000.
+            * fatorlimitebusca: quanto maior este fator, maior a faixa automática de busca baseada no range que a elipse abrange. Default: 1/10
         '''
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
@@ -1604,15 +1612,13 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         limite_superior = kwargs.get('limite_superior')
         limite_inferior = kwargs.get('limite_inferior')
+        fatorlimitebusca =  kwargs.get('fatorlimitebusca') if kwargs.get('fatorlimitebusca') is not None else 1/10.
 
         if limite_superior is None or limite_inferior is None:
             extremo_elipse_superior = [0 for i in xrange(self.parametros.NV)]
             extremo_elipse_inferior = [0 for i in xrange(self.parametros.NV)]
 
-            Fisher = f.ppf(self.PA, self.parametros.NV, (self.y.experimental.NE * self.y.NV - self.parametros.NV))
-            Comparacao = self.FOotimo * \
-                         (float(self.parametros.NV) / (self.y.experimental.NE * self.y.NV - float(self.parametros.NV))
-                          * Fisher)
+            fisher, FOcomparacao = self.__criteriosAbrangencia()
 
             Combinacoes = int(factorial(self.parametros.NV) / (factorial(self.parametros.NV - 2) * factorial(2)))
             p1 = 0
@@ -1630,25 +1636,21 @@ class EstimacaoNaoLinear:
                 cov = array([[self.parametros.matriz_covariancia[p1, p1], self.parametros.matriz_covariancia[p1, p2]],
                              [self.parametros.matriz_covariancia[p2, p1], self.parametros.matriz_covariancia[p2, p2]]])
 
-                ellipse, pontos_maior_eixo, pontos_menor_eixo = plot_cov_ellipse(cov, [self.parametros.estimativa[p1], self.parametros.estimativa[p2]],
-                                                                     Comparacao)
+                ellipse, coordenadas_x, coordenadas_y = plot_cov_ellipse(cov, [self.parametros.estimativa[p1], self.parametros.estimativa[p2]],
+                                                                     FOcomparacao)
 
-                coordenadas_x = [pontos_maior_eixo[0][0], pontos_maior_eixo[1][0],
-                                 pontos_menor_eixo[0][0], pontos_menor_eixo[1][0]]
-                coordenadas_y = [pontos_maior_eixo[0][1], pontos_maior_eixo[1][1],
-                                 pontos_menor_eixo[0][1], pontos_menor_eixo[1][1]]
                 extremo_elipse_superior[p1] = max(coordenadas_x)
                 extremo_elipse_superior[p2] = max(coordenadas_y)
                 extremo_elipse_inferior[p1] = min(coordenadas_x)
                 extremo_elipse_inferior[p2] = min(coordenadas_y)
 
         if limite_superior is None:
-            limite_superior = [extremo_elipse_superior[i] + (extremo_elipse_superior[i]-extremo_elipse_inferior[i])/2. for i in xrange(self.parametros.NV)]
+            limite_superior = [extremo_elipse_superior[i] + (extremo_elipse_superior[i]-extremo_elipse_inferior[i])*fatorlimitebusca for i in xrange(self.parametros.NV)]
         else:
             kwargs.pop('limite_superior') # retira limite_superior dos argumentos extras
 
         if limite_inferior is None:
-            limite_inferior = [extremo_elipse_inferior[i] - (extremo_elipse_superior[i]-extremo_elipse_inferior[i])/2. for i in xrange(self.parametros.NV)]
+            limite_inferior = [extremo_elipse_inferior[i] - (extremo_elipse_superior[i]-extremo_elipse_inferior[i])*fatorlimitebusca for i in xrange(self.parametros.NV)]
         else:
             kwargs.pop('limite_inferior') # retira limite_inferior dos argumentos extras
 
@@ -1701,6 +1703,21 @@ class EstimacaoNaoLinear:
         self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[16])# Inclusão desta etapa da lista de etapas
         self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[12])# Inclusão do histórico da otimização na lista de etapas
 
+    def __criteriosAbrangencia(self):
+        '''
+        Método que retorna os valores das distribuições de Fisher, chi2 e o valor limite da função objetivo.
+        Utilizado para avaliar a região de abrangẽncia
+        '''
+
+        # TesteF = F(PA,NP,NE*NY-NP)
+        fisher = f.ppf(self.PA,self.parametros.NV,(self.y.experimental.NE*self.y.NV-self.parametros.NV))
+
+        # Valor máximo da função objetivo que um certo conjunto de parâmetros pode gerar para estar contido
+        # na região de abrangência
+        FOcomparacao = self.FOotimo*(1+float(self.parametros.NV)/(self.y.experimental.NE*self.y.NV-float(self.parametros.NV))*fisher)
+
+        return fisher, FOcomparacao
+
     def regiaoAbrangencia(self):
         u'''
         Método para avaliação da região de abrangência pelo critério de Fisher, conhecidas
@@ -1719,18 +1736,13 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # DETERMINAÇÃO DA REGIÃO DE ABRANGÊNCIA PELO CRITÉRIO DE FISHER
         # ---------------------------------------------------------------------
-        # TesteF = F(PA,NP,NE*NY-NP)
-        fisher = f.ppf(self.PA,self.parametros.NV,(self.y.experimental.NE*self.y.NV-self.parametros.NV))
-
-        # Valor máximo da função objetivo que um certo conjunto de parâmetros pode gerar para estar contido
-        # na região de abrangência
-        FOcomparacao = self.FOotimo*(1+float(self.parametros.NV)/(self.y.experimental.NE*self.y.NV-float(self.parametros.NV))*fisher)
+        fisher, FOcomparacao = self.__criteriosAbrangencia()
 
         # Comparação dos valores da função objetivo avaliados na etapa de otimização com FOcomparacao, caso
         # sejam menores, os respectivos parâmetros estarão contidos da região de abrangência.
         regiao = []
         for pos,fitness in enumerate(self.__hist_Fitness):
-            if fitness <= FOcomparacao:
+            if fitness <= FOcomparacao+self.FOotimo:
                 regiao.append(self.__hist_Posicoes[pos])
 
         # ---------------------------------------------------------------------
@@ -1968,10 +1980,10 @@ class EstimacaoNaoLinear:
                                 aux2.append(self.parametros.regiao_abrangencia[it][p2])
                             PSO, = plot(aux1,aux2,'bo',linewidth=2.0,zorder=1)
                             
-                        Fisher = f.ppf(self.PA,self.parametros.NV,(self.y.experimental.NE*self.y.NV-self.parametros.NV))
-                        Comparacao = self.FOotimo*(float(self.parametros.NV)/(self.y.experimental.NE*self.y.NV-float(self.parametros.NV))*Fisher)
+                        fisher, FOcomparacao = self.__criteriosAbrangencia()
+
                         cov = array([[self.parametros.matriz_covariancia[p1,p1],self.parametros.matriz_covariancia[p1,p2]],[self.parametros.matriz_covariancia[p2,p1],self.parametros.matriz_covariancia[p2,p2]]])
-                        ellipse, coordenadas_x, coordenadas_y = plot_cov_ellipse(cov, [self.parametros.estimativa[p1],self.parametros.estimativa[p2]], Comparacao, fill = False, color = 'r', linewidth=2.0,zorder=2,ax=ax)
+                        ellipse, coordenadas_x, coordenadas_y = plot_cov_ellipse(cov, [self.parametros.estimativa[p1],self.parametros.estimativa[p2]], FOcomparacao, fill = False, color = 'r', linewidth=2.0,zorder=2,ax=ax)
                         plot(self.parametros.estimativa[p1],self.parametros.estimativa[p2],'r*',markersize=10.0,zorder=2)
                         plot(coordenadas_x,coordenadas_y,'.r',markersize=0.01)
                         ax.yaxis.grid(color='gray', linestyle='dashed')                        
