@@ -142,6 +142,7 @@ def plot_cov_ellipse(cov, pos, c2=2, ax=None, **kwargs):
     
     ax.add_artist(ellip)
 
+    # CÁLCULO DOS PONTOS PERTENCENTES AOS EIXOS DA ELIPSE:
     invcov = inv(cov)
     alpha  = [vecs[1,0]/vecs[0,0],vecs[1,1]/vecs[0,1]]
     lamb   = [sqrt(c2/(invcov[0,0]+2*alpha_i*invcov[0,1] + alpha_i**2*invcov[1,1])) for alpha_i in alpha]
@@ -149,7 +150,18 @@ def plot_cov_ellipse(cov, pos, c2=2, ax=None, **kwargs):
     coordenadas_x = [pos[0]+lamb[0],pos[0]-lamb[0],pos[0]+lamb[1],pos[0]-lamb[1]]
     coordenadas_y = [pos[1]+alpha[0]*lamb[0],pos[1]-alpha[0]*lamb[0],pos[1]+alpha[1]*lamb[1],pos[1]-alpha[1]*lamb[1]]
 
-    return ellip, coordenadas_x, coordenadas_y, vecs
+    # CÁLCULO DOS PONTOS EXTREMOS
+    k = invcov[0,0]/invcov[0,1]
+    delta = sqrt(c2/(k**2*invcov[1,1]-2*k*invcov[0,1]+invcov[0,0]))
+    coordenadas_x.extend([pos[0]+delta,pos[0]-delta])
+    coordenadas_y.extend([pos[1]-delta*k,pos[1]+delta*k])
+
+    k = invcov[1,1]/invcov[0,1]
+    delta = sqrt(c2/(k**2*invcov[0,0]-2*k*invcov[0,1]+invcov[1,1]))
+    coordenadas_y.extend([pos[1]+delta,pos[1]-delta])
+    coordenadas_x.extend([pos[0]-delta*k,pos[0]+delta*k])
+
+    return ellip, coordenadas_x, coordenadas_y
 
 def vetor_delta(entrada_vetor,posicao,delta):
     u"""

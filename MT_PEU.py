@@ -1971,31 +1971,14 @@ class EstimacaoNaoLinear:
                         Fisher = f.ppf(self.PA,self.parametros.NV,(self.y.experimental.NE*self.y.NV-self.parametros.NV))
                         Comparacao = self.FOotimo*(float(self.parametros.NV)/(self.y.experimental.NE*self.y.NV-float(self.parametros.NV))*Fisher)
                         cov = array([[self.parametros.matriz_covariancia[p1,p1],self.parametros.matriz_covariancia[p1,p2]],[self.parametros.matriz_covariancia[p2,p1],self.parametros.matriz_covariancia[p2,p2]]])
-                        ellipse, coordenadas_x, coordenadas_y, vecs = plot_cov_ellipse(cov, [self.parametros.estimativa[p1],self.parametros.estimativa[p2]], Comparacao, fill = False, color = 'r', linewidth=2.0,zorder=2,ax=ax)
+                        ellipse, coordenadas_x, coordenadas_y = plot_cov_ellipse(cov, [self.parametros.estimativa[p1],self.parametros.estimativa[p2]], Comparacao, fill = False, color = 'r', linewidth=2.0,zorder=2,ax=ax)
                         plot(self.parametros.estimativa[p1],self.parametros.estimativa[p2],'r*',markersize=10.0,zorder=2)
+                        plot(coordenadas_x,coordenadas_y,'.r',markersize=0.01)
                         ax.yaxis.grid(color='gray', linestyle='dashed')                        
                         ax.xaxis.grid(color='gray', linestyle='dashed')
                         xlabel(self.parametros.labelGraficos()[p1],fontsize=20)
                         ylabel(self.parametros.labelGraficos()[p2],fontsize=20)
-                        # Obtenção do comprimento entre ticks do gráfico
-                        label_tick_x   = ax.get_xticks().tolist()
-                        tamanho_tick_x = (label_tick_x[1] - label_tick_x[0])/2
-                        # eixo y
-                        label_tick_y = ax.get_yticks().tolist()
-                        tamanho_tick_y = (label_tick_y[1] - label_tick_y[0])/2
 
-                        plot(coordenadas_x,coordenadas_y,'*m')
-                        # PLOTA OS EIXOS
-                        # plot([self.parametros.estimativa[p1],1e5*vecs[0,0]+self.parametros.estimativa[p1]],[self.parametros.estimativa[p2],1e5*vecs[1,0]+self.parametros.estimativa[p2]])
-                        # plot([self.parametros.estimativa[p1],1e5*vecs[0,1]+self.parametros.estimativa[p1]],[self.parametros.estimativa[p2],1e5*vecs[1,1]+self.parametros.estimativa[p2]])
-                        xlimpontos        = (min(coordenadas_x)-tamanho_tick_x,max(coordenadas_x)+tamanho_tick_x)
-                        ylimpontos        = (min(coordenadas_y)-tamanho_tick_y,max(coordenadas_y)+tamanho_tick_y)
-                        xauto = [ax.get_xticks()[0],ax.get_xticks()[-1]]
-                        yauto = [ax.get_yticks()[0],ax.get_yticks()[-1]]
-                        xlim((min([xlimpontos[0],xauto[0]]),max([xlimpontos[1],xauto[-1]])))
-                        ylim((min([ylimpontos[0],yauto[0]]),max([ylimpontos[1],yauto[-1]])))
-                        # xlim((0.8,1.1))
-                        # ylim((-0.4,0.8))
                         if self.__etapasdisponiveis[4] in self.__etapasGlobal() and self.parametros.regiao_abrangencia != []:
                             legend([ellipse,PSO],['Elipse',u'Verossimilhança'],loc='best')
                         elif self.__etapasdisponiveis[4] in self.__etapasGlobal() and self.parametros.regiao_abrangencia == []:
