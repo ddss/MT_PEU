@@ -1298,7 +1298,7 @@ class EstimacaoNaoLinear:
         # ATRIBUIÇÃO A GRANDEZAS
         # -------------------------------------------------------------------
         self.y._SETcalculado(aux.result,Uyycalculado,[[self.y.experimental.NE*self.y.NV-self.parametros.NV]*self.y.validacao.NE]*self.y.NV,{'estimativa':'matriz','incerteza':'variancia'},self.y.validacao.NE)
-        self.x._SETcalculado(self.x.validacao.matriz_estimativa,self.x.validacao.matriz_incerteza,[[self.x.experimental.NE*self.x.NV-self.parametros.NV]*self.x.validacao.NE]*self.x.NV,{'estimativa':'matriz','incerteza':'incerteza'},None)
+        self.x._SETcalculado(self.x.validacao.matriz_estimativa,self.x.validacao.matriz_covariancia,[[self.x.experimental.NE*self.x.NV-self.parametros.NV]*self.x.validacao.NE]*self.x.NV,{'estimativa':'matriz','incerteza':'variancia'},self.x.validacao.NE)
 
         # ---------------------------------------------------------------------
         # VARIÁVEIS INTERNAS
