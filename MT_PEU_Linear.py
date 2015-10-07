@@ -200,7 +200,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         * tipo      : string que define se os dados são experimentais ou de validação.
         **Aviso**:
         Caso não definidos dados de validação, será assumido os valores experimentais                    
-        '''    
+        '''
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------
@@ -216,14 +216,15 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             raise ValueError('Foram inseridos {:d} dados para as grandezas dependentes, mas {:d} para as independentes'.format(y.shape[0],x.shape[0]))
 
         # ---------------------------------------------------------------------
-        # MODIFICAÇÕES DAS MATRIZES DE DADOS 
+        # MODIFICAÇÕES DAS MATRIZES DE DADOS
         # ---------------------------------------------------------------------
         # Adiciona uma coluna de zeros nos dados experimentais para possibilitar
         # o cálculo do termo independente
+        coluna_dumb = False
         if self._EstimacaoNaoLinear__flag.info['calc_termo_independente']:
             x               = hstack((x,ones((shape(x)[0],1))))
             ux              = hstack((ux,ones((shape(x)[0],1))))
-
+            coluna_dumb = True
 
         if tipo == 'experimental':
             self._EstimacaoNaoLinear__flag.ToggleActive('dadosexperimentais')
@@ -234,8 +235,8 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             # ATRIBUIÇÃO A GRANDEZAS
             # ---------------------------------------------------------------------
             # Salvando os dados experimentais nas variáveis.
-            self.x._SETexperimental(x,ux,glx,{'estimativa':'matriz','incerteza':'incerteza'})
-            self.y._SETexperimental(y,uy,gly,{'estimativa':'matriz','incerteza':'incerteza'})
+            self.x._SETexperimental(estimativa=x,matriz_incerteza=ux,gL=glx,coluna_dumb=coluna_dumb)
+            self.y._SETexperimental(estimativa=y,matriz_incerteza=uy,gL=gly)
 
         if tipo == 'validacao':
             self._EstimacaoNaoLinear__flag.ToggleActive('dadosvalidacao')
@@ -244,9 +245,8 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             # ATRIBUIÇÃO A GRANDEZAS
             # ---------------------------------------------------------------------
             # Salvando os dados de validação.
-            self.x._SETvalidacao(x,ux,glx,{'estimativa':'matriz','incerteza':'incerteza'})
-            self.y._SETvalidacao(y,uy,gly,{'estimativa':'matriz','incerteza':'incerteza'})
-
+            self.x._SETvalidacao(estimativa=x,matriz_incerteza=ux,gL=glx,coluna_dumb=coluna_dumb)
+            self.y._SETvalidacao(estimativa=y,matriz_incerteza=uy,gL=gly)
 
         if self._EstimacaoNaoLinear__flag.info['dadosvalidacao'] == False:
             # Caso gerarEntradas seja executado somente para os dados experimentais,
@@ -256,9 +256,8 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             # ATRIBUIÇÃO A GRANDEZAS
             # ---------------------------------------------------------------------
             # Salvando os dados de validação.
-            self.x._SETvalidacao(x,ux,glx,{'estimativa':'matriz','incerteza':'incerteza'})
-            self.y._SETvalidacao(y,uy,gly,{'estimativa':'matriz','incerteza':'incerteza'})
-            
+            self.x._SETvalidacao(estimativa=x,matriz_incerteza=ux,gL=glx,coluna_dumb=coluna_dumb)
+            self.y._SETvalidacao(estimativa=y,matriz_incerteza=uy,gL=gly)
         # ---------------------------------------------------------------------
         # VARIÁVEIS INTERNAS
         # ---------------------------------------------------------------------         

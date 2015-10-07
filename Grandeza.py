@@ -315,7 +315,7 @@ class Grandeza:
 
     class Dados:
 
-        def __init__(self,estimativa,matriz_incerteza=None,matriz_covariancia=None,gL=[],NE=None):
+        def __init__(self,estimativa,NV,matriz_incerteza=None,matriz_covariancia=None,gL=[],NE=None,**kwargs):
             """
             Classe interna para organizar os dados das estimativas e suas respectivas incertezas, disponibilizando-os na forma de matriz, vetores e listas.
             ========
@@ -324,6 +324,7 @@ class Grandeza:
             * ``estimativa`` (array) : estimativas para as observações das variáveis (na forma de um vetor ou matriz). \
             Caso seja uma matriz, cada coluna contém as estimativas para uma variável. Se for um vetor, as estimativas estão \
             numa única coluna, sendo necessário fornecer a entrada NE.
+            * ``NV`` (int): número de variáveis
             * ``matriz_incerteza``  (array) : incerteza para os valores das estimativas. Cada coluna contém a incerteza para os pontos de uma variável.
             * ``matriz_variancia`` (array)  : variância para os valores das estimativas. Deve ser a matriz de covariância.
             * ``gL''(lista)                 : graus de liberdade
@@ -348,6 +349,12 @@ class Grandeza:
             METODOS
             =======
                 * GETListas que retorna lista_estimativa, lista_incerteza, lista_variancia.
+
+            ======
+            Kwargs
+            ======
+                * coluna_dumb (bool): possibilita lidar com uma coluna adicional no FINAL do conjunto de dados, que não faz parte
+                dos dados experimentais. Exemplo: estimação de parâmetros linear -> coluna de 1
             """
             # ---------------------------------------------------------------------
             # VALIDAÇÃO INICIAL DAS ENTRADAS
@@ -370,12 +377,20 @@ class Grandeza:
             if not isinstance(gL, list):
                 raise TypeError(u'os graus de liberdade precisam ser listas')
 
+            # ---------------------------------------------------------------------------
+            # KEYWORD ARGUMENTS
+            # ---------------------------------------------------------------------------
+            # Indica se há uma coluna adicional na matriz de estimativas.
+            self._coluna_dumb = kwargs.get('coluna_dumb') if kwargs.get('coluna_dumb') is not None else False
 
             # ---------------------------------------------------------------------------
             # CRIAÇÃO DA MATRIZ ESTIMATIVA E VETOR ESTIMATIVA (ARRAYS)
             # ---------------------------------------------------------------------------
+            # Caso haja uma coluna_dumb, ao número de variáveis é somado 1, para lidar com essa coluna adicional
+            if self._coluna_dumb:
+                NV += 1
 
-            if estimativa.shape[1] == len(self.Grandeza.simbolos):
+            if estimativa.shape[1] == NV: # Foi informado a matriz estimativa (NE , NV)
                 self.matriz_estimativa = estimativa
                 self.vetor_estimativa = self.matriz_estimativa.reshape(
                     (self.matriz_estimativa.shape[0] * self.matriz_estimativa.shape[1], 1),
@@ -383,7 +398,7 @@ class Grandeza:
 
             elif NE is not None:
 
-                if estimativa.shape[0] == len(self.Grandeza.simbolos)*NE:
+                if estimativa.shape[0] == NV*NE: # Foi informado o vetor estimativa (NExNV,1)
                     self.vetor_estimativa = estimativa
                     self.matriz_estimativa = self.vetor_estimativa.reshape((NE, self.vetor_estimativa.shape[0] / NE),
                                                                            order='F')  # Conversão de vetor para uma matriz
@@ -418,7 +433,7 @@ class Grandeza:
                 self.matriz_covariancia = None
                 self.matriz_incerteza = None
 
-            self._validar()
+            self._validar() # validação das incertezas
 
             # ---------------------------------------------------------------------
             # Graus de liberdade
@@ -457,28 +472,46 @@ class Grandeza:
                     if elemento <= 0.:
                         raise TypeError('A variância de uma grandeza não pode ser zero ou assumir valores negativos.')
 
-    def _SETexperimental(self,estimativa,variancia,gL,tipo):
+    def _SETexperimental(self,estimativa,matriz_incerteza=None,matriz_covariancia=None,gL=[],NE=None,**kwargs):
 
         self.__ID.append('experimental')
-        self.experimental = Organizador(estimativa,variancia,gL,tipo)        
-        self.experimentalTESTE = self.Dados(estimativa,matriz_incerteza=variancia)
+        # self.experimental = Organizador(estimativa,variancia,gL,tipo)
+        self.experimental = self.Dados(estimativa,self.NV,
+                                       matriz_incerteza=matriz_incerteza,matriz_covariancia=matriz_covariancia,
+                                       gL=gL,NE=NE,**kwargs)
 
-    def _SETvalidacao(self,estimativa,variancia,gL,tipo):
-        
+    def _SETvalidacao(self,estimativa,matriz_incerteza=None,matriz_covariancia=None,gL=[],NE=None,**kwargs):
+
+        if hasattr(self, 'experimental'):
+            kwargs['coluna_dumb'] =  self.experimental._coluna_dumb
+
         self.__ID.append('validacao')
-        self.validacao = Organizador(estimativa,variancia,gL,tipo)
+        # self.validacao = Organizador(estimativa,variancia,gL,tipo)
+        self.validacao = self.Dados(estimativa,self.NV,
+                                    matriz_incerteza=matriz_incerteza,matriz_covariancia=matriz_covariancia,
+                                    gL=gL,NE=NE,**kwargs)
 
-    def _SETcalculado(self,estimativa,variancia,gL,tipo,NE):
-        
+    def _SETcalculado(self,estimativa,matriz_incerteza=None,matriz_covariancia=None,gL=[],NE=None,**kwargs):
+
+        if hasattr(self, 'experimental'):
+            kwargs['coluna_dumb'] =  self.experimental._coluna_dumb
+
         self.__ID.append('calculado')
-        self.calculado = Organizador(estimativa,variancia,gL,tipo,NE)
-        self.calculadoTESTE = self.Dados(estimativa, matriz_covariancia=variancia,NE=NE)
+        #self.calculado = Organizador(estimativa,variancia,gL,tipo,NE)
+        self.calculado = self.Dados(estimativa,self.NV,
+                                    matriz_incerteza=matriz_incerteza,matriz_covariancia=matriz_covariancia,
+                                    gL=gL,NE=NE,**kwargs)
 
+    def _SETresiduos(self,estimativa,matriz_incerteza=None,matriz_covariancia=None,gL=[],NE=None,**kwargs):
 
-    def _SETresiduos(self,estimativa,variancia,gL,tipo):
-        
+        if hasattr(self, 'experimental'):
+            kwargs['coluna_dumb'] =  self.experimental._coluna_dumb
+
         self.__ID.append('residuo')
-        self.residuos = Organizador(estimativa,variancia,gL,tipo)  
+        # self.residuos = Organizador(estimativa,variancia,gL,tipo)
+        self.residuos = self.Dados(estimativa,self.NV,
+                                   matriz_incerteza=matriz_incerteza,matriz_covariancia=matriz_covariancia,
+                                   gL=gL,NE=NE,**kwargs)
 
     def _SETparametro(self, estimativa, variancia, regiao,limite_inferior=None,limite_superior=None):
 
@@ -550,7 +583,7 @@ class Grandeza:
 
     def _updateParametro(self,**kwargs):
         u'''
-        Método para fazer atualização de informação contida em Parametro.
+        Método para fazer atualização de informações contidas em Parâmetros.
         Evita repetição de uso do método _SETParametros.
 
         =================
