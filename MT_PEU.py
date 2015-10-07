@@ -1186,12 +1186,12 @@ class EstimacaoNaoLinear:
         # REGIÃO DE ABRANGÊNCIA
         # ---------------------------------------------------------------------
         # PREENCHIMENTO DE REGIÃO:
-        if preencherregiao:
+        if preencherregiao and self.parametros.NV != 1:
             self.__preencherRegiao(**kwargs)
             self.__flag.ToggleActive('preenchimentoRegiao')
 
         # A região de abrangência só é executada caso haja histórico de posicoes e fitness
-        if self.__etapasdisponiveis[12] in self.__etapasGlobal():
+        if self.__etapasdisponiveis[12] in self.__etapasGlobal() and self.parametros.NV != 1:
             # OBTENÇÃO DA REGIÃO:
             regiao = self.regiaoAbrangencia()
             # ATRIBUIÇÃO A GRANDEZA
