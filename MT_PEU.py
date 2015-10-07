@@ -475,7 +475,7 @@ class EstimacaoNaoLinear:
         # OTIMIZAÇÃO
         # --------------------------------------------------------------------- 
         # Keywords disponíveis        
-        self.__AlgoritmosOtimizacao = ('PSO')
+        self.__AlgoritmosOtimizacao = ('PSOFamily',)
 
         if etapa == self.__etapasdisponiveis[2]:
             # se gerar entradas não foi executado no Global
@@ -492,7 +492,7 @@ class EstimacaoNaoLinear:
 
             # verificação se o algoritmo está disponível
             if not args[1] in self.__AlgoritmosOtimizacao:
-                raise NameError('A opção {} de algoritmo não está correta. Algoritmos disponíveis: '.format(args)+', '.join(self.__AlgoritmosOtimizacao)+'.')
+                raise NameError('A opção {} de algoritmo não está correta. Algoritmos disponíveis: '.format(args[1])+', '.join(self.__AlgoritmosOtimizacao)+'.')
 
             # validação da estimativa inicial:
             if args[0] is not None:
@@ -772,7 +772,7 @@ class EstimacaoNaoLinear:
         return grandeza
     
 
-    def otimiza(self,limite_inferior,limite_superior,estimativa_inicial=None,algoritmo='PSO',args=None,**kwargs):
+    def otimiza(self,limite_inferior,limite_superior,estimativa_inicial=None,algoritmo='PSOFamily',args=None,**kwargs):
         u'''
         Método para realização da otimização        
     
@@ -824,7 +824,7 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # ALGORITMOS DE OTIMIZAÇÃO
         # ---------------------------------------------------------------------        
-        if algoritmo == 'PSO':
+        if algoritmo == 'PSOFamily':
             # indica que este algoritmo possui gráficos de desempenho
             self.__flag.ToggleActive('graficootimizacao')
             # indica que esta algoritmo possui relatório de desempenho
