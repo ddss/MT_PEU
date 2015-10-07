@@ -15,7 +15,7 @@ from numpy import array, size, linspace, min, max, copy, cos, sin, radians,\
     mean, ones, ndarray
 
 from numpy.random import uniform
-from scipy.stats import f, t, chi2
+from scipy.stats import f, t, chi2, norm
 from scipy.misc import factorial
 from numpy.linalg import inv
 from math import floor, log10
@@ -697,8 +697,8 @@ class EstimacaoNaoLinear:
             # ATRIBUIÇÃO A GRANDEZAS
             # ---------------------------------------------------------------------
             # Salvando os dados experimentais nas variáveis.
-            self.x._SETexperimental(x,ux,glx,{'estimativa':'matriz','incerteza':'incerteza'})
-            self.y._SETexperimental(y,uy,gly,{'estimativa':'matriz','incerteza':'incerteza'})
+            self.x._SETexperimental(estimativa=x,matriz_incerteza=ux,gL=glx)
+            self.y._SETexperimental(estimativa=y,matriz_incerteza=uy,gL=gly)
 
         if tipo == self.__tiposDisponiveisEntrada[1]: # validação
             self.__flag.ToggleActive('dadosvalidacao')
@@ -707,8 +707,8 @@ class EstimacaoNaoLinear:
             # ATRIBUIÇÃO A GRANDEZAS
             # ---------------------------------------------------------------------
             # Salvando os dados de validação.
-            self.x._SETvalidacao(x,ux,glx,{'estimativa':'matriz','incerteza':'incerteza'})
-            self.y._SETvalidacao(y,uy,gly,{'estimativa':'matriz','incerteza':'incerteza'}) 
+            self.x._SETvalidacao(estimativa=x,matriz_incerteza=ux,gL=glx)
+            self.y._SETvalidacao(estimativa=y,matriz_incerteza=uy,gL=gly)
 
         if self.__flag.info['dadosvalidacao'] == False:
             # Caso gerarEntradas seja executado somente para os dados experimentais,
@@ -718,8 +718,8 @@ class EstimacaoNaoLinear:
             # ATRIBUIÇÃO A GRANDEZAS
             # ---------------------------------------------------------------------
             # Salvando os dados de validação.
-            self.x._SETvalidacao(x,ux,glx,{'estimativa':'matriz','incerteza':'incerteza'})
-            self.y._SETvalidacao(y,uy,gly,{'estimativa':'matriz','incerteza':'incerteza'}) 
+            self.x._SETvalidacao(estimativa=x,matriz_incerteza=ux,gL=glx)
+            self.y._SETvalidacao(estimativa=y,matriz_incerteza=uy,gL=gly)
             
         # ---------------------------------------------------------------------
         # VARIÁVEIS INTERNAS
@@ -757,20 +757,26 @@ class EstimacaoNaoLinear:
             # Salvando os dados experimentais
             if self.__flag.info['dadosexperimentais']:
                 # Salvando dados experimentais
-                grandeza[simbolo]._SETexperimental(self.y.experimental.matriz_estimativa[:,j:j+1],self.y.experimental.matriz_incerteza[:,j:j+1],self.y.experimental.gL[j],{'estimativa':'matriz','incerteza':'incerteza'})
+                grandeza[simbolo]._SETexperimental(estimativa=self.y.experimental.matriz_estimativa[:,j:j+1],
+                                                   matriz_incerteza=self.y.experimental.matriz_incerteza[:,j:j+1],
+                                                   gL=self.y.experimental.gL[j])
 
             # Salvando os dados validação
             if self.__flag.info['dadosvalidacao']:
                 # Salvando dados experimentais
-                grandeza[simbolo]._SETvalidacao(self.y.validacao.matriz_estimativa[:,j:j+1],self.y.validacao.matriz_incerteza[:,j:j+1],self.y.validacao.gL[j],{'estimativa':'matriz','incerteza':'incerteza'})
+                grandeza[simbolo]._SETvalidacao(estimativa=self.y.validacao.matriz_estimativa[:,j:j+1],
+                                                matriz_incerteza=self.y.validacao.matriz_incerteza[:,j:j+1],
+                                                gL=self.y.validacao.gL[j])
 
             # Salvando os dados calculados
             if self.__etapasdisponiveis[7] in self.__etapas[self.__etapasID]:
-                grandeza[simbolo]._SETcalculado(self.y.calculado.matriz_estimativa[:,j:j+1],self.y.calculado.matriz_incerteza[:,j:j+1],self.y.calculado.gL[j],{'estimativa':'matriz','incerteza':'incerteza'},None)
+                grandeza[simbolo]._SETcalculado(estimativa=self.y.calculado.matriz_estimativa[:,j:j+1],
+                                                matriz_incerteza=self.y.calculado.matriz_incerteza[:,j:j+1],
+                                                gL=self.y.calculado.gL[j])
 
             # Salvando os resíduos
             if self.__etapasdisponiveis[5] in self.__etapas[self.__etapasID]:
-                grandeza[simbolo]._SETresiduos(self.y.residuos.matriz_estimativa[:,j:j+1],None,[],{'estimativa':'matriz','incerteza':'variancia'})
+                grandeza[simbolo]._SETresiduos(estimativa=self.y.residuos.matriz_estimativa[:,j:j+1])
 
         # GRANDEZAS INDEPENDENTES (x)
         for j,simbolo in enumerate(self.x.simbolos):
@@ -778,19 +784,25 @@ class EstimacaoNaoLinear:
 
             # Salvando dados experimentais
             if  self.__flag.info['dadosexperimentais']:
-                grandeza[simbolo]._SETexperimental(self.x.experimental.matriz_estimativa[:,j:j+1],self.x.experimental.matriz_incerteza[:,j:j+1],self.x.experimental.gL[j],{'estimativa':'matriz','incerteza':'incerteza'})
+                grandeza[simbolo]._SETexperimental(estimativa=self.x.experimental.matriz_estimativa[:,j:j+1],
+                                                   matriz_incerteza=self.x.experimental.matriz_incerteza[:,j:j+1],
+                                                   gL=self.x.experimental.gL[j])
 
             # Salvando dados de validação
             if self.__flag.info['dadosvalidacao']:
-                grandeza[simbolo]._SETvalidacao(self.x.validacao.matriz_estimativa[:,j:j+1],self.x.validacao.matriz_incerteza[:,j:j+1],self.x.validacao.gL[j],{'estimativa':'matriz','incerteza':'incerteza'})
+                grandeza[simbolo]._SETvalidacao(estimativa=self.x.validacao.matriz_estimativa[:,j:j+1],
+                                                matriz_incerteza=self.x.validacao.matriz_incerteza[:,j:j+1],
+                                                gL=self.x.validacao.gL[j])
 
             # Salvando dados calculados
             if self.__etapasdisponiveis[7] in self.__etapas[self.__etapasID]:
-                grandeza[simbolo]._SETcalculado(self.x.calculado.matriz_estimativa[:,j:j+1],self.x.calculado.matriz_incerteza[:,j:j+1],self.x.calculado.gL[j],{'estimativa':'matriz','incerteza':'incerteza'},None)
+                grandeza[simbolo]._SETcalculado(estimativa=self.x.calculado.matriz_estimativa[:,j:j+1],
+                                                matriz_incerteza=self.x.calculado.matriz_incerteza[:,j:j+1],
+                                                gL=self.x.calculado.gL[j])
 
             # Salvando os resíduos
             if self.__etapasdisponiveis[5] in self.__etapas[self.__etapasID]:
-                grandeza[simbolo]._SETresiduos(self.x.residuos.matriz_estimativa[:,j:j+1],None,[],{'estimativa':'matriz','incerteza':'variancia'})
+                grandeza[simbolo]._SETresiduos(estimativa=self.x.residuos.matriz_estimativa[:,j:j+1])
 
         # PARÂMETROS
         for j,simbolo in enumerate(self.parametros.simbolos):
@@ -1297,8 +1309,12 @@ class EstimacaoNaoLinear:
         # --------------------------------------------------------------------
         # ATRIBUIÇÃO A GRANDEZAS
         # -------------------------------------------------------------------
-        self.y._SETcalculado(aux.result,Uyycalculado,[[self.y.experimental.NE*self.y.NV-self.parametros.NV]*self.y.validacao.NE]*self.y.NV,{'estimativa':'matriz','incerteza':'variancia'},self.y.validacao.NE)
-        self.x._SETcalculado(self.x.validacao.matriz_estimativa,self.x.validacao.matriz_incerteza,[[self.x.experimental.NE*self.x.NV-self.parametros.NV]*self.x.validacao.NE]*self.x.NV,{'estimativa':'matriz','incerteza':'incerteza'},None)
+        self.y._SETcalculado(estimativa=aux.result,matriz_covariancia=Uyycalculado,
+                             gL=[[self.y.experimental.NE*self.y.NV-self.parametros.NV]*self.y.validacao.NE]*self.y.NV,
+                             NE=self.y.validacao.NE)
+        self.x._SETcalculado(estimativa=self.x.validacao.matriz_estimativa,matriz_covariancia=self.x.validacao.matriz_covariancia,
+                             gL=[[self.x.experimental.NE*self.x.NV-self.parametros.NV]*self.x.validacao.NE]*self.x.NV,
+                             NE=self.x.validacao.NE)
 
         # ---------------------------------------------------------------------
         # VARIÁVEIS INTERNAS
@@ -1799,8 +1815,8 @@ class EstimacaoNaoLinear:
         # ATRIBUIÇÃO A GRANDEZAS
         # ---------------------------------------------------------------------       
         # Attribuição dos valores nos objetos
-        self.x._SETresiduos(residuo_x,None,[],{'estimativa':'matriz','incerteza':'incerteza'})
-        self.y._SETresiduos(residuo_y,None,[],{'estimativa':'matriz','incerteza':'incerteza'})
+        self.x._SETresiduos(estimativa=residuo_x)
+        self.y._SETresiduos(estimativa=residuo_y)
 
         # ---------------------------------------------------------------------
         # CÁLCULO DE R2 e R2 ajustado
