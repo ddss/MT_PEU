@@ -15,7 +15,7 @@ from numpy import array, size, linspace, min, max, copy, cos, sin, radians,\
     mean, ones, ndarray
 
 from numpy.random import uniform
-from scipy.stats import f, t, chi2
+from scipy.stats import f, t, chi2, norm
 from scipy.misc import factorial
 from numpy.linalg import inv
 from math import floor, log10

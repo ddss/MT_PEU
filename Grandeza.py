@@ -179,7 +179,7 @@ class Organizador:
         self.gL = gL if len(gL) !=0 else [[100]*self.NE]*self.matriz_estimativa.shape[1]
 
 class Grandeza:
-    
+
     def __init__(self,simbolos,nomes=None,unidades=None,label_latex=None):
         u'''
         Classe para organizar as características das Grandezas:
@@ -313,181 +313,155 @@ class Grandeza:
                 if len(elemento) != len(simbolos):
                     raise ValueError('A simbologia, nomes, unidades e label_latex de uma grandeza devem ser listas de MESMO tamanho.')
 
+    class Dados:
 
-    def __SETGrandeza(self,estimativa,matriz_incerteza=None,matriz_covariancia=None,gL=[],NE=None):
-        """
-        Método para organizar os dados das estimativas e suas respectivas incertezas, disponibilizando-os na forma de matriz, vetores e listas.
+        def __init__(self,estimativa,matriz_incerteza=None,matriz_covariancia=None,gL=[],NE=None):
+            """
+            Classe interna para organizar os dados das estimativas e suas respectivas incertezas, disponibilizando-os na forma de matriz, vetores e listas.
+            ========
+            Entradas
+            ========
+            * ``estimativa`` (array) : estimativas para as observações das variáveis (na forma de um vetor ou matriz). \
+            Caso seja uma matriz, cada coluna contém as estimativas para uma variável. Se for um vetor, as estimativas estão \
+            numa única coluna, sendo necessário fornecer a entrada NE.
+            * ``matriz_incerteza``  (array) : incerteza para os valores das estimativas. Cada coluna contém a incerteza para os pontos de uma variável.
+            * ``matriz_variancia`` (array)  : variância para os valores das estimativas. Deve ser a matriz de covariância.
+            * ``gL''(lista)                 : graus de liberdade
+            * ``NE`` (int): quantidade de pontos experimentais. Necessário apenas quanto a estimativa é um vetor.
+            **AVISO:**
+            * se estimativa for uma matriz, espera-se que ``matriz_incerteza`` seja uma matriz em que cada coluna seja as *INCERTEZAS* para cada observação de uma certa variável (ela será o atributo ``.matriz_incerteza`` )
+            * se estimativa for um vetor, espera-se que seja informada a ``matriz_covariância``
+            * se for informada a matriz_incerteza, a matriz de covariância assumirá que os elementos fora da diagonal principal são ZEROS.
 
-        ========
-        Entradas
-        ========
+            =========
+            ATRIBUTOS
+            =========
 
-        * ``estimativa`` (array) : estimativas para as observações das variáveis (na forma de um vetor ou matriz). \
-        Caso seja uma matriz, cada coluna contém as estimativas para uma variável. Se for um vetor, as estimativas estão \
-        numa única coluna, sendo necessário fornecer a entrada NE.
-        * ``matriz_incerteza``  (array) : incerteza para os valores das estimativas. Cada coluna contém a incerteza para os pontos de uma variável.
-        * ``matriz_variancia`` (array)  : variância para os valores das estimativas. Deve ser a matriz de covariância.
-        * ``gL''(lista)                 : graus de liberdade
-        * ``NE`` (int): quantidade de pontos experimentais. Necessário apenas quanto a estimativa é um vetor.
+                * ``.matriz_estimativa`` (array): cada variável está alocada em uma coluna que contém suas observações.
+                * ``.vetor_estimativa``  (array): todas as observações de todas as variáveis estão em um único vetor.
+                * ``.matriz_incerteza``  (array): matriz em que cada coluna contém a incerteza de cada ponto de uma certeza variável.
+                * ``.matriz_covariancia`` (array): matriz de covariância.
+                * ``matriz_correlacao`` (array): matriz de correlação
+                * ``NE`` (float): número de observações (para cada grandeza)
 
-        **AVISO:**
+            =======
+            METODOS
+            =======
+                * GETListas que retorna lista_estimativa, lista_incerteza, lista_variancia.
+            """
+            # ---------------------------------------------------------------------
+            # VALIDAÇÃO INICIAL DAS ENTRADAS
+            # ---------------------------------------------------------------------
 
-        * se estimativa for uma matriz, espera-se que ``matriz_incerteza`` seja uma matriz em que cada coluna seja as *INCERTEZAS* para cada observação de uma certa variável (ela será o atributo ``.matriz_incerteza`` )
-        * se estimativa for um vetor, espera-se que seja informada a ``matriz_covariância``
-        * se for informada a matriz_incerteza, a matriz de covariância assumirá que os elementos fora da diagonal principal são ZEROS.
+            if not isinstance(estimativa, ndarray):
+                raise TypeError(u'Os dados de entrada precisam ser arrays.')
 
-        =========
-        RETORNO
-        =========
-        Será retornado um objeto com os seguintes atributos:
-            * ``.matriz_estimativa`` (array): cada variável está alocada em uma coluna que contém suas observações.
-            * ``.vetor_estimativa``  (array): todas as observações de todas as variáveis estão em um único vetor.
-            * ``.matriz_incerteza``  (array): matriz em que cada coluna contém a incerteza de cada ponto de uma certeza variável.
-            * ``.matriz_covariancia`` (array): matriz de covariância.
-            * ``NE`` (float): número de observações (para cada grandeza)
+            if matriz_covariancia is not None and matriz_incerteza is not None:
+                raise SyntaxError(u'Apenas uma entre a matriz_covariancia e matriz_incerteza deve ser definida')
 
-        O objeto também possui o método:
-            * GETListas que retorna lista_estimativa, lista_incerteza, lista_variancia.
+            if matriz_covariancia is not None:
+                if not isinstance(matriz_covariancia, ndarray):
+                    raise TypeError(u'Os dados de entrada precisam ser arrays.')
 
-        ** AVISO: **
+            if matriz_incerteza is not None:
+                if not isinstance(matriz_incerteza, ndarray):
+                    raise TypeError(u'Os dados de entrada precisam ser arrays.')
 
-        * Caso a incerteza seja definida como None, os atributos relacionados a ela NÃO serão criados.
-        """
+            if not isinstance(gL, list):
+                raise TypeError(u'os graus de liberdade precisam ser listas')
 
-        class Dados:
 
-            def __init__(self):
-                """
-                Classe auxiliar para organizar as informações dos dados experimentais, de validação e calulados.
-                """
-                self.matriz_estimativa = None
-                self.vetor_estimativa  = None
-                self.NE = None
+            # ---------------------------------------------------------------------------
+            # CRIAÇÃO DA MATRIZ ESTIMATIVA E VETOR ESTIMATIVA (ARRAYS)
+            # ---------------------------------------------------------------------------
+
+            if estimativa.shape[1] == len(self.Grandeza.simbolos):
+                self.matriz_estimativa = estimativa
+                self.vetor_estimativa = self.matriz_estimativa.reshape(
+                    (self.matriz_estimativa.shape[0] * self.matriz_estimativa.shape[1], 1),
+                    order='F')  # conversão de matriz para vetor
+
+            elif NE is not None:
+
+                if estimativa.shape[0] == len(self.Grandeza.simbolos)*NE:
+                    self.vetor_estimativa = estimativa
+                    self.matriz_estimativa = self.vetor_estimativa.reshape((NE, self.vetor_estimativa.shape[0] / NE),
+                                                                           order='F')  # Conversão de vetor para uma matriz
+                else:
+                    raise ValueError(u'O tamanho do vetor estimativa deve ser igual ao número de variáves vezes número de dados')
+            else:
+                raise ValueError(u'A estimativa foi fornecida na forma de um vetor. NE deve ser especificado.')
+            # ---------------------------------------------------------------------
+            # Número de pontos experimentais
+            # ---------------------------------------------------------------------
+            self.NE = self.matriz_estimativa.shape[0]
+
+            # ---------------------------------------------------------------------------
+            # CRIAÇÃO DA MATRIZ COVARIÂNCIA E MATRIZ INCERTEZA (ARRAYS)
+            # ---------------------------------------------------------------------------
+            if matriz_incerteza is not None:
+                self.matriz_incerteza = matriz_incerteza
+                self.matriz_covariancia = diag(
+                    (self.matriz_incerteza ** 2).reshape((self.NE * self.matriz_incerteza.shape[1], 1),
+                                                         order='F').transpose().tolist()[0])
+                self.matriz_correlacao = matrizcorrelacao(self.matriz_covariancia)
+
+            elif matriz_covariancia is not None:
+                if NE is not None:
+                    self.matriz_covariancia = matriz_covariancia
+                    self.matriz_incerteza = diag(self.matriz_covariancia**0.5).reshape(
+                        (NE, self.matriz_estimativa.shape[1]), order='F')
+                    self.matriz_correlacao = matrizcorrelacao(self.matriz_covariancia)
+                else:
+                    raise ValueError(u'É necessário definir o valor de NE.')
+            else:
                 self.matriz_covariancia = None
                 self.matriz_incerteza = None
-                self.matriz_correlacao = None
-                self.gL = None
 
-            def GETListas(self):
-                # ---------------------------------------------------------------------
-                # Criação dos atributos na forma de LISTAS
-                # ---------------------------------------------------------------------
-                lista_estimativa = self.matriz_estimativa.transpose().tolist()
+            self._validar()
 
-                if self.matriz_incerteza is not None:
-                    lista_incerteza = self.matriz_incerteza.transpose().tolist()
-                    lista_variancia = (self.matriz_incerteza ** 2).transpose().tolist()
-                else:
-                    lista_incerteza = None
-                    lista_variancia = None
+            # ---------------------------------------------------------------------
+            # Graus de liberdade
+            # ---------------------------------------------------------------------
+            self.gL = gL if len(gL) != 0 else [[100] * self.NE] * self.matriz_estimativa.shape[1]
 
-                return lista_estimativa, lista_incerteza, lista_variancia
+        def GETListas(self):
+            # ---------------------------------------------------------------------
+            # Criação dos atributos na forma de LISTAS
+            # ---------------------------------------------------------------------
+            lista_estimativa = self.matriz_estimativa.transpose().tolist()
 
-            def _validar(self):
-                # TODO: Corrigir este teste
-                # if (len(gL) != size(estimativa)) and (len(gL) != 0) :
-                #		raise ValueError(u'Os graus de liberdade devem ter o mesmo tamanho das estimativas')
-
-                # ---------------------------------------------------------------------
-                # VALIDAÇÃO: MATRIZ SINGULAR E INCERTEZA NEGATIVA E ZERO
-                # ---------------------------------------------------------------------
-                if self.matriz_incerteza is not None:
-
-                    if not isfinite(cond(self.matriz_covariancia)):
-                        raise TypeError('A matriz de covariância da grandeza é singular.')
-
-                    for elemento in diag(self.matriz_covariancia):
-                        if elemento <= 0.:
-                            raise TypeError('A variância de uma grandeza não pode ser zero ou assumir valores negativos.')
-
-        # ---------------------------------------------------------------------
-        # VALIDAÇÃO da entrada:
-        # ---------------------------------------------------------------------
-
-        if not isinstance(estimativa, ndarray):
-            raise TypeError(u'Os dados de entrada precisam ser arrays.')
-
-        if matriz_covariancia is not None and matriz_incerteza is not None:
-            raise SyntaxError(u'Apenas uma entre a matriz_covariancia e matriz_incerteza deve ser definida')
-
-        if matriz_covariancia is not None:
-            if not isinstance(matriz_covariancia, ndarray):
-                raise TypeError(u'Os dados de entrada precisam ser arrays.')
-
-        if matriz_incerteza is not None:
-            if not isinstance(matriz_incerteza, ndarray):
-                raise TypeError(u'Os dados de entrada precisam ser arrays.')
-
-        if not isinstance(gL, list):
-            raise TypeError(u'os graus de liberdade precisam ser listas')
-
-        # ---------------------------------------------------------------------------
-        # DEFINIÇÃO DA GRANDEZA
-        # ---------------------------------------------------------------------------
-
-        grandeza = Dados()
-        # TODO: grau de liberade como ARRAY
-
-        # ---------------------------------------------------------------------------
-        # CRIAÇÃO DA MATRIZ ESTIMATIVA E VETOR ESTIMATIVA (ARRAYS)
-        # ---------------------------------------------------------------------------
-
-        if estimativa.shape[1] == len(self.simbolos):
-            grandeza.matriz_estimativa = estimativa
-            grandeza.vetor_estimativa = grandeza.matriz_estimativa.reshape(
-                (grandeza.matriz_estimativa.shape[0] * grandeza.matriz_estimativa.shape[1], 1),
-                order='F')  # conversão de matriz para vetor
-
-        elif NE is not None:
-
-            if estimativa.shape[0] == len(self.simbolos)*NE:
-                grandeza.vetor_estimativa = estimativa
-                grandeza.matriz_estimativa = grandeza.vetor_estimativa.reshape((NE, grandeza.vetor_estimativa.shape[0] / NE),
-                                                                       order='F')  # Conversão de vetor para uma matriz
+            if self.matriz_incerteza is not None:
+                lista_incerteza = self.matriz_incerteza.transpose().tolist()
+                lista_variancia = (self.matriz_incerteza ** 2).transpose().tolist()
             else:
-                raise ValueError(u'O tamanho do vetor estimativa deve ser igual ao número de variáves vezes número de dados')
-        else:
-            raise ValueError(u'A estimativa foi fornecida na forma de um vetor. NE deve ser especificado.')
-        # ---------------------------------------------------------------------
-        # Número de pontos experimentais
-        # ---------------------------------------------------------------------
-        grandeza.NE = grandeza.matriz_estimativa.shape[0]
+                lista_incerteza = None
+                lista_variancia = None
 
-        # ---------------------------------------------------------------------------
-        # CRIAÇÃO DA MATRIZ COVARIÂNCIA E MATRIZ INCERTEZA (ARRAYS)
-        # ---------------------------------------------------------------------------
-        if matriz_incerteza is not None:
-            grandeza.matriz_incerteza = matriz_incerteza
-            grandeza.matriz_covariancia = diag(
-                (grandeza.matriz_incerteza ** 2).reshape((grandeza.NE * grandeza.matriz_incerteza.shape[1], 1),
-                                                     order='F').transpose().tolist()[0])
+            return lista_estimativa, lista_incerteza, lista_variancia
 
-        if matriz_covariancia is not None:
-            if NE is not None:
-                grandeza.matriz_covariancia = matriz_covariancia
-                grandeza.matriz_incerteza = diag(grandeza.matriz_covariancia ** 0.5).reshape(
-                    (NE, grandeza.matriz_estimativa.shape[1]), order='F')
-            else:
-                raise ValueError(u'É necessário definir o valor de NE.')
+        def _validar(self):
+            # TODO: Corrigir este teste
+            # if (len(gL) != size(estimativa)) and (len(gL) != 0) :
+            #		raise ValueError(u'Os graus de liberdade devem ter o mesmo tamanho das estimativas')
 
-        grandeza._validar()
+            # ---------------------------------------------------------------------
+            # VALIDAÇÃO: MATRIZ SINGULAR E INCERTEZA NEGATIVA E ZERO
+            # ---------------------------------------------------------------------
+            if self.matriz_incerteza is not None:
 
-        if grandeza.matriz_incerteza is not None:
-            grandeza.matriz_correlacao = matrizcorrelacao(grandeza.matriz_covariancia)
+                if not isfinite(cond(self.matriz_covariancia)):
+                    raise TypeError('A matriz de covariância da grandeza é singular.')
 
-        # ---------------------------------------------------------------------
-        # Graus de liberdade
-        # ---------------------------------------------------------------------
-        grandeza.gL = gL if len(gL) != 0 else [[100] * grandeza.NE] * grandeza.matriz_estimativa.shape[1]
-
-        return grandeza
-
+                for elemento in diag(self.matriz_covariancia):
+                    if elemento <= 0.:
+                        raise TypeError('A variância de uma grandeza não pode ser zero ou assumir valores negativos.')
 
     def _SETexperimental(self,estimativa,variancia,gL,tipo):
 
         self.__ID.append('experimental')
         self.experimental = Organizador(estimativa,variancia,gL,tipo)        
-        self.experimentalTESTE = self.__SETGrandeza(estimativa,matriz_incerteza=variancia)
+        self.experimentalTESTE = self.Dados(estimativa,matriz_incerteza=variancia)
 
     def _SETvalidacao(self,estimativa,variancia,gL,tipo):
         
@@ -498,7 +472,7 @@ class Grandeza:
         
         self.__ID.append('calculado')
         self.calculado = Organizador(estimativa,variancia,gL,tipo,NE)
-        self.calculadoTESTE = self.__SETGrandeza(estimativa, matriz_covariancia=variancia,NE=NE)
+        self.calculadoTESTE = self.Dados(estimativa, matriz_covariancia=variancia,NE=NE)
 
 
     def _SETresiduos(self,estimativa,variancia,gL,tipo):
