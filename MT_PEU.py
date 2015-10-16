@@ -2149,7 +2149,7 @@ class EstimacaoNaoLinear:
             warn('O relatório sobre a predição e análise de resíduos não foi criado, pois o método {} não foi executado'.format(self.__etapasdisponiveis[7]))
 
         # ---------------------------------------------------------------------
-        # RELATÓRIO DA PREDIÇÃO E ANÁLISE DE RESÍDUOS
+        # RELATÓRIO DA OTIMIZAÇÃO
         # ---------------------------------------------------------------------
         if self.__flag.info['relatoriootimizacao']:
-            self.Otimizacao.Relatorios(base_path=self.__base_path + sep +self._configFolder['relatorio'] + sep,titulo_relatorio='relatorio-otimizacao.txt')
+            self.Otimizacao.Relatorios(base_path=self.__base_path + sep +self._configFolder['relatorio'] + sep,titulo_relatorio='relatorio-otimizacao.txt',**kwargs)

@@ -106,7 +106,7 @@ Estime.predicao()
 Estime.analiseResiduos()
 etapas = ['otimizacao','grandezas-entrada', 'predicao','grandezas-calculadas','analiseResiduos', 'regiaoAbrangencia']
 Estime.graficos(etapas)
-Estime.relatorio(export_y=True,export_cov_y=True)
+Estime.relatorio(export_y=True,export_cov_y=True,quebra='\r\n')
 ##################################################################################
 ##################################################################################
 # EXEMPLOS PARA MODELOS LINEARES
