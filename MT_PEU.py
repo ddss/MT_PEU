@@ -14,6 +14,7 @@ Principais classes do motor de cálculo do PEU
 from numpy import array, size, linspace, min, max, copy, cos, sin, radians,\
     mean, ones, ndarray
 
+from numpy.random import uniform
 from scipy.stats import f, t, chi2
 from scipy.misc import factorial
 from numpy.linalg import inv
@@ -328,7 +329,9 @@ class EstimacaoNaoLinear:
 
         # Flags para controle
         self.__flag = flag()
-        self.__flag.setCaracteristica(['dadosexperimentais','dadosvalidacao','reconciliacao','graficootimizacao','relatoriootimizacao'])
+        self.__flag.setCaracteristica(['dadosexperimentais','dadosvalidacao',
+                                       'reconciliacao','preenchimentoRegiao',
+                                       'graficootimizacao','relatoriootimizacao'])
         # uso das caracterśiticas:
         # dadosexperimentais: indicar se dadosexperimentais foram inseridos
         # dadosvalidacao: indicar se dadosvalidacao foram inseridos
@@ -512,7 +515,8 @@ class EstimacaoNaoLinear:
                 raise SyntaxError('Para executar a incertezaParametros, faz-se necessário primeiro executar os métodos {} OU {}.'.format(self.__etapasdisponiveis[2],self.__etapasdisponiveis[8]))
 
             if args[0] not in self.__metodosIncerteza:
-                raise NameError('O método solicitado para cálculo da incerteza dos parâmetros {}'.format(args)+' não está disponível. Métodos disponíveis '+', '.join(self.__metodosIncerteza)+'.')
+                raise NameError('O método solicitado para cálculo da incerteza dos parâmetros {}'.format(args[0])
+                                +' não está disponível. Métodos disponíveis '+', '.join(self.__metodosIncerteza)+'.')
 
             if not isinstance(args[1],bool):
                 raise TypeError('O argumento preencherregião deve ser booleano (True ou False).')
@@ -587,6 +591,35 @@ class EstimacaoNaoLinear:
             # Depende da execução de otimiza e SETparametro
             if self.__etapasdisponiveis[2] not in self.__etapasGlobal() or self.__etapasdisponiveis[8] not in self.__etapasGlobal():
                 raise TypeError('O método GETFOotimo deve ser executado após {} ou {}'.format(self.__etapasdisponiveis[8], self.__etapasdisponiveis[2]))
+
+        # ---------------------------------------------------------------------
+        # PREENCHER REGIÃO
+        # ---------------------------------------------------------------------
+        if etapa == self.__etapasdisponiveis[16]:
+
+            if self.__etapasdisponiveis[3] not in self.__etapasGlobal():
+                raise TypeError('O método preencherRegiao deve ser executado após {}'.format(self.__etapasdisponiveis[3]))
+
+            self.__tipoPreenchimento = ('PSO', 'MonteCarlo')
+
+            if args not in self.__tipoPreenchimento:
+                raise NameError('O método solicitado para preenchimento da região de abrangência {}'.format(
+                    args) + ' não está disponível. Métodos disponíveis ' + ', '.join(self.__tipoPreenchimento) + '.')
+
+            if args == self.__tipoPreenchimento[1]:
+                kwargsdisponiveis = ('iteracoes','limite_superior','limite_inferior','metodoPreenchimento','fatorlimitebusca')
+
+                if not set(keywargs.keys()).issubset(kwargsdisponiveis):
+                    raise NameError('O(s) keyword(s) argument digitado(s) está(ão) incorreto(s). Keyword disponíveis: '+
+                                    ', '.join(kwargsdisponiveis)+'.')
+
+                if keywargs.get(kwargsdisponiveis[0]) is not None:
+                    if keywargs.get(kwargsdisponiveis[0]) < 1:
+                        raise ValueError('O número de iterações deve ser inteiro e positivo.')
+
+                if keywargs.get('fatorlimitebusca') is not None:
+                    if keywargs.get(kwargsdisponiveis[4]) < 0:
+                        raise ValueError('O fator limite busca deve positivo.')
 
     def __validacaoDadosEntrada(self,dados,udados,NV):
         u'''
@@ -1036,7 +1069,7 @@ class EstimacaoNaoLinear:
         if regiao is not None:
             self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[4])
 
-    def incertezaParametros(self,metodo='2InvHessiana',preencherregiao=False,**kwargs):
+    def incertezaParametros(self,metodoIncerteza='2InvHessiana',preencherregiao=False,**kwargs):
         u'''
         
         Método para avaliação da matriz de covariãncia dos parâmetros e região de abrangência.
@@ -1051,7 +1084,7 @@ class EstimacaoNaoLinear:
         Entradas (opcionais)
         =======================
 
-        * metodo (string) : método para cálculo da matriz de covariãncia dos
+        * metodoIncerteza (string) : método para cálculo da matriz de covariãncia dos
         parâmetros. Métodos disponíveis: 2InvHessiana, Geral, SensibilidadeModelo
         * preencherregiao (bool): identifica de será executado algoritmo para preenchimento da região de abrangência.
 
@@ -1080,7 +1113,7 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------         
-        self.__validacaoArgumentosEntrada('incertezaParametros',kwargs,[metodo,preencherregiao])
+        self.__validacaoArgumentosEntrada('incertezaParametros',kwargs,[metodoIncerteza,preencherregiao])
 
         # ---------------------------------------------------------------------
         # DELTAS (INCREMENTO) DAS DERIVADAS
@@ -1102,7 +1135,7 @@ class EstimacaoNaoLinear:
         # Avaliação de matrizes auxiliares
         # Matriz Hessiana da função objetivo em relação aos parâmetros
         # somente avaliada se o método é 2InvHess ou Geral
-        if metodo == self.__metodosIncerteza[0] or metodo == self.__metodosIncerteza[1]:
+        if metodoIncerteza == self.__metodosIncerteza[0] or metodoIncerteza == self.__metodosIncerteza[1]:
             self.Hessiana   = self.__Hessiana_FO_Param(self._deltaHessiana)
 
             # Inversa da matriz hessiana a função objetivo em relação aos parâmetros
@@ -1111,12 +1144,12 @@ class EstimacaoNaoLinear:
         # Gy: derivadas parciais segundas da função objetivo em relação aos parâmetros e
         # dados experimentais
         # Somente avaliada caso o método seja Geral
-        if metodo == self.__metodosIncerteza[1]:
+        if metodoIncerteza == self.__metodosIncerteza[1]:
             self.Gy  = self.__Matriz_Gy(self._deltaGy)
 
         # Matriz de sensibilidade do modelo em relação aos parâmetros
         # Somente avaliada caso o método seja o simplificado
-        if metodo == self.__metodosIncerteza[2]:
+        if metodoIncerteza == self.__metodosIncerteza[2]:
             self.S   = self.__Matriz_S(self.x.experimental.matriz_estimativa,self._deltaS)
 
         # ---------------------------------------------------------------------
@@ -1125,15 +1158,15 @@ class EstimacaoNaoLinear:
 
         # MATRIZ DE COVARIÂNCIA
         # Método: 2InvHessiana ->  2*inv(Hess)
-        if metodo == self.__metodosIncerteza[0]:
+        if metodoIncerteza == self.__metodosIncerteza[0]:
             matriz_covariancia = 2*invHess
 
         # Método: geral - > inv(H)*Gy*Uyy*GyT*inv(H)
-        elif metodo == self.__metodosIncerteza[1]:
+        elif metodoIncerteza == self.__metodosIncerteza[1]:
             matriz_covariancia  = invHess.dot(self.Gy).dot(self.y.experimental.matriz_covariancia).dot(self.Gy.transpose()).dot(invHess)
 
         # Método: simplificado -> inv(trans(S)*inv(Uyy)*S)
-        elif metodo == self.__metodosIncerteza[2]:
+        elif metodoIncerteza == self.__metodosIncerteza[2]:
             matriz_covariancia = inv(self.S.transpose().dot(inv(self.y.experimental.matriz_covariancia)).dot(self.S))
 
         # ---------------------------------------------------------------------
@@ -1150,12 +1183,13 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # REGIÃO DE ABRANGÊNCIA
         # ---------------------------------------------------------------------
-        # A região de abrangência só é executada caso haja histórico da otimização e o atributo regiao_abrangencia
-        # da grandeza self.parâmetros não esteja definido
-        if self.__etapasdisponiveis[12] in self.__etapasGlobal() and self.parametros.regiao_abrangencia is None:
-            # PREENCHIMENTO DE REGIÃO:
-            if preencherregiao:
-                self.__preencherRegiao(**kwargs)
+        # PREENCHIMENTO DE REGIÃO:
+        if preencherregiao:
+            self.__preencherRegiao(**kwargs)
+            self.__flag.ToggleActive('preenchimentoRegiao')
+
+        # A região de abrangência só é executada caso haja histórico de posicoes e fitness
+        if self.__etapasdisponiveis[12] in self.__etapasGlobal():
             # OBTENÇÃO DA REGIÃO:
             regiao = self.regiaoAbrangencia()
             # ATRIBUIÇÃO A GRANDEZA
@@ -1513,7 +1547,7 @@ class EstimacaoNaoLinear:
         matriz_S = ones((self.y.NV*self.y.validacao.NE,self.parametros.NV))
         
         for i in xrange(self.parametros.NV): 
-            
+
                 # Incrementos para as derivadas dos parâmetros, tendo delta_alpha aplicados a qual parâmetro está ocorrendo a alteração\
                 #no vetor de parâmetros que é argumento da FO.
                 
@@ -1521,11 +1555,11 @@ class EstimacaoNaoLinear:
                 #OBS.: SE O VALOR DO PARÂMETRO FOR ZERO, APLICA-SE OS VALORES DE ''delta'' para delta_alpha, pois não existe log de zero, causando erro.
                 #--------------------------------------------------------------
                 delta_alpha = (10**(floor(log10(abs(self.parametros.estimativa[i])))))*delta if self.parametros.estimativa[i] != 0 else delta
-                
+
                 #Vetores alterados dos parâmetros para entrada na função do modelo
                 vetor_parametro_delta_i_positivo = vetor_delta(self.parametros.estimativa,i,delta_alpha) 
                 vetor_parametro_delta_i_negativo = vetor_delta(self.parametros.estimativa,i,-delta_alpha)
-                
+
                 #Valores para o modelo com os parâmetros acrescidos (matriz na foma de array).                
                 ycalculado_delta_positivo       = self.__modelo(vetor_parametro_delta_i_positivo,x,self._args_model())
                 
@@ -1556,66 +1590,131 @@ class EstimacaoNaoLinear:
         =================
         Keyword arguments
         =================
-        * argumentos extras a serem passados para o PSO
-
+            * metodoPreenchimento ('string'): define qual o método utilizado no preenchimento da região de abrangência. Se: PSO ou MC (
+         Monte Carlo)
+        PSO:
+            * argumentos extras a serem passados para o PSO (Vide documentação do método)
+        MonteCarlo:
+            * iteracoes (int): número de iterações a serem realizadas. Default: 10000.
+            * fatorlimitebusca: quanto maior este fator, maior a faixa automática de busca baseada no range que a elipse abrange. Default: 1/10
         '''
         # ---------------------------------------------------------------------
-        # KEYWORDS
+        # VALIDAÇÃO
         # ---------------------------------------------------------------------
-        # Atributos obrigatórios
+        tipo = kwargs.get('metodoPreenchimento') if kwargs.get('metodoPreenchimento') is not None else 'MonteCarlo'
+
+        self.__validacaoArgumentosEntrada(self.__etapasdisponiveis[16],kwargs,tipo)
+
+        # ---------------------------------------------------------------------
+        # LIMTES DE BUSCA
+        # ---------------------------------------------------------------------
         limite_superior = kwargs.get('limite_superior')
         limite_inferior = kwargs.get('limite_inferior')
+        fatorlimitebusca =  kwargs.get('fatorlimitebusca') if kwargs.get('fatorlimitebusca') is not None else 1/10.
+
+        if limite_superior is None or limite_inferior is None:
+            extremo_elipse_superior = [0 for i in xrange(self.parametros.NV)]
+            extremo_elipse_inferior = [0 for i in xrange(self.parametros.NV)]
+
+            fisher, FOcomparacao = self.__criteriosAbrangencia()
+
+            Combinacoes = int(factorial(self.parametros.NV) / (factorial(self.parametros.NV - 2) * factorial(2)))
+            p1 = 0
+            p2 = 1
+            cont = 0
+            passo = 1
+
+            for pos in xrange(Combinacoes):
+                if pos == (self.parametros.NV - 1) + cont:
+                    p1 += 1
+                    p2 = p1 + 1
+                    passo += 1
+                    cont += self.parametros.NV - passo
+
+                cov = array([[self.parametros.matriz_covariancia[p1, p1], self.parametros.matriz_covariancia[p1, p2]],
+                             [self.parametros.matriz_covariancia[p2, p1], self.parametros.matriz_covariancia[p2, p2]]])
+
+                ellipse, coordenadas_x, coordenadas_y = plot_cov_ellipse(cov, [self.parametros.estimativa[p1], self.parametros.estimativa[p2]],
+                                                                     FOcomparacao)
+
+                extremo_elipse_superior[p1] = max(coordenadas_x)
+                extremo_elipse_superior[p2] = max(coordenadas_y)
+                extremo_elipse_inferior[p1] = min(coordenadas_x)
+                extremo_elipse_inferior[p2] = min(coordenadas_y)
 
         if limite_superior is None:
-            if self.parametros.limite_superior is not None:
-                limite_superior = [min([self.parametros.estimativa[i] + 3*t.ppf(self.PA+(1-self.PA)/2,100)*self.parametros.matriz_incerteza[0,i],
-                                       self.parametros.limite_superior[i]]) for i in xrange(self.parametros.NV)]
-            else:
-                 limite_superior = [self.parametros.estimativa[i] + 3*t.ppf(self.PA+(1-self.PA)/2,100)*self.parametros.matriz_incerteza[0,i] for i in xrange(self.parametros.NV)]
+            limite_superior = [extremo_elipse_superior[i] + (extremo_elipse_superior[i]-extremo_elipse_inferior[i])*fatorlimitebusca for i in xrange(self.parametros.NV)]
         else:
             kwargs.pop('limite_superior') # retira limite_superior dos argumentos extras
 
         if limite_inferior is None:
-            if self.parametros.limite_inferior is not None:
-                limite_inferior = [max([self.parametros.estimativa[i] - 3*t.ppf(self.PA+(1-self.PA)/2,100)*self.parametros.matriz_incerteza[0,i],
-                                       self.parametros.limite_inferior[i]])for i in xrange(self.parametros.NV)]
-            else:
-                limite_inferior = [self.parametros.estimativa[i] - 3*t.ppf(self.PA+(1-self.PA)/2,100)*self.parametros.matriz_incerteza[0,i] for i in xrange(self.parametros.NV)]
+            limite_inferior = [extremo_elipse_inferior[i] - (extremo_elipse_superior[i]-extremo_elipse_inferior[i])*fatorlimitebusca for i in xrange(self.parametros.NV)]
         else:
             kwargs.pop('limite_inferior') # retira limite_inferior dos argumentos extras
 
-        if kwargs.get('itmax') is None:
-            kwargs['itmax'] = 500
+        # ---------------------------------------------------------------------
+        # MÉTODO DO PSO
+        # ---------------------------------------------------------------------
+        if tipo == self.__tipoPreenchimento[0]:
 
-        if kwargs.get('metodo') is None:
-            kwargs['metodo'] = {'busca':'Regiao','algoritmo':'PSO','inercia':'Constante'}
-            kwargs['otimo']  = self.parametros.estimativa
+            if kwargs.get('itmax') is None:
+                kwargs['itmax'] = 500
 
-        # Separação de keywords para os diferentes métodos
-        # keywarg para a etapa de busca:
-        kwargsbusca = {}
-        if kwargs.get('printit') is not None:
-            kwargsbusca['printit'] = kwargs.get('printit')
-            del kwargs['printit']
+            if kwargs.get('metodo') is None:
+                kwargs['metodo'] = {'busca':'Regiao','algoritmo':'PSO','inercia':'Constante'}
+                kwargs['otimo']  = self.parametros.estimativa
 
-        kwargs['NP'] = self.parametros.NV
+            # Separação de keywords para os diferentes métodos
+            # keywarg para a etapa de busca:
+            kwargsbusca = {}
+            if kwargs.get('printit') is not None:
+                kwargsbusca['printit'] = kwargs.get('printit')
+                del kwargs['printit']
 
-        PSO_preenchimento = PSO(limite_superior,limite_inferior,args_model=self._args_FO(),**kwargs)
-        PSO_preenchimento.Busca(self.__FO,**kwargsbusca)
+            kwargs['NP'] = self.parametros.NV
+
+            PSO_preenchimento = PSO(limite_superior,limite_inferior,args_model=self._args_FO(),**kwargs)
+            PSO_preenchimento.Busca(self.__FO,**kwargsbusca)
+
+            # ---------------------------------------------------------------------
+            # HISTÓRICO DA OTIMIZAÇÃO
+            # ---------------------------------------------------------------------
+            for it in xrange(PSO_preenchimento.n_historico):
+                for ID_particula in xrange(PSO_preenchimento.Num_particulas):
+                    self.__hist_Posicoes.append(PSO_preenchimento.historico_posicoes[it][ID_particula])
+                    self.__hist_Fitness.append(PSO_preenchimento.historico_fitness[it][ID_particula])
 
         # ---------------------------------------------------------------------
-        # HISTÓRICO DA OTIMIZAÇÃO
+        # MÉTODO MONTE CARLO
         # ---------------------------------------------------------------------
-        for it in xrange(PSO_preenchimento.n_historico):
-            for ID_particula in xrange(PSO_preenchimento.Num_particulas):
-                self.__hist_Posicoes.append(PSO_preenchimento.historico_posicoes[it][ID_particula])
-                self.__hist_Fitness.append(PSO_preenchimento.historico_fitness[it][ID_particula])
-
+        if tipo == self.__tipoPreenchimento[1]:
+            iteracoes = int(kwargs.get('iteracoes') if kwargs.get('iteracoes') is not None else 10000)
+            for cont in xrange(iteracoes):
+                amostra = [uniform(limite_inferior[i],limite_superior[i],1)[0] for i in xrange(self.parametros.NV)]
+                FO = self.__FO(amostra, self._args_FO())
+                FO.run()
+                self.__hist_Posicoes.append(amostra)
+                self.__hist_Fitness.append(FO.result)
         # ---------------------------------------------------------------------
         # VARIÁVEIS INTERNAS
         # ---------------------------------------------------------------------
         self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[16])# Inclusão desta etapa da lista de etapas
         self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[12])# Inclusão do histórico da otimização na lista de etapas
+
+    def __criteriosAbrangencia(self):
+        '''
+        Método que retorna os valores das distribuições de Fisher, chi2 e o valor limite da função objetivo.
+        Utilizado para avaliar a região de abrangẽncia
+        '''
+
+        # TesteF = F(PA,NP,NE*NY-NP)
+        fisher = f.ppf(self.PA,self.parametros.NV,(self.y.experimental.NE*self.y.NV-self.parametros.NV))
+
+        # Valor máximo da função objetivo que um certo conjunto de parâmetros pode gerar para estar contido
+        # na região de abrangência
+        FOcomparacao = self.FOotimo*(1+float(self.parametros.NV)/(self.y.experimental.NE*self.y.NV-float(self.parametros.NV))*fisher)
+
+        return fisher, FOcomparacao
 
     def regiaoAbrangencia(self):
         u'''
@@ -1635,18 +1734,13 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # DETERMINAÇÃO DA REGIÃO DE ABRANGÊNCIA PELO CRITÉRIO DE FISHER
         # ---------------------------------------------------------------------
-        # TesteF = F(PA,NP,NE*NY-NP)
-        fisher = f.ppf(self.PA,self.parametros.NV,(self.y.experimental.NE*self.y.NV-self.parametros.NV))
-
-        # Valor máximo da função objetivo que um certo conjunto de parâmetros pode gerar para estar contido
-        # na região de abrangência
-        FOcomparacao = self.FOotimo*(1+float(self.parametros.NV)/(self.y.experimental.NE*self.y.NV-float(self.parametros.NV))*fisher)
+        fisher, FOcomparacao = self.__criteriosAbrangencia()
 
         # Comparação dos valores da função objetivo avaliados na etapa de otimização com FOcomparacao, caso
         # sejam menores, os respectivos parâmetros estarão contidos da região de abrangência.
         regiao = []
         for pos,fitness in enumerate(self.__hist_Fitness):
-            if fitness <= FOcomparacao:
+            if fitness <= FOcomparacao+self.FOotimo:
                 regiao.append(self.__hist_Posicoes[pos])
 
         # ---------------------------------------------------------------------
@@ -1855,8 +1949,9 @@ class EstimacaoNaoLinear:
 
         # regiaoAbrangencia
         if self.__tipoGraficos[0] in tipos:
-            # os gráficos da região de abrangência sõ são executados se houver dados disponíveis
-            if self.parametros.regiao_abrangencia is not None:
+            # os gráficos da região de abrangência só são executados se a matriz de covariância
+            # dos parâmetros existir.
+            if self.parametros.matriz_covariancia is not None:
                 # Gráficos da estimação
                 base_dir = sep + self._configFolder['graficos-regiaoAbrangencia'] + sep
                 Validacao_Diretorio(base_path, base_dir)
@@ -1883,40 +1978,21 @@ class EstimacaoNaoLinear:
                                 aux2.append(self.parametros.regiao_abrangencia[it][p2])
                             PSO, = plot(aux1,aux2,'bo',linewidth=2.0,zorder=1)
                             
-                        Fisher = f.ppf(self.PA,self.parametros.NV,(self.y.experimental.NE*self.y.NV-self.parametros.NV))
-                        Comparacao = self.FOotimo*(float(self.parametros.NV)/(self.y.experimental.NE*self.y.NV-float(self.parametros.NV))*Fisher)
+                        fisher, FOcomparacao = self.__criteriosAbrangencia()
+
                         cov = array([[self.parametros.matriz_covariancia[p1,p1],self.parametros.matriz_covariancia[p1,p2]],[self.parametros.matriz_covariancia[p2,p1],self.parametros.matriz_covariancia[p2,p2]]])
-                        ellipse, h_maior_eixo, h_menor_eixo,theta = plot_cov_ellipse(cov, [self.parametros.estimativa[p1],self.parametros.estimativa[p2]], Comparacao, fill = False, color = 'r', linewidth=2.0,zorder=2)
+                        ellipse, coordenadas_x, coordenadas_y = plot_cov_ellipse(cov, [self.parametros.estimativa[p1],self.parametros.estimativa[p2]], FOcomparacao, fill = False, color = 'r', linewidth=2.0,zorder=2,ax=ax)
                         plot(self.parametros.estimativa[p1],self.parametros.estimativa[p2],'r*',markersize=10.0,zorder=2)
+                        plot(coordenadas_x,coordenadas_y,'.r',markersize=0.01)
                         ax.yaxis.grid(color='gray', linestyle='dashed')                        
                         ax.xaxis.grid(color='gray', linestyle='dashed')
                         xlabel(self.parametros.labelGraficos()[p1],fontsize=20)
                         ylabel(self.parametros.labelGraficos()[p2],fontsize=20)
 
-                        # Cálculos dos pontos extremos da elipse:
-                        folga = 1.1
-                        if theta >= 0:
-                            pontos_maior_eixo = ((self.parametros.estimativa[p1] + folga*h_maior_eixo[0], self.parametros.estimativa[p2] - folga*h_maior_eixo[1]),
-                                                 (self.parametros.estimativa[p1] - folga*h_maior_eixo[0], self.parametros.estimativa[p2] + folga*h_maior_eixo[1]))
-                            pontos_menor_eixo = ((self.parametros.estimativa[p1] + folga*h_menor_eixo[0], self.parametros.estimativa[p2] + folga*h_menor_eixo[1]),
-                                                 (self.parametros.estimativa[p1] - folga*h_menor_eixo[0], self.parametros.estimativa[p2] - folga*h_menor_eixo[1]))
-                        else:
-                            pontos_maior_eixo = ((self.parametros.estimativa[p1] + folga*h_maior_eixo[0], self.parametros.estimativa[p2] + folga*h_maior_eixo[1]),
-                                                 (self.parametros.estimativa[p1] - folga*h_maior_eixo[0], self.parametros.estimativa[p2] - folga*h_maior_eixo[1]))
-                            pontos_menor_eixo = ((self.parametros.estimativa[p1] + folga*h_menor_eixo[0], self.parametros.estimativa[p2] - folga*h_menor_eixo[1]),
-                                                 (self.parametros.estimativa[p1] - folga*h_menor_eixo[0], self.parametros.estimativa[p2] + folga*h_menor_eixo[1]))
-                        coordenadas_x = [pontos_maior_eixo[0][0],pontos_maior_eixo[1][0],pontos_menor_eixo[0][0],pontos_menor_eixo[1][0]]
-                        coordenadas_y = [pontos_maior_eixo[0][1],pontos_maior_eixo[1][1],pontos_menor_eixo[0][1],pontos_menor_eixo[1][1]]
-                        xlimpontos        = (min(coordenadas_x),max(coordenadas_x))
-                        ylimpontos        = (min(coordenadas_y),max(coordenadas_y))
-                        xauto = [ax.get_xticks()[0],ax.get_xticks()[-1]]
-                        yauto = [ax.get_yticks()[0],ax.get_yticks()[-1]]
-                        xlim((min([xlimpontos[0],xauto[0]]),max([xlimpontos[1],xauto[-1]])))
-                        ylim((min([ylimpontos[0],yauto[0]]),max([ylimpontos[1],yauto[-1]])))
                         if self.__etapasdisponiveis[4] in self.__etapasGlobal() and self.parametros.regiao_abrangencia != []:
-                            legend([ellipse,PSO],['Elipse',u'Verossimilhança'])
+                            legend([ellipse,PSO],['Elipse',u'Verossimilhança'],loc='best')
                         elif self.__etapasdisponiveis[4] in self.__etapasGlobal() and self.parametros.regiao_abrangencia == []:
-                            legend([ellipse],['Ellipse'])
+                            legend([ellipse],['Ellipse'],loc='best')
                         fig.savefig(base_path+base_dir+'regiao_verossimilhanca_fl'+str(0)+'_'+str(self.parametros.simbolos[p1])+'_'+str(self.parametros.simbolos[p2])+'.png')
                         close()
                         p2+=1
@@ -1924,7 +2000,7 @@ class EstimacaoNaoLinear:
                     warn('Os gráficos de regiao de abrangencia não puderam ser criados, pois há apenas um parâmetro.',UserWarning)
 
             else:
-                warn('Os gráficos de regiao de abrangencia não puderam ser criados, pois o método {} não foi executado após {} OU no método {} não foi incluída a região de abrangência. Observe que em {} é avaliado a região de abrangência, apenas quando {} é executado.'.format(self.__etapasdisponiveis[3], self.__etapasdisponiveis[2], self.__etapasdisponiveis[8], self.__etapasdisponiveis[3],self.__etapasdisponiveis[2]),UserWarning)
+                warn('Os gráficos de regiao de abrangência não puderam ser criados, pois o método {} não foi executado após {} OU no método {} não foi solicitado preenchimento de região.'.format(self.__etapasdisponiveis[3], self.__etapasdisponiveis[2], self.__etapasdisponiveis[3]),UserWarning)
         # predição
         if self.__tipoGraficos[2] in tipos:
             # Predição deve ter sido executada neste fluxo
@@ -2077,7 +2153,7 @@ class EstimacaoNaoLinear:
                 # Gráficos relacionados aos resíduos das grandezas dependentes
                 self.y.Graficos(base_path, base_dir, ID=['residuo'], fluxo=self.__etapasID)
 
-                # Grafico dos resíduos em função dos dados de validação (ou experimentais)
+                # Grafico dos resíduos em função dos dados de validação (ou experimentais) e calculados
                 for i,simb in enumerate(self.y.simbolos):
                     base_dir = sep + self._configFolder['graficos-analiseResiduos'] + sep + self.y.simbolos[i] + sep
                     Validacao_Diretorio(base_path,base_dir)
@@ -2094,6 +2170,25 @@ class EstimacaoNaoLinear:
                     legend()
                     fig.savefig(base_path+base_dir+'residuos_fl'+str(self.__etapasID)+'_versus_'+self.y.simbolos[i]+'_calculado.png')
                     close()
+
+                    fig = figure()
+                    ax = fig.add_subplot(1,1,1)
+                    plot(self.y.validacao.matriz_estimativa[:,i],self.y.residuos.matriz_estimativa[:,i], 'o')
+                    plot([min(self.y.validacao.matriz_estimativa[:,i]),max(self.y.validacao.matriz_estimativa[:,i])],[mean(self.y.residuos.matriz_estimativa[:,i])]*2, '-.r', label=u'Média resíduos '+self.y.simbolos[i])
+                    ax.yaxis.grid(color='gray', linestyle='dashed')
+                    ax.xaxis.grid(color='gray', linestyle='dashed')
+                    ax.axhline(0, color='black', lw=2)
+                    legend()
+                    if self.__flag.info['dadosvalidacao']:
+                        xlabel(u'Valores de validação '+self.y.labelGraficos()[i])
+                        ylabel(u'Resíduos '+self.y.labelGraficos()[i])
+                        fig.savefig(base_path+base_dir+'residuos_fl'+str(self.__etapasID)+'_versus_'+self.y.simbolos[i]+'_validacao.png')
+                    else:
+                        xlabel(u'Valores de experimentais '+self.y.labelGraficos()[i])
+                        ylabel(u'Resíduos '+self.y.labelGraficos()[i])
+                        fig.savefig(base_path+base_dir+'residuos_fl'+str(self.__etapasID)+'_versus_'+self.y.simbolos[i]+'_experimental.png')
+                    close()
+
                     for j, simbol in enumerate(self.x.simbolos):
                         #X experimental vs. Resíduos
                         fig = figure()

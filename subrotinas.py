@@ -5,8 +5,9 @@ Arquivo que contém subrotinas genéricas para uso pelo MT_PEU.
 @author: Daniel
 """
 
-from numpy import concatenate, size, arctan2, degrees, sqrt, copy, ones, array, cos, sin, radians
-from numpy.linalg import eigh
+from numpy import concatenate, size, arctan2, degrees, sqrt, \
+    copy, ones, array, cos, sin, pi, roots, linspace, iscomplex
+from numpy.linalg import eigh, inv
 from os import path, makedirs
 
 from matplotlib.pyplot import figure, axes, axis, plot, errorbar, subplot, xlabel, ylabel,\
@@ -135,28 +136,33 @@ def plot_cov_ellipse(cov, pos, c2=2, ax=None, **kwargs):
 
     vals, vecs = eigsorted(cov)
     theta = degrees(arctan2(*vecs[:,0][::-1]))
-
     # Width and height are "full" widths, not radius
     width, height = 2 * sqrt(c2*vals)
     ellip = Ellipse(xy=pos, width=width, height=height, angle=theta, **kwargs)
     
     ax.add_artist(ellip)
 
-    # Obtenção dos incremetos para cálculo
-    # dos pontos da elipse
-    a = height/2.
-    b = width/2.
-    if theta >= 0:
-        h_maior_eixo = (abs(cos(radians((180.-theta)))*b),abs(sin(radians(180.-theta))*b))
-        h_menor_eixo = (abs(cos(radians(theta-90))*a), abs(sin(radians(theta-90))*a))
-    else:
-        alpha = 180 + theta
-        h_maior_eixo = (abs(cos(radians(alpha))*b), abs(b*sin(radians(alpha))))
-        h_menor_eixo = (abs(cos(radians(90.-alpha))*a), abs(a*sin(radians(90-alpha))))
+    # CÁLCULO DOS PONTOS PERTENCENTES AOS EIXOS DA ELIPSE:
+    invcov = inv(cov)
+    alpha  = [vecs[1,0]/vecs[0,0],vecs[1,1]/vecs[0,1]]
+    lamb   = [sqrt(c2/(invcov[0,0]+2*alpha_i*invcov[0,1] + alpha_i**2*invcov[1,1])) for alpha_i in alpha]
 
+    coordenadas_x = [pos[0]+lamb[0],pos[0]-lamb[0],pos[0]+lamb[1],pos[0]-lamb[1]]
+    coordenadas_y = [pos[1]+alpha[0]*lamb[0],pos[1]-alpha[0]*lamb[0],pos[1]+alpha[1]*lamb[1],pos[1]-alpha[1]*lamb[1]]
 
-    return (ellip, h_maior_eixo, h_menor_eixo, theta)
-    
+    # CÁLCULO DOS PONTOS EXTREMOS
+    k = invcov[0,0]/invcov[0,1]
+    delta = sqrt(c2/(k**2*invcov[1,1]-2*k*invcov[0,1]+invcov[0,0]))
+    coordenadas_x.extend([pos[0]+delta,pos[0]-delta])
+    coordenadas_y.extend([pos[1]-delta*k,pos[1]+delta*k])
+
+    k = invcov[1,1]/invcov[0,1]
+    delta = sqrt(c2/(k**2*invcov[0,0]-2*k*invcov[0,1]+invcov[1,1]))
+    coordenadas_y.extend([pos[1]+delta,pos[1]-delta])
+    coordenadas_x.extend([pos[0]-delta*k,pos[0]+delta*k])
+
+    return ellip, coordenadas_x, coordenadas_y
+
 def vetor_delta(entrada_vetor,posicao,delta):
     u"""
     Subrotina para alterar o(s) elementos de um vetor, acrescentando ou retirando um determinado ''delta''.
