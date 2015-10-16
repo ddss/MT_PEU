@@ -2124,7 +2124,7 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # DEFINIÇÃO DA CLASSE
         # ---------------------------------------------------------------------
-        saida = Relatorio(self.__base_path,sep +self._configFolder['relatorio']+ sep)
+        saida = Relatorio(self.__base_path,sep +self._configFolder['relatorio']+ sep,**kwargs)
 
         # ---------------------------------------------------------------------
         # RELATÓRIO DOS PARÂMETROS
