@@ -53,9 +53,9 @@ class EstimacaoNaoLinear:
     class Fluxo:
 
         def __init__(self):
-            u'''
+            u"""
             Classe voltada para controlar o fluxo de etapas de EstimacaoNaoLinear
-            '''
+            """
             # TODO: documentação deste código!!
             self.gerarEntradas = 0
             self.otimizacao = 0
@@ -73,6 +73,32 @@ class EstimacaoNaoLinear:
             self.S = 0
             self.preencherRegiao = 0
 
+        def SET_ID(self,etapa):
+            u"""
+            Método voltado para definição de uma etapa e suas validações
+            """
+            # Teste para verificar se as etapas predecessoras foram executadas
+            teste = [getattr(self,elemento) for elemento in getattr(self,'_predecessora'+etapa)]
+            # Caso não haja predecessora, o valor é atribuído a True
+            teste = teste if teste != [] else [True]
+            # Caso nenhuma predecessora tenha sido executada, retorna um erro
+            if not any(teste):
+                raise SyntaxError('Para executar o método {} deve executar antes {}'.format(etapa, ' ou '.join(
+                    getattr(self, '_predecessora' + etapa))))
+            # atribuindo o valor 1 (executado) ao atributo referente à etapa
+            setattr(self,etapa,1)
+
+        @property
+        def _predecessoragerarEntradas(self):
+
+            return []
+
+        @property
+        def _predecessoraotimizacao(self):
+
+            return ['gerarEntradas']
+
+        @property
         def _sucessoresValidacao(self):
 
             return ['predicao', 'analiseResiduos', 'armazenarDicionario', 'graficos', 'Gy', 'S']
@@ -92,7 +118,7 @@ class EstimacaoNaoLinear:
             Método utilizado para reiniciar apenas etapas específicas
             '''
 
-            etapas = etapas if etapas is not None else self._sucessoresValidacao()
+            etapas = etapas if etapas is not None else self._sucessoresValidacao
 
             for atributo in etapas:
                 setattr(self, atributo, 0)
@@ -726,6 +752,8 @@ class EstimacaoNaoLinear:
         # VALIDAÇÃO
         # ---------------------------------------------------------------------
         # Validação da sintaxe
+        self.__controleFluxo.SET_ID('gerarEntradas')
+
         self.__validacaoArgumentosEntrada('gerarEntradas',None,tipo)
 
         # Validação dos dados de entrada x, y, ux e uy
@@ -777,7 +805,6 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------         
         # Inclusão desta etapa da lista de etapas
         self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[1])
-        self.__controleFluxo.gerarEntradas = 1
 
     def _armazenarDicionario(self):
         u'''
@@ -911,6 +938,8 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------
+        self.__controleFluxo.SET_ID('otimizacao')
+
         # Validação das keywords obrigatórias para o método de otimização
         self.__validacaoArgumentosEntrada('otimizacao',kwargs,[estimativa_inicial,algoritmo])
 
