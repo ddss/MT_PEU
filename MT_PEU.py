@@ -99,9 +99,35 @@ class EstimacaoNaoLinear:
             return ['gerarEntradas']
 
         @property
+        def __predecessoraincertezaParametros(self):
+
+            return ['otimizacao','SETparametro']
+
+        @property
+        def __predecessoraregiaoAbrangencia(self):
+
+            return ['historicoOtimizacao']
+
+        @property
+        def __predecessoraanaliseResiduos(self):
+
+            return ['predicao']
+
+        @property
+        def __predecessoraarmazenarDicionario(self):
+
+            return ['gerarEntradas']
+
+        @property
+        def __predecessorapredicao(self):
+            # TODO: adequar para a issue #62
+            return ['orimizacao','SETparametro','incertezaParametro']
+
+        @property
         def _sucessoresValidacao(self):
 
             return ['predicao', 'analiseResiduos', 'armazenarDicionario', 'graficos', 'Gy', 'S']
+
 
         def reiniciar(self):
             u'''
@@ -557,11 +583,18 @@ class EstimacaoNaoLinear:
         self.__AlgoritmosOtimizacao = ('PSO',)
 
         if etapa == self.__etapasdisponiveis[2]:
-            # se gerar entradas não foi executado no Global
+            # se não houver dados experimentais -> erro
+            if not self.__flag.info['dadosexperimentais']:
+                raise SyntaxError('Para executar a otimização, faz-se necessário dados experimentais')
+
+            # TODO: APAGAR
             if (self.__etapasdisponiveis[1] not in self.__etapasGlobal()) or (self.__flag.info['dadosexperimentais']==False):
                 raise SyntaxError('Para executar a otimização, faz-se necessário primeiro executar método {} informando os dados experimentais.'.format(self.__etapasdisponiveis[1]))
 
-            # se SETparametro não pode ser executado antes de otimiza, em nenhum fluxo.
+            # se SETparametro não pode ser executado antes de otimiza.
+            if self.__controleFluxo.SETparametro:
+                raise SyntaxError('O método {} não pode ser executado com {}'.format('otimiza', 'SETparametro'))
+            # TODO: Apagar
             if self.__etapasdisponiveis[8] in self.__etapas[self.__etapasID]:
                 raise SyntaxError('O método {} não pode ser executado com {}'.format(self.__etapasdisponiveis[2], self.__etapasdisponiveis[8]))
 
@@ -587,6 +620,7 @@ class EstimacaoNaoLinear:
         if etapa == self.__etapasdisponiveis[3]:
             # se otimiza não tiver sido executado no contexto global ou SETparametro não tiver sido executado no contexto Global,
             # não se pode executar incertezaParametros
+            # TODO: Apagar
             if (self.__etapasdisponiveis[2] not in self.__etapasGlobal()) and (self.__etapasdisponiveis[8] not in self.__etapasGlobal()):
                 raise SyntaxError('Para executar a incertezaParametros, faz-se necessário primeiro executar os métodos {} OU {}.'.format(self.__etapasdisponiveis[2],self.__etapasdisponiveis[8]))
 
@@ -601,6 +635,7 @@ class EstimacaoNaoLinear:
         # REGIÃO DE ABRANGÊNCIA
         # ---------------------------------------------------------------------
         if etapa == self.__etapasdisponiveis[4]:
+            # TODO: Apagar
             # se historicoOtimizacao não tiver sido executado, não se pode criar a Região de abrangência
             if self.__etapasdisponiveis[12] not in self.__etapasGlobal():
                 raise SyntaxError('Para executar a região de abrangência, faz-se necessário primeiro executar um método que avalie o histórico da otimização. Normalmente é {} ou {}'.format(self.__etapasdisponiveis[2],self.__etapasdisponiveis[16]))
