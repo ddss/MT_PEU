@@ -77,7 +77,7 @@ class Relatorio:
             else:
                 f.write('Variância : não avaliada + \n')
                 f.write('Incerteza : não avaliada + \n')
-                f.write('FObj ótima : '+ '{:.3e} '.format(pontoOtimo)+'- {:<} \n'.format('Valor da função objetivo no ponto ótimo'))
+                f.write('FObj ótima : '+ '{:.3g} '.format(pontoOtimo)+'- {:<} \n'.format('Valor da função objetivo no ponto ótimo'))
                 f.write('\n')
                 f.write('Matriz de covariância: não avaliada')
                 f.write('\n')

@@ -288,7 +288,7 @@ def graficos_x_y(X, Y, ix, iy, base_path, base_dir, info, ID_fluxo):
     ax = fig.add_subplot(1,1,1)
     xerr = 2*ux
     yerr = 2*uy
-    errorbar(x,y,xerr=xerr,yerr=yerr,fmt=None, marker='o')
+    errorbar(x,y,xerr=xerr,yerr=yerr,fmt="none", marker='o')
     # obtençao do tick do grafico
     # eixo x
     label_tick_x   = ax.get_xticks().tolist()

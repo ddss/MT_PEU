@@ -887,10 +887,14 @@ class EstimacaoNaoLinear:
             # VALIDAÇÃO DO MODELO
             # ---------------------------------------------------------------------            
             # Verificação se o modelo é executável nos limites de busca
-            
-            self.__ThreadExceptionHandling(self.__modelo,limite_superior,self.x.validacao.matriz_estimativa,self._args_model())
-            self.__ThreadExceptionHandling(self.__modelo,limite_inferior,self.x.validacao.matriz_estimativa,self._args_model())
-            
+            try:
+                aux = self.__modelo(limite_superior,self.x.validacao.matriz_estimativa,self._args_model())
+                aux.run()
+                aux = self.__modelo(limite_inferior,self.x.validacao.matriz_estimativa,self._args_model())
+                aux.run()
+            except Exception, erro:
+                raise SyntaxError(u'Erro no modelo, quando avaliado nos limites de busca definidos. Erro identificado: "{}".'.format(erro))
+
             # ---------------------------------------------------------------------
             # EXECUÇÃO OTIMIZAÇÃO
             # ---------------------------------------------------------------------
@@ -936,8 +940,8 @@ class EstimacaoNaoLinear:
         # OBTENÇÃO DO PONTO ÓTIMO DA FUNÇÃO OBJETIVO
         # ---------------------------------------------------------------------
         FO = self.__FO(self.parametros.estimativa, self._args_FO())
-        FO.start()
-        FO.join()
+        FO.run()
+
         self.FOotimo = FO.result
 
         # ---------------------------------------------------------------------
@@ -945,59 +949,6 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # Inclusão desta etapa da lista de etapas
         self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[11]) # Inclusão desta etapa na lista de etapas
-
-
-    def __ThreadExceptionHandling(self,classeThread,argumento1,argumento2,argumento3):
-        u'''
-        Método para lidar com exceptions em Thread.
-
-        =======
-        Entrada
-        =======
-
-        * classeThread: deve ser uma Thread com a seguinte estrutura [1]::
-        * argumentos 1, 2 e 3:  argumentos a serem passado p
-
-        >>> import threading
-        >>> import Queue
-        >>>
-        >>> class ExcThread(threading.Thread):
-        >>>
-        >>>     def __init__(self, bucket):
-        >>>         threading.Thread.__init__(self)
-        >>>         self.bucket = bucket
-        >>>
-        >>>     def run(self):
-        >>>         try:
-        >>>             raise Exception('An error occured here.')
-        >>>         except Exception:
-        >>>              self.bucket.put(sys.exc_info())
-
-        Referência:
-
-        [1] http://stackoverflow.com/questions/2829329/catch-a-threads-exception-in-the-caller-thread-in-python
-
-        '''
-        bucket = Queue()
-        thread_obj = classeThread(argumento1,argumento2,argumento3,bucket=bucket)
-        thread_obj.start()
-
-        while True:
-            try:
-                exc = bucket.get(block=False)
-            except Empty:
-                pass
-            else:
-                # Informações sobre o erro ocorrido:
-                exc_type, exc_obj, exc_trace = exc
-
-                raise SyntaxError(u'Erro no modelo, quando avaliado nos limites de busca definidos. Erro identificado "%s" no modelo.'%exc_obj)
-
-            thread_obj.join(0.1)
-            if thread_obj.isAlive():
-                continue
-            else:
-                break
 
     def SETparametro(self,estimativa,variancia=None,regiao=None,**kwargs):
         u'''
@@ -1057,8 +1008,11 @@ class EstimacaoNaoLinear:
         # AVALIAÇÃO DO MODELO
         # ---------------------------------------------------------------------
         # Avaliação do modelo no ponto ótimo informado
-        self.__ThreadExceptionHandling(self.__modelo,self.parametros.estimativa,self.x.validacao.matriz_estimativa,
-                                       self._args_model())
+        try:
+            aux = self.__modelo(self.parametros.estimativa,self.x.validacao.matriz_estimativa,self._args_model())
+            aux.run()
+        except Exception, erro:
+            raise SyntaxError(u'Erro no modelo quando avaliado na estimativa dos parâmetros informada. Erro identificado: "{}"'.format(erro))
 
         # ---------------------------------------------------------------------
         # OBTENÇÃO DO PONTO ÓTIMO
@@ -1279,9 +1233,8 @@ class EstimacaoNaoLinear:
         # PREDIÇÃO
         # ---------------------------------------------------------------------
         aux = self.__modelo(self.parametros.estimativa,self.x.validacao.matriz_estimativa,self._args_model())
-        aux.start()
-        aux.join()
-    
+        aux.run()
+
         # ---------------------------------------------------------------------
         # AVALIAÇÃO DA PREDIÇÃO (Y CALCULADO PELO MODELO)
         # ---------------------------------------------------------------------    
@@ -2079,7 +2032,7 @@ class EstimacaoNaoLinear:
                         #yerr_experimental = incerteza_expandida_Ye[:,iy]
 
                         fig = figure()
-                        errorbar(y,ym,xerr=yerr_experimental,yerr=yerr_calculado,fmt=None, marker='o',color='b',linestyle='None')
+                        errorbar(y,ym,xerr=yerr_experimental,yerr=yerr_calculado,fmt="none", marker='o',color='b',linestyle='None')
                         plot(diagonal,diagonal,'k-',linewidth=2.0)
                         
                         ax.yaxis.grid(color='gray', linestyle='dashed')                        
@@ -2124,7 +2077,7 @@ class EstimacaoNaoLinear:
 
                             fig = figure()
                             ax = fig.add_subplot(1,1,1)
-                            errorbar(y,ym,xerr=yerr_experimental,yerr=yerr_calculado,fmt=None,marker='o',color='b',linestyle='None')
+                            errorbar(y,ym,xerr=yerr_experimental,yerr=yerr_calculado,fmt="none",marker='o',color='b',linestyle='None')
                             plot(diagonal,diagonal,'k-',linewidth=2.0)
                             plot(y,ycalc_inferior_F,color='red')
                             plot(y,ycalc_superior_F,color='k')
