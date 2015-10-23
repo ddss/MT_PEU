@@ -98,9 +98,9 @@ Estime.gerarEntradas(x,y,ux,uy,tipo='experimental')
 #Estime.gerarEntradas(x,y,ux,uy,tipo='validacao')
 
 # Otimização
-Estime.otimiza(limite_superior=sup,limite_inferior=inf,algoritmo='PSOFamily',itmax=500,
-               Num_particulas=30,metodo={'busca':'Otimo','algoritmo':'PSO','inercia':'TVIW-linear'},args=[tipo],printit=True)
-#Estime.SETparametro([3.0784923406298477, 0.10246446218717528, 5.0419496833229021, 0.43170222912546136])
+# Estime.otimiza(limite_superior=sup,limite_inferior=inf,algoritmo='PSOFamily',itmax=500,
+#                Num_particulas=30,metodo={'busca':'Otimo','algoritmo':'PSO','inercia':'TVIW-linear'},args=[tipo],printit=True)
+Estime.SETparametro([3.0784923406298477, 0.10246446218717528, 5.0419496833229021, 0.43170222912546136])
 Estime.incertezaParametros(delta=1e-5,metodo='SensibilidadeModelo')
 Estime.predicao()
 Estime.analiseResiduos()

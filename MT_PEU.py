@@ -2089,6 +2089,7 @@ class EstimacaoNaoLinear:
                             fig.savefig(base_path+base_dir+'grafico_fl'+str(self.__etapasID)+'_'+str(self.y.simbolos[iy])+'exp_vs_'+str(self.y.simbolos[iy])+'calc_com_var.png')
                         close()
 
+                        # Gráfico do teste F
                         if not self.__flag.info['dadosvalidacao']:
 
                             ycalc_inferior_F = []
@@ -2134,6 +2135,57 @@ class EstimacaoNaoLinear:
                             else:
                                 fig.savefig(base_path+base_dir+'grafico_fl'+str(self.__etapasID)+'_'+str(self.y.simbolos[iy])+'exp_vs_'+str(self.y.simbolos[iy])+'calc_teste_F.png')
                             close()
+
+                        # Gráfico de Y experimento e Y do modelo em função do número de pontos
+                        fig = figure()
+                        ax=fig.add_subplot(1,1,1)
+                        errorbar(linspace(1,self.x.validacao.NE,num=self.y.calculado.NE),ym,yerr=yerr_calculado,fmt="o",marker='o',color='r',linestyle='None',label=u'calculado')
+                        errorbar(linspace(1,self.x.validacao.NE,num=self.y.calculado.NE),y,yerr=yerr_experimental,fmt="o",marker='o',color='b',linestyle='None',label=u'validação')
+                        # obtençao do tick do grafico
+                        # eixo x
+                        label_tick_x   = ax.get_xticks().tolist()
+                        tamanho_tick_x = (label_tick_x[1] - label_tick_x[0])/2
+                        # eixo y
+                        label_tick_y = ax.get_yticks().tolist()
+                        tamanho_tick_y = (label_tick_y[1] - label_tick_y[0])/2
+                        # Modificação do limite dos gráficos
+                        xmin   = 1 - tamanho_tick_x
+                        xmax   = self.x.validacao.NE + tamanho_tick_x
+                        ymin   = min([y,ym]) - tamanho_tick_y
+                        ymax   = max([y,ym]) + tamanho_tick_y
+                        xlim(xmin,xmax)
+                        ylim(ymin,ymax)
+                        xlabel('Amostras')
+                        ylabel(self.y.labelGraficos('validacao, calculado')[iy])
+                        ax.yaxis.grid(color='gray', linestyle='dashed')
+                        ax.xaxis.grid(color='gray', linestyle='dashed')
+                        legend(loc='best')
+                        fig.savefig(base_path+base_dir+'grafico_fl'+str(self.__etapasID)+'_'+str(self.y.simbolos[iy])+'exp_vs_'+str(self.y.simbolos[iy])+'calc_amostras_com_var.png')
+
+                        fig = figure()
+                        ax=fig.add_subplot(1,1,1)
+                        errorbar(linspace(1,self.x.validacao.NE,num=self.y.calculado.NE),ym,yerr=None,fmt="o",color='r',linestyle='None',label=u'calculado')
+                        errorbar(linspace(1,self.x.validacao.NE,num=self.y.calculado.NE),y,yerr=None,fmt="o",color='b',linestyle='None',label=u'validação')
+                        # obtençao do tick do grafico
+                        # eixo x
+                        label_tick_x   = ax.get_xticks().tolist()
+                        tamanho_tick_x = (label_tick_x[1] - label_tick_x[0])/2
+                        # eixo y
+                        label_tick_y = ax.get_yticks().tolist()
+                        tamanho_tick_y = (label_tick_y[1] - label_tick_y[0])/2
+                        # Modificação do limite dos gráficos
+                        xmin   = 1 - tamanho_tick_x
+                        xmax   = self.x.validacao.NE + tamanho_tick_x
+                        ymin   = min([y,ym]) - tamanho_tick_y
+                        ymax   = max([y,ym]) + tamanho_tick_y
+                        xlim(xmin,xmax)
+                        ylim(ymin,ymax)
+                        xlabel('Amostras')
+                        ylabel(self.y.labelGraficos('validacao, calculado')[iy])
+                        ax.yaxis.grid(color='gray', linestyle='dashed')
+                        ax.xaxis.grid(color='gray', linestyle='dashed')
+                        legend(loc='best')
+                        fig.savefig(base_path+base_dir+'grafico_fl'+str(self.__etapasID)+'_'+str(self.y.simbolos[iy])+'exp_vs_'+str(self.y.simbolos[iy])+'calc_amostras_sem_var.png')
 
             else:
                 warn('Os gráficos envolvendo a estimação (predição) não puderam ser criados, pois o método {} não foi executado.'.format(self.__etapasdisponiveis[7]),UserWarning)
