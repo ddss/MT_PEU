@@ -59,95 +59,130 @@ class EstimacaoNaoLinear:
             # TODO: documentação deste código!!
             self.gerarEntradas = 0
             self.otimizacao = 0
+            self.SETparametro = 0
+            self.GETFOotimo = 0
             self.incertezaParametros = 0
             self.regiaoAbrangencia = 0
+            self.preencherRegiao = 0
             self.predicao = 0
             self.analiseResiduos = 0
             self.armazenarDicionario = 0
-            self.SETparametro = 0
-            self.graficos = 0
-            self.GETFOotimo = 0
-            self.historicoOtimizacao = 0
+            self.mapeamentoFO = 0
             self.Hessiana = 0
             self.Gy = 0
             self.S = 0
-            self.preencherRegiao = 0
 
-        def SET_ID(self,etapa):
+            self.__fluxo = 0
+
+        def SET_ETAPA(self,etapa):
             u"""
             Método voltado para definição de uma etapa e suas validações
             """
             # Teste para verificar se as etapas predecessoras foram executadas
-            teste = [getattr(self,elemento) for elemento in getattr(self,'_predecessora'+etapa)]
+            teste = [getattr(self,elemento) for elemento in getattr(self, '_predecessora_'+etapa)]
             # Caso não haja predecessora, o valor é atribuído a True
             teste = teste if teste != [] else [True]
             # Caso nenhuma predecessora tenha sido executada, retorna um erro
             if not any(teste):
                 raise SyntaxError('Para executar o método {} deve executar antes {}'.format(etapa, ' ou '.join(
-                    getattr(self, '_predecessora' + etapa))))
+                    getattr(self, '_predecessora_' + etapa))))
             # atribuindo o valor 1 (executado) ao atributo referente à etapa
-            setattr(self,etapa,1)
+            setattr(self, etapa, 1)
 
-        @property
-        def _predecessoragerarEntradas(self):
-
-            return []
-
-        @property
-        def _predecessoraotimizacao(self):
-
-            return ['gerarEntradas']
-
-        @property
-        def __predecessoraincertezaParametros(self):
-
-            return ['otimizacao','SETparametro']
-
-        @property
-        def __predecessoraregiaoAbrangencia(self):
-
-            return ['historicoOtimizacao']
-
-        @property
-        def __predecessoraanaliseResiduos(self):
-
-            return ['predicao']
-
-        @property
-        def __predecessoraarmazenarDicionario(self):
-
-            return ['gerarEntradas']
-
-        @property
-        def __predecessorapredicao(self):
-            # TODO: adequar para a issue #62
-            return ['orimizacao','SETparametro','incertezaParametro']
-
-        @property
-        def _sucessoresValidacao(self):
-
-            return ['predicao', 'analiseResiduos', 'armazenarDicionario', 'graficos', 'Gy', 'S']
-
-
-        def reiniciar(self):
-            u'''
+        def reiniciar(self,manter='gerarEntradas'):
+            u"""
             Método utilizado para reiniciar o fluxo. (IMPACTA todas as etapas)
 
             Entende-se por reinicialização de fluxo, atribuir o valor de todos os atributos a zero, ou seja,
             como se os métodos de EstimacaoNaoLinear não tivessem sido executados.
-            '''
+            """
             for atributo in vars(self).keys():
-                setattr(self, atributo, 0)
+                if atributo != '_Fluxo__fluxo':
+                    setattr(self, atributo, 0)
 
-        def reiniciarParcial(self,etapas=None):
-            u'''
+            self.__fluxo = 0
+            setattr(self, manter, 1)
+
+        def reiniciarParcial(self, etapas=None):
+            u"""
             Método utilizado para reiniciar apenas etapas específicas
-            '''
+            """
 
             etapas = etapas if etapas is not None else self._sucessoresValidacao
 
             for atributo in etapas:
                 setattr(self, atributo, 0)
+
+            self.__fluxo += 1
+
+        @property
+        def GET_FLUXO(self):
+            u"""
+            Obtém o número de identificação do fluxo
+            """
+
+            return self.__fluxo
+
+        @property
+        def _predecessora_gerarEntradas(self):
+            return []
+
+        @property
+        def _predecessora_otimizacao(self):
+            return ['gerarEntradas']
+
+        @property
+        def _predecessora_SETparametro(self):
+            return []
+
+        @property
+        def _predecessora_GETFOotimo(self):
+            return ['otimizacao', 'SETparametro']
+
+        @property
+        def _predecessora_incertezaParametros(self):
+            return ['otimizacao','SETparametro']
+
+        @property
+        def _predecessora_regiaoAbrangencia(self):
+            return ['mapeamentoFO']
+
+        @property
+        def _predecessora_preencherRegiao(self):
+            return ['incertezaParametros']
+
+        @property
+        def _predecessora_predicao(self):
+            # TODO: adequar para a issue #62
+            return ['otimizacao', 'SETparametro', 'incertezaParametros']
+
+        @property
+        def _predecessora_analiseResiduos(self):
+            return ['predicao']
+
+        @property
+        def _predecessora_armazenarDicionario(self):
+            return ['gerarEntradas']
+
+        @property
+        def _predecessora_mapeamentoFO(self):
+            return ['otimizacao','SETparametro']
+
+        @property
+        def _predecessora_Hessiana(self):
+            return ['otimizacao', 'SETparametro']
+
+        @property
+        def _predecessora_Gy(self):
+            return ['otimizacao', 'SETparametro']
+
+        @property
+        def _predecessora_S(self):
+            return ['otimizacao', 'SETparametro']
+
+        @property
+        def _sucessoresValidacao(self):
+            return ['predicao', 'analiseResiduos', 'armazenarDicionario', 'Gy', 'S']
 
     def __init__(self, FO, Modelo, simbolos_y, simbolos_x, simbolos_param, PA=0.95, projeto='Projeto', **kwargs):
         u'''
@@ -787,13 +822,13 @@ class EstimacaoNaoLinear:
         # VALIDAÇÃO
         # ---------------------------------------------------------------------
         # Validação da sintaxe
-        self.__controleFluxo.SET_ID('gerarEntradas')
+        self.__controleFluxo.SET_ETAPA('gerarEntradas')
 
-        self.__validacaoArgumentosEntrada('gerarEntradas',None,tipo)
+        self.__validacaoArgumentosEntrada('gerarEntradas', None, tipo)
 
         # Validação dos dados de entrada x, y, ux e uy
-        self.__validacaoDadosEntrada(x  ,ux   ,self.x.NV)
-        self.__validacaoDadosEntrada(y  ,uy   ,self.y.NV)
+        self.__validacaoDadosEntrada(x, ux, self.x.NV)
+        self.__validacaoDadosEntrada(y, uy, self.y.NV)
 
         # Validação do número de dados experimentais
         if x.shape[0] != y.shape[0]:
@@ -855,7 +890,8 @@ class EstimacaoNaoLinear:
         '''
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
-        # ---------------------------------------------------------------------         
+        # ---------------------------------------------------------------------
+        self.__controleFluxo.SET_ETAPA('armazenarDicionario')
         self.__validacaoArgumentosEntrada('armazenarDicionario',None,None)
 
         # ---------------------------------------------------------------------
@@ -973,7 +1009,7 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------
-        self.__controleFluxo.SET_ID('otimizacao')
+        self.__controleFluxo.SET_ETAPA('otimizacao')
 
         # Validação das keywords obrigatórias para o método de otimização
         self.__validacaoArgumentosEntrada('otimizacao',kwargs,[estimativa_inicial,algoritmo])
@@ -1029,6 +1065,8 @@ class EstimacaoNaoLinear:
             # Toda vez que a otimização é executada toda informação anterior sobre parâmetros é perdida
             self.parametros._SETparametro(self.Otimizacao.gbest,None,None,limite_superior=limite_superior,limite_inferior=limite_inferior)
 
+            self.__controleFluxo.SET_ETAPA('mapeamentoFO')
+
         # ---------------------------------------------------------------------
         # VARIÁVEIS INTERNAS
         # ---------------------------------------------------------------------
@@ -1048,6 +1086,8 @@ class EstimacaoNaoLinear:
         '''
         Método para obtenção do ponto ótimo da função objetivo
         '''
+        self.__controleFluxo.SET_ETAPA('GETFOotimo')
+
         # ---------------------------------------------------------------------
         # OBTENÇÃO DO PONTO ÓTIMO DA FUNÇÃO OBJETIVO
         # ---------------------------------------------------------------------
@@ -1150,6 +1190,7 @@ class EstimacaoNaoLinear:
         =========
         O método irá incluir estas informações no atributo parâmetros
         '''
+        self.__controleFluxo.SET_ETAPA('SETparametro')
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------
@@ -1200,16 +1241,16 @@ class EstimacaoNaoLinear:
             self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[4])
 
     def incertezaParametros(self,metodoIncerteza='2InvHessiana',preencherregiao=False,**kwargs):
-        u'''
-        
+        u"""
+
         Método para avaliação da matriz de covariãncia dos parâmetros e região de abrangência.
-        
+
         ===================
         Método predescessor
         ===================
 
         É necessário executar a otimização ou SETparametro.
-        
+
         =======================
         Entradas (opcionais)
         =======================
@@ -1239,7 +1280,8 @@ class EstimacaoNaoLinear:
         * deltaS: delta a ser utilizado na matriz de derivadas do modelo em relação dos parâmetros.
         * delta: quando definido, ajusta deltaHess, deltaGy e deltaS para o valor definido
         * kwargs para o algoritmo de PSO para executar o preenchimento da região.
-        '''
+        """
+        self.__controleFluxo.SET_ETAPA('incertezaParametros')
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------         
@@ -1326,13 +1368,13 @@ class EstimacaoNaoLinear:
             self.parametros._updateParametro(regiao_abrangencia=regiao)
 
     def predicao(self,**kwargs):
-        u'''
+        u"""
         Método para realizar a predição.
-        
+
         ====================
-        Método predecessores        
+        Método predecessores
         ====================
-        
+
         É necessário executar a otimização ou incluir o valor para a estimativa dos parâmetros e sua incerteza, pelo \
         método ``SETparametro``.
 
@@ -1347,7 +1389,8 @@ class EstimacaoNaoLinear:
         aos parâmetros e dados experimentais
         * deltaS: delta a ser utilizado na matriz de derivadas do modelo em relação dos parâmetros.
         * delta: quando definido, ajusta deltaHess, deltaGy e deltaS para o valor definido.
-        '''
+        """
+        self.__controleFluxo.SET_ETAPA('predicao')
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------      
@@ -1459,7 +1502,7 @@ class EstimacaoNaoLinear:
         Referência
         ==========
         '''
-
+        self.__controleFluxo.SET_ETAPA('Hessiana')
         #---------------------------------------------------------------------------------------
         # DEFINIÇÃO DA MATRIZ DE DERIVADAS PARCIAIS DA FUNÇÃO OBJETIVO EM RELAÇÃO AOS PARÂMETROS
         #----------------------------------------------------------------------------------------
@@ -1572,6 +1615,7 @@ class EstimacaoNaoLinear:
         Referência
         ==========
         '''
+        self.__controleFluxo.SET_ETAPA('Gy')
         #Criação de matriz de ones com dimenção:(número de var. independentes* NE X número de parâmetros) a\
         #qual terá seus elementos substituidos pelo resultado da derivada das  funçâo em relação aos\
         #parâmetros i e Ys j de acordo determinação do for.
@@ -1673,7 +1717,7 @@ class EstimacaoNaoLinear:
         
         Retorna a matriz S(array).
         '''
-
+        self.__controleFluxo.SET_ETAPA('S')
         #Criação de matriz de ones com dimenção:(número de Y*NE X número de parâmetros) a\
         #qual terá seus elementos substituidos pelo resultado da derivada das  função em relação aos\
         #parâmetros i de acordo o seguinte ''for''.
@@ -1718,7 +1762,7 @@ class EstimacaoNaoLinear:
         return matriz_S
 
     def __preencherRegiao(self,**kwargs):
-        u'''
+        u"""
         Método utilizado para preenchimento da região de abrangência
 
         =================
@@ -1731,7 +1775,8 @@ class EstimacaoNaoLinear:
         MonteCarlo:
             * iteracoes (int): número de iterações a serem realizadas. Default: 10000.
             * fatorlimitebusca: quanto maior este fator, maior a faixa automática de busca baseada no range que a elipse abrange. Default: 1/10
-        '''
+        """
+        self.__controleFluxo.SET_ETAPA('preencherRegiao')
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------
@@ -1832,6 +1877,7 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # VARIÁVEIS INTERNAS
         # ---------------------------------------------------------------------
+        self.__controleFluxo.SET_ETAPA('mapeamentoFO')
         self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[16])# Inclusão desta etapa da lista de etapas
         self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[12])# Inclusão do histórico da otimização na lista de etapas
 
@@ -1860,6 +1906,7 @@ class EstimacaoNaoLinear:
         ==========
         [1] SCHWAAB, M. et al. Nonlinear parameter estimation through particle swarm optimization. Chemical Engineering Science, v. 63, n. 6, p. 1542–1552, mar. 2008.
         '''
+        self.__controleFluxo.SET_ETAPA('regiaoAbrangencia')
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------
@@ -1912,6 +1959,7 @@ class EstimacaoNaoLinear:
               * FO > chi2max: o modelo não é capaz de explicar os erros experimentais
               ou pode haver subestimação dos erros esperimentais
         '''
+        self.__controleFluxo.SET_ETAPA('analiseResiduos')
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------         
@@ -1937,7 +1985,7 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # CÁLCULO DE R2 e R2 ajustado
         # ---------------------------------------------------------------------   
-        self.estatisticas = {'R2':{},'R2ajustado':{},'FuncaoObjetivo':{}}
+        self.estatisticas = {'R2': {}, 'R2ajustado': {}, 'FuncaoObjetivo': {}}
         # Para y:
         for i,symb in enumerate(self.y.simbolos):
             SSE = sum(self.y.residuos.matriz_estimativa[:,i]**2)
