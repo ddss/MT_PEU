@@ -879,8 +879,7 @@ class EstimacaoNaoLinear:
             # keywarg para a etapa de busca:
             kwargsbusca = {}
             if kwargs.get('printit') is not None:
-                kwargsbusca['printit'] = kwargs.get('printit')
-                kwargs.pop('printit')
+                kwargsbusca['printit'] = kwargs.pop('printit')
 
             kwargs['NP'] = self.parametros.NV
             # ---------------------------------------------------------------------
