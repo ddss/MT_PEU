@@ -150,13 +150,15 @@ def plot_cov_ellipse(cov, pos, c2=2, ax=None, **kwargs):
     coordenadas_x = [pos[0]+lamb[0],pos[0]-lamb[0],pos[0]+lamb[1],pos[0]-lamb[1]]
     coordenadas_y = [pos[1]+alpha[0]*lamb[0],pos[1]-alpha[0]*lamb[0],pos[1]+alpha[1]*lamb[1],pos[1]-alpha[1]*lamb[1]]
 
+
     # CÁLCULO DOS PONTOS EXTREMOS
-    k = invcov[0,0]/invcov[0,1]
+    k = invcov[0,0]/(invcov[0,1] + 1e-100) # 1e-100 evita NaN quando invcov[0,1] é igual a zero.
     delta = sqrt(c2/(k**2*invcov[1,1]-2*k*invcov[0,1]+invcov[0,0]))
     coordenadas_x.extend([pos[0]+delta,pos[0]-delta])
     coordenadas_y.extend([pos[1]-delta*k,pos[1]+delta*k])
 
-    k = invcov[1,1]/invcov[0,1]
+    k = invcov[1,1]/(invcov[0,1] + 1e-100) # 1e-100 evita NaN quando invcov[0,1] é igual a zero.
+
     delta = sqrt(c2/(k**2*invcov[0,0]-2*k*invcov[0,1]+invcov[1,1]))
     coordenadas_y.extend([pos[1]+delta,pos[1]-delta])
     coordenadas_x.extend([pos[0]-delta*k,pos[0]+delta*k])
