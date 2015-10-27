@@ -12,9 +12,9 @@ Principais classes do motor de cálculo do PEU
 # ---------------------------------------------------------------------
 # Cálculos científicos
 from numpy import array, size, linspace, min, max, copy, cos, sin, radians,\
-    mean, ones, ndarray
+    mean, ones, ndarray, nanmax, nanmin
 
-from numpy.random import uniform
+from numpy.random import uniform, triangular
 from scipy.stats import f, t, chi2, norm
 from scipy.misc import factorial
 from numpy.linalg import inv
@@ -29,9 +29,6 @@ from os import getcwd, sep
 
 # Exception Handling
 from warnings import warn
-
-# Threads
-from Queue import Queue, Empty
 
 # Sistema
 import sys
@@ -70,7 +67,7 @@ class EstimacaoNaoLinear:
         ======================
         * Numpy
         * Scipy
-        * Matplotlib
+        * Matplotlib - 1.4.3
         * Math
         * PSO - versão 0.2-beta **Obtida no link https://github.com/ddss/PSO/releases/tag/v0.2-beta. Os códigos devem estar dentro de uma pasta de nome PSO**
         * statsmodels
@@ -607,7 +604,7 @@ class EstimacaoNaoLinear:
                     args) + ' não está disponível. Métodos disponíveis ' + ', '.join(self.__tipoPreenchimento) + '.')
 
             if args == self.__tipoPreenchimento[1]:
-                kwargsdisponiveis = ('iteracoes','limite_superior','limite_inferior','metodoPreenchimento','fatorlimitebusca')
+                kwargsdisponiveis = ('iteracoes','limite_superior','limite_inferior','metodoPreenchimento','fatorlimitebusca','distribuicao')
 
                 if not set(keywargs.keys()).issubset(kwargsdisponiveis):
                     raise NameError('O(s) keyword(s) argument digitado(s) está(ão) incorreto(s). Keyword disponíveis: '+
@@ -617,9 +614,14 @@ class EstimacaoNaoLinear:
                     if keywargs.get(kwargsdisponiveis[0]) < 1:
                         raise ValueError('O número de iterações deve ser inteiro e positivo.')
 
-                if keywargs.get('fatorlimitebusca') is not None:
+                if keywargs.get(kwargsdisponiveis[4]) is not None:
                     if keywargs.get(kwargsdisponiveis[4]) < 0:
                         raise ValueError('O fator limite busca deve positivo.')
+
+                if keywargs.get(kwargsdisponiveis[5]) is not None:
+                    if keywargs.get(kwargsdisponiveis[5]) not in ['uniforme','triangular']:
+                        raise ValueError('As distribuições disponíveis para o Método de MonteCarlo são: {}.'.format(['uniforme','triangular']))
+
 
     def __validacaoDadosEntrada(self,dados,udados,NV):
         u'''
@@ -1560,13 +1562,16 @@ class EstimacaoNaoLinear:
         =================
         Keyword arguments
         =================
-            * metodoPreenchimento ('string'): define qual o método utilizado no preenchimento da região de abrangência. Se: PSO ou MC (
+            * metodoPreenchimento ('string'): define qual o método utilizado no preenchimento da região de abrangência. Se: PSO ou MonteCarlo (
          Monte Carlo)
         PSO:
             * argumentos extras a serem passados para o PSO (Vide documentação do método)
         MonteCarlo:
+            * limite_superior (list): limite máximo que define a região de abrangência.
+            * limite_inferior (list): limite mínimo que define a região de abrangência.
             * iteracoes (int): número de iterações a serem realizadas. Default: 10000.
             * fatorlimitebusca: quanto maior este fator, maior a faixa automática de busca baseada no range que a elipse abrange. Default: 1/10
+            * distribuicao (string): define como as amostras de parâmetros são geradas. Default: uniforme (até 2 parâmetros), triangular (mais de 3 parâmetros(
         '''
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
@@ -1607,10 +1612,11 @@ class EstimacaoNaoLinear:
                 ellipse, coordenadas_x, coordenadas_y = plot_cov_ellipse(cov, [self.parametros.estimativa[p1], self.parametros.estimativa[p2]],
                                                                      FOcomparacao)
 
-                extremo_elipse_superior[p1] = max(coordenadas_x)
-                extremo_elipse_superior[p2] = max(coordenadas_y)
-                extremo_elipse_inferior[p1] = min(coordenadas_x)
-                extremo_elipse_inferior[p2] = min(coordenadas_y)
+                extremo_elipse_superior[p1] = nanmax(coordenadas_x)
+                extremo_elipse_superior[p2] = nanmax(coordenadas_y)
+                extremo_elipse_inferior[p1] = nanmin(coordenadas_x)
+                extremo_elipse_inferior[p2] = nanmin(coordenadas_y)
+                p2+=1
 
         if limite_superior is None:
             limite_superior = [extremo_elipse_superior[i] + (extremo_elipse_superior[i]-extremo_elipse_inferior[i])*fatorlimitebusca for i in xrange(self.parametros.NV)]
@@ -1659,12 +1665,26 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         if tipo == self.__tipoPreenchimento[1]:
             iteracoes = int(kwargs.get('iteracoes') if kwargs.get('iteracoes') is not None else 10000)
+            distribuicao = kwargs.get('distribuicao')
+            if distribuicao is None:
+                if self.parametros.NV <= 2:
+                    distribuicao = 'uniforme'
+                else:
+                    distribuicao = 'triangular'
+
             for cont in xrange(iteracoes):
-                amostra = [uniform(limite_inferior[i],limite_superior[i],1)[0] for i in xrange(self.parametros.NV)]
+                if distribuicao == 'uniforme':
+                    amostra = [uniform(limite_inferior[i], limite_superior[i], 1)[0]
+                               for i in xrange(self.parametros.NV)]
+                else:
+                    amostra = [triangular(limite_inferior[i], self.parametros.estimativa[i], limite_superior[i], 1)[0]
+                               for i in xrange(self.parametros.NV)]
+
                 FO = self.__FO(amostra, self._args_FO())
                 FO.run()
                 self.__hist_Posicoes.append(amostra)
                 self.__hist_Fitness.append(FO.result)
+
         # ---------------------------------------------------------------------
         # VARIÁVEIS INTERNAS
         # ---------------------------------------------------------------------
