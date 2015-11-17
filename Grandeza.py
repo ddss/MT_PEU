@@ -315,12 +315,12 @@ class Grandeza:
             # ---------------------------------------------------------------------
             if self.matriz_incerteza is not None:
 
-                if not isfinite(cond(self.matriz_covariancia)):
-                    raise TypeError('A matriz de covariância da grandeza é singular.')
-
                 for elemento in diag(self.matriz_covariancia):
                     if elemento <= 0.:
                         raise TypeError('A variância de uma grandeza não pode ser zero ou assumir valores negativos.')
+
+                if not isfinite(cond(self.matriz_covariancia)):
+                    raise TypeError('A matriz de covariância da grandeza é singular.')
 
     def _SETexperimental(self,estimativa,matriz_incerteza=None,matriz_covariancia=None,gL=[],NE=None,**kwargs):
 

@@ -26,7 +26,7 @@ from Funcao_Objetivo import WLS
 # Fim da importação
 class Modelo(Thread):
     result = 0
-    def __init__(self,param,x,args,**kwargs):
+    def __init__(self,param,x,args):
         Thread.__init__(self)
 
         self.param  = array(param,ndmin=2).transpose()
@@ -35,24 +35,9 @@ class Modelo(Thread):
 
         self.args  = args
 
-        # LIDAR COM EXCEPTIONS THREAD
-        self.bucket = kwargs.get('bucket')
-
-
-    def runEquacoes(self):
-
-        self.result = self.x.dot(self.param)
-
     def run(self):
 
-        if self.bucket == None:
-            self.runEquacoes()
-        else:
-            try:
-                self.runEquacoes()
-            except:
-                self.bucket.put(exc_info())
-
+        self.result = self.x.dot(self.param)
 
 class EstimacaoLinear(EstimacaoNaoLinear):
     
@@ -235,8 +220,15 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             # ATRIBUIÇÃO A GRANDEZAS
             # ---------------------------------------------------------------------
             # Salvando os dados experimentais nas variáveis.
-            self.x._SETexperimental(estimativa=x,matriz_incerteza=ux,gL=glx,coluna_dumb=coluna_dumb)
-            self.y._SETexperimental(estimativa=y,matriz_incerteza=uy,gL=gly)
+            try:
+                self.x._SETexperimental(estimativa=x,matriz_incerteza=ux,gL=glx,coluna_dumb=coluna_dumb)
+            except Exception, erro:
+                raise RuntimeError('Erro na criação do conjunto experimental de X: {}'.format(erro))
+
+            try:
+                self.y._SETexperimental(estimativa=y,matriz_incerteza=uy,gL=gly)
+            except Exception, erro:
+                raise RuntimeError('Erro na criação do conjunto experimental de Y: {}'.format(erro))
 
         if tipo == 'validacao':
             self._EstimacaoNaoLinear__flag.ToggleActive('dadosvalidacao')
@@ -245,8 +237,15 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             # ATRIBUIÇÃO A GRANDEZAS
             # ---------------------------------------------------------------------
             # Salvando os dados de validação.
-            self.x._SETvalidacao(estimativa=x,matriz_incerteza=ux,gL=glx,coluna_dumb=coluna_dumb)
-            self.y._SETvalidacao(estimativa=y,matriz_incerteza=uy,gL=gly)
+            try:
+                self.x._SETvalidacao(estimativa=x,matriz_incerteza=ux,gL=glx,coluna_dumb=coluna_dumb)
+            except Exception, erro:
+                raise RuntimeError('Erro na criação do conjunto validação de X: {}'.format(erro))
+
+            try:
+                self.y._SETvalidacao(estimativa=y,matriz_incerteza=uy,gL=gly)
+            except Exception, erro:
+                raise RuntimeError('Erro na criação do conjunto validação de Y: {}'.format(erro))
 
         if self._EstimacaoNaoLinear__flag.info['dadosvalidacao'] == False:
             # Caso gerarEntradas seja executado somente para os dados experimentais,
@@ -256,8 +255,15 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             # ATRIBUIÇÃO A GRANDEZAS
             # ---------------------------------------------------------------------
             # Salvando os dados de validação.
-            self.x._SETvalidacao(estimativa=x,matriz_incerteza=ux,gL=glx,coluna_dumb=coluna_dumb)
-            self.y._SETvalidacao(estimativa=y,matriz_incerteza=uy,gL=gly)
+            try:
+                self.x._SETvalidacao(estimativa=x,matriz_incerteza=ux,gL=glx,coluna_dumb=coluna_dumb)
+            except Exception, erro:
+                raise RuntimeError('Erro na criação do conjunto validação de X: {}'.format(erro))
+
+            try:
+                self.y._SETvalidacao(estimativa=y,matriz_incerteza=uy,gL=gly)
+            except Exception, erro:
+                raise RuntimeError('Erro na criação do conjunto validação de Y: {}'.format(erro))
         # ---------------------------------------------------------------------
         # VARIÁVEIS INTERNAS
         # ---------------------------------------------------------------------         

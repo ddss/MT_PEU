@@ -699,8 +699,15 @@ class EstimacaoNaoLinear:
             # ATRIBUIÇÃO A GRANDEZAS
             # ---------------------------------------------------------------------
             # Salvando os dados experimentais nas variáveis.
-            self.x._SETexperimental(estimativa=x,matriz_incerteza=ux,gL=glx)
-            self.y._SETexperimental(estimativa=y,matriz_incerteza=uy,gL=gly)
+            try:
+                self.x._SETexperimental(estimativa=x,matriz_incerteza=ux,gL=glx)
+            except Exception,erro:
+                raise RuntimeError('Erro na criação do conjunto experimental de X: {}'.format(erro))
+
+            try:
+                self.y._SETexperimental(estimativa=y,matriz_incerteza=uy,gL=gly)
+            except Exception, erro:
+                raise RuntimeError('Erro na criação do conjunto experimental de Y: {}'.format(erro))
 
         if tipo == self.__tiposDisponiveisEntrada[1]: # validação
             self.__flag.ToggleActive('dadosvalidacao')
@@ -709,8 +716,15 @@ class EstimacaoNaoLinear:
             # ATRIBUIÇÃO A GRANDEZAS
             # ---------------------------------------------------------------------
             # Salvando os dados de validação.
-            self.x._SETvalidacao(estimativa=x,matriz_incerteza=ux,gL=glx)
-            self.y._SETvalidacao(estimativa=y,matriz_incerteza=uy,gL=gly)
+            try:
+                self.x._SETvalidacao(estimativa=x,matriz_incerteza=ux,gL=glx)
+            except Exception, erro:
+                raise RuntimeError('Erro na criação do conjunto validação de X: {}'.format(erro))
+
+            try:
+                self.y._SETvalidacao(estimativa=y,matriz_incerteza=uy,gL=gly)
+            except Exception, erro:
+                raise RuntimeError('Erro na criação do conjunto validação de Y: {}'.format(erro))
 
         if self.__flag.info['dadosvalidacao'] == False:
             # Caso gerarEntradas seja executado somente para os dados experimentais,
@@ -720,9 +734,16 @@ class EstimacaoNaoLinear:
             # ATRIBUIÇÃO A GRANDEZAS
             # ---------------------------------------------------------------------
             # Salvando os dados de validação.
-            self.x._SETvalidacao(estimativa=x,matriz_incerteza=ux,gL=glx)
-            self.y._SETvalidacao(estimativa=y,matriz_incerteza=uy,gL=gly)
-            
+            try:
+                self.x._SETvalidacao(estimativa=x,matriz_incerteza=ux,gL=glx)
+            except Exception, erro:
+                raise RuntimeError('Erro na criação do conjunto validação de X: {}'.format(erro))
+
+            try:
+                self.y._SETvalidacao(estimativa=y,matriz_incerteza=uy,gL=gly)
+            except Exception, erro:
+                raise RuntimeError('Erro na criação do conjuno validação de Y: {}'.format(erro))
+
         # ---------------------------------------------------------------------
         # VARIÁVEIS INTERNAS
         # ---------------------------------------------------------------------         
