@@ -16,10 +16,11 @@ from sys import exc_info
 
 from numpy.linalg import inv
 
+# Exception Handling
+from warnings import warn
+
 # Rotinas Internas
 from MT_PEU import EstimacaoNaoLinear
-
-from PSO.PSO import PSO # Deve haver uma pasta de nome PSO com os código fonte
 
 from Funcao_Objetivo import WLS
 
@@ -187,14 +188,23 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         Caso não definidos dados de validação, será assumido os valores experimentais                    
         '''
         # ---------------------------------------------------------------------
+        # FLUXO
+        # ---------------------------------------------------------------------
+        self._EstimacaoNaoLinear__controleFluxo.SET_ETAPA('gerarEntradas')
+
+        # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------
         # Validação dos dados de entrada x, y, xval e yval - É tomado como referência
         # a quantidade de observações das variáveis x.
         self._EstimacaoNaoLinear__validacaoDadosEntrada(x  ,ux   ,self.x.NV)
         self._EstimacaoNaoLinear__validacaoDadosEntrada(y  ,uy   ,self.y.NV)
-        
-        self._EstimacaoNaoLinear__validacaoArgumentosEntrada('gerarEntradas',None,tipo)       
+
+        # Validação da sintaxe
+        if not set([tipo]).issubset(self._EstimacaoNaoLinear__tiposDisponiveisEntrada):
+            raise ValueError('A(s) entrada(s) ' + ','.join(
+                set([tipo]).difference(self._EstimacaoNaoLinear__tiposDisponiveisEntrada)) + ' não estão disponíveis. Usar: ' + ','.join(
+                self._EstimacaoNaoLinear__tiposDisponiveisEntrada) + '.')
 
         # Validação do número de dados experimentais
         if x.shape[0] != y.shape[0]:
@@ -213,9 +223,9 @@ class EstimacaoLinear(EstimacaoNaoLinear):
 
         if tipo == 'experimental':
             self._EstimacaoNaoLinear__flag.ToggleActive('dadosexperimentais')
-            if not self._EstimacaoNaoLinear__etapasID == 0: # Se a execução do motor de Cálculo não for a primeira, é
-                self._EstimacaoNaoLinear__novoFluxo(reiniciar=True) # Inclusão de novo fluxo
-
+            if self._EstimacaoNaoLinear__controleFluxo.FLUXO_ID != 0:
+                self._EstimacaoNaoLinear__controleFluxo.reiniciar()
+                warn('Fluxo reiniciado, reinsira os dos dados de validação, caso houver.')
             # ---------------------------------------------------------------------
             # ATRIBUIÇÃO A GRANDEZAS
             # ---------------------------------------------------------------------
@@ -232,7 +242,8 @@ class EstimacaoLinear(EstimacaoNaoLinear):
 
         if tipo == 'validacao':
             self._EstimacaoNaoLinear__flag.ToggleActive('dadosvalidacao')
-            self._EstimacaoNaoLinear__novoFluxo() # Variável para controlar a execução dos métodos PEU
+            self._EstimacaoNaoLinear__controleFluxo.reiniciarParcial()
+
             # ---------------------------------------------------------------------
             # ATRIBUIÇÃO A GRANDEZAS
             # ---------------------------------------------------------------------
@@ -264,24 +275,24 @@ class EstimacaoLinear(EstimacaoNaoLinear):
                 self.y._SETvalidacao(estimativa=y,matriz_incerteza=uy,gL=gly)
             except Exception, erro:
                 raise RuntimeError('Erro na criação do conjunto validação de Y: {}'.format(erro))
-        # ---------------------------------------------------------------------
-        # VARIÁVEIS INTERNAS
-        # ---------------------------------------------------------------------         
-        # Inclusão desta etapa da lista de etapas
-        self._EstimacaoNaoLinear__etapas[self._EstimacaoNaoLinear__etapasID].append(self._EstimacaoNaoLinear__etapasdisponiveis[1]) 
-        
+
     def otimiza(self):
         u'''
         Método para obtenção da estimativa dos parâmetros e sua matriz de covariância.
         '''
         # ---------------------------------------------------------------------
+        # FLUXO
+        # ---------------------------------------------------------------------
+        self._EstimacaoNaoLinear__controleFluxo.SET_ETAPA('otimizacao')
+
+        # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------
-        if (self._EstimacaoNaoLinear__etapasdisponiveis[1] not in self._EstimacaoNaoLinear__etapas[self._EstimacaoNaoLinear__etapasID]) or (self._EstimacaoNaoLinear__flag.info['dadosexperimentais']==False):
-                raise TypeError(u'Para executar a otimização, faz-se necessário primeiro executar método %s informando os dados experimentais.'%(self._EstimacaoNaoLinear__etapasdisponiveis[1],))
+        if not self._EstimacaoNaoLinear__flag.info['dadosexperimentais']:
+            raise TypeError(u'Para executar a otimização, faz-se necessário dados experimentais.')
 
-        if self._EstimacaoNaoLinear__etapasdisponiveis[8] in self._EstimacaoNaoLinear__etapas[self._EstimacaoNaoLinear__etapasID]:
-            raise TypeError(u'O método %s não pode ser executado com %s.'%(self._EstimacaoNaoLinear__etapasdisponiveis[2], self._EstimacaoNaoLinear__etapasdisponiveis[8]))
+        if self._EstimacaoNaoLinear__controleFluxo.SETparametro:
+            raise TypeError(u'O método otimizacao não pode ser executado com SETparametro.')
 
         # ---------------------------------------------------------------------
         # RESOLUÇÃO
@@ -303,13 +314,6 @@ class EstimacaoLinear(EstimacaoNaoLinear):
 
         self._EstimacaoNaoLinear__GETFOotimo()
 
-        # ---------------------------------------------------------------------
-        # VARIÁVEIS INTERNAS
-        # ---------------------------------------------------------------------         
-        # Inclusão desta etapa da lista de etapas
-        self._EstimacaoNaoLinear__etapas[self._EstimacaoNaoLinear__etapasID].append(self._EstimacaoNaoLinear__etapasdisponiveis[2])
-        # Inclusão da incertezaParametros na lista de etapas
-        self._EstimacaoNaoLinear__etapas[self._EstimacaoNaoLinear__etapasID].append(self._EstimacaoNaoLinear__etapasdisponiveis[3])
 
     def incertezaParametros(self,preencherregiao=True,**kwargs):
         u'''
@@ -331,10 +335,9 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         Keywords para o algoritmo de PSO responsável por avaliar a região de abrangência
         '''
         # ---------------------------------------------------------------------
-        # VALIDAÇÃO
+        # FLUXO
         # ---------------------------------------------------------------------
-        if (self._EstimacaoNaoLinear__etapasdisponiveis[2] not in self._EstimacaoNaoLinear__etapasGlobal()) and (self._EstimacaoNaoLinear__etapasdisponiveis[8] not in self._EstimacaoNaoLinear__etapasGlobal()):
-                raise TypeError(u'Para executar a avaliação da incerteza dos parâmetros, faz-se necessário primeiro executar método %s ou %s.'%(self._EstimacaoNaoLinear__etapasdisponiveis[2],self._EstimacaoNaoLinear__etapasdisponiveis[8]))
+        self._EstimacaoNaoLinear__controleFluxo.SET_ETAPA('incertezaParametros')
 
         # ---------------------------------------------------------------------
         # CÁLCULO DA MATRIZ DE COVARIÂNCIA
@@ -346,11 +349,6 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         self.parametros._updateParametro(matriz_covariancia=variancia)
 
         # ---------------------------------------------------------------------
-        # VARIÁVEIS INTERNAS
-        # ---------------------------------------------------------------------
-        self._EstimacaoNaoLinear__etapas[self._EstimacaoNaoLinear__etapasID].append(self._EstimacaoNaoLinear__etapasdisponiveis[3])
-
-        # ---------------------------------------------------------------------
         # CÁLCULO DA REGIÃO DE ABRANGÊNCIA
         # ---------------------------------------------------------------------
         # A região de abrangência só é calculada caso não esteja definida
@@ -359,7 +357,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             self._EstimacaoNaoLinear__flag.ToggleActive('preenchimentoRegiao')
 
         # A região de abrangência só é executada caso haja histórico de posicoes e fitness
-        if self._EstimacaoNaoLinear__etapasdisponiveis[12] in self._EstimacaoNaoLinear__etapasGlobal() and self.parametros.NV != 1:
+        if self._EstimacaoNaoLinear__controleFluxo.mapeamentoFO and self.parametros.NV != 1:
             # OBTENÇÃO DA REGIÃO:
             regiao = self.regiaoAbrangencia()
             # ATRIBUIÇÃO A GRANDEZA

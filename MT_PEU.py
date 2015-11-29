@@ -46,9 +46,201 @@ from Relatorio import Relatorio
 from Flag import flag
 
 class EstimacaoNaoLinear:
-    
-    def __init__(self,FO,Modelo,simbolos_y,simbolos_x,simbolos_param,PA=0.95,projeto='Projeto',**kwargs):
-        u'''
+
+    class Fluxo:
+
+        def __init__(self):
+            u"""
+            Classe voltada para controlar o fluxo de etapas de EstimacaoNaoLinear
+
+            ==========
+            ATRIBUTOS:
+            ==========
+
+            * Cada atributo representa uma etapa da classe EstimacaoNaoLinear e assumem 2 valores:
+
+                * 0 : o método NÃO foi executado
+                * 1 : o método foi executado
+
+            ========
+            MÉTODOS:
+            ========
+
+            .SET_ETAPA: método para, na execução da Estimacao, indicar qual etapa está sendo avaliada.o método irá avaliar
+            se as etapas predecessoras foram executadas.
+            .reiniciar: reinicia o fluxo. Atribui 0 a todos os atributos.
+            .reiniicarParcial: reiniciar parcialmente o fluxo. Exemplo: quando dados de validação forem inseridos.
+
+            =============
+            PROPRIEDADES:
+            =============
+
+            * definem as etapas predecessoras e/ou sucessoras de cada etapa (atributo)
+            """
+            self.gerarEntradas = 0
+            self.otimizacao = 0
+            self.SETparametro = 0
+            self.GETFOotimo = 0
+            self.incertezaParametros = 0
+            self.regiaoAbrangencia = 0
+            self.preencherRegiao = 0
+            self.predicao = 0
+            self.analiseResiduos = 0
+            self.armazenarDicionario = 0
+            self.mapeamentoFO = 0
+            self.Hessiana = 0
+            self.Gy = 0
+            self.S = 0
+
+            self.__fluxoID = 0
+
+        def SET_ETAPA(self,etapa,ignoreValidacao=False):
+            u"""
+            Método voltado para definição de uma etapa e suas validações
+
+            =========
+            ENTRADAS:
+            =========
+
+            * etapa (string): define a etapa que está sem execução e se deseja validar. Deve ter mesmo nome que um
+            dos atributos (em __init__)
+            * ignoreValidacao (bool): irá ignorar a validação e atribuir 1 à etapa
+
+            Se o método ocorrer sem erros, atribuirá 1 a etapa.
+            """
+            if not ignoreValidacao:
+                # Teste para verificar se as etapas predecessoras foram executadas
+                teste = [getattr(self,elemento) for elemento in getattr(self, '_predecessora_'+etapa)]
+                # Caso não haja predecessora, o valor é atribuído a True
+                teste = teste if teste != [] else [True]
+                # Caso nenhuma predecessora tenha sido executada, retorna um erro
+                if not any(teste):
+                    raise SyntaxError('Para executar o método {} deve executar antes {}'.format(etapa, ' ou '.join(
+                        getattr(self, '_predecessora_' + etapa))))
+                # atribuindo o valor 1 (executado) ao atributo referente à etapa
+            setattr(self, etapa, 1)
+
+        def reiniciar(self,manter='gerarEntradas'):
+            u"""
+            Método utilizado para reiniciar o fluxo. (IMPACTA todas as etapas)
+
+            Entende-se por reinicialização de fluxo, atribuir o valor de todos os atributos a zero, ou seja,
+            como se os métodos de EstimacaoNaoLinear não tivessem sido executados.
+
+            =========
+            ENTRADAS:
+            =========
+            * manter (string): etapa que será mantida como 1.
+
+            =========
+            Filosofia
+            =========
+            * Todas as vezes que dados experimentais são adionados, o fluxo é reiniciado, inclusive definindo que não foram inseridos
+             dados de validação
+            """
+            for atributo in vars(self).keys():
+                if atributo != '_Fluxo__fluxo':
+                    setattr(self, atributo, 0)
+
+            self.__fluxoID = 0
+            setattr(self, manter, 1)
+
+        def reiniciarParcial(self, etapas=None):
+            u"""
+            Método utilizado para reiniciar apenas etapas específicas
+
+            ========
+            ENTRADAS
+            ========
+
+            * etapas (list): lista com as etapas que serão reiniciadas.
+
+            =========
+            Filosofia
+            =========
+            * Toda vez que é adicionado dados de validação é iniciado um novo fluxo de trabalho, para que a predição, analise de residuos
+             e os respectivos gráficos e relatórios destas etapas sejam corretamente criados.
+            """
+
+            etapas = etapas if etapas is not None else self._sucessoresValidacao
+
+            for atributo in etapas:
+                setattr(self, atributo, 0)
+
+            self.__fluxoID += 1
+
+        @property
+        def FLUXO_ID(self):
+            u"""
+            Obtém o número de identificação do fluxo
+            """
+
+            return self.__fluxoID
+
+        @property
+        def _predecessora_gerarEntradas(self):
+            return []
+
+        @property
+        def _predecessora_otimizacao(self):
+            return ['gerarEntradas']
+
+        @property
+        def _predecessora_SETparametro(self):
+            return []
+
+        @property
+        def _predecessora_GETFOotimo(self):
+            return ['otimizacao', 'SETparametro']
+
+        @property
+        def _predecessora_incertezaParametros(self):
+            return ['otimizacao','SETparametro']
+
+        @property
+        def _predecessora_regiaoAbrangencia(self):
+            return ['mapeamentoFO']
+
+        @property
+        def _predecessora_preencherRegiao(self):
+            return ['incertezaParametros']
+
+        @property
+        def _predecessora_predicao(self):
+            # TODO: adequar para a issue #62
+            # Prentende-se: ['otimizacao', 'SETparametro']
+            return ['incertezaParametros']
+
+        @property
+        def _predecessora_analiseResiduos(self):
+            return ['predicao']
+
+        @property
+        def _predecessora_armazenarDicionario(self):
+            return ['gerarEntradas']
+
+        @property
+        def _predecessora_mapeamentoFO(self):
+            return ['otimizacao','preencherRegiao']
+
+        @property
+        def _predecessora_Hessiana(self):
+            return ['otimizacao', 'SETparametro']
+
+        @property
+        def _predecessora_Gy(self):
+            return ['otimizacao', 'SETparametro']
+
+        @property
+        def _predecessora_S(self):
+            return ['otimizacao', 'SETparametro']
+
+        @property
+        def _sucessoresValidacao(self):
+            return ['predicao', 'analiseResiduos', 'armazenarDicionario', 'Gy', 'S']
+
+    def __init__(self, FO, Modelo, simbolos_y, simbolos_x, simbolos_param, PA=0.95, projeto='Projeto', **kwargs):
+        u"""
         Classe para executar a estimação de parâmetros de modelos não lineares.
 
          Esta classe conta com um conjunto de métodos para obtenção do ótimo de determinada função objetivo, avaliação
@@ -86,38 +278,38 @@ class EstimacaoNaoLinear:
         ====================
         * ``PA`` (float): probabilidade de abrangência da análise. Deve estar entre 0 e 1. Default: 0.95.
         * ``projeto`` (string): nome do projeto (Náo podem haver caracteres especiais)
-        
+
         ==============================
         Keywords (Entradas opcionais):
         ==============================
-        
-        * ``nomes_x``        (list): lista com os nomes para x 
+
+        * ``nomes_x``        (list): lista com os nomes para x
         * ``unidades_x``     (list): lista com as unidades para x (inclusive em formato LATEX)
         * ``label_latex_x``  (list): lista com os símbolos das variáveis em formato LATEX
-        
+
         * ``nomes_y``        (list): lista com os nomes para y
         * ``unidades_y``     (list): lista com as unidades para y (inclusive em formato LATEX)
         * ``label_latex_y``  (list): lista com os símbolos das variáveis em formato LATEX
-        
+
         * ``nomes_param``       (list): lista com os nomes para os parâmetros (inclusive em formato LATEX)
         * ``unidades_param``    (list): lista com as unidades para os parâmetros (inclusive em formato LATEX)
         * ``label_latex_param`` (list): lista com os símbolos das variáveis em formato LATEX
-        
+
         * ``base_path`` (string): String que define o diretório pai que serão criados/salvos os arquivos gerados pelo motor de cálculo
 
-        =======        
+        =======
         Métodos
         =======
-        
+
         Para a realização da estimação de parâmetros de um certo modelo faz-se necessário executar \
         alguns métodos, na ordem indicada (vide observação):
-            
-        **ESTIMAÇÂO DE PARÂMETROS** 
-        
+
+        **ESTIMAÇÂO DE PARÂMETROS**
+
         * ``gerarEntradas``        : método para incluir dados obtidos de experimentos. Neste há a opção de determinar \
         se estes dados serão utilizados como dados para estimar os parâmetros ou para validação. (Vide documentação do método)
         * ``otimiza``              : método para realizar a otimização, com base nos dados fornecidos em gerarEntradas.
-        * ``incertezaParametros``  : método que avalia a incerteza dos parâmetros (Vide documentação do método)   
+        * ``incertezaParametros``  : método que avalia a incerteza dos parâmetros (Vide documentação do método)
         * ``gerarEntradas``        : (é opcional para inclusão de dados de validação)
         * ``Predicao``             : método que avalia a predição do modelo e sua incerteza ou utilizando os dados de validação. Caso estes \
         não estejam disponíveis, será utilizado os mesmos dados de estimação (Vide documentação do método)
@@ -150,34 +342,34 @@ class EstimacaoNaoLinear:
             * se for solicitado os gráficos da otimização, o método pode ser executado logo após otimização
 
         =================
-        Fluxo de trabalho        
+        Fluxo de trabalho
         =================
-        
+
         Esta classe valida a correta ordem de execução dos métodos. É importante salientar que cada vez que o método ``gerarEntradas`` \
         é utilizado, é criado um novo ``Fluxo de trabalho`` ou ele ``Reinicia`` todos.
-        
+
         **Observação 1**: Se forem adicionados diferentes dados de validação (execuções do método gerarEntradas para incluir tais dados), \
         são iniciado novos fluxos, mas é mantido o histórico de toda execução.
-        
+
         **Observação 2**: Se forem adicionados novos dados para estimacao, todo o histórico de fluxos é apagado e reniciado.
-         
+
         Esta característica permite a avaliação de diferentes dados de valiação consecutivamente (uso dos métodos de Predição, análiseResiduos, graficos),
         após a estimação dos parâmtros (otimiza, incertezaParametros)
 
         ======
         Saídas
         ======
-        
+
         As saídas deste motor de cálculo estão, principalmente, sob a forma de atributos e gráficos.
         Os principais atributos de uma variável Estimacao, são:
-                
+
         * ``x`` : objeto Grandeza que contém todas as informações referentes às grandezas \
         independentes sob a forma de atributos:
             * ``experimental`` : referente aos dados experimentais. Principais atributos: ``matriz_estimativa``, ``matriz_covariancia``
             * ``calculado``    : referente aos dados calculados pelo modelo. Principais atributos: ``matriz_estimativa``, ``matriz_covariancia``
             * ``validacao``    : referente aos dados de validação. Principais atributos: ``matriz_estimativa``, ``matriz_covariancia``
             * ``residuos``     : referente aos resíduos de regressão. Principais atributos: ``matriz_estimativa``, ``estatisticas``
-            
+
         * ``y``          : objeto Grandeza que contém todas as informações referentes às grandezas \
         dependentes sob a forma de atributos. Os atributos são os mesmos de x.
 
@@ -186,21 +378,21 @@ class EstimacaoNaoLinear:
             * ``matriz_covariancia`` : matriz de covariância
             * ``matriz_correlacao``   : matriz de correlação
             * ``regiao_abrangencia`` : pontos contidos na região de abrangência
-        
-        Obs.: Para informações mais detalhadas, consultar os Atributos da classe Grandeza.        
+
+        Obs.: Para informações mais detalhadas, consultar os Atributos da classe Grandeza.
 
         * ``PA``: probabilidade de abrangência da análise
         *
         ===============
         Função objetivo
         ===============
-        
+
         A função objetivo deve ser um objeto com uma estrutura específica. Consulte arquivo Funcao_Objetivo.
 
         OBSERVAÇÃO:
         O Motor de cálculo sempre irá enviar como uma lista argumentos para a função objetivo \
-        nesta ordem: 
-       
+        nesta ordem:
+
         * vetor com os pontos experimentais das grandezas dependentes
         * matriz com os pontos experimentais das grandezas independentes (cada coluna representa uma grandeza independente)
         * matriz covariância das grandezas dependentes
@@ -210,7 +402,7 @@ class EstimacaoNaoLinear:
         * lista com os símbolos das grandezas independentes
         * lista com os símbolos das grandezas dependentes
         * lista com os símbolos dos parâmetros
-        
+
         =======
         Modelo
         ======
@@ -253,31 +445,46 @@ class EstimacaoNaoLinear:
         * .estatisticas: dicionário que contém aguns testes estatístcicos (Para outras estatísticas aqui não incluídas
         consulte Grandezas)
         * FOotimo: valor da função objetivo no ponto ótimo
-        '''
+        """
         # ---------------------------------------------------------------------
         # CONTROLE DO FLUXO DE INFORMAÇÕES DO ALGORITMO
         # ---------------------------------------------------------------------
-        # Etapas de execução disponíveis (métodos) - Lista de etapas que o algoritmo irá executar
-        self.__etapasdisponiveis = ('__init__','gerarEntradas','otimizacao',
-                                    'incertezaParametros','regiaoAbrangencia',
-                                    'analiseResiduos','armazenarDicionario',
-                                    'Predicao','SETparametro','graficos',
-                                    'novoFluxo','GETFOotimo','historicoOtimizacao',
-                                    'Hessiana','Gy','S','preencherRegiao')
-        
-        # FLUXO DE INFORMAÇÕES -> conjunto de etapas que se inicia com o método gerarEntradas.
-        
-        # Identifica qual fluxo de informações está sendo executado
-        self.__etapasID          = 0  # Identificação do fluxo
-        # Variável de armazenamento das etapas realizadas pelo algoritmo. As etapas são armazenadas por fluxo
-        self.__etapas            = {self.__etapasID:[self.__etapasdisponiveis[0]]} 
-        
+        # FLUXO DE INFORMAÇÕES -> conjunto de etapas
+
+        self.__controleFluxo = self.Fluxo()
+
         # ---------------------------------------------------------------------
         # VALIDAÇÕES GERAIS DE KEYWORDS
         # ---------------------------------------------------------------------
+        # Keywords disponíveis para o método de entrada
+        self.__keywordsEntrada = ('nomes_x', 'unidades_x', 'label_latex_x', 'nomes_y', 'unidades_y', 'label_latex_y',
+                                  'nomes_param','unidades_param', 'label_latex_param', 'base_path')
 
-        self.__validacaoArgumentosEntrada('__init__',kwargs,[PA,projeto])
-        
+        # Validação se houve keywords digitadas incorretamente:
+        keyincorreta = [key for key in kwargs.keys() if not key in self.__keywordsEntrada]
+
+        if len(keyincorreta) != 0:
+            raise NameError('keyword(s) incorreta(s): ' + ', '.join(keyincorreta) + '.' +
+                            ' Keywords disponíveis: ' + ', '.join(self.__keywordsEntrada) + '.')
+
+        # Verificação de PA está entre 0 e 1
+        if not 0 < PA < 1:
+            raise ValueError('A probabilidade de abrangência deve estar entre 0 e 1.')
+
+        # Verificação se o nome do projeto é um string
+        if not isinstance(projeto, str):
+            raise TypeError('O nome do projeto deve ser um string.')
+
+        # Verificação se o nome do projeto possui caracteres especiais
+        # set: conjunto de elementos distintos não ordenados (trabalha com teoria de conjuntos)
+        if set('[~!@#$%^&*()+{}":;\']+$').intersection(projeto):
+            raise NameError('O nome do projeto não pode conter caracteres especiais')
+
+        # Verificação se o base_path é uma string
+        if kwargs.get(self.__keywordsEntrada[9]) is not None and not isinstance(kwargs.get(self.__keywordsEntrada[9]),
+                                                                                  str):
+            raise TypeError('A keyword {} deve ser um string.'.format(self.__keywordsEntrada[9]))
+
         # ---------------------------------------------------------------------
         # INICIALIZAÇÃO DAS GRANDEZAS
         # ---------------------------------------------------------------------
@@ -285,7 +492,7 @@ class EstimacaoNaoLinear:
         self.x          = Grandeza(simbolos_x    ,kwargs.get(self.__keywordsEntrada[0]),kwargs.get(self.__keywordsEntrada[1]),kwargs.get(self.__keywordsEntrada[2]))
         self.y          = Grandeza(simbolos_y    ,kwargs.get(self.__keywordsEntrada[3]),kwargs.get(self.__keywordsEntrada[4]),kwargs.get(self.__keywordsEntrada[5]))
         self.parametros = Grandeza(simbolos_param,kwargs.get(self.__keywordsEntrada[6]),kwargs.get(self.__keywordsEntrada[7]),kwargs.get(self.__keywordsEntrada[8]))
-        
+
         # Verificação se os símbolos são distintos
         # set: conjunto de elementos distintos não ordenados (trabalha com teoria de conjuntos)
         if len(set(self.y.simbolos).intersection(self.x.simbolos)) != 0 or len(set(self.y.simbolos).intersection(self.parametros.simbolos)) != 0 or len(set(self.x.simbolos).intersection(self.parametros.simbolos)) != 0:
@@ -301,7 +508,6 @@ class EstimacaoNaoLinear:
         self._deltaHessiana = 1e-5  # Hessiana da função objetivo
         self._deltaGy = 1e-5  # Gy (derivada parcial segunda da função objetivo em relação aos parâmetros e dados experimentais)
         self._deltaS = 1e-5  # S (transposto do jacobiano do modelo)
-
 
         # ---------------------------------------------------------------------
         # CRIAÇÃO DAS VARIÁVEIS INTERNAS
@@ -347,6 +553,25 @@ class EstimacaoNaoLinear:
                               'graficos-analiseResiduos':'Grandezas',
                               'relatorio':'Relatorios'}
 
+        # Tipos de dados disponíveis para entrada de dados
+        self.__tiposDisponiveisEntrada = ('experimental', 'validacao')
+
+        # Algoritmos de otimização disponíveis
+        self.__AlgoritmosOtimizacao = ('PSO',)
+
+        # métodos para avaliação da incerteza
+        self.__metodosIncerteza = ('2InvHessiana', 'Geral', 'SensibilidadeModelo')
+
+        # keywords disponíveis para avaliação das derivadas
+        self.__keywordsDerivadas = ('deltaHess', 'deltaGy', 'deltaS', 'delta')
+
+        # tipos de gráficos disponíveis:
+        self.__tipoGraficos = ('regiaoAbrangencia', 'grandezas-entrada', 'predicao', 'grandezas-calculadas',
+                               'otimizacao', 'analiseResiduos')
+
+        # tipos de algoritmos de preenchimento de região de abrangência disponíveis
+        self.__tipoPreenchimento = ('PSO', 'MonteCarlo')
+
     def _args_FO(self):
         """
         Método que retorna argumentos extras a serem passados para a função objetivo
@@ -373,255 +598,6 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
 
         return [self.__args_user,self.x.simbolos,self.y.simbolos,self.parametros.simbolos]
-
-    def __novoFluxo(self,reiniciar=False):
-        u'''Método para criar um novo fluxo de informações.
-        ===
-        USO
-        ===
-        * Possibilitar o algoritmo validar as etapas predescessoras quando usado + de um dado de validação.
-        * Possibilitar o algoritmo se reiniciar se usado outro dado experimental.
-
-        =========
-        Filosofia
-        =========
-        * Toda vez que é adicionado dados de validação é iniciado um novo fluxo de trabalho, para que a predição, analise de residuos
-         e os respectivos gráficos e relatórios destas etapas sejam corretamente criados
-         * Todas as vezes que dados experimentais são adionados, o fluxo é reiniciado, inclusive definindo que não foram inseridos
-         dados de validação
-        '''
-        # Adicionar este novo fluxo no controle de etapas
-
-        if reiniciar == False:
-            # Incrementa o fluxo de trabalho é sempre incrementado
-            self.__etapasID+= 1
-            # Incluindo o novo ID (fluxo)
-            # na lista de etapas, a primeira será o novoFluxo
-            self.__etapas.update({self.__etapasID:[self.__etapasdisponiveis[10]]})
-        else:
-            # Reiniciando o fluxo, de trabalho
-            # na lista de etapas é adicionado o init
-            self.__etapasID = 0
-            self.__etapas = {self.__etapasID:[self.__etapasdisponiveis[0]]}
-            # Sempre que o fluxo é reiniciado, os dados de validação precisam ser inseridos.
-            if self.__flag.info['dadosvalidacao'] == True:
-                warn('O fluxo foi reiniciado, faz-se necessário incluir novos dados de validação',UserWarning)
-
-            self.__flag.ToggleInactive('dadosvalidacao')
-            
-    def __etapasGlobal(self):
-        u'''
-        Determina quais etapas foram executadas como um todo, independente do fluxo:
-
-        * Testes envolvendo otimiza, SETparametros, incertezaParametros devem ser realizados para as
-        etapas globais, pois sem eles não é possível realizar a predição.
-        '''
-
-        fluxo = []
-        for key in self.__etapas.keys():
-            fluxo.extend(self.__etapas[key])
-
-        return fluxo
-
-    def __validacaoArgumentosEntrada(self,etapa,keywargs,args=None):
-        u'''
-        Método para verificação dos argumentos de entrada dos métodos de inicialização, otimização, incerteza dos parâmetros, \
-        análise de resíduos, armazenar dicionário:
-        
-        * verificar se keywords foram corretamente definidas
-        * verficar se keywords obtigatórias foram definidas
-        * verificar se o método pode ser executado, validando as etapas predecessoras 
-        * outras verificações
-        '''
-        # ---------------------------------------------------------------------
-        # INICIALIZAÇÃO
-        # --------------------------------------------------------------------- 
-        # Keywords disponíveis        
-        self.__keywordsEntrada  = ('nomes_x','unidades_x','label_latex_x','nomes_y','unidades_y','label_latex_y','nomes_param','unidades_param','label_latex_param','base_path') # Keywords disponíveis para a entrada
-        if etapa == self.__etapasdisponiveis[0]:
-            # Validação se houve keywords digitadas incorretamente:
-            keyincorreta  = [key for key in keywargs.keys() if not key in self.__keywordsEntrada]
-        
-            if len(keyincorreta) != 0:
-                raise NameError('keyword(s) incorreta(s): '+', '.join(keyincorreta)+'.'+
-                                ' Keywords disponíveis: '+', '.join(self.__keywordsEntrada)+'.')
-
-            # Verificação de PA está entre 0 e 1
-            if not 0 < args[0] < 1:
-                raise ValueError('A probabilidade de abrangência deve estar entre 0 e 1.')
-
-            # Verificação se o nome do projeto é um string
-            # args[1] = projeto
-            if not isinstance(args[1],str):
-                raise TypeError('O nome do projeto deve ser um string.')
-            
-            # Verificação se o nome do projeto possui caracteres especiais
-            # set: conjunto de elementos distintos não ordenados (trabalha com teoria de conjuntos)
-            if set('[~!@#$%^&*()+{}":;\']+$').intersection(args[1]):
-                raise NameError('O nome do projeto não pode conter caracteres especiais')  
-
-            # Verificação se o base_path é uma string
-            if keywargs.get(self.__keywordsEntrada[9]) is not None and not isinstance(keywargs.get(self.__keywordsEntrada[9]),str):
-                raise TypeError('A keyword {} deve ser um string.'.format(self.__keywordsEntrada[9]))
-        # ---------------------------------------------------------------------
-        # GERAR ENTRADAS
-        # --------------------------------------------------------------------- 
-        if etapa == self.__etapasdisponiveis[1]:
-            self.__tiposDisponiveisEntrada = ('experimental','validacao')
-            if not set([args]).issubset(self.__tiposDisponiveisEntrada):
-                raise ValueError('A(s) entrada(s) '+','.join(set([args]).difference(self.__tiposDisponiveisEntrada))+' não estão disponíveis. Usar: '+','.join(self.__tiposDisponiveisEntrada)+'.')
- 
-        # ---------------------------------------------------------------------
-        # OTIMIZAÇÃO
-        # --------------------------------------------------------------------- 
-        # Keywords disponíveis        
-        self.__AlgoritmosOtimizacao = ('PSO',)
-
-        if etapa == self.__etapasdisponiveis[2]:
-            # se gerar entradas não foi executado no Global
-            if (self.__etapasdisponiveis[1] not in self.__etapasGlobal()) or (self.__flag.info['dadosexperimentais']==False):
-                raise SyntaxError('Para executar a otimização, faz-se necessário primeiro executar método {} informando os dados experimentais.'.format(self.__etapasdisponiveis[1]))
-
-            # se SETparametro não pode ser executado antes de otimiza, em nenhum fluxo.
-            if self.__etapasdisponiveis[8] in self.__etapas[self.__etapasID]:
-                raise SyntaxError('O método {} não pode ser executado com {}'.format(self.__etapasdisponiveis[2], self.__etapasdisponiveis[8]))
-
-            # verificação se o algoritmo é um string
-            if not isinstance(args[1],str):
-                raise TypeError('O nome do algoritmo de ser uma string.')
-
-            # verificação se o algoritmo está disponível
-            if not args[1] in self.__AlgoritmosOtimizacao:
-                raise NameError('A opção {} de algoritmo não está correta. Algoritmos disponíveis: '.format(args[1])+', '.join(self.__AlgoritmosOtimizacao)+'.')
-
-            # validação da estimativa inicial:
-            if args[0] is not None:
-                if not isinstance(args[2],list) or len(args[2]) != self.parametros.NV:
-                    raise TypeError('A estimativa inicial deve ser uma lista de dimensão do número de parâmetros, definida nos símbolos. Número de parâmetros: {}'.format(self.parametros.NV))
-
-        # ---------------------------------------------------------------------
-        # INCERTEZA DOS PARÂMETROS
-        # --------------------------------------------------------------------- 
-        self.__metodosIncerteza = ('2InvHessiana','Geral','SensibilidadeModelo')
-        self.__keywordsDerivadas = ('deltaHess','deltaGy','deltaS', 'delta')
-
-        if etapa == self.__etapasdisponiveis[3]:
-            # se otimiza não tiver sido executado no contexto global ou SETparametro não tiver sido executado no contexto Global,
-            # não se pode executar incertezaParametros
-            if (self.__etapasdisponiveis[2] not in self.__etapasGlobal()) and (self.__etapasdisponiveis[8] not in self.__etapasGlobal()):
-                raise SyntaxError('Para executar a incertezaParametros, faz-se necessário primeiro executar os métodos {} OU {}.'.format(self.__etapasdisponiveis[2],self.__etapasdisponiveis[8]))
-
-            if args[0] not in self.__metodosIncerteza:
-                raise NameError('O método solicitado para cálculo da incerteza dos parâmetros {}'.format(args[0])
-                                +' não está disponível. Métodos disponíveis '+', '.join(self.__metodosIncerteza)+'.')
-
-            if not isinstance(args[1],bool):
-                raise TypeError('O argumento preencherregião deve ser booleano (True ou False).')
-
-        # ---------------------------------------------------------------------
-        # REGIÃO DE ABRANGÊNCIA
-        # ---------------------------------------------------------------------
-        if etapa == self.__etapasdisponiveis[4]:
-            # se historicoOtimizacao não tiver sido executado, não se pode criar a Região de abrangência
-            if self.__etapasdisponiveis[12] not in self.__etapasGlobal():
-                raise SyntaxError('Para executar a região de abrangência, faz-se necessário primeiro executar um método que avalie o histórico da otimização. Normalmente é {} ou {}'.format(self.__etapasdisponiveis[2],self.__etapasdisponiveis[16]))
-
-
-        # ---------------------------------------------------------------------
-        # ANÁLISE RESÍDUOS
-        # ---------------------------------------------------------------------
-        if etapa == self.__etapasdisponiveis[5]:
-            # para executar análise de resíduos, faz-se necessário executar Predicao NO MESMO FLUXO, pois depende dos dados de validação
-            if self.__etapasdisponiveis[7] not in self.__etapas[self.__etapasID]:
-                raise SyntaxError('Para executar o método de análise de resíduos, faz-se necessário primeiro executar método {}.'.format(self.__etapasdisponiveis[7]))
-        
-        # ---------------------------------------------------------------------
-        # ARMAZENAR DICIONÁRIO
-        # --------------------------------------------------------------------- 
-        if etapa == self.__etapasdisponiveis[6]:
-            # para armazenar os dicionários, é necessário, pelo menos, executar gerarEntradas
-            if self.__etapasdisponiveis[1] not in self.__etapasGlobal():
-                raise SyntaxError('Para executar o método armazenarDicionario, faz-se necessário, pelo menos, executar método {}.'.format(self.__etapasdisponiveis[1]))
-
-        # ---------------------------------------------------------------------
-        # PREDIÇÃO
-        # ---------------------------------------------------------------------
-        if etapa == self.__etapasdisponiveis[7]:
-            # para executar a predição deve ser executado otimiza (Global), incertezaParametros (Global), SETparametro(Global), incertezaParametros (Global)
-            if ((self.__etapasdisponiveis[2] not in self.__etapasGlobal()) or (self.__etapasdisponiveis[3] not in self.__etapasGlobal())) and ((self.__etapasdisponiveis[8] not in self.__etapasGlobal()) or (self.__etapasdisponiveis[3] not in self.__etapasGlobal())):
-                raise SyntaxError('Para executar de predição, faz-se necessário primeiro executar o método {} seguido de {} OU {} seguido de {}. Outra opção é executar o método {}, definindo a matriz de covariância dos parâmetros.'.format(self.__etapasdisponiveis[2],self.__etapasdisponiveis[3],self.__etapasdisponiveis[8],self.__etapasdisponiveis[3],self.__etapasdisponiveis[8]))
-
-            # Validação se houve keywords digitadas incorretamente
-            # Aqui as keywords são as mesmas do método de incerteza parâmetros
-            keyincorreta = [key for key in keywargs.keys() if not key in self.__keywordsDerivadas]
-
-            if len(keyincorreta) != 0:
-                raise NameError('keyword(s) incorreta(s): ' + ', '.join(keyincorreta) + '.' +
-                                ' Keywords disponíveis: ' + ', '.join(self.__keywordsDerivadas) + '.')
-
-        # ---------------------------------------------------------------------
-        # SETparametro
-        # ---------------------------------------------------------------------
-        if etapa == self.__etapasdisponiveis[8]:
-            # SETparametro não pode ser executado em conjunto com otimiza
-            if self.__etapasdisponiveis[2] in self.__etapasGlobal():
-                raise SyntaxError('O método {} não pode ser executado com {}.'.format(self.__etapasdisponiveis[8], self.__etapasdisponiveis[2]))
-
-        # ---------------------------------------------------------------------
-        # GRÁFICOS
-        # ---------------------------------------------------------------------     
-
-        self.__tipoGraficos = ('regiaoAbrangencia', 'grandezas-entrada', 'predicao', 'grandezas-calculadas', 'otimizacao', 'analiseResiduos')
-
-        if etapa == self.__etapasdisponiveis[9]:
-            # validando se os tipos de gráficos
-            if not isinstance(args[0],list):
-                raise TypeError('Os tipos de gráficos devem ser definidos em uma lista.')
-            # validando se os tipos de gráficos foram corretamente definidos
-            if not set(args[0]).issubset(self.__tipoGraficos):
-                raise NameError('O(s) tipo(s) de gráfico(s) selecionado(s) não está(ão) disponível(is): '+', '.join(set(args[0]).difference(self.__tipoGraficos))+'. Tipos disponíveis: '+', '.join(self.__tipoGraficos)+'.')
-
-        # ---------------------------------------------------------------------
-        # GETFOotimo
-        # ---------------------------------------------------------------------
-        if etapa == self.__etapasdisponiveis[11]:
-            # Depende da execução de otimiza e SETparametro
-            if self.__etapasdisponiveis[2] not in self.__etapasGlobal() or self.__etapasdisponiveis[8] not in self.__etapasGlobal():
-                raise TypeError('O método GETFOotimo deve ser executado após {} ou {}'.format(self.__etapasdisponiveis[8], self.__etapasdisponiveis[2]))
-
-        # ---------------------------------------------------------------------
-        # PREENCHER REGIÃO
-        # ---------------------------------------------------------------------
-        if etapa == self.__etapasdisponiveis[16]:
-
-            if self.__etapasdisponiveis[3] not in self.__etapasGlobal():
-                raise TypeError('O método preencherRegiao deve ser executado após {}'.format(self.__etapasdisponiveis[3]))
-
-            self.__tipoPreenchimento = ('PSO', 'MonteCarlo')
-
-            if args not in self.__tipoPreenchimento:
-                raise NameError('O método solicitado para preenchimento da região de abrangência {}'.format(
-                    args) + ' não está disponível. Métodos disponíveis ' + ', '.join(self.__tipoPreenchimento) + '.')
-
-            if args == self.__tipoPreenchimento[1]:
-                kwargsdisponiveis = ('iteracoes','limite_superior','limite_inferior','metodoPreenchimento','fatorlimitebusca','distribuicao')
-
-                if not set(keywargs.keys()).issubset(kwargsdisponiveis):
-                    raise NameError('O(s) keyword(s) argument digitado(s) está(ão) incorreto(s). Keyword disponíveis: '+
-                                    ', '.join(kwargsdisponiveis)+'.')
-
-                if keywargs.get(kwargsdisponiveis[0]) is not None:
-                    if keywargs.get(kwargsdisponiveis[0]) < 1:
-                        raise ValueError('O número de iterações deve ser inteiro e positivo.')
-
-                if keywargs.get(kwargsdisponiveis[4]) is not None:
-                    if keywargs.get(kwargsdisponiveis[4]) < 0:
-                        raise ValueError('O fator limite busca deve positivo.')
-
-                if keywargs.get(kwargsdisponiveis[5]) is not None:
-                    if keywargs.get(kwargsdisponiveis[5]) not in ['uniforme','triangular']:
-                        raise ValueError('As distribuições disponíveis para o Método de MonteCarlo são: {}.'.format(['uniforme','triangular']))
-
 
     def __validacaoDadosEntrada(self,dados,udados,NV):
         u'''
@@ -655,13 +631,13 @@ class EstimacaoNaoLinear:
             warn('Graus de liberdade insuficientes. O seu conjunto de dados experimentais não é suficiente para estimar os parâmetros!',UserWarning)
 
     def gerarEntradas(self,x,y,ux,uy,glx=[],gly=[],tipo='experimental',uxy=None):
-        u'''
+        u"""
         Método para incluir os dados de entrada da estimação
-        
+
         =======================
         Entradas (Obrigatórias)
-        =======================        
-        
+        =======================
+
         * xe        : array com os dados experimentais das variáveis independentes na forma de colunas
         * ux        : array com as incertezas das variáveis independentes na forma de colunas
         * ye        : array com os dados experimentais das variáveis dependentes na forma de colunas
@@ -671,18 +647,26 @@ class EstimacaoNaoLinear:
         * tipo      : string que define se os dados são experimentais ou de validação.
 
         **Aviso**:
-        * Caso não definidos dados de validação, será assumido os valores experimentais                    
+        * Caso não definidos dados de validação, será assumido os valores experimentais
         * Caso não definido graus de liberdade para as grandezas, será assumido o valor constante de 100
-        '''
+        """
+        # ---------------------------------------------------------------------
+        # FLUXO
+        # ---------------------------------------------------------------------
+        self.__controleFluxo.SET_ETAPA('gerarEntradas')
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------
         # Validação da sintaxe
-        self.__validacaoArgumentosEntrada('gerarEntradas',None,tipo)
+
+        if not set([tipo]).issubset(self.__tiposDisponiveisEntrada):
+            raise ValueError('A(s) entrada(s) ' + ','.join(
+                set([tipo]).difference(self.__tiposDisponiveisEntrada)) + ' não estão disponíveis. Usar: ' + ','.join(
+                self.__tiposDisponiveisEntrada) + '.')
 
         # Validação dos dados de entrada x, y, ux e uy
-        self.__validacaoDadosEntrada(x  ,ux   ,self.x.NV)
-        self.__validacaoDadosEntrada(y  ,uy   ,self.y.NV)
+        self.__validacaoDadosEntrada(x, ux, self.x.NV)
+        self.__validacaoDadosEntrada(y, uy, self.y.NV)
 
         # Validação do número de dados experimentais
         if x.shape[0] != y.shape[0]:
@@ -690,11 +674,10 @@ class EstimacaoNaoLinear:
 
         if tipo == self.__tiposDisponiveisEntrada[0]: # experimentais:
             self.__flag.ToggleActive('dadosexperimentais')
-            # se a execução do motor de cálculo for a primeira (etapasID = 0),
-            # o fluxo segue normalmente. Caso contrário é reiniciado.
-            if not self.__etapasID == 0:
-                self.__novoFluxo(reiniciar=True) # Inclusão de novo fluxo
-
+            if self.__controleFluxo.FLUXO_ID != 0:
+                self.__controleFluxo.reiniciar()
+                if self.__flag.info['dadosvalidacao']:
+                    warn('O fluxo foi reiniciado, faz-se necessário incluir novos dados de validação', UserWarning)
             # ---------------------------------------------------------------------
             # ATRIBUIÇÃO A GRANDEZAS
             # ---------------------------------------------------------------------
@@ -711,7 +694,8 @@ class EstimacaoNaoLinear:
 
         if tipo == self.__tiposDisponiveisEntrada[1]: # validação
             self.__flag.ToggleActive('dadosvalidacao')
-            self.__novoFluxo() # Variável para controlar a execução dos métodos PEU
+
+            self.__controleFluxo.reiniciarParcial()
             # ---------------------------------------------------------------------
             # ATRIBUIÇÃO A GRANDEZAS
             # ---------------------------------------------------------------------
@@ -744,12 +728,6 @@ class EstimacaoNaoLinear:
             except Exception, erro:
                 raise RuntimeError('Erro na criação do conjuno validação de Y: {}'.format(erro))
 
-        # ---------------------------------------------------------------------
-        # VARIÁVEIS INTERNAS
-        # ---------------------------------------------------------------------         
-        # Inclusão desta etapa da lista de etapas
-        self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[1]) 
-        
     def _armazenarDicionario(self):
         u'''
         Método opcional para armazenar as Grandezas (x,y e parãmetros) na
@@ -763,14 +741,14 @@ class EstimacaoNaoLinear:
         conteúdos objetos da classe Grandezas.
         '''
         # ---------------------------------------------------------------------
-        # VALIDAÇÃO
-        # ---------------------------------------------------------------------         
-        self.__validacaoArgumentosEntrada('armazenarDicionario',None,None)       
+        # FLUXO
+        # ---------------------------------------------------------------------
+        self.__controleFluxo.SET_ETAPA('armazenarDicionario')
 
         # ---------------------------------------------------------------------
         # GERANDO O DICIONÁRIO
         # ---------------------------------------------------------------------    
-     
+
         grandeza = {}
 
         # GRANDEZAS DEPENDENTES (y)
@@ -792,21 +770,21 @@ class EstimacaoNaoLinear:
                                                 gL=self.y.validacao.gL[j])
 
             # Salvando os dados calculados
-            if self.__etapasdisponiveis[7] in self.__etapas[self.__etapasID]:
+            if self.__controleFluxo.predicao:
                 grandeza[simbolo]._SETcalculado(estimativa=self.y.calculado.matriz_estimativa[:,j:j+1],
                                                 matriz_incerteza=self.y.calculado.matriz_incerteza[:,j:j+1],
                                                 gL=self.y.calculado.gL[j])
 
             # Salvando os resíduos
-            if self.__etapasdisponiveis[5] in self.__etapas[self.__etapasID]:
+            if self.__controleFluxo.analiseResiduos:
                 grandeza[simbolo]._SETresiduos(estimativa=self.y.residuos.matriz_estimativa[:,j:j+1])
 
         # GRANDEZAS INDEPENDENTES (x)
-        for j,simbolo in enumerate(self.x.simbolos):
+        for j, simbolo in enumerate(self.x.simbolos):
             grandeza[simbolo] = Grandeza([simbolo],[self.x.nomes[j]],[self.x.unidades[j]],[self.x.label_latex[j]])
 
             # Salvando dados experimentais
-            if  self.__flag.info['dadosexperimentais']:
+            if self.__flag.info['dadosexperimentais']:
                 grandeza[simbolo]._SETexperimental(estimativa=self.x.experimental.matriz_estimativa[:,j:j+1],
                                                    matriz_incerteza=self.x.experimental.matriz_incerteza[:,j:j+1],
                                                    gL=self.x.experimental.gL[j])
@@ -818,19 +796,19 @@ class EstimacaoNaoLinear:
                                                 gL=self.x.validacao.gL[j])
 
             # Salvando dados calculados
-            if self.__etapasdisponiveis[7] in self.__etapas[self.__etapasID]:
+            if self.__controleFluxo.predicao:
                 grandeza[simbolo]._SETcalculado(estimativa=self.x.calculado.matriz_estimativa[:,j:j+1],
                                                 matriz_incerteza=self.x.calculado.matriz_incerteza[:,j:j+1],
                                                 gL=self.x.calculado.gL[j])
 
             # Salvando os resíduos
-            if self.__etapasdisponiveis[5] in self.__etapas[self.__etapasID]:
+            if self.__controleFluxo.analiseResiduos:
                 grandeza[simbolo]._SETresiduos(estimativa=self.x.residuos.matriz_estimativa[:,j:j+1])
 
         # PARÂMETROS
         for j,simbolo in enumerate(self.parametros.simbolos):
             grandeza[simbolo] = Grandeza([simbolo],[self.parametros.nomes[j]],[self.parametros.unidades[j]],[self.parametros.label_latex[j]])
-            if (self.__etapasdisponiveis[2] in self.__etapas[self.__etapasID]) or (self.__etapasdisponiveis[8] in self.__etapas[self.__etapasID]):
+            if self.__controleFluxo.otimizacao or self.__controleFluxo.SETparametro:
                 # Salvando as informações dos parâmetros
                 if self.parametros.matriz_covariancia is None:
                     grandeza[simbolo]._SETparametro([self.parametros.estimativa[j]],None,None)
@@ -838,7 +816,7 @@ class EstimacaoNaoLinear:
                     grandeza[simbolo]._SETparametro([self.parametros.estimativa[j]],array([self.parametros.matriz_covariancia[j,j]],ndmin=2),None)
 
         return grandeza
-    
+
 
     def otimiza(self,limite_inferior,limite_superior,estimativa_inicial=None,algoritmo='PSO',args=None,**kwargs):
         u'''
@@ -880,13 +858,42 @@ class EstimacaoNaoLinear:
         * Toda vez que a otimização é executada toda informação anterior sobre parâmetros é perdida
         '''
         # ---------------------------------------------------------------------
+        # FLUXO
+        # ---------------------------------------------------------------------
+        self.__controleFluxo.SET_ETAPA('otimizacao')
+        # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------
-        # Validação das keywords obrigatórias para o método de otimização
-        self.__validacaoArgumentosEntrada('otimizacao',kwargs,[estimativa_inicial,algoritmo])
- 
+
+        # se não houver dados experimentais -> erro
+        if not self.__flag.info['dadosexperimentais']:
+            raise SyntaxError('Para executar a otimização, faz-se necessário dados experimentais')
+
+        # se SETparametro não pode ser executado antes de otimiza.
+        if self.__controleFluxo.SETparametro:
+            raise SyntaxError('O método {} não pode ser executado com {}'.format('otimiza', 'SETparametro'))
+
+        # verificação se o algoritmo é um string
+        if not isinstance(algoritmo, str):
+            raise TypeError('O nome do algoritmo deve ser uma string.')
+
+        # verificação se o algoritmo está disponível
+        if not algoritmo in self.__AlgoritmosOtimizacao:
+            raise NameError(
+                'A opção {} de algoritmo não está correta. Algoritmos disponíveis: '.format(algoritmo) + ', '.join(
+                    self.__AlgoritmosOtimizacao) + '.')
+
+        # validação da estimativa inicial:
+        if estimativa_inicial is not None:
+            if not isinstance(estimativa_inicial, list) or len(estimativa_inicial) != self.parametros.NV:
+                raise TypeError(
+                    'A estimativa inicial deve ser uma lista de dimensão do número de parâmetros, definida nos símbolos. Número de parâmetros: {}'.format(
+                        self.parametros.NV))
+
+        # EstimacaoNaoLinear executa somente estimação SEM reconciliação
         self.__flag.ToggleInactive('reconciliacao')
 
+        # definindo que args são argumentos extras a serem passados para a função objetivo (e, portanto, não sofrem validação)
         self.__args_user = args
 
         # ---------------------------------------------------------------------
@@ -897,6 +904,8 @@ class EstimacaoNaoLinear:
             self.__flag.ToggleActive('graficootimizacao')
             # indica que esta algoritmo possui relatório de desempenho
             self.__flag.ToggleActive('relatoriootimizacao')
+            # O algoritmo de PSO realiza o mapeamentoFO
+            self.__controleFluxo.SET_ETAPA('mapeamentoFO')
 
             # Separação de keywords para os diferentes métodos
             # keywarg para a etapa de busca:
@@ -940,15 +949,6 @@ class EstimacaoNaoLinear:
             self.parametros._SETparametro(self.Otimizacao.gbest,None,None,limite_superior=limite_superior,limite_inferior=limite_inferior)
 
         # ---------------------------------------------------------------------
-        # VARIÁVEIS INTERNAS
-        # ---------------------------------------------------------------------
-        # Inclusão desta etapa da lista de etapas
-        self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[2]) # Inclusão desta etapa na lista de etapas
-
-        # Inclusão da obtenção do histórico da otimizacao no ponto ótimo na lista de etapas
-        self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[12])
-
-        # ---------------------------------------------------------------------
         # OBTENÇÃO DO PONTO ÓTIMO DA FUNÇÃO OBJETIVO
         # ---------------------------------------------------------------------
         self.__GETFOotimo()
@@ -959,18 +959,17 @@ class EstimacaoNaoLinear:
         Método para obtenção do ponto ótimo da função objetivo
         '''
         # ---------------------------------------------------------------------
+        # FLUXO
+        # ---------------------------------------------------------------------
+        self.__controleFluxo.SET_ETAPA('GETFOotimo')
+
+        # ---------------------------------------------------------------------
         # OBTENÇÃO DO PONTO ÓTIMO DA FUNÇÃO OBJETIVO
         # ---------------------------------------------------------------------
         FO = self.__FO(self.parametros.estimativa, self._args_FO())
         FO.run()
 
         self.FOotimo = FO.result
-
-        # ---------------------------------------------------------------------
-        # VARIÁVEIS INTERNAS
-        # ---------------------------------------------------------------------
-        # Inclusão desta etapa da lista de etapas
-        self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[11]) # Inclusão desta etapa na lista de etapas
 
     def SETparametro(self,estimativa,variancia=None,regiao=None,**kwargs):
         u'''
@@ -1006,11 +1005,21 @@ class EstimacaoNaoLinear:
         ATRIBUTOS
         =========
         O método irá incluir estas informações no atributo parâmetros
-        '''        
+        '''
+        # ---------------------------------------------------------------------
+        # FLUXO
+        # ---------------------------------------------------------------------
+        self.__controleFluxo.SET_ETAPA('SETparametro')
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------
-        self.__validacaoArgumentosEntrada('SETparametro',None)
+        # Caso não haja dados experimentais -> erro
+        if not self.__flag.info['dadosexperimentais']:
+            raise SyntaxError('Faz-se necessário adicionar dados experimentais.')
+
+        # SETparametro não pode ser executado em conjunto com otimiza
+        if self.__controleFluxo.otimizacao:
+            raise SyntaxError('O método SETparametro não pode ser executado com otimizacao.')
 
         # ---------------------------------------------------------------------
         # ARGUMENTOS EXTRAS A SEREM PASSADOS PARA O MODELO
@@ -1040,36 +1049,34 @@ class EstimacaoNaoLinear:
         # OBTENÇÃO DO PONTO ÓTIMO
         # ---------------------------------------------------------------------
         # Só usa o método GETFOotimo se este não fora executado
-        if self.__etapasdisponiveis[11] not in self.__etapasGlobal():
+        if not self.__controleFluxo.GETFOotimo:
             self.__GETFOotimo()
 
         # ---------------------------------------------------------------------
         # VARIÁVEIS INTERNAS
         # ---------------------------------------------------------------------
-        # Inclusão desta etapa na lista de etapas
-        self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[8])
 
         # Caso seja definida a variância, é assumido que o método incertezaParametros
         # foi executado, mesmo que a inclusão de abrangência seja opcional.
         if variancia is not None:
-            self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[3])
+            self.__controleFluxo.SET_ETAPA('incertezaParametros')
 
         # Caso seja definida a região, é assumido que o método regiaoAbrangencia
         # foi executado.
         if regiao is not None:
-            self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[4])
+            self.__controleFluxo.SET_ETAPA('regiaoAbrangencia', ignoreValidacao=True)
 
     def incertezaParametros(self,metodoIncerteza='2InvHessiana',preencherregiao=False,**kwargs):
-        u'''
-        
+        u"""
+
         Método para avaliação da matriz de covariãncia dos parâmetros e região de abrangência.
-        
+
         ===================
         Método predescessor
         ===================
 
         É necessário executar a otimização ou SETparametro.
-        
+
         =======================
         Entradas (opcionais)
         =======================
@@ -1099,11 +1106,21 @@ class EstimacaoNaoLinear:
         * deltaS: delta a ser utilizado na matriz de derivadas do modelo em relação dos parâmetros.
         * delta: quando definido, ajusta deltaHess, deltaGy e deltaS para o valor definido
         * kwargs para o algoritmo de PSO para executar o preenchimento da região.
-        '''
+        """
+        # ---------------------------------------------------------------------
+        # FLUXO
+        # ---------------------------------------------------------------------
+        self.__controleFluxo.SET_ETAPA('incertezaParametros')
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------         
-        self.__validacaoArgumentosEntrada('incertezaParametros',kwargs,[metodoIncerteza,preencherregiao])
+
+        if metodoIncerteza not in self.__metodosIncerteza:
+            raise NameError('O método solicitado para cálculo da incerteza dos parâmetros {}'.format(metodoIncerteza)
+                            + ' não está disponível. Métodos disponíveis ' + ', '.join(self.__metodosIncerteza) + '.')
+
+        if not isinstance(preencherregiao, bool):
+            raise TypeError('O argumento preencherregião deve ser booleano (True ou False).')
 
         # ---------------------------------------------------------------------
         # DELTAS (INCREMENTO) DAS DERIVADAS
@@ -1165,12 +1182,6 @@ class EstimacaoNaoLinear:
         self.parametros._updateParametro(matriz_covariancia=matriz_covariancia)
 
         # ---------------------------------------------------------------------
-        # VARIÁVEIS INTERNAS
-        # ---------------------------------------------------------------------
-        # Inclusão desta etapa da lista de etapas
-        self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[3])
-
-        # ---------------------------------------------------------------------
         # REGIÃO DE ABRANGÊNCIA
         # ---------------------------------------------------------------------
         # PREENCHIMENTO DE REGIÃO:
@@ -1179,20 +1190,20 @@ class EstimacaoNaoLinear:
             self.__flag.ToggleActive('preenchimentoRegiao')
 
         # A região de abrangência só é executada caso haja histórico de posicoes e fitness
-        if self.__etapasdisponiveis[12] in self.__etapasGlobal() and self.parametros.NV != 1:
+        if self.__controleFluxo.mapeamentoFO and self.parametros.NV != 1:
             # OBTENÇÃO DA REGIÃO:
             regiao = self.regiaoAbrangencia()
             # ATRIBUIÇÃO A GRANDEZA
             self.parametros._updateParametro(regiao_abrangencia=regiao)
 
     def predicao(self,**kwargs):
-        u'''
+        u"""
         Método para realizar a predição.
-        
+
         ====================
-        Método predecessores        
+        Método predecessores
         ====================
-        
+
         É necessário executar a otimização ou incluir o valor para a estimativa dos parâmetros e sua incerteza, pelo \
         método ``SETparametro``.
 
@@ -1207,11 +1218,20 @@ class EstimacaoNaoLinear:
         aos parâmetros e dados experimentais
         * deltaS: delta a ser utilizado na matriz de derivadas do modelo em relação dos parâmetros.
         * delta: quando definido, ajusta deltaHess, deltaGy e deltaS para o valor definido.
-        '''
+        """
+        # ---------------------------------------------------------------------
+        # FLUXO
+        # ---------------------------------------------------------------------
+        self.__controleFluxo.SET_ETAPA('predicao')
+
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------      
-        self.__validacaoArgumentosEntrada('Predicao',kwargs)
+        keyincorreta = [key for key in kwargs.keys() if not key in self.__keywordsDerivadas]
+
+        if len(keyincorreta) != 0:
+            raise NameError('keyword(s) incorreta(s): ' + ', '.join(keyincorreta) + '.' +
+                            ' Keywords disponíveis: ' + ', '.join(self.__keywordsDerivadas) + '.')
 
         # ---------------------------------------------------------------------
         # DELTAS (INCREMENTO) DAS DERIVADAS
@@ -1231,26 +1251,27 @@ class EstimacaoNaoLinear:
 
         # Matriz Hessiana da função objetivo em relação aos parâmetros
         # Somente reavaliada caso o método que a avalia não tenha sido executado E não tenha dados validacao
-        if self.__etapasdisponiveis[13] not in self.__etapasGlobal() and not self.__flag.info['dadosvalidacao']:
+
+        if not self.__controleFluxo.Hessiana and not self.__flag.info['dadosvalidacao']:
             self.Hessiana = self.__Hessiana_FO_Param(self._deltaHessiana)
 
         # Inversa da matriz hessiana a função objetivo em relação aos parâmetros
         # Só avaliada se o método de avaliação da Hessiana for executado E não tenha dados validacao
-        if self.__etapasdisponiveis[13] in self.__etapasGlobal():
+        if self.__controleFluxo.Hessiana:
             invHess = inv(self.Hessiana)
 
         # Gy: derivadas parciais segundas da função objetivo em relação aos parâmetros e 
         # dados experimentais
         # Somente reavaliada caso o método que a avalia não tenha sido executado E não tenha dados validacao
-        if self.__etapasdisponiveis[14] not in self.__etapasGlobal() and not self.__flag.info['dadosvalidacao']:
+        if not self.__controleFluxo.Gy and not self.__flag.info['dadosvalidacao']:
             self.Gy  = self.__Matriz_Gy(self._deltaGy)
 
         # S: transposto do jacobiano do modelo em relação aos parâmetros
         # Somente reavaliada caso não tenha sido avaliada OU se tenha dados de validação
-        if (self.__etapasdisponiveis[15] not in self.__etapasGlobal()) or (self.__flag.info['dadosvalidacao']):
+        if not self.__controleFluxo.S or self.__flag.info['dadosvalidacao']:
             # Matriz de sensibilidade do modelo em relação aos parâmetros
             self.S   = self.__Matriz_S(self.x.validacao.matriz_estimativa,self._deltaS)
-          
+
         # ---------------------------------------------------------------------
         # PREDIÇÃO
         # ---------------------------------------------------------------------
@@ -1291,12 +1312,6 @@ class EstimacaoNaoLinear:
                              gL=[[self.x.experimental.NE*self.x.NV-self.parametros.NV]*self.x.validacao.NE]*self.x.NV,
                              NE=self.x.validacao.NE)
 
-        # ---------------------------------------------------------------------
-        # VARIÁVEIS INTERNAS
-        # ---------------------------------------------------------------------         
-        # Inclusão desta etapa da lista de etapas
-        self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[7])        
-
     def __Hessiana_FO_Param(self,delta=1e-5):
         u'''
         Método para calcular a matriz Hessiana da função objetivo em relaçao aos parâmetros.
@@ -1318,40 +1333,43 @@ class EstimacaoNaoLinear:
         Referência
         ==========
         '''
-        
+        # ---------------------------------------------------------------------
+        # FLUXO
+        # ---------------------------------------------------------------------
+        self.__controleFluxo.SET_ETAPA('Hessiana')
         #---------------------------------------------------------------------------------------
         # DEFINIÇÃO DA MATRIZ DE DERIVADAS PARCIAIS DA FUNÇÃO OBJETIVO EM RELAÇÃO AOS PARÂMETROS
         #----------------------------------------------------------------------------------------
-        
+
         #Criação de matriz de ones com dimenção:(número de parâmetrosXnúmero de parâmetros) a\
         #qual terá seus elementos substituidos pelo resultado da derivada das  funçâo em relação aos\
         #parâmetros i e j de acordo determinação do for.
         matriz_hessiana=[[1. for col in range(self.parametros.NV)] for row in range(self.parametros.NV)]
-        
+
         # Valor da função objetivo nos argumentos determinados pela otmização, ou seja, valor no ponto ótimo.
         FO_otimo = self.FOotimo
-        
+
         #Estrutura iterativa para deslocamento pela matriz Hessiana anteriormente definida.
-        for i in range(self.parametros.NV): 
+        for i in range(self.parametros.NV):
             for j in range(self.parametros.NV):
-                
+
                 # Incrementos para as derivadas dos parâmetros, tendo delta1 e delta2 aplicados a qual parãmetro está ocorrendo a alteração\
                 #no vetor de parâmetros que é argumento da FO.
                 # Obs.: SE O VALOR DO PARÂMETRO FOR ZERO, APLICA-SE OS VALORES DE ''delta'' para ''delta1'' e/ou ''delta2'', pois não existe log de zero, causando erro.
 
                 delta1 = (10**(floor(log10(abs(self.parametros.estimativa[i])))))*delta if self.parametros.estimativa[i] != 0 else delta
                 delta2 = (10**(floor(log10(abs(self.parametros.estimativa[j])))))*delta if self.parametros.estimativa[j] != 0 else delta
-                
+
                 #---------------------------------------------------------------------------------------
                 # Aplicação da derivada numérica de segunda ordem para os elementos da diagonal principal.
                 #----------------------------------------------------------------------------------------
-                
+
                 if i==j:
-                    
+
                     # Vetor com o incremento no parâmetro i
                     vetor_parametro_delta_positivo = vetor_delta(self.parametros.estimativa,i,delta1)
                     # Vetor com o incremento no parâmetro j.
-                    vetor_parametro_delta_negativo = vetor_delta(self.parametros.estimativa,j,-delta2) 
+                    vetor_parametro_delta_negativo = vetor_delta(self.parametros.estimativa,j,-delta2)
 
                     # Cálculo da função objetivo para seu respectivo vetor alterado para utilização na derivação numérica.
                     # Inicialização das threads
@@ -1365,49 +1383,43 @@ class EstimacaoNaoLinear:
 
                     # Fórmula de diferença finita para i=j. (Disponível em, Gilat, Amos; MATLAB Com Aplicação em Engenharia, 2a ed, Bookman, 2006.)
                     matriz_hessiana[i][j]=(FO_delta_positivo.result-2*FO_otimo+FO_delta_negativo.result)/(delta1*delta2)
-                    
+
                 #-------------------------------------------------------------------------------
-                #Aplicação da derivada numérica de segunda ordem para os demais elementos da matriz.     
+                #Aplicação da derivada numérica de segunda ordem para os demais elementos da matriz.
                 #-----------------------------------------------------------------------------------
                 else:
                     # vetor com o incremento do parâmetro i,j
                     vetor_parametro_delta_ipositivo_jpositivo = vetor_delta(self.parametros.estimativa,[i,j],[delta1,delta2])
-                    
+
                     FO_ipositivo_jpositivo=self.__FO(vetor_parametro_delta_ipositivo_jpositivo,self._args_FO())
                     FO_ipositivo_jpositivo.start()
                     FO_ipositivo_jpositivo.join()
 
                     vetor_parametro_delta_inegativo_jpositivo=vetor_delta(self.parametros.estimativa,[i,j],[-delta1,delta2])
- 
+
                     FO_inegativo_jpositivo=self.__FO(vetor_parametro_delta_inegativo_jpositivo,self._args_FO())
                     FO_inegativo_jpositivo.start()
                     FO_inegativo_jpositivo.join()
 
                     vetor_parametro_delta_ipositivo_jnegativo=vetor_delta(self.parametros.estimativa,[i,j],[delta1,-delta2])
-   
+
                     FO_ipositivo_jnegativo=self.__FO(vetor_parametro_delta_ipositivo_jnegativo,self._args_FO())
                     FO_ipositivo_jnegativo.start()
                     FO_ipositivo_jnegativo.join()
 
                     vetor_parametro_delta_inegativo_jnegativo=vetor_delta(self.parametros.estimativa,[i,j],[-delta1,-delta2])
-                    
+
                     FO_inegativo_jnegativo=self.__FO(vetor_parametro_delta_inegativo_jnegativo,self._args_FO())
                     FO_inegativo_jnegativo.start()
                     FO_inegativo_jnegativo.join()
-                    
+
                     # Fórmula de diferença finita para i=~j. Dedução do próprio autor, baseado em intruções da bibliografia:\
                     #(Gilat, Amos; MATLAB Com Aplicação em Engenharia, 2a ed, Bookman, 2006.)
                     matriz_hessiana[i][j]=((FO_ipositivo_jpositivo.result-FO_inegativo_jpositivo.result)/(2*delta1)\
                     -(FO_ipositivo_jnegativo.result-FO_inegativo_jnegativo.result)/(2*delta1))/(2*delta2)
 
-        # ---------------------------------------------------------------------
-        # VARIÁVEIS INTERNAS
-        # ---------------------------------------------------------------------
-        # Inclusão desta etapa na lista de etapas: Hessiana
-        self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[13])
-
         return array(matriz_hessiana)
-        
+
     def __Matriz_Gy(self,delta=1e-5):
         u'''
         Método para calcular a matriz Gy(derivada segunda da Fobj em relação aos parâmetros e y_experimentais).
@@ -1431,45 +1443,53 @@ class EstimacaoNaoLinear:
         Referência
         ==========
         '''
+        # ---------------------------------------------------------------------
+        # FLUXO
+        # ---------------------------------------------------------------------
+        self.__controleFluxo.SET_ETAPA('Gy')
+
+        # ---------------------------------------------------------------------
+        # EXECUÇÃO
+        # ---------------------------------------------------------------------
         #Criação de matriz de ones com dimenção:(número de var. independentes* NE X número de parâmetros) a\
         #qual terá seus elementos substituidos pelo resultado da derivada das  funçâo em relação aos\
         #parâmetros i e Ys j de acordo determinação do for.
-        
+
         matriz_Gy = [[1. for col in xrange(self.y.NV*self.y.experimental.NE)] for row in xrange(self.parametros.NV)]
-        
+
         #Estrutura iterativa para deslocamento pela matriz Gy anteriormente definida.
-        for i in xrange(self.parametros.NV): 
+        for i in xrange(self.parametros.NV):
             for j in xrange(self.y.NV*self.y.experimental.NE):
-                
+
                 # Incremento no vetor de parâetros
                 # --------------------------------------------------------------
                 # OBS.: SE O VALOR DO PARÂMETRO e/ou DO Y FOR ZERO, APLICA-SE OS VALORES DE ''delta'' para ''delta1'' e/ou ''delta2'', pois não existe log de zero, causando erro.
                 # --------------------------------------------------------------
-                delta1 = (10**(floor(log10(abs(self.parametros.estimativa[i])))))*delta           if self.parametros.estimativa[i]           != 0 else delta 
+                delta1 = (10**(floor(log10(abs(self.parametros.estimativa[i])))))*delta           if self.parametros.estimativa[i]           != 0 else delta
                 # incremento para a derivada nos valores de y
-                delta2 = (10**(floor(log10(abs(self.y.experimental.vetor_estimativa[j])))))*delta if self.y.experimental.vetor_estimativa[j] != 0 else delta 
-                
+                delta2 = (10**(floor(log10(abs(self.y.experimental.vetor_estimativa[j])))))*delta if self.y.experimental.vetor_estimativa[j] != 0 else delta
+
                 #Vetor alterado dos parâmetros para entrada na função objetivo
-                vetor_parametro_delta_ipositivo = vetor_delta(self.parametros.estimativa,i,delta1) 
+                vetor_parametro_delta_ipositivo = vetor_delta(self.parametros.estimativa,i,delta1)
                 vetor_y_delta_jpositivo         = vetor_delta(self.y.experimental.vetor_estimativa,j,delta2)
-                
+
                 # Agumentos extras a serem passados para a FO.
                 args                            = copy(self._args_FO()).tolist()
                 # Posição [0] da lista de argumantos contem o vetor das variáveis dependentes que será alterado.
-                args[0]                         = vetor_y_delta_jpositivo 
-                
+                args[0]                         = vetor_y_delta_jpositivo
+
                 FO_ipositivo_jpositivo          = self.__FO(vetor_parametro_delta_ipositivo,args) # Valor da _FO para vetores de Ys e parametros alterados.
                 FO_ipositivo_jpositivo.start()
                 FO_ipositivo_jpositivo.join()
 
                 # Processo similar ao anterior. Uso de subrrotina vetor_delta.
                 vetor_parametro_delta_inegativo = vetor_delta(self.parametros.estimativa,i,-delta1)
-                
+
                 FO_inegativo_jpositivo          = self.__FO(vetor_parametro_delta_inegativo,args) # Valor da _FO para vetores de Ys e parametros alterados.
                 FO_inegativo_jpositivo.start()
                 FO_inegativo_jpositivo.join()
 
-                vetor_y_delta_jnegativo         = vetor_delta(self.y.experimental.vetor_estimativa,j,-delta2) 
+                vetor_y_delta_jnegativo         = vetor_delta(self.y.experimental.vetor_estimativa,j,-delta2)
                 args                            = copy(self._args_FO()).tolist()
                 args[0]                         = vetor_y_delta_jnegativo
 
@@ -1485,12 +1505,6 @@ class EstimacaoNaoLinear:
                 # (Gilat, Amos; MATLAB Com Aplicação em Engenharia, 2a ed, Bookman, 2006.)
                 matriz_Gy[i][j]=((FO_ipositivo_jpositivo.result-FO_inegativo_jpositivo.result)/(2*delta1)\
                 -(FO_ipositivo_jnegativo.result-FO_inegativo_jnegativo.result)/(2*delta1))/(2*delta2)
-
-        # ---------------------------------------------------------------------
-        # VARIÁVEIS INTERNAS
-        # ---------------------------------------------------------------------
-        # Inclusão desta etapa na lista de etapas: Gy
-        self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[14])
 
         return array(matriz_Gy)
 
@@ -1532,52 +1546,53 @@ class EstimacaoNaoLinear:
         
         Retorna a matriz S(array).
         '''
-        
+        # ---------------------------------------------------------------------
+        # FLUXO
+        # ---------------------------------------------------------------------
+        self.__controleFluxo.SET_ETAPA('S')
+        # ---------------------------------------------------------------------
+        # EXECUÇÃO
+        # ---------------------------------------------------------------------
         #Criação de matriz de ones com dimenção:(número de Y*NE X número de parâmetros) a\
         #qual terá seus elementos substituidos pelo resultado da derivada das  função em relação aos\
         #parâmetros i de acordo o seguinte ''for''.
 
         matriz_S = ones((self.y.NV*self.y.validacao.NE,self.parametros.NV))
-        
-        for i in xrange(self.parametros.NV): 
+
+        for i in xrange(self.parametros.NV):
 
                 # Incrementos para as derivadas dos parâmetros, tendo delta_alpha aplicados a qual parâmetro está ocorrendo a alteração\
                 #no vetor de parâmetros que é argumento da FO.
-                
+
                 #--------------------------------------------------------------
                 #OBS.: SE O VALOR DO PARÂMETRO FOR ZERO, APLICA-SE OS VALORES DE ''delta'' para delta_alpha, pois não existe log de zero, causando erro.
                 #--------------------------------------------------------------
                 delta_alpha = (10**(floor(log10(abs(self.parametros.estimativa[i])))))*delta if self.parametros.estimativa[i] != 0 else delta
 
                 #Vetores alterados dos parâmetros para entrada na função do modelo
-                vetor_parametro_delta_i_positivo = vetor_delta(self.parametros.estimativa,i,delta_alpha) 
+                vetor_parametro_delta_i_positivo = vetor_delta(self.parametros.estimativa,i,delta_alpha)
                 vetor_parametro_delta_i_negativo = vetor_delta(self.parametros.estimativa,i,-delta_alpha)
 
-                #Valores para o modelo com os parâmetros acrescidos (matriz na foma de array).                
+                #Valores para o modelo com os parâmetros acrescidos (matriz na foma de array).
                 ycalculado_delta_positivo       = self.__modelo(vetor_parametro_delta_i_positivo,x,self._args_model())
-                
+
                 ycalculado_delta_positivo.start()
                 ycalculado_delta_positivo.join()
 
                 #Valores para o modelo com os parâmetros decrescidos (matriz na foma de array).
                 ycalculado_delta_negativo       = self.__modelo(vetor_parametro_delta_i_negativo,x,self._args_model())
-                
+
                 ycalculado_delta_negativo.start()
                 ycalculado_delta_negativo.join()
 
                 # Fórmula de diferença finita de primeira ordem. Fonte bibliográfica bibliográfia:\
                 #(Gilat, Amos; MATLAB Com Aplicação em Engenharia, 2a ed, Bookman, 2006.) - página (?)
                 matriz_S[:,i:i+1] =  (matriz2vetor(ycalculado_delta_positivo.result) - matriz2vetor(ycalculado_delta_negativo.result))/(2*delta_alpha)
-        # ---------------------------------------------------------------------
-        # VARIÁVEIS INTERNAS
-        # ---------------------------------------------------------------------
-        # Inclusão desta etapa na lista de etapas: Gy
-        self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[15])
 
         return matriz_S
 
     def __preencherRegiao(self,**kwargs):
-        u'''
+        u"""
         Método utilizado para preenchimento da região de abrangência
 
         =================
@@ -1592,14 +1607,42 @@ class EstimacaoNaoLinear:
             * limite_inferior (list): limite mínimo que define a região de abrangência.
             * iteracoes (int): número de iterações a serem realizadas. Default: 10000.
             * fatorlimitebusca: quanto maior este fator, maior a faixa automática de busca baseada no range que a elipse abrange. Default: 1/10
-            * distribuicao (string): define como as amostras de parâmetros são geradas. Default: uniforme (até 2 parâmetros), triangular (mais de 3 parâmetros(
-        '''
+            * distribuicao (string): define como as amostras de parâmetros são geradas. Default: uniforme (até 2 parâmetros), triangular (mais de 3 parâmetros)
+        """
+        # ---------------------------------------------------------------------
+        # FLUXO
+        # ---------------------------------------------------------------------
+        self.__controleFluxo.SET_ETAPA('preencherRegiao')
+        self.__controleFluxo.SET_ETAPA('mapeamentoFO')
+
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------
         tipo = kwargs.get('metodoPreenchimento') if kwargs.get('metodoPreenchimento') is not None else 'MonteCarlo'
 
-        self.__validacaoArgumentosEntrada(self.__etapasdisponiveis[16],kwargs,tipo)
+        if tipo not in self.__tipoPreenchimento:
+            raise NameError('O método solicitado para preenchimento da região de abrangência {}'.format(
+                tipo) + ' não está disponível. Métodos disponíveis ' + ', '.join(self.__tipoPreenchimento) + '.')
+
+        if tipo == self.__tipoPreenchimento[1]:
+            kwargsdisponiveis = ('iteracoes', 'limite_superior', 'limite_inferior', 'metodoPreenchimento',
+                                 'fatorlimitebusca','distribuicao')
+
+            if not set(kwargs.keys()).issubset(kwargsdisponiveis):
+                raise NameError('O(s) keyword(s) argument digitado(s) está(ão) incorreto(s). Keyword disponíveis: ' +
+                                ', '.join(kwargsdisponiveis) + '.')
+
+            if kwargs.get(kwargsdisponiveis[0]) is not None:
+                if kwargs.get(kwargsdisponiveis[0]) < 1:
+                    raise ValueError('O número de iterações deve ser inteiro e positivo.')
+
+            if kwargs.get(kwargsdisponiveis[4]) is not None:
+                if kwargs.get(kwargsdisponiveis[4]) < 0:
+                    raise ValueError('O fator limite busca deve positivo.')
+
+            if kwargs.get(kwargsdisponiveis[5]) is not None:
+                if kwargs.get(kwargsdisponiveis[5]) not in ['uniforme', 'triangular']:
+                    raise ValueError('As distribuições disponíveis para o Método de MonteCarlo são: {}.'.format(['uniforme', 'triangular']))
 
         # ---------------------------------------------------------------------
         # LIMTES DE BUSCA
@@ -1706,12 +1749,6 @@ class EstimacaoNaoLinear:
                 self.__hist_Posicoes.append(amostra)
                 self.__hist_Fitness.append(FO.result)
 
-        # ---------------------------------------------------------------------
-        # VARIÁVEIS INTERNAS
-        # ---------------------------------------------------------------------
-        self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[16])# Inclusão desta etapa da lista de etapas
-        self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[12])# Inclusão do histórico da otimização na lista de etapas
-
     def __criteriosAbrangencia(self):
         '''
         Método que retorna os valores das distribuições de Fisher, chi2 e o valor limite da função objetivo.
@@ -1738,9 +1775,9 @@ class EstimacaoNaoLinear:
         [1] SCHWAAB, M. et al. Nonlinear parameter estimation through particle swarm optimization. Chemical Engineering Science, v. 63, n. 6, p. 1542–1552, mar. 2008.
         '''
         # ---------------------------------------------------------------------
-        # VALIDAÇÃO
+        # FLUXO
         # ---------------------------------------------------------------------
-        self.__validacaoArgumentosEntrada('regiaoAbrangencia',None)
+        self.__controleFluxo.SET_ETAPA('regiaoAbrangencia')
 
         # ---------------------------------------------------------------------
         # DETERMINAÇÃO DA REGIÃO DE ABRANGÊNCIA PELO CRITÉRIO DE FISHER
@@ -1759,16 +1796,9 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         if regiao == []:
             warn('A região de abrangência avaliada pelo método da verossimilhança não contém pontos. Reveja os parâmetros do algoritmo utilizado.',UserWarning)
-        # ---------------------------------------------------------------------
-        # VARIÁVEIS INTERNAS
-        # ---------------------------------------------------------------------
-        self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[4]) # Inclusão desta etapa da lista de etapas
 
-        # ---------------------------------------------------------------------
-        # RETORNO
-        # ---------------------------------------------------------------------
         return regiao
-        
+
     def analiseResiduos(self):
         u'''
         Método para realização da análise de resíduos.
@@ -1790,9 +1820,12 @@ class EstimacaoNaoLinear:
               ou pode haver subestimação dos erros esperimentais
         '''
         # ---------------------------------------------------------------------
+        # FLUXO
+        # ---------------------------------------------------------------------
+        self.__controleFluxo.SET_ETAPA('analiseResiduos')
+        # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------         
-        self.__validacaoArgumentosEntrada('analiseResiduos',None,None)       
 
         # Tamanho dos vetores:
         if self.y.validacao.NE != self.y.calculado.NE:
@@ -1803,7 +1836,7 @@ class EstimacaoNaoLinear:
         # Calculos dos residuos (ou desvios) - estão baseados nos dados de validação
         residuo_y = self.y.validacao.matriz_estimativa - self.y.calculado.matriz_estimativa
         residuo_x = self.x.validacao.matriz_estimativa - self.x.calculado.matriz_estimativa
-        
+
         # ---------------------------------------------------------------------
         # ATRIBUIÇÃO A GRANDEZAS
         # ---------------------------------------------------------------------       
@@ -1814,7 +1847,7 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # CÁLCULO DE R2 e R2 ajustado
         # ---------------------------------------------------------------------   
-        self.estatisticas = {'R2':{},'R2ajustado':{},'FuncaoObjetivo':{}}
+        self.estatisticas = {'R2': {}, 'R2ajustado': {}, 'FuncaoObjetivo': {}}
         # Para y:
         for i,symb in enumerate(self.y.simbolos):
             SSE = sum(self.y.residuos.matriz_estimativa[:,i]**2)
@@ -1835,14 +1868,14 @@ class EstimacaoNaoLinear:
             else:
                 self.estatisticas['R2'][symb]         = None
                 self.estatisticas['R2ajustado'][symb] = None
-                
+
         # ---------------------------------------------------------------------
         # EXECUÇÃO DE TESTES ESTATÍSTICOS
         # ---------------------------------------------------------------------             
         # Grandezas independentes
         if self.__flag.info['reconciliacao']:
             self.x._testesEstatisticos(self.y.experimental.matriz_estimativa)
- 
+
         # Grandezas dependentes            
         self.y._testesEstatisticos(self.x.experimental.matriz_estimativa)
 
@@ -1851,17 +1884,11 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # TODO: substituir pelo grau de liberdade dos parâmetros, após merge com INcertezaParametros
         gL = self.y.experimental.NE*self.y.NV - self.parametros.NV
-        
+
         chi2max = chi2.ppf(self.PA+(1-self.PA)/2,gL)
         chi2min = chi2.ppf((1-self.PA)/2,gL)
 
         self.estatisticas['FuncaoObjetivo'] = {'chi2max':chi2max,'chi2min':chi2min,'FO':self.FOotimo}
-
-        # ---------------------------------------------------------------------
-        # VARIÁVEIS INTERNAS
-        # ---------------------------------------------------------------------   
-        # Inclusão desta etapa na lista de etapas
-        self.__etapas[self.__etapasID].append(self.__etapasdisponiveis[5]) 
 
     def graficos(self,tipos):
         u"""
@@ -1878,17 +1905,24 @@ class EstimacaoNaoLinear:
             * 'otimizacao': gráficos referentes à otimização (depende do algoritmo utilizado)
             * 'analiseResiduos': gráficos referentes à análise de resíduos.
         """
-        
+
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------         
-        self.__validacaoArgumentosEntrada('graficos', None, [tipos])
+        # validando se os tipos de gráficos
+        if not isinstance(tipos, list):
+            raise TypeError('Os tipos de gráficos devem ser definidos em uma lista.')
+        # validando se os tipos de gráficos foram corretamente definidos
+        if not set(tipos).issubset(self.__tipoGraficos):
+            raise NameError('O(s) tipo(s) de gráfico(s) selecionado(s) não está(ão) disponível(is): ' + ', '.join(
+                set(tipos).difference(self.__tipoGraficos)) + '. Tipos disponíveis: ' + ', '.join(
+                self.__tipoGraficos) + '.')
 
         # ---------------------------------------------------------------------
         # CAMINHO BASE
         # ---------------------------------------------------------------------         
-        base_path  = self.__base_path + sep + self._configFolder['graficos'] + sep
-        
+        base_path = self.__base_path + sep + self._configFolder['graficos'] + sep
+
         # ---------------------------------------------------------------------
         # GRÁFICOS
         # --------------------------------------------------------------------- 
@@ -1896,7 +1930,7 @@ class EstimacaoNaoLinear:
         # grandezas-entrada
         if (self.__tipoGraficos[1] in tipos):
             # se gerarEntradas foi executado alguma vez:
-            if self.__etapasdisponiveis[1] in self.__etapasGlobal():
+            if self.__controleFluxo.gerarEntradas:
                 base_dir = sep + self._configFolder['graficos-grandezas-entrada-experimental'] + sep
                 Validacao_Diretorio(base_path,base_dir)
                 # gráficos gerados para os dados experimentais
@@ -1914,15 +1948,15 @@ class EstimacaoNaoLinear:
                 if self.__flag.info['dadosvalidacao'] == True:
                     base_dir = sep + self._configFolder['graficos-grandezas-entrada-validacao'] + sep
                     Validacao_Diretorio(base_path, base_dir)
-                    self.x.Graficos(base_path, base_dir, ID=['validacao'], fluxo=self.__etapasID)
-                    self.y.Graficos(base_path, base_dir, ID=['validacao'], fluxo=self.__etapasID)
+                    self.x.Graficos(base_path, base_dir, ID=['validacao'], fluxo=self.__controleFluxo.FLUXO_ID)
+                    self.y.Graficos(base_path, base_dir, ID=['validacao'], fluxo=self.__controleFluxo.FLUXO_ID)
 
                     # Gráficos das grandezas y em função de x
                     for iy in xrange(self.y.NV):
                         for ix in xrange(self.x.NV):
-                            graficos_x_y(self.x, self.y, ix, iy, base_path, base_dir, 'validacao',self.__etapasID)
+                            graficos_x_y(self.x, self.y, ix, iy, base_path, base_dir, 'validacao',self.__controleFluxo.FLUXO_ID)
             else:
-                warn('Os gráficos de entrada não puderam ser criados, pois o método {} não foi executado.'.format(self.__etapasdisponiveis[1]),UserWarning)
+                warn('Os gráficos de entrada não puderam ser criados, pois o método gerarEntradas não foi executado.',UserWarning)
 
         # Gráficos referentes aos dados de saída (calculados)
         # grandezas-calculado
@@ -1931,32 +1965,29 @@ class EstimacaoNaoLinear:
             Validacao_Diretorio(base_path, base_dir)
 
             # a incerteza dos parâmetros foi alguma vez executada
-            if self.__etapasdisponiveis[3] in self.__etapasGlobal():
-
-                self.parametros.Graficos(base_path, base_dir, ID=['parametro'], fluxo=self.__etapasID)
+            if self.__controleFluxo.incertezaParametros:
+                self.parametros.Graficos(base_path, base_dir, ID=['parametro'], fluxo=self.__controleFluxo.FLUXO_ID)
             else:
-                warn('Os gráficos envolvendo somente as grandezas calculadas (PARÂMETROS) não puderam ser criados, pois o método {} não foi executado.'.format(self.__etapasdisponiveis[3]),UserWarning)
+                warn('Os gráficos envolvendo somente as grandezas calculadas (PARÂMETROS) não puderam ser criados, pois o método incertezaParametros não foi executado.',UserWarning)
 
             # Predição deve ter sido executada no fluxo de trabalho
-            if self.__etapasdisponiveis[7] in self.__etapas[self.__etapasID]:
-
-                self.x.Graficos(base_path, base_dir, ID=['calculado'], fluxo=self.__etapasID)
-                self.y.Graficos(base_path, base_dir, ID=['calculado'], fluxo=self.__etapasID)
+            if self.__controleFluxo.predicao:
+                self.x.Graficos(base_path, base_dir, ID=['calculado'], fluxo=self.__controleFluxo.FLUXO_ID)
+                self.y.Graficos(base_path, base_dir, ID=['calculado'], fluxo=self.__controleFluxo.FLUXO_ID)
 
             else:
-                warn('Os gráficos envolvendo somente as grandezas calculadas (X e Y) não puderam ser criados, pois o método {} não foi executado.'.format(self.__etapasdisponiveis[7]),UserWarning)
+                warn('Os gráficos envolvendo somente as grandezas calculadas (X e Y) não puderam ser criados, pois o método predicao não foi executado.',UserWarning)
         # otimização
         if self.__tipoGraficos[4] in tipos:
             base_dir = sep + self._configFolder['graficos-otimizacao'] + sep
             Validacao_Diretorio(base_path, base_dir)
             # otimiza deve ter sido alguma vez no contexto global e o algoritmo de otimização possui gráficos de desempenho
-            if self.__etapasdisponiveis[2] in self.__etapasGlobal() and self.__flag.info['graficootimizacao']:
+            if self.__controleFluxo.otimizacao and self.__flag.info['graficootimizacao']:
                 # Gráficos da otimização
-
                 self.Otimizacao.Graficos(base_path+base_dir,Nome_param=self.parametros.labelGraficos(),FO2a2=True)
-    
+
             else:
-                warn('Os gráficos de otimizacao não puderam ser criados, o algoritmo de otimização utilizado não possui gráficos de desempenho OU o método {} não foi executado.'.format(self.__etapasdisponiveis[2]),UserWarning)
+                warn('Os gráficos de otimizacao não puderam ser criados, o algoritmo de otimização utilizado não possui gráficos de desempenho OU o método otimizacao não foi executado.',UserWarning)
 
         # regiaoAbrangencia
         if self.__tipoGraficos[0] in tipos:
@@ -1972,37 +2003,37 @@ class EstimacaoNaoLinear:
 
                     Combinacoes = int(factorial(self.parametros.NV)/(factorial(self.parametros.NV-2)*factorial(2)))
                     p1 = 0; p2 = 1; cont = 0; passo = 1
-                    
+
                     for pos in xrange(Combinacoes):
                         if pos == (self.parametros.NV-1)+cont:
                             p1 +=1; p2 = p1+1; passo +=1
                             cont += self.parametros.NV-passo
-                        
+
                         fig = figure()
                         ax = fig.add_subplot(1,1,1)
 
-                        if self.__etapasdisponiveis[4] in self.__etapasGlobal():
+                        if self.__controleFluxo.regiaoAbrangencia:
                             aux1 = []
                             aux2 = []
-                            for it in xrange(size(self.parametros.regiao_abrangencia)/self.parametros.NV):     
+                            for it in xrange(size(self.parametros.regiao_abrangencia)/self.parametros.NV):
                                 aux1.append(self.parametros.regiao_abrangencia[it][p1])
                                 aux2.append(self.parametros.regiao_abrangencia[it][p2])
                             PSO, = plot(aux1,aux2,'bo',linewidth=2.0,zorder=1)
-                            
+
                         fisher, FOcomparacao = self.__criteriosAbrangencia()
 
                         cov = array([[self.parametros.matriz_covariancia[p1,p1],self.parametros.matriz_covariancia[p1,p2]],[self.parametros.matriz_covariancia[p2,p1],self.parametros.matriz_covariancia[p2,p2]]])
                         ellipse, coordenadas_x, coordenadas_y = plot_cov_ellipse(cov, [self.parametros.estimativa[p1],self.parametros.estimativa[p2]], FOcomparacao, fill = False, color = 'r', linewidth=2.0,zorder=2,ax=ax)
                         plot(self.parametros.estimativa[p1],self.parametros.estimativa[p2],'r*',markersize=10.0,zorder=2)
                         plot(coordenadas_x,coordenadas_y,'.r',markersize=0.01)
-                        ax.yaxis.grid(color='gray', linestyle='dashed')                        
+                        ax.yaxis.grid(color='gray', linestyle='dashed')
                         ax.xaxis.grid(color='gray', linestyle='dashed')
                         xlabel(self.parametros.labelGraficos()[p1],fontsize=20)
                         ylabel(self.parametros.labelGraficos()[p2],fontsize=20)
 
-                        if self.__etapasdisponiveis[4] in self.__etapasGlobal() and self.parametros.regiao_abrangencia != []:
+                        if self.__controleFluxo.regiaoAbrangencia and self.parametros.regiao_abrangencia != []:
                             legend([ellipse,PSO],['Elipse',u'Verossimilhança'],loc='best')
-                        elif self.__etapasdisponiveis[4] in self.__etapasGlobal() and self.parametros.regiao_abrangencia == []:
+                        elif self.__controleFluxo.regiaoAbrangencia and self.parametros.regiao_abrangencia == []:
                             legend([ellipse],['Ellipse'],loc='best')
                         fig.savefig(base_path+base_dir+'regiao_verossimilhanca_fl'+str(0)+'_'+str(self.parametros.simbolos[p1])+'_'+str(self.parametros.simbolos[p2])+'.png')
                         close()
@@ -2011,19 +2042,17 @@ class EstimacaoNaoLinear:
                     warn('Os gráficos de regiao de abrangencia não puderam ser criados, pois há apenas um parâmetro.',UserWarning)
 
             else:
-                warn('Os gráficos de regiao de abrangência não puderam ser criados, pois o método {} não foi executado após {} OU no método {} não foi solicitado preenchimento de região.'.format(self.__etapasdisponiveis[3], self.__etapasdisponiveis[2], self.__etapasdisponiveis[3]),UserWarning)
+                warn('Os gráficos de regiao de abrangência não puderam ser criados, pois o método incertezaParametros não foi executado OU no método SETparametros não foi definida a variância dos parâmetros',UserWarning)
         # predição
         if self.__tipoGraficos[2] in tipos:
             # Predição deve ter sido executada neste fluxo
-
-            if self.__etapasdisponiveis[7] in self.__etapas[self.__etapasID]:
-
+            if self.__controleFluxo.predicao:
                 base_dir = sep + self._configFolder['graficos-predicao'] + sep
                 Validacao_Diretorio(base_path,base_dir)
                 #gráficos de y em função de y
                 for iy in xrange(self.y.NV):
                     for ix in xrange(self.x.NV):
-                        graficos_x_y(self.x, self.y, ix, iy, base_path, base_dir, 'calculado', self.__etapasID)
+                        graficos_x_y(self.x, self.y, ix, iy, base_path, base_dir, 'calculado', self.__controleFluxo.FLUXO_ID)
 
                 #incerteza_expandida_Yc=ones((self.y.calculado.NE,self.y.NV))
                 #incerteza_expandida_Ye=ones((self.y.validacao.NE,self.y.NV))
@@ -2032,58 +2061,21 @@ class EstimacaoNaoLinear:
                 t_val=t.ppf((1-self.PA)/2, self.y.validacao.gL[0][0])
 
                 for iy in xrange(self.y.NV):
-                        # Gráfico comparativo entre valores experimentais e calculados pelo modelo, sem variância         
+                        # Gráfico comparativo entre valores experimentais e calculados pelo modelo, sem variância
                         y  = self.y.validacao.matriz_estimativa[:,iy]
-                        ym = self.y.calculado.matriz_estimativa[:,iy]                   
-                        diagonal = linspace(min(y),max(y))  
-    
+                        ym = self.y.calculado.matriz_estimativa[:,iy]
+                        diagonal = linspace(min(y),max(y))
+
                         fig = figure()
                         ax = fig.add_subplot(1,1,1)
                         plot(y,ym,'bo',linewidth=2.0)
                         plot(diagonal,diagonal,'k-',linewidth=2.0)
-                        ax.yaxis.grid(color='gray', linestyle='dashed')                        
+                        ax.yaxis.grid(color='gray', linestyle='dashed')
                         ax.xaxis.grid(color='gray', linestyle='dashed')
-                        label_tick_x   = ax.get_xticks().tolist()                 
+                        label_tick_x   = ax.get_xticks().tolist()
                         tamanho_tick_x = (label_tick_x[1] - label_tick_x[0])/2
                         ymin   = min(ym) - tamanho_tick_x
                         ymax   = max(ym) + tamanho_tick_x
-                        xlim((ymin,ymax))
-                        ylim((ymin,ymax))    
-                        
-                        if self.__flag.info['dadosvalidacao'] == True:
-                            xlabel(self.y.labelGraficos('validacao')[iy])
-                        else:
-                            xlabel(self.y.labelGraficos('experimental')[iy])
-                       
-                        ylabel(self.y.labelGraficos('calculado')[iy])
-                        
-                        if self.__flag.info['dadosvalidacao'] == True:
-                            fig.savefig(base_path+base_dir+'grafico_fl'+str(self.__etapasID)+'_'+str(self.y.simbolos[iy])+'val_vs_'+str(self.y.simbolos[iy])+'calc_sem_var.png')
-                        else:
-                            fig.savefig(base_path+base_dir+'grafico_fl'+str(self.__etapasID)+'_'+str(self.y.simbolos[iy])+'exp_vs_'+str(self.y.simbolos[iy])+'calc_sem_var.png')
-                        close()
-
-                        yerr_calculado=-t_cal*self.y.calculado.matriz_incerteza[:,iy]
-                            
-                        yerr_experimental=-t_val*self.y.validacao.matriz_incerteza[:,iy]
-                                                             
-                        # Gráfico comparativo entre valores experimentais e calculados pelo modelo, com variância
-                        #yerr_calculado    = incerteza_expandida_Yc[:,iy]
-                        #yerr_experimental = incerteza_expandida_Ye[:,iy]
-
-                        fig = figure()
-                        errorbar(y,ym,xerr=yerr_experimental,yerr=yerr_calculado,fmt="none", marker='o',color='b',linestyle='None')
-                        plot(diagonal,diagonal,'k-',linewidth=2.0)
-                        
-                        ax.yaxis.grid(color='gray', linestyle='dashed')                        
-                        ax.xaxis.grid(color='gray', linestyle='dashed')
-                                            
-                        label_tick_y   = ax.get_yticks().tolist() 
-                        tamanho_tick_y = (label_tick_y[1] - label_tick_y[0])/2
-    
-                        ymin   = min(ym - yerr_calculado) - tamanho_tick_y
-                        ymax   = max(ym + yerr_calculado) + tamanho_tick_y
-                        
                         xlim((ymin,ymax))
                         ylim((ymin,ymax))
 
@@ -2091,13 +2083,50 @@ class EstimacaoNaoLinear:
                             xlabel(self.y.labelGraficos('validacao')[iy])
                         else:
                             xlabel(self.y.labelGraficos('experimental')[iy])
-                        
+
                         ylabel(self.y.labelGraficos('calculado')[iy])
 
                         if self.__flag.info['dadosvalidacao'] == True:
-                            fig.savefig(base_path+base_dir+'grafico_fl'+str(self.__etapasID)+'_'+str(self.y.simbolos[iy])+'val_vs_'+str(self.y.simbolos[iy])+'calc_com_var.png')
+                            fig.savefig(base_path+base_dir+'grafico_fl'+str(self.__controleFluxo.FLUXO_ID)+'_'+str(self.y.simbolos[iy])+'val_vs_'+str(self.y.simbolos[iy])+'calc_sem_var.png')
                         else:
-                            fig.savefig(base_path+base_dir+'grafico_fl'+str(self.__etapasID)+'_'+str(self.y.simbolos[iy])+'exp_vs_'+str(self.y.simbolos[iy])+'calc_com_var.png')
+                            fig.savefig(base_path+base_dir+'grafico_fl'+str(self.__controleFluxo.FLUXO_ID)+'_'+str(self.y.simbolos[iy])+'exp_vs_'+str(self.y.simbolos[iy])+'calc_sem_var.png')
+                        close()
+
+                        yerr_calculado=-t_cal*self.y.calculado.matriz_incerteza[:,iy]
+
+                        yerr_experimental=-t_val*self.y.validacao.matriz_incerteza[:,iy]
+
+                        # Gráfico comparativo entre valores experimentais e calculados pelo modelo, com variância
+                        #yerr_calculado    = incerteza_expandida_Yc[:,iy]
+                        #yerr_experimental = incerteza_expandida_Ye[:,iy]
+
+                        fig = figure()
+                        errorbar(y,ym,xerr=yerr_experimental,yerr=yerr_calculado,fmt="none", marker='o',color='b',linestyle='None')
+                        plot(diagonal,diagonal,'k-',linewidth=2.0)
+
+                        ax.yaxis.grid(color='gray', linestyle='dashed')
+                        ax.xaxis.grid(color='gray', linestyle='dashed')
+
+                        label_tick_y   = ax.get_yticks().tolist()
+                        tamanho_tick_y = (label_tick_y[1] - label_tick_y[0])/2
+
+                        ymin   = min(ym - yerr_calculado) - tamanho_tick_y
+                        ymax   = max(ym + yerr_calculado) + tamanho_tick_y
+
+                        xlim((ymin,ymax))
+                        ylim((ymin,ymax))
+
+                        if self.__flag.info['dadosvalidacao'] == True:
+                            xlabel(self.y.labelGraficos('validacao')[iy])
+                        else:
+                            xlabel(self.y.labelGraficos('experimental')[iy])
+
+                        ylabel(self.y.labelGraficos('calculado')[iy])
+
+                        if self.__flag.info['dadosvalidacao'] == True:
+                            fig.savefig(base_path+base_dir+'grafico_fl'+str(self.__controleFluxo.FLUXO_ID)+'_'+str(self.y.simbolos[iy])+'val_vs_'+str(self.y.simbolos[iy])+'calc_com_var.png')
+                        else:
+                            fig.savefig(base_path+base_dir+'grafico_fl'+str(self.__controleFluxo.FLUXO_ID)+'_'+str(self.y.simbolos[iy])+'exp_vs_'+str(self.y.simbolos[iy])+'calc_com_var.png')
                         close()
 
                         if not self.__flag.info['dadosvalidacao']:
@@ -2141,28 +2170,27 @@ class EstimacaoNaoLinear:
                             ylabel(self.y.labelGraficos('calculado')[iy])
 
                             if self.__flag.info['dadosvalidacao'] == True:
-                                fig.savefig(base_path+base_dir+'grafico_fl'+str(self.__etapasID)+'_'+str(self.y.simbolos[iy])+'val_vs_'+str(self.y.simbolos[iy])+'calc_teste_F.png')
+                                fig.savefig(base_path+base_dir+'grafico_fl'+str(self.__controleFluxo.FLUXO_ID)+'_'+str(self.y.simbolos[iy])+'val_vs_'+str(self.y.simbolos[iy])+'calc_teste_F.png')
                             else:
-                                fig.savefig(base_path+base_dir+'grafico_fl'+str(self.__etapasID)+'_'+str(self.y.simbolos[iy])+'exp_vs_'+str(self.y.simbolos[iy])+'calc_teste_F.png')
+                                fig.savefig(base_path+base_dir+'grafico_fl'+str(self.__controleFluxo.FLUXO_ID)+'_'+str(self.y.simbolos[iy])+'exp_vs_'+str(self.y.simbolos[iy])+'calc_teste_F.png')
                             close()
 
             else:
-                warn('Os gráficos envolvendo a estimação (predição) não puderam ser criados, pois o método {} não foi executado.'.format(self.__etapasdisponiveis[7]),UserWarning)
+                warn('Os gráficos envolvendo a estimação (predição) não puderam ser criados, pois o método predicao não foi executado.',UserWarning)
 
         # AnáliseResiduos
         if (self.__tipoGraficos[5] in tipos):
             # o método análise de resíduos deve ter sido executado
-            if self.__etapasdisponiveis[5] in self.__etapas[self.__etapasID]:
-
+            if self.__controleFluxo.analiseResiduos:
                 base_dir = sep + self._configFolder['graficos-analiseResiduos'] + sep
                 Validacao_Diretorio(base_path,base_dir)
                 # Gráficos relacionados aos resíduos das grandezas independentes, caso
                 # seja realizada a reconciliação
                 if self.__flag.info['reconciliacao'] == True:
-                    self.x.Graficos(base_path, base_dir, ID=['residuo'], fluxo=self.__etapasID)
+                    self.x.Graficos(base_path, base_dir, ID=['residuo'], fluxo=self.__controleFluxo.FLUXO_ID)
 
                 # Gráficos relacionados aos resíduos das grandezas dependentes
-                self.y.Graficos(base_path, base_dir, ID=['residuo'], fluxo=self.__etapasID)
+                self.y.Graficos(base_path, base_dir, ID=['residuo'], fluxo=self.__controleFluxo.FLUXO_ID)
 
                 # Grafico dos resíduos em função dos dados de validação (ou experimentais) e calculados
                 for i,simb in enumerate(self.y.simbolos):
@@ -2179,7 +2207,7 @@ class EstimacaoNaoLinear:
                     ax.xaxis.grid(color='gray', linestyle='dashed')
                     ax.axhline(0, color='black', lw=2)
                     legend()
-                    fig.savefig(base_path+base_dir+'residuos_fl'+str(self.__etapasID)+'_versus_'+self.y.simbolos[i]+'_calculado.png')
+                    fig.savefig(base_path+base_dir+'residuos_fl'+str(self.__controleFluxo.FLUXO_ID)+'_versus_'+self.y.simbolos[i]+'_calculado.png')
                     close()
 
                     fig = figure()
@@ -2193,11 +2221,11 @@ class EstimacaoNaoLinear:
                     if self.__flag.info['dadosvalidacao']:
                         xlabel(u'Valores de validação '+self.y.labelGraficos()[i])
                         ylabel(u'Resíduos '+self.y.labelGraficos()[i])
-                        fig.savefig(base_path+base_dir+'residuos_fl'+str(self.__etapasID)+'_versus_'+self.y.simbolos[i]+'_validacao.png')
+                        fig.savefig(base_path+base_dir+'residuos_fl'+str(self.__controleFluxo.FLUXO_ID)+'_versus_'+self.y.simbolos[i]+'_validacao.png')
                     else:
                         xlabel(u'Valores de experimentais '+self.y.labelGraficos()[i])
                         ylabel(u'Resíduos '+self.y.labelGraficos()[i])
-                        fig.savefig(base_path+base_dir+'residuos_fl'+str(self.__etapasID)+'_versus_'+self.y.simbolos[i]+'_experimental.png')
+                        fig.savefig(base_path+base_dir+'residuos_fl'+str(self.__controleFluxo.FLUXO_ID)+'_versus_'+self.y.simbolos[i]+'_experimental.png')
                     close()
 
                     for j, simbol in enumerate(self.x.simbolos):
@@ -2212,11 +2240,11 @@ class EstimacaoNaoLinear:
                         ax.xaxis.grid(color='gray', linestyle='dashed')
                         ax.axhline(0, color='black', lw=2)
                         legend()
-                        fig.savefig(base_path+base_dir+'residuos_fl'+str(self.__etapasID)+'_versus_'+self.x.simbolos[j]+'_experimental.png')
+                        fig.savefig(base_path+base_dir+'residuos_fl'+str(self.__controleFluxo.FLUXO_ID)+'_versus_'+self.x.simbolos[j]+'_experimental.png')
                         close()
 
             else:
-                warn('Os gráficos envolvendo a análise de resíduos não puderam ser criados, pois o método {} não foi executado.'.format(self.__etapasdisponiveis[5]),UserWarning)
+                warn('Os gráficos envolvendo a análise de resíduos não puderam ser criados, pois o método analiseResiduos não foi executado.',UserWarning)
 
     def relatorio(self,**kwargs):
         '''
@@ -2236,23 +2264,23 @@ class EstimacaoNaoLinear:
         # RELATÓRIO DOS PARÂMETROS
         # ---------------------------------------------------------------------
         # Caso a otimização ou SETParametros tenha sido executado, pode-se fazer um relatório sobre os parâmetros
-        if self.__etapasdisponiveis[2] in self.__etapasGlobal() or self.__etapasdisponiveis[8] in self.__etapasGlobal():
+        if self.__controleFluxo.otimizacao or self.__controleFluxo.SETparametro:
             saida.Parametros(self.parametros,self.FOotimo)
         else:
-            warn('O relatório sobre os parâmetros não foi criado, pois o método {} ou {} não foi executado'.format(self.__etapasdisponiveis[2],self.__etapasdisponiveis[8]))
+            warn('O relatório sobre os parâmetros não foi criado, pois o método otimizacao ou SETparametro não foi executado')
         # ---------------------------------------------------------------------
         # RELATÓRIO DA PREDIÇÃO E ANÁLISE DE RESÍDUOS
         # ---------------------------------------------------------------------
         # Caso a Predição tenha sido executada, pode-se fazer um relatório sobre a predição
-        if self.__etapasdisponiveis[7] in self.__etapas[self.__etapasID]:
+        if self.__controleFluxo.predicao:
             # Caso a Análise de resíduos tenha sido executada, pode-se fazer um relatório completo
-            if self.__etapasdisponiveis[5] in self.__etapas[self.__etapasID]:
+            if self.__controleFluxo.analiseResiduos:
                 saida.Predicao(self.x,self.y,self.estatisticas,**kwargs)
             else:
                 saida.Predicao(self.x,self.y,None,**kwargs)
-                warn('O relatório sobre a análise de resíduos não foi criado, pois o método {} não foi executado. Entretanto, ainda é possível exportar a predição'.format(self.__etapasdisponiveis[5]))
+                warn('O relatório sobre a análise de resíduos não foi criado, pois o método analiseResiduos não foi executado. Entretanto, ainda é possível exportar a predição')
         else:
-            warn('O relatório sobre a predição e análise de resíduos não foi criado, pois o método {} não foi executado'.format(self.__etapasdisponiveis[7]))
+            warn('O relatório sobre a predição e análise de resíduos não foi criado, pois o método predicao não foi executado')
 
         # ---------------------------------------------------------------------
         # RELATÓRIO DA PREDIÇÃO E ANÁLISE DE RESÍDUOS
