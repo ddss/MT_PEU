@@ -66,10 +66,10 @@ class EstimacaoNaoLinear:
             MÉTODOS:
             ========
 
-            .SET_ETAPA: método para, na execução da Estimacao, indicar qual etapa está sendo avaliada.o método irá avaliar
+            * .SET_ETAPA: método para, na execução da Estimacao, indicar qual etapa está sendo avaliada.o método irá avaliar
             se as etapas predecessoras foram executadas.
-            .reiniciar: reinicia o fluxo. Atribui 0 a todos os atributos.
-            .reiniicarParcial: reiniciar parcialmente o fluxo. Exemplo: quando dados de validação forem inseridos.
+            * .reiniciar: reinicia o fluxo. Atribui 0 a todos os atributos.
+            * .reiniicarParcial: reiniciar parcialmente o fluxo. Exemplo: quando dados de validação forem inseridos.
 
             =============
             PROPRIEDADES:
@@ -117,7 +117,7 @@ class EstimacaoNaoLinear:
                 if not any(teste):
                     raise SyntaxError('Para executar o método {} deve executar antes {}'.format(etapa, ' ou '.join(
                         getattr(self, '_predecessora_' + etapa))))
-                # atribuindo o valor 1 (executado) ao atributo referente à etapa
+            # atribuindo o valor 1 (executado) ao atributo referente à etapa, atualmente em execução
             setattr(self, etapa, 1)
 
         def reiniciar(self,manter='gerarEntradas'):
@@ -243,16 +243,14 @@ class EstimacaoNaoLinear:
         u"""
         Classe para executar a estimação de parâmetros de modelos não lineares.
 
-         Esta classe conta com um conjunto de métodos para obtenção do ótimo de determinada função objetivo, avaliação
-         da incerteza dos parâmetros, estimativa da predição, cálculo da incerteza da predição e análise de resíduos.
-
-         Principais saídas:
-         * Gráficos
-         * Relatórios
+        Esta classe conta com um conjunto de métodos para obtenção do ótimo, utilizando a função objetivo WLS
+        (weighted least squares), avaliação da incerteza dos parâmetros (com região de abrangência), estimativa da
+        predição, cálculo da incerteza da predição e análise de resíduos.
 
         Classes auxiliares:
         * Grandeza
-        * Organizador
+        * Flag
+        * Relatorio
 
         ======================
         Bibliotecas requeridas
@@ -333,10 +331,10 @@ class EstimacaoNaoLinear:
         * ``_armazenarDicionario`` : método que returna as grandezas sob a forma de um dicionário (Vide documentação do método)
 
 
-        **OBSERVAÇÃO**: A ordem de execução dos métodos é importante. Esta classe só permite a execução e métodos, caso as etapas predescessoras tenho sido
+        **OBSERVAÇÃO**: A ordem de execução dos métodos é importante. Esta classe só permite a execução de métodos, caso as etapas predescessoras tenham sido
         executadas. Entretanto, alguns métodos possuem flexibilidade. Segue abaixo algumas exemplos:
         * gerarEntradas para definir os dados de estimação deve ser sempre executado antes de otimiza
-        * gerarEntradas para definir os dados de validação deve ser sempre executado antes de Predicao
+        * gerarEntradas para definir os dados de validação deve ser sempre executado antes de predicao
         * graficos é um método que pode ser executado em diferentes momentos:
             * se for solicitado os gráficos das grandezas-entrada, o método pode ser executado logo após gerarEntradas
             * se for solicitado os gráficos da otimização, o método pode ser executado logo após otimização
@@ -345,16 +343,17 @@ class EstimacaoNaoLinear:
         Fluxo de trabalho
         =================
 
-        Esta classe valida a correta ordem de execução dos métodos. É importante salientar que cada vez que o método ``gerarEntradas`` \
-        é utilizado, é criado um novo ``Fluxo de trabalho`` ou ele ``Reinicia`` todos.
+        Esta classe possui uma classe interna, Fluxo, que valida a correta ordem de execução dos métodos. É importante
+        salientar que cada vez que o método ``gerarEntradas`` é utilizado, é criado um novo ``Fluxo de trabalho`` ou ele
+        ``Reinicia`` todos.
 
         **Observação 1**: Se forem adicionados diferentes dados de validação (execuções do método gerarEntradas para incluir tais dados), \
-        são iniciado novos fluxos, mas é mantido o histórico de toda execução.
+        são iniciado novos fluxos.
 
         **Observação 2**: Se forem adicionados novos dados para estimacao, todo o histórico de fluxos é apagado e reniciado.
 
         Esta característica permite a avaliação de diferentes dados de valiação consecutivamente (uso dos métodos de Predição, análiseResiduos, graficos),
-        após a estimação dos parâmtros (otimiza, incertezaParametros)
+        após a estimação dos parâmetros (otimiza, incertezaParametros)
 
         ======
         Saídas
@@ -382,7 +381,7 @@ class EstimacaoNaoLinear:
         Obs.: Para informações mais detalhadas, consultar os Atributos da classe Grandeza.
 
         * ``PA``: probabilidade de abrangência da análise
-        *
+
         ===============
         Função objetivo
         ===============
@@ -415,7 +414,9 @@ class EstimacaoNaoLinear:
         CONFIGURAÇÕES:
 
         * ._configFolder: variável que contém o nome de todas as pastas criadas pelo algoritmo nas etapas de Gráficos e
-         relatórios. Alterando o conteúdo de uma chave, altera-se o nomes das pastas. Não altere as chaves.
+         relatórios. Alterando o conteúdo de uma chave, altera-se o nomes das pastas. É permitdio alterar o conteúdo das
+         chaves (nomes das pastas), mas alterando as chaves ocasionará erros.
+
         * .__args_user: variável que contém os argumentos extras a serem passados para o modelo. Equivale ao argumento
         args em otimiza.
 
@@ -427,20 +428,22 @@ class EstimacaoNaoLinear:
             * 'graficootimizacao': identifica se o algoritmo de otimização tem gráficos de desempenho
             * 'relatoriootimizacao': identifica se o algoritmo de otimização possui relatório na forma de um arquivo
 
-        * .__etapas: identifica quais etapas o algoritmo executou em cada fluxo.
         * .__base_path: identifica o caminho raiz nos quais todos gráficos e relatórios serão salvos
+        * .__controleFluxo: objeto Fluxo que controla a validação das etapas, e o fluxo de execução do motor de cálculo.
+           * .__controleFLuxo.FLUXO_ID: 0 se só houverem dados experimentais. >0 foram inseridos dados de validação (Isto
+           é usado na plotagem de gráficos, para evitar que o uso de dados de validação sucessivos sobrescrevam os gráficos)
 
         OUTROS:
 
         * .Otimizacao: salva todas as informações do algorimo de otimização. [Só existe após execução do método otimização].
         * ._deltaHessiana: incremento a ser utilizado para avaliar a matriz Hessiana (pode ser definido via kwargs no método
         incertezaParametros e/ou Predicao)
-        * ._self._deltaGy: incremento a ser utilizado para avaliar a matriz Gy (derivadas segundas da função objetivo em relação
+        * ._deltaGy: incremento a ser utilizado para avaliar a matriz Gy (derivadas segundas da função objetivo em relação
         a dados experimentias de y e parâmetros) (pode ser definido via kwargs no método incertezaParametros e/ou Predicao)
         * ._deltaS: incremento a ser utilizado para avalair a transposta da matriz jacobiana do modelo em relação aos
         parâmetros (pode ser definido via kwargs no método incertezaParametros e/ou Predicao)
         * .Hessiana: salva a matriz Hessiana (somente avaliada após incertezaParametros ou Predicao - a depender do método solicitado)
-        * .Gy: salva amatriz Gy (somente avaliada após incertezaParametros ou Predicao - a depender do método solicitado)
+        * .Gy: salva matriz Gy (somente avaliada após incertezaParametros ou Predicao - a depender do método solicitado)
         * .S: salva matriz S (somente avaliada após incertezaParametros ou Predicao - a depender do método solicitado)
         * .estatisticas: dicionário que contém aguns testes estatístcicos (Para outras estatísticas aqui não incluídas
         consulte Grandezas)
@@ -449,8 +452,7 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # CONTROLE DO FLUXO DE INFORMAÇÕES DO ALGORITMO
         # ---------------------------------------------------------------------
-        # FLUXO DE INFORMAÇÕES -> conjunto de etapas
-
+        # FLUXO DE INFORMAÇÕES -> conjunto de etapas do algoritmo
         self.__controleFluxo = self.Fluxo()
 
         # ---------------------------------------------------------------------
@@ -506,8 +508,8 @@ class EstimacaoNaoLinear:
 
         # Incremento das derivadas numéricas
         self._deltaHessiana = 1e-5  # Hessiana da função objetivo
-        self._deltaGy = 1e-5  # Gy (derivada parcial segunda da função objetivo em relação aos parâmetros e dados experimentais)
-        self._deltaS = 1e-5  # S (transposto do jacobiano do modelo)
+        self._deltaGy = 1e-5        # Gy (derivada parcial segunda da função objetivo em relação aos parâmetros e dados experimentais)
+        self._deltaS = 1e-5         # S (transposto do jacobiano do modelo)
 
         # ---------------------------------------------------------------------
         # CRIAÇÃO DAS VARIÁVEIS INTERNAS
@@ -530,7 +532,7 @@ class EstimacaoNaoLinear:
         else:
             self.__base_path = kwargs.get(self.__keywordsEntrada[9])
 
-        # Flags para controle
+        # Flags para controle de informações
         self.__flag = flag()
         self.__flag.setCaracteristica(['dadosexperimentais','dadosvalidacao',
                                        'reconciliacao','preenchimentoRegiao',
@@ -540,7 +542,8 @@ class EstimacaoNaoLinear:
         # dadosvalidacao: indicar se dadosvalidacao foram inseridos
         # reconciliacao: indicar se reconciliacao está sendo executada
         # graficootimizacao: indicar se na etapa de otimização são utilizados algoritmos de otimização que possuem
-        # gráficos de desempenho
+        #                    gráficos de desempenho
+        # relatoriootimizacao: indicar se o algoritmo de otimização possui relatório
 
         # Variável que controla o nome das pastas criadas pelos métodos gráficos e relatórios
         self._configFolder = {'graficos':'Graficos',
@@ -600,12 +603,13 @@ class EstimacaoNaoLinear:
         return [self.__args_user,self.x.simbolos,self.y.simbolos,self.parametros.simbolos]
 
     def __validacaoDadosEntrada(self,dados,udados,NV):
-        u'''
-        Validação dos dados de entrada 
+        u"""
+        Validação dos dados de entrada
 
-        * verificar se os dados e suas incertezas são arrays de 2 dimensões
+        * verificar se os dados e suas incertezas são arrays de 2 dimensões, com o mesmo número de pontos
         * verificar se as colunas dos arrays de entrada tem o mesmo número dos símbolos das variáveis definidas (y, x)
-        '''
+        * verificar se os graus de liberdade são suficientes para realizar a estimação
+        """
         if not isinstance(dados,ndarray):
             raise TypeError('Os vetores de dados informando deve ser um array.')
 
@@ -627,7 +631,7 @@ class EstimacaoNaoLinear:
         if dados.shape[0] != udados.shape[0]:
             raise ValueError('Os vetores de dados e suas incertezas devem ter o mesmo número de pontos.')
 
-        if size(udados,0)*self.y.NV-float(self.parametros.NV)<=0: # Verificar se há graus de liberdade suficiente
+        if udados.shape[0]*self.y.NV-float(self.parametros.NV) <= 0: # Verificar se há graus de liberdade suficiente
             warn('Graus de liberdade insuficientes. O seu conjunto de dados experimentais não é suficiente para estimar os parâmetros!',UserWarning)
 
     def gerarEntradas(self,x,y,ux,uy,glx=[],gly=[],tipo='experimental',uxy=None):
@@ -638,16 +642,16 @@ class EstimacaoNaoLinear:
         Entradas (Obrigatórias)
         =======================
 
-        * xe        : array com os dados experimentais das variáveis independentes na forma de colunas
+        * x         : array com os dados das variáveis independentes na forma de colunas
         * ux        : array com as incertezas das variáveis independentes na forma de colunas
-        * ye        : array com os dados experimentais das variáveis dependentes na forma de colunas
+        * y         : array com os dados das variáveis dependentes na forma de colunas
         * uy        : array com as incertezas das variáveis dependentes na forma de colunas
         * glx       : graus de liberdade para as grandezas de entrada
         * gly       : graus de liberdada para as grandezas de saída
-        * tipo      : string que define se os dados são experimentais ou de validação.
+        * tipo      : string que define se os dados são experimentais (para estimação) ou de validação.
 
         **Aviso**:
-        * Caso não definidos dados de validação, será assumido os valores experimentais
+        * Caso não definidos dados de validação, será assumido os valores experimentais (de estimação)
         * Caso não definido graus de liberdade para as grandezas, será assumido o valor constante de 100
         """
         # ---------------------------------------------------------------------
@@ -657,8 +661,7 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------
-        # Validação da sintaxe
-
+        # validação do tipo
         if not set([tipo]).issubset(self.__tiposDisponiveisEntrada):
             raise ValueError('A(s) entrada(s) ' + ','.join(
                 set([tipo]).difference(self.__tiposDisponiveisEntrada)) + ' não estão disponíveis. Usar: ' + ','.join(
@@ -672,8 +675,13 @@ class EstimacaoNaoLinear:
         if x.shape[0] != y.shape[0]:
             raise ValueError('Foram inseridos {:d} dados para as grandezas dependentes, mas {:d} para as independentes'.format(y.shape[0],x.shape[0]))
 
-        if tipo == self.__tiposDisponiveisEntrada[0]: # experimentais:
+        # ---------------------------------------------------------------------
+        # EXECUÇÃO
+        # ---------------------------------------------------------------------
+        # dados experimentais
+        if tipo == self.__tiposDisponiveisEntrada[0]:
             self.__flag.ToggleActive('dadosexperimentais')
+            # caso o ID do fluxo seja 0, então não há necessidade de reiniciar, caso contrário, reiniciar.
             if self.__controleFluxo.FLUXO_ID != 0:
                 self.__controleFluxo.reiniciar()
                 if self.__flag.info['dadosvalidacao']:
@@ -692,7 +700,8 @@ class EstimacaoNaoLinear:
             except Exception, erro:
                 raise RuntimeError('Erro na criação do conjunto experimental de Y: {}'.format(erro))
 
-        if tipo == self.__tiposDisponiveisEntrada[1]: # validação
+        # dados de validação
+        if tipo == self.__tiposDisponiveisEntrada[1]:
             self.__flag.ToggleActive('dadosvalidacao')
 
             self.__controleFluxo.reiniciarParcial()
@@ -710,7 +719,7 @@ class EstimacaoNaoLinear:
             except Exception, erro:
                 raise RuntimeError('Erro na criação do conjunto validação de Y: {}'.format(erro))
 
-        if self.__flag.info['dadosvalidacao'] == False:
+        if not self.__flag.info['dadosvalidacao']:
             # Caso gerarEntradas seja executado somente para os dados experimentais,
             # será assumido que estes são os dados de validação, pois todos os cálculos 
             # de predição são realizados para os dados de validação.
@@ -729,17 +738,17 @@ class EstimacaoNaoLinear:
                 raise RuntimeError('Erro na criação do conjuno validação de Y: {}'.format(erro))
 
     def _armazenarDicionario(self):
-        u'''
+        u"""
         Método opcional para armazenar as Grandezas (x,y e parãmetros) na
         forma de um dicionário, cujas chaves são os símbolos.
-        
+
         ======
         Saídas
         ======
-        
+
         * grandeza: dicionário cujas chaves são os símbolos das grandezas e respectivos
         conteúdos objetos da classe Grandezas.
-        '''
+        """
         # ---------------------------------------------------------------------
         # FLUXO
         # ---------------------------------------------------------------------
@@ -819,16 +828,16 @@ class EstimacaoNaoLinear:
 
 
     def otimiza(self,limite_inferior,limite_superior,estimativa_inicial=None,algoritmo='PSO',args=None,**kwargs):
-        u'''
-        Método para realização da otimização        
-    
+        u"""
+        Método para realização da otimização
+
         =====================
         Métodos predecessores
         =====================
 
         Faz-se necessário executaro método ``gerarEntradas``, informando os dados experimentais \
-        antes de executar a otimização.        
-        
+        antes de executar a otimização.
+
         =======================
         Entradas (obrigatórias)
         =======================
@@ -847,7 +856,7 @@ class EstimacaoNaoLinear:
         ===============================
         Keywords (argumentos opcionais)
         ===============================
-        
+
         algoritmo = PSO
 
         Para os argumentos extras para o algoritmo de PSO, vide documentação.
@@ -856,7 +865,7 @@ class EstimacaoNaoLinear:
         Observação
         ==========
         * Toda vez que a otimização é executada toda informação anterior sobre parâmetros é perdida
-        '''
+        """
         # ---------------------------------------------------------------------
         # FLUXO
         # ---------------------------------------------------------------------
@@ -890,15 +899,15 @@ class EstimacaoNaoLinear:
                     'A estimativa inicial deve ser uma lista de dimensão do número de parâmetros, definida nos símbolos. Número de parâmetros: {}'.format(
                         self.parametros.NV))
 
+        # ---------------------------------------------------------------------
+        # EXECUÇÃO
+        # ---------------------------------------------------------------------
         # EstimacaoNaoLinear executa somente estimação SEM reconciliação
         self.__flag.ToggleInactive('reconciliacao')
 
         # definindo que args são argumentos extras a serem passados para a função objetivo (e, portanto, não sofrem validação)
         self.__args_user = args
 
-        # ---------------------------------------------------------------------
-        # ALGORITMOS DE OTIMIZAÇÃO
-        # ---------------------------------------------------------------------        
         if algoritmo == 'PSO':
             # indica que este algoritmo possui gráficos de desempenho
             self.__flag.ToggleActive('graficootimizacao')
@@ -972,7 +981,7 @@ class EstimacaoNaoLinear:
         self.FOotimo = FO.result
 
     def SETparametro(self,estimativa,variancia=None,regiao=None,**kwargs):
-        u'''
+        u"""
         Método para atribuir uma estimativa aos parâmetros e, opcionamente, sua matriz de covarância e região de abrangência.
         Substitui o métodos otimiza e, opcionalmente, incertezaParametros.
 
@@ -981,11 +990,11 @@ class EstimacaoNaoLinear:
         ========
         Entradas
         ========
-        
+
         * estimativa (list)         : estimativa para os parâmetros
         * variancia (array,ndmin=2) : matriz de covariância dos parâmetros
         * regiao (list[list])       : lista contendo listas com os parâmetros que pertencem á região de abrangência
-        
+
         ===
         USO
         ===
@@ -1005,7 +1014,7 @@ class EstimacaoNaoLinear:
         ATRIBUTOS
         =========
         O método irá incluir estas informações no atributo parâmetros
-        '''
+        """
         # ---------------------------------------------------------------------
         # FLUXO
         # ---------------------------------------------------------------------
@@ -1093,7 +1102,7 @@ class EstimacaoNaoLinear:
         ==========
         Observação
         ==========
-        * A região de abrangência só é executada caso haja histórico da otimização e o atributo regiao_abrangencia
+        * A região de abrangência só é executada caso haja histórico da otimização (ETAPA: mapeamentoFO) e o atributo regiao_abrangencia
         de parâmetros não esteja definido.
 
         ==========================
@@ -1204,8 +1213,8 @@ class EstimacaoNaoLinear:
         Método predecessores
         ====================
 
-        É necessário executar a otimização ou incluir o valor para a estimativa dos parâmetros e sua incerteza, pelo \
-        método ``SETparametro``.
+        É necessário executar a otimização (seguida de incertezaParametros) ou incluir o valor para a estimativa dos parâmetros e sua incerteza, pelo \
+        método ``SETparametro`` (caso não defina incerteza, executar em seguida de incertezaParametros).
 
 
         =================
@@ -1251,7 +1260,6 @@ class EstimacaoNaoLinear:
 
         # Matriz Hessiana da função objetivo em relação aos parâmetros
         # Somente reavaliada caso o método que a avalia não tenha sido executado E não tenha dados validacao
-
         if not self.__controleFluxo.Hessiana and not self.__flag.info['dadosvalidacao']:
             self.Hessiana = self.__Hessiana_FO_Param(self._deltaHessiana)
 
@@ -1313,11 +1321,11 @@ class EstimacaoNaoLinear:
                              NE=self.x.validacao.NE)
 
     def __Hessiana_FO_Param(self,delta=1e-5):
-        u'''
+        u"""
         Método para calcular a matriz Hessiana da função objetivo em relaçao aos parâmetros.
-        
+
         Está disponível o método de derivada central de segunda ordem.
-        
+
         ========
         Entradas
         ========
@@ -1326,13 +1334,13 @@ class EstimacaoNaoLinear:
         =====
         Saída
         =====
-        
+
         Retorna a matriz Hessiana(array)
 
         ==========
         Referência
         ==========
-        '''
+        """
         # ---------------------------------------------------------------------
         # FLUXO
         # ---------------------------------------------------------------------
@@ -1421,17 +1429,17 @@ class EstimacaoNaoLinear:
         return array(matriz_hessiana)
 
     def __Matriz_Gy(self,delta=1e-5):
-        u'''
+        u"""
         Método para calcular a matriz Gy(derivada segunda da Fobj em relação aos parâmetros e y_experimentais).
-        
+
         Método de derivada central dada na forma parcial, em relação as variáveis\
         dependentes distintas.
-        
+
         ========
         Entradas
         ========
-        
-        * delta(float): valor do incremento relativo para o cálculo da derivada.\ 
+
+        * delta(float): valor do incremento relativo para o cálculo da derivada.\
         Incremento relativo à ordem de grandeza do parâmetro ou da variável dependente.
 
         =====
@@ -1442,7 +1450,7 @@ class EstimacaoNaoLinear:
         ==========
         Referência
         ==========
-        '''
+        """
         # ---------------------------------------------------------------------
         # FLUXO
         # ---------------------------------------------------------------------
@@ -1509,7 +1517,7 @@ class EstimacaoNaoLinear:
         return array(matriz_Gy)
 
     def __Matriz_Sx(self,delta=1e-5):
-        u'''
+        u"""
         Método para calcular a matriz Sx(derivadas primeiras da função do modelo em relação as grandezas de entrada x).
 
         Método de derivada central de primeira ordem em relação aos parâmetros(considera os parâmetros como variáveis do modelo).
@@ -1525,15 +1533,15 @@ class EstimacaoNaoLinear:
         =====
 
         Retorna a matriz Sx(array).
-        '''
+        """
         pass
 
     def __Matriz_S(self,x,delta=1e-5):
-        u'''
+        u"""
         Método para calcular a matriz S(derivadas primeiras da função do modelo em relação aos parâmetros).
-        
+
         Método de derivada central de primeira ordem em relação aos parâmetros(considera os parâmetros como variáveis do modelo).
-        
+
         ========
         Entradas
         ========
@@ -1542,10 +1550,10 @@ class EstimacaoNaoLinear:
 
         =====
         Saída
-        ===== 
-        
+        =====
+
         Retorna a matriz S(array).
-        '''
+        """
         # ---------------------------------------------------------------------
         # FLUXO
         # ---------------------------------------------------------------------
@@ -1620,26 +1628,29 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         tipo = kwargs.get('metodoPreenchimento') if kwargs.get('metodoPreenchimento') is not None else 'MonteCarlo'
 
+        # avaliando se o tipo de preenchimento está disponível
         if tipo not in self.__tipoPreenchimento:
             raise NameError('O método solicitado para preenchimento da região de abrangência {}'.format(
                 tipo) + ' não está disponível. Métodos disponíveis ' + ', '.join(self.__tipoPreenchimento) + '.')
 
+        # caso seja MonteCarlo:
         if tipo == self.__tipoPreenchimento[1]:
             kwargsdisponiveis = ('iteracoes', 'limite_superior', 'limite_inferior', 'metodoPreenchimento',
                                  'fatorlimitebusca','distribuicao')
 
+            # avaliando se as keywords estão disponíveis
             if not set(kwargs.keys()).issubset(kwargsdisponiveis):
                 raise NameError('O(s) keyword(s) argument digitado(s) está(ão) incorreto(s). Keyword disponíveis: ' +
                                 ', '.join(kwargsdisponiveis) + '.')
-
+            # avaliando o número de iterações -> dever ser maior do que 1
             if kwargs.get(kwargsdisponiveis[0]) is not None:
                 if kwargs.get(kwargsdisponiveis[0]) < 1:
                     raise ValueError('O número de iterações deve ser inteiro e positivo.')
-
+            # avaliando o fatorlimite -> deve ser positivo
             if kwargs.get(kwargsdisponiveis[4]) is not None:
                 if kwargs.get(kwargsdisponiveis[4]) < 0:
                     raise ValueError('O fator limite busca deve positivo.')
-
+            # avaliando a distribuição
             if kwargs.get(kwargsdisponiveis[5]) is not None:
                 if kwargs.get(kwargsdisponiveis[5]) not in ['uniforme', 'triangular']:
                     raise ValueError('As distribuições disponíveis para o Método de MonteCarlo são: {}.'.format(['uniforme', 'triangular']))
@@ -1750,10 +1761,10 @@ class EstimacaoNaoLinear:
                 self.__hist_Fitness.append(FO.result)
 
     def __criteriosAbrangencia(self):
-        '''
+        u"""
         Método que retorna os valores das distribuições de Fisher, chi2 e o valor limite da função objetivo.
         Utilizado para avaliar a região de abrangẽncia
-        '''
+        """
 
         # TesteF = F(PA,NP,NE*NY-NP)
         fisher = f.ppf(self.PA,self.parametros.NV,(self.y.experimental.NE*self.y.NV-self.parametros.NV))
@@ -1765,7 +1776,7 @@ class EstimacaoNaoLinear:
         return fisher, FOcomparacao
 
     def regiaoAbrangencia(self):
-        u'''
+        u"""
         Método para avaliação da região de abrangência pelo critério de Fisher, conhecidas
         como região de verossimilhança [1].
 
@@ -1773,7 +1784,7 @@ class EstimacaoNaoLinear:
         Referência
         ==========
         [1] SCHWAAB, M. et al. Nonlinear parameter estimation through particle swarm optimization. Chemical Engineering Science, v. 63, n. 6, p. 1542–1552, mar. 2008.
-        '''
+        """
         # ---------------------------------------------------------------------
         # FLUXO
         # ---------------------------------------------------------------------
@@ -1800,7 +1811,7 @@ class EstimacaoNaoLinear:
         return regiao
 
     def analiseResiduos(self):
-        u'''
+        u"""
         Método para realização da análise de resíduos.
         A análise da sempre preferência aos dados de validação.
 
@@ -1811,14 +1822,14 @@ class EstimacaoNaoLinear:
         * Aplicação de testes estatísticos para as grandezas. Criação do atributo estatisticas para cada grandeza x e y. (Vide documentação de Grandeza)
         * Teste estatítico para avaliar se a função objetivo segue uma chi2 (atributo estatisticas)
               * Se FO pertence ao intervalo chi2min < FO < chi2max, tem uma situação ideal, então o modelo representa bem os dados
-             
+
                Caso contrário há duas situações possíveis ao se analisar a FO com a chi2:
-               
+
               * FO < chi2min, O modelo representa os dados esperimentais muito melhor que o esperado,
               o que pode indicar que há super parametrização do modelo ou que os erros esperimentais estão superestimados:
               * FO > chi2max: o modelo não é capaz de explicar os erros experimentais
               ou pode haver subestimação dos erros esperimentais
-        '''
+        """
         # ---------------------------------------------------------------------
         # FLUXO
         # ---------------------------------------------------------------------
@@ -2247,14 +2258,14 @@ class EstimacaoNaoLinear:
                 warn('Os gráficos envolvendo a análise de resíduos não puderam ser criados, pois o método analiseResiduos não foi executado.',UserWarning)
 
     def relatorio(self,**kwargs):
-        '''
+        u"""
         Método para criação do(s) relatório(s) com os principais resultados.
 
         ========
         Keywords
         ========
         * Vide documentação de Relatorio.Predicao
-        '''
+        """
         # ---------------------------------------------------------------------
         # DEFINIÇÃO DA CLASSE
         # ---------------------------------------------------------------------
