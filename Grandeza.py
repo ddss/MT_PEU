@@ -475,45 +475,32 @@ class Grandeza:
         =======
         Entrada
         =======
-        * add: texto que se deseja escrever antes da unidade. Deve ser um string
+        * add (string): texto que se deseja escrever antes da unidade. Deve ser um string
+        * printunit (bool): se True, irá colocar a unidade no label
         '''
-        # VALIDAÇÃO Da variável add
+
+        # VALIDAÇÃO da variável add
         if (add is not None) and (not isinstance(add,str)):
-            raise TypeError(u'A variável add deve ser um string')
+            raise TypeError(u'A variável add deve ser uma string')
             
         # Definição dos labels: latex ou nomes ou simbolos (nesta ordem)
-        label = [None]*len(self.nomes)
-        if printunit is False:
-            
-            for z in xrange(len(self.nomes)):
-    
-                if self.label_latex[z] is not None:
-                    label[z] = self.label_latex[z]
-                elif self.nomes[z] is not None:
-                    label[z] = self.nomes[z]
-                elif self.simbolos[z] is not None:
-                    label[z] = self.simbolos[z]
-    
-                if add is not None:
-                    label[z] = label[z] +' '+ add
-                    
-        else:
-        
-            for z in xrange(len(self.nomes)):
-    
-                if self.label_latex[z] is not None:
-                    label[z] = self.label_latex[z]
-                elif self.nomes[z] is not None:
-                    label[z] = self.nomes[z]
-                elif self.simbolos[z] is not None:
-                    label[z] = self.simbolos[z]
-    
-                if add is not None:
-                    label[z] = label[z] +' '+ add
-                
-                # Caso seja definido uma unidade, esta será incluída no label
-                if self.unidades[z] is not None:
-                    label[z] = label[z]+' '+"/"+self.unidades[z]
+        label = [None]*len(self.simbolos)
+
+        for z in xrange(self.NV):
+
+            if self.label_latex[z] is not None:
+                label[z] = self.label_latex[z]
+            elif self.nomes[z] is not None:
+                label[z] = self.nomes[z]
+            else:
+                label[z] = self.simbolos[z]
+
+            if add is not None:
+                label[z] = label[z] +' '+ add
+
+            # Caso seja definido uma unidade, esta será incluída no label
+            if self.unidades[z] is not None:
+                label[z] = label[z] + " / " + self.unidades[z]
 
         return label
 

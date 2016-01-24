@@ -2011,9 +2011,11 @@ class EstimacaoNaoLinear:
                 # os gráficos só podem ser executado se o número de parâmetros for
                 # maior do que 1
                 if self.parametros.NV != 1:
-
+                    # numéro de combinações não repetidas para os parâmetros
                     Combinacoes = int(factorial(self.parametros.NV)/(factorial(self.parametros.NV-2)*factorial(2)))
-                    p1 = 0; p2 = 1; cont = 0; passo = 1
+                    p1 = 0; p2 = 1; cont = 0; passo = 1 # inicialiação dos contadores (pi e p2 são indinces dos parâmetros
+                    # passp: contabiliza o número de parâmetros avaliados
+                    # cont: contador que contabiliza (param.NV - passo1)+(param.NV - passo2)
 
                     for pos in xrange(Combinacoes):
                         if pos == (self.parametros.NV-1)+cont:
@@ -2023,30 +2025,52 @@ class EstimacaoNaoLinear:
                         fig = figure()
                         ax = fig.add_subplot(1,1,1)
 
+                        # PLOT de região de abrangência pelo método da verossimilhança
                         if self.__controleFluxo.regiaoAbrangencia:
-                            aux1 = []
-                            aux2 = []
+                            aux1 = [] # lista auxiliar -> região de abrangência para o parâmetro p1
+                            aux2 = [] # lista auxiliar -> região de abrangência para o parâmetro p1
                             for it in xrange(size(self.parametros.regiao_abrangencia)/self.parametros.NV):
                                 aux1.append(self.parametros.regiao_abrangencia[it][p1])
                                 aux2.append(self.parametros.regiao_abrangencia[it][p2])
-                            PSO, = plot(aux1,aux2,'bo',linewidth=2.0,zorder=1)
+                            verossimilhanca, = plot(aux1,aux2,'bo',linewidth=2.0,zorder=1)
 
+                        # PLOT da região de abrangência pelo método da linearização (elipse)
                         fisher, FOcomparacao = self.__criteriosAbrangencia()
 
-                        cov = array([[self.parametros.matriz_covariancia[p1,p1],self.parametros.matriz_covariancia[p1,p2]],[self.parametros.matriz_covariancia[p2,p1],self.parametros.matriz_covariancia[p2,p2]]])
-                        ellipse, coordenadas_x, coordenadas_y = plot_cov_ellipse(cov, [self.parametros.estimativa[p1],self.parametros.estimativa[p2]], FOcomparacao, fill = False, color = 'r', linewidth=2.0,zorder=2,ax=ax)
+                        cov = array([[self.parametros.matriz_covariancia[p1,p1],self.parametros.matriz_covariancia[p1,p2]],
+                                     [self.parametros.matriz_covariancia[p2,p1],self.parametros.matriz_covariancia[p2,p2]]])
+                        ellipse, coordenadas_x, coordenadas_y = plot_cov_ellipse(cov,
+                                                                [self.parametros.estimativa[p1],self.parametros.estimativa[p2]],
+                                                                FOcomparacao, fill=False, color='r', linewidth=2.0, zorder=2, ax=ax)
+                        # PLOT do ponto ótimo
                         plot(self.parametros.estimativa[p1],self.parametros.estimativa[p2],'r*',markersize=10.0,zorder=2)
+                        # PLOT dos pontos extremos da elipse (correção da escala)
                         plot(coordenadas_x,coordenadas_y,'.r',markersize=0.01)
-                        ax.yaxis.grid(color='gray', linestyle='dashed')
-                        ax.xaxis.grid(color='gray', linestyle='dashed')
-                        xlabel(self.parametros.labelGraficos()[p1],fontsize=20)
-                        ylabel(self.parametros.labelGraficos()[p2],fontsize=20)
 
                         if self.__controleFluxo.regiaoAbrangencia and self.parametros.regiao_abrangencia != []:
-                            legend([ellipse,PSO],['Elipse',u'Verossimilhança'],loc='best')
+                            legend([ellipse,verossimilhanca],['Elipse',u'Verossimilhança'],loc='best', fontsize=15)
                         elif self.__controleFluxo.regiaoAbrangencia and self.parametros.regiao_abrangencia == []:
-                            legend([ellipse],['Ellipse'],loc='best')
-                        fig.savefig(base_path+base_dir+'regiao_verossimilhanca_fl'+str(0)+'_'+str(self.parametros.simbolos[p1])+'_'+str(self.parametros.simbolos[p2])+'.png')
+                            legend([ellipse],['Ellipse'],loc='best', fontsize=15)
+
+                        # LEGENDA
+                        ax.set_xlabel(self.parametros.labelGraficos()[p1], fontsize=20)
+                        ax.set_ylabel(self.parametros.labelGraficos()[p2], fontsize=20)
+                        # GRID
+                        ax.yaxis.grid(color='gray', linestyle='dashed')
+                        ax.xaxis.grid(color='gray', linestyle='dashed')
+                        # FORMATO DOS EIXOS
+                        ax.yaxis.get_major_formatter().set_powerlimits((0, 1))
+                        ax.xaxis.get_major_formatter().set_powerlimits((0, 1))
+                        # TICKS e NÚMEROS
+                        ax.get_xaxis().tick_bottom() # tick no fundo
+                        ax.get_yaxis().tick_left()   # tick no esquerda
+                        ax.get_yaxis().set_tick_params(direction='out', labelsize=14)
+                        ax.get_xaxis().set_tick_params(direction='out', labelsize=14)
+                        # MODIFCANDO A ÁREA DE PLOTAGEM
+                        fig.subplots_adjust(left=0.12, right=0.95, top=0.94, bottom=0.12)
+                        # SALVA O GRÁFICO
+                        fig.savefig(base_path+base_dir+'regiao_verossimilhanca_fl'+str(0)+'_'+
+                                    str(self.parametros.simbolos[p1])+'_'+str(self.parametros.simbolos[p2])+'.png')
                         close()
                         p2+=1
                 else:
