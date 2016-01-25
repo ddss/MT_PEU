@@ -2059,8 +2059,8 @@ class EstimacaoNaoLinear:
                         ax.yaxis.grid(color='gray', linestyle='dashed')
                         ax.xaxis.grid(color='gray', linestyle='dashed')
                         # FORMATO DOS EIXOS
-                        ax.yaxis.get_major_formatter().set_powerlimits((0, 1))
-                        ax.xaxis.get_major_formatter().set_powerlimits((0, 1))
+                        ax.yaxis.get_major_formatter().set_powerlimits((-2, 2))
+                        ax.xaxis.get_major_formatter().set_powerlimits((-2, 2))
                         # TICKS e NÚMEROS
                         ax.get_xaxis().tick_bottom() # tick no fundo
                         ax.get_yaxis().tick_left()   # tick no esquerda
@@ -2092,8 +2092,8 @@ class EstimacaoNaoLinear:
                 #incerteza_expandida_Yc=ones((self.y.calculado.NE,self.y.NV))
                 #incerteza_expandida_Ye=ones((self.y.validacao.NE,self.y.NV))
 
-                t_cal=t.ppf((1-self.PA)/2, self.y.calculado.gL[0][0])
-                t_val=t.ppf((1-self.PA)/2, self.y.validacao.gL[0][0])
+                t_cal = t.ppf((1-self.PA)/2, self.y.calculado.gL[0][0])
+                t_val = t.ppf((1-self.PA)/2, self.y.validacao.gL[0][0])
 
                 for iy in xrange(self.y.NV):
                         # Gráfico comparativo entre valores experimentais e calculados pelo modelo, sem variância
@@ -2103,8 +2103,8 @@ class EstimacaoNaoLinear:
 
                         fig = figure()
                         ax = fig.add_subplot(1,1,1)
-                        plot(y,ym,'bo',linewidth=2.0)
-                        plot(diagonal,diagonal,'k-',linewidth=2.0)
+                        plot(y, ym, 'bo', linewidth=2.0)
+                        plot(diagonal, diagonal,'k-',linewidth=2.0)
                         ax.yaxis.grid(color='gray', linestyle='dashed')
                         ax.xaxis.grid(color='gray', linestyle='dashed')
                         label_tick_x   = ax.get_xticks().tolist()
@@ -2113,6 +2113,10 @@ class EstimacaoNaoLinear:
                         ymax   = max(ym) + tamanho_tick_x
                         xlim((ymin,ymax))
                         ylim((ymin,ymax))
+
+                        # Escala dos gráficos em notação científica
+                        ax.yaxis.get_major_formatter().set_powerlimits((-2, 2))
+                        ax.xaxis.get_major_formatter().set_powerlimits((-2, 2))
 
                         if self.__flag.info['dadosvalidacao'] == True:
                             xlabel(self.y.labelGraficos('validacao')[iy])
@@ -2136,8 +2140,10 @@ class EstimacaoNaoLinear:
                         #yerr_experimental = incerteza_expandida_Ye[:,iy]
 
                         fig = figure()
-                        errorbar(y,ym,xerr=yerr_experimental,yerr=yerr_calculado,fmt="none", marker='o',color='b',linestyle='None')
-                        plot(diagonal,diagonal,'k-',linewidth=2.0)
+                        ax = fig.add_subplot(1,1,1)
+                        errorbar(y, ym, xerr=yerr_experimental, yerr=yerr_calculado, fmt="none", marker='o', color='b',
+                                 linestyle='None')
+                        plot(diagonal,diagonal, 'k-', linewidth=2.0)
 
                         ax.yaxis.grid(color='gray', linestyle='dashed')
                         ax.xaxis.grid(color='gray', linestyle='dashed')
@@ -2148,8 +2154,12 @@ class EstimacaoNaoLinear:
                         ymin   = min(ym - yerr_calculado) - tamanho_tick_y
                         ymax   = max(ym + yerr_calculado) + tamanho_tick_y
 
-                        xlim((ymin,ymax))
-                        ylim((ymin,ymax))
+                        xlim((ymin, ymax))
+                        ylim((ymin, ymax))
+
+                        # Escala do gráfico em notação científica
+                        ax.yaxis.get_major_formatter().set_powerlimits((-2, 2))
+                        ax.xaxis.get_major_formatter().set_powerlimits((-2, 2))
 
                         if self.__flag.info['dadosvalidacao'] == True:
                             xlabel(self.y.labelGraficos('validacao')[iy])
@@ -2181,7 +2191,8 @@ class EstimacaoNaoLinear:
 
                             fig = figure()
                             ax = fig.add_subplot(1,1,1)
-                            errorbar(y,ym,xerr=yerr_experimental,yerr=yerr_calculado,fmt="none",marker='o',color='b',linestyle='None')
+                            errorbar(y, ym, xerr=yerr_experimental, yerr=yerr_calculado, fmt="none", marker='o', color='b',
+                                     linestyle='None')
                             plot(diagonal,diagonal,'k-',linewidth=2.0)
                             plot(y,ycalc_inferior_F,color='red')
                             plot(y,ycalc_superior_F,color='k')
@@ -2194,8 +2205,12 @@ class EstimacaoNaoLinear:
                             ymin   = min(ym - yerr_calculado) - tamanho_tick_y
                             ymax   = max(ym + yerr_calculado) + tamanho_tick_y
 
-                            xlim((ymin,ymax))
-                            ylim((ymin,ymax))
+                            xlim((ymin, ymax))
+                            ylim((ymin, ymax))
+
+                            # Escala do gráfico em notação científica
+                            ax.yaxis.get_major_formatter().set_powerlimits((-2, 2))
+                            ax.xaxis.get_major_formatter().set_powerlimits((-2, 2))
 
                             if self.__flag.info['dadosvalidacao']:
                                 xlabel(self.y.labelGraficos('validacao')[iy])
@@ -2235,12 +2250,16 @@ class EstimacaoNaoLinear:
                     fig = figure()
                     ax = fig.add_subplot(1,1,1)
                     plot(self.y.calculado.matriz_estimativa[:,i],self.y.residuos.matriz_estimativa[:,i], 'o')
-                    plot([min(self.y.calculado.matriz_estimativa[:,i]),max(self.y.calculado.matriz_estimativa[:,i])],[mean(self.y.residuos.matriz_estimativa[:,i])]*2, '-.r', label=u'Média resíduos '+self.y.simbolos[i])
+                    plot([min(self.y.calculado.matriz_estimativa[:,i]),max(self.y.calculado.matriz_estimativa[:,i])],
+                         [mean(self.y.residuos.matriz_estimativa[:,i])]*2, '-.r', label=u'Média resíduos '+self.y.simbolos[i])
                     xlabel(u'Valores calculados '+self.y.labelGraficos()[i])
                     ylabel(u'Resíduos '+self.y.labelGraficos()[i])
                     ax.yaxis.grid(color='gray', linestyle='dashed')
                     ax.xaxis.grid(color='gray', linestyle='dashed')
                     ax.axhline(0, color='black', lw=2)
+                    # Escala do gráfico em notação científica
+                    ax.yaxis.get_major_formatter().set_powerlimits((-2, 2))
+                    ax.xaxis.get_major_formatter().set_powerlimits((-2, 2))
                     legend()
                     fig.savefig(base_path+base_dir+'residuos_fl'+str(self.__controleFluxo.FLUXO_ID)+'_versus_'+self.y.simbolos[i]+'_calculado.png')
                     close()
@@ -2248,10 +2267,14 @@ class EstimacaoNaoLinear:
                     fig = figure()
                     ax = fig.add_subplot(1,1,1)
                     plot(self.y.validacao.matriz_estimativa[:,i],self.y.residuos.matriz_estimativa[:,i], 'o')
-                    plot([min(self.y.validacao.matriz_estimativa[:,i]),max(self.y.validacao.matriz_estimativa[:,i])],[mean(self.y.residuos.matriz_estimativa[:,i])]*2, '-.r', label=u'Média resíduos '+self.y.simbolos[i])
+                    plot([min(self.y.validacao.matriz_estimativa[:,i]),max(self.y.validacao.matriz_estimativa[:,i])],
+                         [mean(self.y.residuos.matriz_estimativa[:,i])]*2, '-.r', label=u'Média resíduos '+self.y.simbolos[i])
                     ax.yaxis.grid(color='gray', linestyle='dashed')
                     ax.xaxis.grid(color='gray', linestyle='dashed')
                     ax.axhline(0, color='black', lw=2)
+                    # Escala do gráfico em notação científica
+                    ax.yaxis.get_major_formatter().set_powerlimits((-2, 2))
+                    ax.xaxis.get_major_formatter().set_powerlimits((-2, 2))
                     legend()
                     if self.__flag.info['dadosvalidacao']:
                         xlabel(u'Valores de validação '+self.y.labelGraficos()[i])
@@ -2274,6 +2297,9 @@ class EstimacaoNaoLinear:
                         ax.yaxis.grid(color='gray', linestyle='dashed')
                         ax.xaxis.grid(color='gray', linestyle='dashed')
                         ax.axhline(0, color='black', lw=2)
+                        # Escala do gráfico em notação científica
+                        ax.yaxis.get_major_formatter().set_powerlimits((-2, 2))
+                        ax.xaxis.get_major_formatter().set_powerlimits((-2, 2))
                         legend()
                         fig.savefig(base_path+base_dir+'residuos_fl'+str(self.__controleFluxo.FLUXO_ID)+'_versus_'+self.x.simbolos[j]+'_experimental.png')
                         close()
