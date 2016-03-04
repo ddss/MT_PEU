@@ -41,7 +41,8 @@ sys.setdefaultencoding("utf-8") # Forçar o sistema utilizar o coding utf-8
 from PSO.PSO import PSO   # Deve haver uma pasta com os códigos-fonte do PSO
 from Grandeza import Grandeza
 from subrotinas import Validacao_Diretorio, plot_cov_ellipse, vetor_delta,\
-    matriz2vetor, graficos_x_y
+    matriz2vetor
+from Graficos import Grafico
 from Relatorio import Relatorio
 from Flag import flag
 
@@ -1916,7 +1917,8 @@ class EstimacaoNaoLinear:
             * 'otimizacao': gráficos referentes à otimização (depende do algoritmo utilizado)
             * 'analiseResiduos': gráficos referentes à análise de resíduos.
         """
-
+        # Início da Figura que conterá os gráficos -> objeto
+        Fig = Grafico(dpi=60)
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------         
@@ -1952,8 +1954,22 @@ class EstimacaoNaoLinear:
                     # Gráficos das grandezas y em função de x
                     for iy in xrange(self.y.NV):
                         for ix in xrange(self.x.NV):
-                            graficos_x_y(self.x, self.y, ix, iy, base_path, base_dir, 'experimental', 0)
-
+                            # Gráficos sem a incerteza
+                            Fig.grafico_dispersao_sem_incerteza(self.x.experimental.matriz_estimativa[:,ix],
+                                                                self.y.experimental.matriz_estimativa[:,iy],
+                                                                label_x=self.x.labelGraficos('experimental')[ix],
+                                                                label_y=self.y.labelGraficos('experimental')[iy],
+                                                                marker='o', linestyle='None')
+                            Fig.salvar_e_fechar(base_path+base_dir+'experimental'+'_fl'+str(0)+'_'+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_sem_incerteza')
+                            # Gráficos com a incerteza
+                            Fig.grafico_dispersao_com_incerteza(self.x.experimental.matriz_estimativa[:,ix],
+                                                                self.y.experimental.matriz_estimativa[:,iy],
+                                                                self.x.experimental.matriz_incerteza[:,ix],
+                                                                self.y.experimental.matriz_incerteza[:,iy],
+                                                                label_x=self.x.labelGraficos('experimental')[ix],
+                                                                label_y=self.y.labelGraficos('experimental')[iy],
+                                                                fator_abrangencia=2.)
+                            Fig.salvar_e_fechar(base_path+base_dir+'experimental'+'_fl'+str(0)+'_'+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_com_incerteza')
                 # gráficos gerados para os dados de validação, apenas se estes forem diferentes dos experimentais,
                 # apesar dos atributos de validação sempre existirem
                 if self.__flag.info['dadosvalidacao'] == True:
@@ -1965,7 +1981,22 @@ class EstimacaoNaoLinear:
                     # Gráficos das grandezas y em função de x
                     for iy in xrange(self.y.NV):
                         for ix in xrange(self.x.NV):
-                            graficos_x_y(self.x, self.y, ix, iy, base_path, base_dir, 'validacao',self.__controleFluxo.FLUXO_ID)
+                            # Gráficos sem a incerteza
+                            Fig.grafico_dispersao_sem_incerteza(self.x.validacao.matriz_estimativa[:,ix],
+                                                                self.y.validacao.matriz_estimativa[:,iy],
+                                                                label_x=self.x.labelGraficos('validação')[ix],
+                                                                label_y=self.y.labelGraficos('validação')[iy],
+                                                                marker='o', linestyle='None')
+                            Fig.salvar_e_fechar(base_path+base_dir+'validacao'+'_fl'+str(self.__controleFluxo.FLUXO_ID)+'_'+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_sem_incerteza')
+                            # Gráficos com a incerteza
+                            Fig.grafico_dispersao_com_incerteza(self.x.validacao.matriz_estimativa[:,ix],
+                                                                self.y.validacao.matriz_estimativa[:,iy],
+                                                                self.x.validacao.matriz_incerteza[:,ix],
+                                                                self.y.validacao.matriz_incerteza[:,iy],
+                                                                label_x=self.x.labelGraficos('validacao')[ix],
+                                                                label_y=self.y.labelGraficos('validacao')[iy],
+                                                                fator_abrangencia=2.)
+                            Fig.salvar_e_fechar(base_path+base_dir+'validacao'+'_fl'+str(self.__controleFluxo.FLUXO_ID)+'_'+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_com_incerteza')
             else:
                 warn('Os gráficos de entrada não puderam ser criados, pois o método gerarEntradas não foi executado.',UserWarning)
 
@@ -2014,7 +2045,7 @@ class EstimacaoNaoLinear:
                     # numéro de combinações não repetidas para os parâmetros
                     Combinacoes = int(factorial(self.parametros.NV)/(factorial(self.parametros.NV-2)*factorial(2)))
                     p1 = 0; p2 = 1; cont = 0; passo = 1 # inicialiação dos contadores (pi e p2 são indinces dos parâmetros
-                    # passp: contabiliza o número de parâmetros avaliados
+                    # passo: contabiliza o número de parâmetros avaliados
                     # cont: contador que contabiliza (param.NV - passo1)+(param.NV - passo2)
 
                     for pos in xrange(Combinacoes):
@@ -2022,56 +2053,37 @@ class EstimacaoNaoLinear:
                             p1 +=1; p2 = p1+1; passo +=1
                             cont += self.parametros.NV-passo
 
-                        fig = figure()
-                        ax = fig.add_subplot(1,1,1)
-
                         # PLOT de região de abrangência pelo método da verossimilhança
-                        if self.__controleFluxo.regiaoAbrangencia:
+                        if self.__controleFluxo.regiaoAbrangencia and self.parametros.regiao_abrangencia != []:
                             aux1 = [] # lista auxiliar -> região de abrangência para o parâmetro p1
-                            aux2 = [] # lista auxiliar -> região de abrangência para o parâmetro p1
+                            aux2 = [] # lista auxiliar -> região de abrangência para o parâmetro p2
                             for it in xrange(size(self.parametros.regiao_abrangencia)/self.parametros.NV):
                                 aux1.append(self.parametros.regiao_abrangencia[it][p1])
                                 aux2.append(self.parametros.regiao_abrangencia[it][p2])
-                            verossimilhanca, = plot(aux1,aux2,'bo',linewidth=2.0,zorder=1)
-
+                            Fig.grafico_dispersao_sem_incerteza(aux1, aux2,
+                                                                add_legenda=True, corrigir_limites=False,
+                                                                marker = 'o', linestyle='None', color='b', linewidth=2.0, zorder=1)
                         # PLOT da região de abrangência pelo método da linearização (elipse)
                         fisher, FOcomparacao = self.__criteriosAbrangencia()
 
-                        cov = array([[self.parametros.matriz_covariancia[p1,p1],self.parametros.matriz_covariancia[p1,p2]],
-                                     [self.parametros.matriz_covariancia[p2,p1],self.parametros.matriz_covariancia[p2,p2]]])
-                        ellipse, coordenadas_x, coordenadas_y = plot_cov_ellipse(cov,
-                                                                [self.parametros.estimativa[p1],self.parametros.estimativa[p2]],
-                                                                FOcomparacao, fill=False, color='r', linewidth=2.0, zorder=2, ax=ax)
-                        # PLOT do ponto ótimo
-                        plot(self.parametros.estimativa[p1],self.parametros.estimativa[p2],'r*',markersize=10.0,zorder=2)
-                        # PLOT dos pontos extremos da elipse (correção da escala)
-                        plot(coordenadas_x,coordenadas_y,'.r',markersize=0.01)
+                        cov = array([[self.parametros.matriz_covariancia[p1,p1], self.parametros.matriz_covariancia[p1,p2]],
+                                     [self.parametros.matriz_covariancia[p2,p1], self.parametros.matriz_covariancia[p2,p2]]])
+
+                        Fig.elipse_covariancia(cov, [self.parametros.estimativa[p1],self.parametros.estimativa[p2]],
+                                               FOcomparacao)
 
                         if self.__controleFluxo.regiaoAbrangencia and self.parametros.regiao_abrangencia != []:
-                            legend([ellipse,verossimilhanca],['Elipse',u'Verossimilhança'],loc='best', fontsize=15)
-                        elif self.__controleFluxo.regiaoAbrangencia and self.parametros.regiao_abrangencia == []:
-                            legend([ellipse],['Ellipse'],loc='best', fontsize=15)
+                            Fig.set_legenda([u'Verossimilhança','Elipse'],loc='best', fontsize=15)
+                        else:
+                            Fig.set_legenda(['Elipse'], loc='best', fontsize=15)
 
-                        # LEGENDA
-                        ax.set_xlabel(self.parametros.labelGraficos()[p1], fontsize=20)
-                        ax.set_ylabel(self.parametros.labelGraficos()[p2], fontsize=20)
-                        # GRID
-                        ax.yaxis.grid(color='gray', linestyle='dashed')
-                        ax.xaxis.grid(color='gray', linestyle='dashed')
-                        # FORMATO DOS EIXOS
-                        ax.yaxis.get_major_formatter().set_powerlimits((-2, 2))
-                        ax.xaxis.get_major_formatter().set_powerlimits((-2, 2))
-                        # TICKS e NÚMEROS
-                        ax.get_xaxis().tick_bottom() # tick no fundo
-                        ax.get_yaxis().tick_left()   # tick no esquerda
-                        ax.get_yaxis().set_tick_params(direction='out', labelsize=14)
-                        ax.get_xaxis().set_tick_params(direction='out', labelsize=14)
-                        # MODIFCANDO A ÁREA DE PLOTAGEM
-                        fig.subplots_adjust(left=0.12, right=0.95, top=0.94, bottom=0.12)
+                        Fig.set_label(self.parametros.labelGraficos()[p1], self.parametros.labelGraficos()[p2],
+                                      fontsize=16)
+
                         # SALVA O GRÁFICO
-                        fig.savefig(base_path+base_dir+'regiao_verossimilhanca_fl'+str(0)+'_'+
-                                    str(self.parametros.simbolos[p1])+'_'+str(self.parametros.simbolos[p2])+'.png')
-                        close()
+                        Fig.salvar_e_fechar(base_path+base_dir+'regiao_verossimilhanca_fl'+str(0)+'_'+
+                                    str(self.parametros.simbolos[p1])+'_'+str(self.parametros.simbolos[p2])+'.png',
+                                            config_axes=True)
                         p2+=1
                 else:
                     warn('Os gráficos de regiao de abrangencia não puderam ser criados, pois há apenas um parâmetro.',UserWarning)
@@ -2087,7 +2099,24 @@ class EstimacaoNaoLinear:
                 #gráficos de y em função de y
                 for iy in xrange(self.y.NV):
                     for ix in xrange(self.x.NV):
-                        graficos_x_y(self.x, self.y, ix, iy, base_path, base_dir, 'calculado', self.__controleFluxo.FLUXO_ID)
+                        # Gráficos sem a incerteza
+                        Fig.grafico_dispersao_sem_incerteza(self.x.calculado.matriz_estimativa[:,ix],
+                                                            self.y.calculado.matriz_estimativa[:,iy],
+                                                            label_x=self.x.labelGraficos('calculado')[ix],
+                                                            label_y=self.y.labelGraficos('calculado')[iy],
+                                                            marker='o', linestyle='None')
+                        Fig.salvar_e_fechar(base_path+base_dir+'calculado'+'_fl'+str(self.__controleFluxo.FLUXO_ID) + \
+                                            '_'+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_sem_incerteza')
+                        # Gráficos com a incerteza
+                        Fig.grafico_dispersao_com_incerteza(self.x.calculado.matriz_estimativa[:,ix],
+                                                            self.y.calculado.matriz_estimativa[:,iy],
+                                                            self.x.calculado.matriz_incerteza[:,ix],
+                                                            self.y.calculado.matriz_incerteza[:,iy],
+                                                            label_x=self.x.labelGraficos('calculado')[ix],
+                                                            label_y=self.y.labelGraficos('calculado')[iy],
+                                                            fator_abrangencia=2.)
+                        Fig.salvar_e_fechar(base_path+base_dir+'calculado'+'_fl'+str(self.__controleFluxo.FLUXO_ID) + \
+                                            '_'+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_com_incerteza')
 
                 #incerteza_expandida_Yc=ones((self.y.calculado.NE,self.y.NV))
                 #incerteza_expandida_Ye=ones((self.y.validacao.NE,self.y.NV))
@@ -2099,37 +2128,20 @@ class EstimacaoNaoLinear:
                         # Gráfico comparativo entre valores experimentais e calculados pelo modelo, sem variância
                         y  = self.y.validacao.matriz_estimativa[:,iy]
                         ym = self.y.calculado.matriz_estimativa[:,iy]
-                        diagonal = linspace(min(y),max(y))
+                        diagonal = linspace(min(y), max(y))
 
-                        fig = figure()
-                        ax = fig.add_subplot(1,1,1)
-                        plot(y, ym, 'bo', linewidth=2.0)
-                        plot(diagonal, diagonal,'k-',linewidth=2.0)
-                        ax.yaxis.grid(color='gray', linestyle='dashed')
-                        ax.xaxis.grid(color='gray', linestyle='dashed')
-                        label_tick_x   = ax.get_xticks().tolist()
-                        tamanho_tick_x = (label_tick_x[1] - label_tick_x[0])/2
-                        ymin   = min(ym) - tamanho_tick_x
-                        ymax   = max(ym) + tamanho_tick_x
-                        xlim((ymin,ymax))
-                        ylim((ymin,ymax))
-
-                        # Escala dos gráficos em notação científica
-                        ax.yaxis.get_major_formatter().set_powerlimits((-2, 2))
-                        ax.xaxis.get_major_formatter().set_powerlimits((-2, 2))
-
-                        if self.__flag.info['dadosvalidacao'] == True:
-                            xlabel(self.y.labelGraficos('validacao')[iy])
-                        else:
-                            xlabel(self.y.labelGraficos('experimental')[iy])
-
-                        ylabel(self.y.labelGraficos('calculado')[iy])
-
-                        if self.__flag.info['dadosvalidacao'] == True:
-                            fig.savefig(base_path+base_dir+'grafico_fl'+str(self.__controleFluxo.FLUXO_ID)+'_'+str(self.y.simbolos[iy])+'val_vs_'+str(self.y.simbolos[iy])+'calc_sem_var.png')
-                        else:
-                            fig.savefig(base_path+base_dir+'grafico_fl'+str(self.__controleFluxo.FLUXO_ID)+'_'+str(self.y.simbolos[iy])+'exp_vs_'+str(self.y.simbolos[iy])+'calc_sem_var.png')
-                        close()
+                        Fig.grafico_dispersao_sem_incerteza(y, ym, marker='o', linestyle='None',
+                                                            corrigir_limites=False, config_axes=False)
+                        Fig.grafico_dispersao_sem_incerteza(diagonal, diagonal, linestyle='-', color='k', linewidth = 2.0,
+                                                            corrigir_limites=True,config_axes=False)
+                        Fig.set_label(self.y.labelGraficos('validacao')[iy] if self.__flag.info['dadosvalidacao'] else self.y.labelGraficos('experimental')[iy],
+                                      self.y.labelGraficos('calculado')[iy], fontsize = 16)
+                        Fig.salvar_e_fechar(base_path+base_dir+'validacao_fl'+str(self.__controleFluxo.FLUXO_ID) + \
+                                            '_' + str(self.y.simbolos[iy])+'_funcao_'+str(self.y.simbolos[iy])+'_calculado_sem_incerteza.png' \
+                                            if  self.__flag.info['dadosvalidacao'] else \
+                                            base_path+base_dir+'experimental_fl'+str(self.__controleFluxo.FLUXO_ID) + \
+                                            '_' + str(self.y.simbolos[iy])+'_funcao_'+str(self.y.simbolos[iy])+'_calculado_sem_incerteza.png',
+                                            config_axes=True)
 
                         yerr_calculado=-t_cal*self.y.calculado.matriz_incerteza[:,iy]
 

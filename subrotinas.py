@@ -15,6 +15,8 @@ from matplotlib.pyplot import figure, axes, axis, plot, errorbar, subplot, xlabe
 
 from matplotlib.patches import Ellipse
 
+from Graficos import Grafico
+
 def matriz2vetor(matriz):
     u"""
     Subrotina para converter uma matriz (array com várias colunas) em um vetor (array com uma coluna)
@@ -107,7 +109,7 @@ def Validacao_Diretorio(base_path,diretorio=None):
 def plot_cov_ellipse(cov, pos, c2=2, ax=None, **kwargs):
     """
     Plots an `nstd` sigma error ellipse based on the specified covariance
-    matrix (`cov`). Additional keyword arguments are passed on to the 
+    matrix (`cov`). Additional keyword arguments are passed on to the
     ellipse patch artist.
 
     Parameters
@@ -117,7 +119,7 @@ def plot_cov_ellipse(cov, pos, c2=2, ax=None, **kwargs):
             sequence of [x0, y0].
         nstd : The radius of the ellipse in numbers of standard deviations.
             Defaults to 2 standard deviations.
-        ax : The axis that the ellipse will be plotted on. Defaults to the 
+        ax : The axis that the ellipse will be plotted on. Defaults to the
             current axis.
         Additional keyword arguments are pass on to the ellipse patch.
 
@@ -229,112 +231,3 @@ def lista2matriz(lista):
 
     return res
 
-def config_axis(ax, offset_x=False, offset_y=False):
-    u"""
-    Subrotina voltada à formatação do axis de gráficos
-
-    ax: matplotlib.axis.Axis
-    """
-    ax.get_xaxis().tick_bottom()  # incluir box no fundo
-    ax.get_yaxis().tick_left()    # incluir box na esquerda
-
-    # Formato dos ticks
-    ax.get_yaxis().set_tick_params(direction='out', labelsize=16)
-    ax.get_xaxis().set_tick_params(direction='out', labelsize=16)
-
-    # Definindo notação científica para os eixos
-    ax.yaxis.get_major_formatter().set_powerlimits((-2, 2))
-    ax.xaxis.get_major_formatter().set_powerlimits((-2, 2))
-
-    # Definindo que offset nos eixos
-    ax.get_xaxis().get_major_formatter().set_useOffset(offset_x)
-    ax.get_yaxis().get_major_formatter().set_useOffset(offset_y)
-
-    # Definindo linhas de grade no major axes
-    ax.grid(b='on', which='major', axis='both')
-
-    # obtençao do passo dos ticks do axis
-    # eixo x
-    step_x_tickloc = abs(ax.get_xaxis().get_majorticklocs()[1] - ax.get_xaxis().get_majorticklocs()[0])
-    # eixo y
-    step_y_tickloc = abs(ax.get_yaxis().get_majorticklocs()[1] - ax.get_yaxis().get_majorticklocs()[0])
-
-    return ax, step_x_tickloc, step_y_tickloc
-
-def graficos_x_y(X, Y, ix, iy, base_path, base_dir, info, ID_fluxo):
-    u"""
-    Subrotina para gerar gráficos das variáveis y em função de x
-
-    =======
-    Entrada
-    =======
-    * X: objeto Grandeza contendo os dados a grandeza dependente
-    * Y: objeto Grandeza contendo os dados a grandeza independente
-    * ix: posição da variável que se deseja plotar
-    * iy: posição da variável que se deseja plotar em função de x[ix]
-    * info: atributo de Grandeza que se deseja plotar
-
-    * base_path: caminho base
-    * base_dir : diretório base
-
-    * ID_fluxo: número que indica o fluxo de trabalho
-
-    =======
-    Saídas
-    =======
-    * Gráfico de y em função de x sem incerteza
-    * Gráfico de y em função de x com incerteza
-    """
-
-    x  = eval('X.'+info+'.matriz_estimativa[:,ix]')
-    y  = eval('Y.'+info+'.matriz_estimativa[:,iy]')
-    ux = eval('X.'+info+'.matriz_incerteza[:,ix]')
-    uy = eval('Y.'+info+'.matriz_incerteza[:,iy]')
-
-    # Gráfico apenas com os pontos sem suas incertezas
-
-    fig = figure(dpi=60)
-    ax = fig.add_subplot(1, 1, 1)
-    ax.plot(x, y, 'o')
-
-    # Labels
-    ax.set_xlabel(X.labelGraficos(info)[ix], fontsize=18)
-    ax.set_ylabel(Y.labelGraficos(info)[iy], fontsize=18)
-
-    ax, step_x_tickloc, step_y_tickloc = config_axis(ax)
-
-    # Modificação do limite dos gráficos
-    xmin = min(x) - step_x_tickloc / 2.
-    xmax = max(x) + step_x_tickloc / 2.
-    ymin = min(y) - step_y_tickloc / 2.
-    ymax = max(y) + step_y_tickloc / 2.
-    ax.set_xlim(xmin, xmax)
-    ax.set_ylim(ymin, ymax)
-
-    fig.savefig(base_path+base_dir+info+'_fl'+str(ID_fluxo)+'_'+Y.simbolos[iy]+'_funcao_'+X.simbolos[ix]+'_sem_incerteza')
-    close()
-
-    # Grafico com os pontos e as incertezas
-
-    fig = figure(dpi=60)
-    ax = fig.add_subplot(1, 1, 1)
-    xerr = 2*ux
-    yerr = 2*uy
-    ax.errorbar(x, y, xerr=xerr, yerr=yerr, fmt="o")
-
-    # Labels
-    ax.set_xlabel(X.labelGraficos(info)[ix], fontsize=18)
-    ax.set_ylabel(Y.labelGraficos(info)[iy], fontsize=18)
-
-    ax, step_x_tickloc, step_y_tickloc = config_axis(ax)
-
-    # Modificação do limite dos gráficos
-    xmin = min(x-xerr) - step_x_tickloc / 4.
-    xmax = max(x+xerr) + step_x_tickloc / 4.
-    ymin = min(y-yerr) - step_y_tickloc / 4.
-    ymax = max(y+yerr) + step_y_tickloc / 4.
-    ax.set_xlim(xmin, xmax)
-    ax.set_ylim(ymin, ymax)
-
-    fig.savefig(base_path+base_dir+info+'_fl'+str(ID_fluxo)+'_'+Y.simbolos[iy]+'_funcao_'+X.simbolos[ix]+'_com_incerteza')
-    close()
