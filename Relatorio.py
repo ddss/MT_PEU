@@ -320,7 +320,7 @@ class Relatorio:
             for symb in y.simbolos:
                 with open(self.__base_path+symb+'-calculado-predicao.txt','wb') as f:
                     for i in xrange(y.calculado.NE):
-                        f.write('{:.5f},{:.5f},{:.5f}\n'.format(y.calculado.matriz_estimativa[i,cont],y.calculado.matriz_incerteza[i,cont],y.calculado.gL[cont][i]))
+                        f.write('{:.5g},{:.5g},{:.5g}\n'.format(y.calculado.matriz_estimativa[i,cont],y.calculado.matriz_incerteza[i,cont],y.calculado.gL[cont][i]))
                 f.close()
                 cont+=1
 
@@ -329,6 +329,6 @@ class Relatorio:
             with open(self.__base_path+'y-calculado-matriz-covariancia.txt','wb') as f:
                 for i in xrange(y.NV*y.calculado.NE):
                     for j in xrange(y.NV*y.calculado.NE):
-                        f.write('{:.5f} '.format(y.calculado.matriz_covariancia[i,j]))
+                        f.write('{:.5g} '.format(y.calculado.matriz_covariancia[i,j]))
                     f.write('\n')
             f.close()
