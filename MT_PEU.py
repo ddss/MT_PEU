@@ -1899,7 +1899,7 @@ class EstimacaoNaoLinear:
         chi2max = chi2.ppf(self.PA+(1-self.PA)/2,gL)
         chi2min = chi2.ppf((1-self.PA)/2,gL)
 
-        self.estatisticas['FuncaoObjetivo'] = {'chi2max':chi2max,'chi2min':chi2min,'FO':self.FOotimo}
+        self.estatisticas['FuncaoObjetivo'] = {'chi2max':chi2max, 'chi2min':chi2min, 'FO':self.FOotimo}
 
     def graficos(self,tipos):
         u"""
@@ -1952,7 +1952,7 @@ class EstimacaoNaoLinear:
                     # Gráficos das grandezas y em função de x
                     for iy in xrange(self.y.NV):
                         for ix in xrange(self.x.NV):
-                            graficos_x_y(self.x, self.y, ix, iy, base_path, base_dir, 'experimental',0)
+                            graficos_x_y(self.x, self.y, ix, iy, base_path, base_dir, 'experimental', 0)
 
                 # gráficos gerados para os dados de validação, apenas se estes forem diferentes dos experimentais,
                 # apesar dos atributos de validação sempre existirem

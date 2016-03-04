@@ -44,7 +44,7 @@ def matriz2vetor(matriz):
     for i in xrange(1,size(matriz,1)):
         # Concatenar as colunas abaixo da anterior
         vetor = concatenate((vetor,matriz[:,i:i+1]))
-    
+
     return vetor
 
 
@@ -77,15 +77,15 @@ def vetor2matriz(vetor,NE):
     """
 
     pos_inicial = 0  # primeira linha da primeira coluna
-    pos_final   = NE # última linha da primeira coluna 
+    pos_final   = NE # última linha da primeira coluna
     matriz = vetor[pos_inicial:pos_final] # gera a primeira coluna
 
     for i in xrange(1,size(vetor)/NE):
         pos_inicial += NE
         pos_final   += NE
         # concatenando as colunas uma ao lado da outra
-        matriz = concatenate((matriz,vetor[pos_inicial:pos_final]),1) 
-        
+        matriz = concatenate((matriz,vetor[pos_inicial:pos_final]),1)
+
     return matriz
 
 
@@ -96,10 +96,10 @@ def Validacao_Diretorio(base_path,diretorio=None):
             directory = path.split(base_path+diretorio+"Teste.txt")[0]
         else:
             directory = path.split(base_path)[0]
-        
+
         if directory == '':
             directory = '.'
- 
+
         # Se o diretório não existir, crie
         if not path.exists(directory):
             makedirs(directory)
@@ -139,7 +139,7 @@ def plot_cov_ellipse(cov, pos, c2=2, ax=None, **kwargs):
     # Width and height are "full" widths, not radius
     width, height = 2 * sqrt(c2*vals)
     ellip = Ellipse(xy=pos, width=width, height=height, angle=theta, **kwargs)
-    
+
     ax.add_artist(ellip)
 
     # CÁLCULO DOS PONTOS PERTENCENTES AOS EIXOS DA ELIPSE:
@@ -196,7 +196,7 @@ def vetor_delta(entrada_vetor,posicao,delta):
 
         >>> array([1, 2, 3, 9, 5])
     """
-            
+
     vetor = copy(entrada_vetor)
 
     if isinstance(posicao,list):
@@ -204,7 +204,7 @@ def vetor_delta(entrada_vetor,posicao,delta):
         vetor[posicao[1]] = vetor[posicao[1]]+delta[1]
     else:
         vetor[posicao] = vetor[posicao]+delta
-                
+
     return vetor
 
 def matrizcorrelacao(matriz_covariancia):
@@ -213,8 +213,8 @@ def matrizcorrelacao(matriz_covariancia):
     """
     if size(matriz_covariancia,0) != size(matriz_covariancia,1):
         raise ValueError(u'A matriz precisa ser quadrada para calcular a matriz dos coeficientes de correlação.')
-    
-    matriz_correlacao  = ones((size(matriz_covariancia,0),size(matriz_covariancia,0)))    
+
+    matriz_correlacao  = ones((size(matriz_covariancia,0),size(matriz_covariancia,0)))
     for i in xrange(size(matriz_covariancia,0)):
         for j in xrange(size(matriz_covariancia,0)):
             matriz_correlacao[i,j]  = matriz_covariancia[i,j]/sqrt(matriz_covariancia[i,i]*matriz_covariancia[j,j])
@@ -226,8 +226,40 @@ def lista2matriz(lista):
     for i in lista[1:]:
         aux = array(i,ndmin=2).transpose()
         res = concatenate((res,aux),1)
-    
+
     return res
+
+def config_axis(ax, offset_x=False, offset_y=False):
+    u"""
+    Subrotina voltada à formatação do axis de gráficos
+
+    ax: matplotlib.axis.Axis
+    """
+    ax.get_xaxis().tick_bottom()  # incluir box no fundo
+    ax.get_yaxis().tick_left()    # incluir box na esquerda
+
+    # Formato dos ticks
+    ax.get_yaxis().set_tick_params(direction='out', labelsize=16)
+    ax.get_xaxis().set_tick_params(direction='out', labelsize=16)
+
+    # Definindo notação científica para os eixos
+    ax.yaxis.get_major_formatter().set_powerlimits((-2, 2))
+    ax.xaxis.get_major_formatter().set_powerlimits((-2, 2))
+
+    # Definindo que offset nos eixos
+    ax.get_xaxis().get_major_formatter().set_useOffset(offset_x)
+    ax.get_yaxis().get_major_formatter().set_useOffset(offset_y)
+
+    # Definindo linhas de grade no major axes
+    ax.grid(b='on', which='major', axis='both')
+
+    # obtençao do passo dos ticks do axis
+    # eixo x
+    step_x_tickloc = abs(ax.get_xaxis().get_majorticklocs()[1] - ax.get_xaxis().get_majorticklocs()[0])
+    # eixo y
+    step_y_tickloc = abs(ax.get_yaxis().get_majorticklocs()[1] - ax.get_yaxis().get_majorticklocs()[0])
+
+    return ax, step_x_tickloc, step_y_tickloc
 
 def graficos_x_y(X, Y, ix, iy, base_path, base_dir, info, ID_fluxo):
     u"""
@@ -259,56 +291,50 @@ def graficos_x_y(X, Y, ix, iy, base_path, base_dir, info, ID_fluxo):
     ux = eval('X.'+info+'.matriz_incerteza[:,ix]')
     uy = eval('Y.'+info+'.matriz_incerteza[:,iy]')
 
-    #Gráfico apenas com os pontos experimentais
-    fig = figure()
-    ax = fig.add_subplot(1,1,1)
-    plot(x,y,'o')
-    # obtençao do tick do grafico
-    # eixo x+
-    label_tick_x   = ax.get_xticks().tolist()
-    tamanho_tick_x = (label_tick_x[1] - label_tick_x[0])/2
-    # eixo y
-    label_tick_y = ax.get_yticks().tolist()
-    tamanho_tick_y = (label_tick_y[1] - label_tick_y[0])/2
-    # Modificação do limite dos gráficos
-    xmin   = min(x) - tamanho_tick_x
-    xmax   = max(x) + tamanho_tick_x
-    ymin   = min(y) - tamanho_tick_y
-    ymax   = max(y) + tamanho_tick_y
-    xlim(xmin,xmax)
-    ylim(ymin,ymax)
+    # Gráfico apenas com os pontos sem suas incertezas
+
+    fig = figure(dpi=60)
+    ax = fig.add_subplot(1, 1, 1)
+    ax.plot(x, y, 'o')
+
     # Labels
-    xlabel(X.labelGraficos(info)[ix],fontsize=20)
-    ylabel(Y.labelGraficos(info)[iy],fontsize=20)
-    #Grades
-    grid(b = 'on', which = 'major', axis = 'both')
+    ax.set_xlabel(X.labelGraficos(info)[ix], fontsize=18)
+    ax.set_ylabel(Y.labelGraficos(info)[iy], fontsize=18)
+
+    ax, step_x_tickloc, step_y_tickloc = config_axis(ax)
+
+    # Modificação do limite dos gráficos
+    xmin = min(x) - step_x_tickloc / 2.
+    xmax = max(x) + step_x_tickloc / 2.
+    ymin = min(y) - step_y_tickloc / 2.
+    ymax = max(y) + step_y_tickloc / 2.
+    ax.set_xlim(xmin, xmax)
+    ax.set_ylim(ymin, ymax)
+
     fig.savefig(base_path+base_dir+info+'_fl'+str(ID_fluxo)+'_'+Y.simbolos[iy]+'_funcao_'+X.simbolos[ix]+'_sem_incerteza')
     close()
 
-    #Grafico com os pontos experimentais e as incertezas
-    fig = figure()
-    ax = fig.add_subplot(1,1,1)
+    # Grafico com os pontos e as incertezas
+
+    fig = figure(dpi=60)
+    ax = fig.add_subplot(1, 1, 1)
     xerr = 2*ux
     yerr = 2*uy
-    errorbar(x,y,xerr=xerr,yerr=yerr,fmt="none", marker='o')
-    # obtençao do tick do grafico
-    # eixo x
-    label_tick_x   = ax.get_xticks().tolist()
-    tamanho_tick_x = (label_tick_x[1] - label_tick_x[0])/2
-    # eixo y
-    label_tick_y = ax.get_yticks().tolist()
-    tamanho_tick_y = (label_tick_y[1] - label_tick_y[0])/2
-    # Modificação dos limites dos gráficos
-    xmin  = min(x - xerr) - tamanho_tick_x
-    ymin  = min(y - yerr) - tamanho_tick_y
-    xmax  = max(x + xerr) + tamanho_tick_x
-    ymax  = max(y + yerr) + tamanho_tick_y
-    xlim(xmin,xmax)
-    ylim(ymin,ymax)
+    ax.errorbar(x, y, xerr=xerr, yerr=yerr, fmt="o")
+
     # Labels
-    xlabel(X.labelGraficos(info)[ix],fontsize=20)
-    ylabel(Y.labelGraficos(info)[iy],fontsize=20)
-    #Grades
-    grid(b = 'on', which = 'major', axis = 'both')
+    ax.set_xlabel(X.labelGraficos(info)[ix], fontsize=18)
+    ax.set_ylabel(Y.labelGraficos(info)[iy], fontsize=18)
+
+    ax, step_x_tickloc, step_y_tickloc = config_axis(ax)
+
+    # Modificação do limite dos gráficos
+    xmin = min(x-xerr) - step_x_tickloc / 4.
+    xmax = max(x+xerr) + step_x_tickloc / 4.
+    ymin = min(y-yerr) - step_y_tickloc / 4.
+    ymax = max(y+yerr) + step_y_tickloc / 4.
+    ax.set_xlim(xmin, xmax)
+    ax.set_ylim(ymin, ymax)
+
     fig.savefig(base_path+base_dir+info+'_fl'+str(ID_fluxo)+'_'+Y.simbolos[iy]+'_funcao_'+X.simbolos[ix]+'_com_incerteza')
     close()
