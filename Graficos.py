@@ -7,7 +7,7 @@ Arquivo que contém a classe gráficos
 
 # Importação de pacotes
 
-from numpy import arctan2, degrees, sqrt
+from numpy import arctan2, degrees, sqrt, sort, argsort
 
 from numpy.linalg import eigh, inv
 
@@ -18,20 +18,34 @@ from matplotlib.patches import Ellipse
 class Grafico:
     def __init__(self, **kwargs):
         u"""
+        Classe para a criação e gerenciamento de gráficos
 
-        :param kwargs: mesmas kwargs de figure matplotlib
+        =======
+        Entrada
+        =======
+
+        * kwargs: argumentos para matplotlib.pyplot.figure
+
+        =========
+        Atributos
+        =========
+
+        Esta classe usa os atributos self.axes (matplotlib.axes.Axes) e self.fig_instance (matplotlib.pyplot.figure)
+        para criação dos gráficos. O atributo self.lista_graficos é usado para salvar os gráficos incluído para
+        edições na legenda.
         """
-
+        # incia a figura
         self.fig_instance = figure(**kwargs)
+        # inicia o axes
         self.axes = self.fig_instance.add_subplot(1, 1, 1)
-
+        # lista de gráficos executados -> para legenda
         self.lista_graficos = []
 
-    def config_axis(self, offset_x=False, offset_y=False):
+    def config_axes(self, offset_x=False, offset_y=False):
         u"""
-        Método voltada à formatação do axis de gráficos
+        Método voltado à formatação de self.axes
 
-        ax: matplotlib.axis.axes
+        Formatações: configuração dos ticks, eixos em notação científica, offset dos eixos, e grid.
         """
         # axis
         self.axes.get_xaxis().tick_bottom() # incluir box no fundo
@@ -52,42 +66,51 @@ class Grafico:
         self.axes.grid(b='on', which='major', axis='both', linestyle='dashed', color='gray')
 
     def get_step_tick(self):
+        u"""
+        Método para avaliar o tamanho do passo dos ticks dos eixos dos gráficos
+
+        :return: passo dos ticks de x e y
+        """
         # obtençao do passo dos ticks do axis
         # eixo x
-        step_x_tickloc = abs(
-            self.axes.get_xaxis().get_majorticklocs()[1] - self.axes.get_xaxis().get_majorticklocs()[0])
+        step_x_tickloc = self.axes.get_xaxis().get_majorticklocs()[1] - self.axes.get_xaxis().get_majorticklocs()[0]
         # eixo y
-        step_y_tickloc = abs(
-            self.axes.get_yaxis().get_majorticklocs()[1] - self.axes.get_yaxis().get_majorticklocs()[0])
+        step_y_tickloc = self.axes.get_yaxis().get_majorticklocs()[1] - self.axes.get_yaxis().get_majorticklocs()[0]
 
         return step_x_tickloc, step_y_tickloc
 
-    def grafico_dispersao_sem_incerteza(self, x, y, label_x=None, label_y=None,
-                                        add_legenda=False, corrigir_limites=True, config_axes = True,
+    def grafico_dispersao_sem_incerteza(self, x, y, label_x = None, label_y = None,
+                                        add_legenda = False, corrigir_limites = True, config_axes = True,
                                         **kwargs):
         u"""
-        Subrotina para gerar gráficos das variáveis y em função de x
+        Subrotina para gerar gráfico de dispersão de variáveis y em função de x
 
-        =======
-        Entrada
-        =======
-        x (array): dados de x
-        y (array): dados de y
+        ========
+        Entradas
+        ========
+        :param x (array): dados de x
+        :param y (array): dados de y
+        :param label_x (string): label de x (para eixo)
+        :param label_y (string): label de y (para eixo)
 
-        label_x: label de x (para eixo)
-        label_y: label de y (para eico)
+        :param add_legenda (bool): adiciona o gráfico no atributo self.lista_graficos (para formatação de legenda)
+        :param corrigir_limites (bool): corrige os limites dos gráficos (evita que pontos fiquem muito próximos ao
+                                 box do gráfico).
+        :param config_axes (bool): executa o método self.config_axes
 
-        kwargs para o plot
+        :param **kwargs: keyword argumentos a serem passados para método self.matplotlib.pyplot.plot
+
         """
+        # Organizando os vetores
+        y = y[argsort(x)]
+        x = sort(x)
+
         # plot
         dispersao_sem_incerteza, = self.axes.plot(x, y, **kwargs)
 
         # Labels
         if label_x is not None and label_y is not None:
             self.set_label(label_x, label_y, fontsize=16)
-
-        if config_axes:
-           self.config_axis(offset_x=False, offset_y=False)
 
         # Modificação do limite dos gráficos
         if corrigir_limites:
@@ -100,50 +123,68 @@ class Grafico:
             self.axes.set_xlim(xmin, xmax)
             self.axes.set_ylim(ymin, ymax)
 
+        # configuração do axes
+        if config_axes:
+            self.config_axes()
+
+        # configuração para legenda
         if add_legenda:
             self.lista_graficos.append(dispersao_sem_incerteza)
 
     def grafico_dispersao_com_incerteza(self, x, y, ux, uy, label_x = None, label_y = None,
-                                        fator_abrangencia = 2,
-                                        add_legenda = False, corrigir_limites = True, config_axes = True):
-        """
+                                        fator_abrangencia_x = 2, fator_abrangencia_y = 2,
+                                        add_legenda = False, corrigir_limites = True, config_axes = True, **kwargs):
+        u"""
         ========
         Entradas
         ========
         :param x (array): dados de x
         :param y (array): dados de y
         :param label_x (string): label do eixo x
-        :param label_y (string):
+        :param label_y (string): label do eixo y
         :param fator_abrangencia: fator de abrangencia
 
-        # todo o trabalho é realizado no atributo self.axes
+        :param add_legenda (bool): adiciona o gráfico no atributo self.lista_graficos (para formatação de legenda)
+        :param corrigir_limites (bool): corrige os limites dos gráficos (evita que pontos fiquem muito próximos ao
+                                 box do gráfico).
+        :param config_axes (bool): executa o método self.config_axes
+
+        :param **kwargs: keyword argumentos a serem passados para método self.matplotlib.pyplot.errorbar
         """
-        # Grafico com os pontos e as incertezas
+        # organizando os vetores
+        y = y[argsort(x)]
+        ux = ux[argsort(x)]
+        uy = uy[argsort(x)]
+        x = sort(x)
 
-        xerr = fator_abrangencia*ux
-        yerr = fator_abrangencia*uy
+        # incerteza expandida
+        xerr = fator_abrangencia_x*ux
+        yerr = fator_abrangencia_y*uy
 
-        dispersao_com_incerteza = self.axes.errorbar(x, y, xerr=xerr, yerr=yerr, fmt="o")
+        # gráfico
+        dispersao_com_incerteza = self.axes.errorbar(x, y, xerr=xerr, yerr=yerr, **kwargs)
 
         # Labels
         if label_x is not None and label_y is not None:
             self.set_label(label_x, label_y, fontsize=16)
 
-        if config_axes:
-            self.config_axis(offset_x=False, offset_y=False)
-
         # Modificação do limite dos gráficos
         if corrigir_limites:
             step_x_tickloc, step_y_tickloc = self.get_step_tick()
-            xmin = min(x-xerr) - step_x_tickloc / 4.
-            xmax = max(x+xerr) + step_x_tickloc / 4.
-            ymin = min(y-yerr) - step_y_tickloc / 4.
-            ymax = max(y+yerr) + step_y_tickloc / 4.
+            xmin = min(x-xerr) - step_x_tickloc / 2.
+            xmax = max(x+xerr) + step_x_tickloc / 2.
+            ymin = min(y-yerr) - step_y_tickloc / 2.
+            ymax = max(y+yerr) + step_y_tickloc / 2.
             self.axes.set_xlim(xmin, xmax)
             self.axes.set_ylim(ymin, ymax)
 
+        # Configuração dos axes
+        if config_axes:
+            self.config_axes()
+
+        # Configuração para legenda
         if add_legenda:
-            self.lista_graficos.append(dispersao_com_incerteza)
+                self.lista_graficos.append(dispersao_com_incerteza)
 
     def elipse_covariancia(self, cov, pos, c2=2, add_legenda=True):#, **kwargs):
         """
@@ -211,31 +252,60 @@ class Grafico:
             self.lista_graficos.append(ellip)
 
     def set_label(self, label_x, label_y, **kwargs):
+        u"""
+        Método para adição de label aos eixos
+
+        :param label_x (string): label para eixo x
+        :param label_y (string): label para eixo y
+        :param kwargs: keywords a serem passadas para matplotlib.pyplot.xlabel e ylabel
+        """
         self.axes.set_xlabel(label_x, **kwargs)
         self.axes.set_ylabel(label_y, **kwargs)
 
     def set_legenda(self, legenda, **kwargs):
+        u"""
+        Método para adição de legenda
 
+        :param legenda (list): lista com as strings para as legendas
+        :param kwargs: keyword arguments a serem passados para matplotlib.pyplot.legend
+        """
+        # validação
         if len(legenda) != len(self.lista_graficos):
 
-            raise ValueError('A legenda deve ser do mesmo tamanho dos gráficos incluídos {}'.format(len(self.lista_graficos)))
+            raise ValueError('A legenda deve ser do mesmo tamanho dos gráficos incluídos: {}'.format(len(self.lista_graficos)))
 
         self.axes.legend(self.lista_graficos, legenda, **kwargs)
 
     def salvar_e_fechar(self, titulo, ajustar=True, config_axes=False, reiniciar=True):
+        u"""
+        Método para salvar o gráfico e fechar a janela
 
+        :param titulo (string): nome do arquivo
+        :param ajustar (bool): indica que o janela do gráfico deve ser cortada
+        :param config_axes (bool): indica se o método self.config_axes deve ser usado
+        :param reiniciar (bool): indica se o método self.reiniciar deve ser executado
+        """
+
+        # ajusta a área do gráfico
         if ajustar:
             self.fig_instance.subplots_adjust(left=0.125, right=0.95, top=0.95, bottom=0.125)
 
+        # configuração ao axez
         if config_axes:
-            self.config_axis()
+            self.config_axes()
 
+        # salva
         self.fig_instance.savefig(titulo)
+        #fecha
         close(self.fig_instance)
 
+        # reinicia
         if reiniciar:
             self.reiniciar()
 
     def reiniciar(self):
+        u"""
+        Método para apagar o que fora plotado no axes e a figura
+        """
         clf()
         self.axes.clear()
