@@ -12,6 +12,7 @@ from numpy import arctan2, degrees, sqrt, sort, argsort
 from numpy.linalg import eigh, inv
 
 from matplotlib.pyplot import figure, close, clf
+from matplotlib.ticker import FixedFormatter
 
 from matplotlib.patches import Ellipse
 
@@ -41,25 +42,36 @@ class Grafico:
         # lista de gráficos executados -> para legenda
         self.lista_graficos = []
 
-    def config_axes(self, offset_x=False, offset_y=False):
+    def config_axes(self, tick=True, formato_cientifico=True, grid=True):
         u"""
         Método voltado à formatação de self.axes
 
+        :param: tick (bool): define se o tick será alterado
+        :param: formato_cientifico (bool): define se os eixos estarão em formato científico (sem offset e com potência de 10)
+        :param: grid (bool): define se haverá adição de grid
+
         Formatações: configuração dos ticks, eixos em notação científica, offset dos eixos, e grid.
         """
-        # Formato dos ticks
-        self.axes.tick_params(reset=True, axis='both', right='off',top='off',direction='out', labelsize=14)
+        if tick:
+            # Formato dos ticks
+            self.axes.tick_params(reset=True, axis='both', right='off', top='off', direction='out', labelsize=14)
 
-        # Definindo notação científica para os eixos
-        self.axes.get_xaxis().get_major_formatter().set_powerlimits((-2, 2))
-        self.axes.get_yaxis().get_major_formatter().set_powerlimits((-2, 2))
+        if formato_cientifico:
+            if not isinstance(self.axes.get_xaxis().get_major_formatter(), FixedFormatter):
+                # Definindo notação científica para os eixos
+                self.axes.get_xaxis().get_major_formatter().set_powerlimits((-2, 2))
+                # Definindo que offset nos eixos
+                self.axes.get_xaxis().get_major_formatter().set_useOffset(False)
 
-        # Definindo que offset nos eixos
-        self.axes.get_xaxis().get_major_formatter().set_useOffset(offset_x)
-        self.axes.get_yaxis().get_major_formatter().set_useOffset(offset_y)
+            if not isinstance(self.axes.get_yaxis().get_major_formatter(), FixedFormatter):
+                # Definindo notação científica para os eixos
+                self.axes.get_yaxis().get_major_formatter().set_powerlimits((-2, 2))
+                # Definindo que offset nos eixos
+                self.axes.get_yaxis().get_major_formatter().set_useOffset(False)
 
-        # Definindo linhas de grade no major axes
-        self.axes.grid(b='on', which='major', axis='both', linestyle='dashed', color='gray')
+        if grid:
+            # Definindo linhas de grade no major axes
+            self.axes.grid(b='on', which='major', axis='both', linestyle='dashed', color='gray', zorder=1)
 
     def get_step_tick(self):
         u"""
@@ -89,7 +101,7 @@ class Grafico:
         self.axes.set_xlim(min(xlim_original[0], x_lim[0]), max(xlim_original[1], x_lim[1]))
         self.axes.set_ylim(min(ylim_original[0], y_lim[0]), max(ylim_original[1], y_lim[1]))
 
-    def set_label(self, label_x, label_y, **kwargs):
+    def set_label(self, label_x=None, label_y=None, **kwargs):
         u"""
         Método para adição de label aos eixos
 
@@ -97,8 +109,10 @@ class Grafico:
         :param label_y (string): label para eixo y
         :param kwargs: keywords a serem passadas para matplotlib.pyplot.xlabel e ylabel
         """
-        self.axes.set_xlabel(label_x, **kwargs)
-        self.axes.set_ylabel(label_y, **kwargs)
+        if label_x is not None:
+            self.axes.set_xlabel(label_x, **kwargs)
+        if label_y is not None:
+            self.axes.set_ylabel(label_y, **kwargs)
 
     def set_legenda(self, legenda, **kwargs):
         u"""
@@ -133,7 +147,7 @@ class Grafico:
 
         :param add_legenda (bool): adiciona o gráfico no atributo self.lista_graficos (para formatação de legenda)
         :param corrigir_limites (bool): corrige os limites dos gráficos (evita que pontos fiquem muito próximos ao
-                                 box do gráfico).
+                                 box do gráfico). Usa self.set_limites
         :param config_axes (bool): executa o método self.config_axes
 
         :param **kwargs: keyword argumentos a serem passados para método self.matplotlib.pyplot.plot
@@ -148,8 +162,7 @@ class Grafico:
         dispersao_sem_incerteza, = self.axes.plot(x, y, **kwargs)
 
         # Labels
-        if label_x is not None and label_y is not None:
-            self.set_label(label_x, label_y, fontsize=16)
+        self.set_label(label_x, label_y, fontsize=16)
 
         # Modificação do limite dos gráficos
         if corrigir_limites:
@@ -184,7 +197,7 @@ class Grafico:
 
         :param add_legenda (bool): adiciona o gráfico no atributo self.lista_graficos (para formatação de legenda)
         :param corrigir_limites (bool): corrige os limites dos gráficos (evita que pontos fiquem muito próximos ao
-                                 box do gráfico).
+                                 box do gráfico). Usa self.set_limites
         :param config_axes (bool): executa o método self.config_axes
 
         :param **kwargs: keyword argumentos a serem passados para método self.matplotlib.pyplot.errorbar
@@ -203,8 +216,7 @@ class Grafico:
         dispersao_com_incerteza = self.axes.errorbar(x, y, xerr=xerr, yerr=yerr, **kwargs)
 
         # Labels
-        if label_x is not None and label_y is not None:
-            self.set_label(label_x, label_y, fontsize=16)
+        self.set_label(label_x, label_y, fontsize=16)
 
         # Modificação do limite dos gráficos
         if corrigir_limites:
@@ -222,6 +234,49 @@ class Grafico:
         # Configuração para legenda
         if add_legenda:
                 self.lista_graficos.append(dispersao_com_incerteza)
+
+
+    def boxplot(self, x, label_x = None, label_y=None, config_axes=True, **kwargs):
+        u"""
+        Gráfico boxplot
+        :param x: conjunto de dados
+        :param label_x: label do eixo x (label dos ticks)
+        :param label_y: label do eixo y
+
+        kwargs: keyword arguments a serem passados para o boxplot
+        """
+
+        self.axes.boxplot(x, **kwargs)
+
+        self.axes.set_xticklabels(label_x)
+
+        self.set_label(None, label_y, fontsize=16)
+
+        if config_axes:
+            self.config_axes()
+
+    def autocorr(self, x, label_x = None, label_y=None, config_axes = True, corrigir_limites=True, **kwargs):
+        u"""
+
+        :param x: dados para o gráfico
+        :param label_x ('string): label para o eixo x
+        :param label_y'('string'): label para o eixo y
+        :param config_axes (bool): executa self.config_axes
+        :param corrigir_limites (bool): corrige os limites do gráfico. (x começar em zero)
+        :param kwargs: keyword arguments para matplotlib.pyplot.acorr
+        """
+
+        self.axes.acorr(x, **kwargs)
+
+        self.set_label(label_x, label_y)
+
+        self.axes.axhline(0, color='black', lw=2)
+
+        if corrigir_limites:
+            self.axes.set_xlim(0, x.shape[0])
+
+        if config_axes:
+            self.config_axes(formato_cientifico=False)
 
     def elipse_covariancia(self, cov, pos, c2=2, add_legenda=True):#, **kwargs):
         """
@@ -288,6 +343,7 @@ class Grafico:
         if add_legenda:
             self.lista_graficos.append(ellip)
 
+
     def salvar_e_fechar(self, titulo, ajustar=True, config_axes=False, reiniciar=True):
         u"""
         Método para salvar o gráfico e fechar a janela
@@ -321,4 +377,5 @@ class Grafico:
         """
         clf()
         self.axes.clear()
+        self.axes.tick_params(reset=True)
         self.lista_graficos = []

@@ -6,7 +6,7 @@ Created on Mon Feb  2 11:05:02 2015
 """
 # Importação de pacotes de terceiros
 from numpy import array, transpose ,size, diag, linspace, min, max, \
-    mean,  std, amin, amax, ndarray, insert, nan, correlate, isfinite
+    mean,  std, amin, amax, ndarray, insert, nan, correlate, isfinite, arange
 
 from numpy.linalg import cond
 
@@ -27,6 +27,8 @@ from os import getcwd, sep
 
 # Subrotinas próprias (desenvolvidas pelo GI-UFBA)
 from subrotinas import Validacao_Diretorio, matrizcorrelacao
+
+from Graficos import Grafico
 
 class Grandeza:
 
@@ -655,12 +657,6 @@ class Grandeza:
         if kwargs.has_key('media') or kwargs.has_key('legenda'):
              media=kwargs.pop('media')
              legenda= kwargs.pop('legenda')
-        if tipo== 'boxplot':
-           boxplot(y, **kwargs)
-           #ylabel deve ser passado como uma lista com os nomes de cada conjunto de dados que vai construir o boxplot
-           ax.set_xticklabels(Ylabel)
-           ax.yaxis.grid(color='gray', linestyle='dashed')
-           ax.xaxis.grid(color='gray', linestyle='dashed')
         if tipo=='autocorrelacao':
            acorr(y, **kwargs)
            xlim(0,len(y))
@@ -762,6 +758,8 @@ class Grandeza:
         # ---------------------------------------------------------------------
         # CRIAÇÃO DOS GRÁFICOS
         # ---------------------------------------------------------------------
+        Fig = Grafico(dpi=60)
+
         base_dir  = sep + 'Grandezas' + sep if base_dir is None else sep + base_dir + sep
         Validacao_Diretorio(base_path,base_dir)
         
@@ -814,26 +812,35 @@ class Grandeza:
         if 'residuo' in ID:
             # BOXPLOT
             #checa a variabilidade dos dados, assim como a existência de possíveis outliers
-            self.__construtor_graficos(None,self.labelGraficos(printunit=False),None, self.residuos.matriz_estimativa,base_path,base_dir,fluxo, ID, 'boxplot', sym='.k')
-            
+            Fig.boxplot(self.residuos.matriz_estimativa,label_x=self.labelGraficos(printunit=False), label_y='Resíduos')
+            Fig.salvar_e_fechar(base_path+base_dir+'residuo_fl'+str(fluxo)+'_boxplot.png')
+
             base_path = base_path + base_dir
             for i,nome in enumerate(self.simbolos):
                 # Gráficos da estimação
                 base_dir = sep + self.simbolos[i] + sep
                 Validacao_Diretorio(base_path,base_dir)
                 dados = self.residuos.matriz_estimativa[:,i]
-                x=linspace(0, len(dados), num=len(dados))
+                x = arange(1, dados.shape[0]+1, 1)
     
                 # TENDÊNCIA
                 #Testa a aleatoriedade dos dados, plotando os valores do residuo versus a ordem em que foram obtidos
                 #dessa forma verifica-se há alguma tendência
-                self.__construtor_graficos('Ordem de Coleta',self.labelGraficos()[i],x,dados,base_path,base_dir,fluxo, ID, 'tendencia', legenda=True, media=True, label='Pontos', marker='o', ls='None')
-        
+                Fig.grafico_dispersao_sem_incerteza(array([min(x), max(x)]), array([mean(dados)] * 2),
+                                                    linestyle='-.', color='r', linewidth=2,
+                                                    add_legenda=True, corrigir_limites=False, config_axes=False)
+                Fig.grafico_dispersao_sem_incerteza(x, dados, label_x='Amostra', label_y=self.labelGraficos()[i],
+                                                    marker='o', linestyle='None')
+                Fig.axes.axhline(0, color='black', lw=1, zorder=1)
+                Fig.set_legenda(['Média dos resíduos'], loc = 'best')
+                Fig.salvar_e_fechar(base_path+base_dir+'residuo_fl'+str(fluxo)+'_tendencia.png')
+
                 # AUTO CORRELAÇÃO
                 #Gera um gráfico de barras que verifica a autocorrelação
-                self.__construtor_graficos('Lag', u'Autocorrelação de {}'.format(self.labelGraficos(printunit=False)[i]),None,dados,base_path,base_dir,fluxo, ID,'autocorrelacao' , usevlines=True,normed=True, maxlags=None)
-                 
-               
+                Fig.autocorr(dados, label_x='Lag', label_y=u'Autocorrelação de {}'.format(self.labelGraficos(printunit=False)[i]),
+                             normed=True, maxlags=None)
+                Fig.salvar_e_fechar(base_path+base_dir+'residuo_fl'+str(fluxo)+'_autocorrelacao.png')
+
                 # HISTOGRAMA                
                 #Gera um gráfico de histograma, importante na verificação da pdf
                 self.__construtor_graficos(self.labelGraficos()[i], u'Frequência',None,dados,base_path,base_dir,fluxo, ID,'hist')

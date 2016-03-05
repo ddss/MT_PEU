@@ -20,10 +20,6 @@ from scipy.misc import factorial
 from numpy.linalg import inv
 from math import floor, log10
 
-# Construção de gráficos
-from matplotlib.pyplot import figure, axes, axis, plot, errorbar, xlabel, ylabel,\
-    legend, xlim, ylim, close
-
 # Pacotes do sistema operacional
 from os import getcwd, sep
 
