@@ -2104,7 +2104,7 @@ class EstimacaoNaoLinear:
                                                             self.y.calculado.matriz_estimativa[:,iy],
                                                             label_x=self.x.labelGraficos('calculado')[ix],
                                                             label_y=self.y.labelGraficos('calculado')[iy],
-                                                            marker='o', linestyle='None')
+                                                            marker='o', linestyle='None', config_axes=True)
                         Fig.salvar_e_fechar(base_path+base_dir+'calculado'+'_fl'+str(self.__controleFluxo.FLUXO_ID) + \
                                             '_'+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_sem_incerteza')
                         # Gráficos com a incerteza
@@ -2137,11 +2137,9 @@ class EstimacaoNaoLinear:
                     Fig.set_label(self.y.labelGraficos('validacao')[iy] \
                                   if self.__flag.info['dadosvalidacao'] else self.y.labelGraficos('experimental')[iy],
                                   self.y.labelGraficos('calculado')[iy], fontsize = 16)
-                    Fig.salvar_e_fechar(base_path+base_dir+'validacao_fl'+str(self.__controleFluxo.FLUXO_ID) + \
-                                        '_' + str(self.y.simbolos[iy])+'_funcao_'+str(self.y.simbolos[iy])+'_calculado_sem_incerteza.png' \
-                                        if  self.__flag.info['dadosvalidacao'] else \
-                                        base_path+base_dir+'experimental_fl'+str(self.__controleFluxo.FLUXO_ID) + \
-                                        '_' + str(self.y.simbolos[iy])+'_funcao_'+str(self.y.simbolos[iy])+'_calculado_sem_incerteza.png',
+                    Fig.salvar_e_fechar(base_path+base_dir+('validacao' if self.__flag.info['dadosvalidacao'] else 'experimental')+\
+                                        '_fl'+str(self.__controleFluxo.FLUXO_ID) + '_' + str(self.y.simbolos[iy])+ \
+                                        '_funcao_'+str(self.y.simbolos[iy])+'_calculado_sem_incerteza.png',
                                         config_axes=True)
 
                     # Gráfico comparativo entre valores experimentais e calculados pelo modelo, com variância
@@ -2162,13 +2160,11 @@ class EstimacaoNaoLinear:
                                   if self.__flag.info['dadosvalidacao'] else
                                   self.y.labelGraficos('experimental')[iy],
                                   self.y.labelGraficos('calculado')[iy], fontsize=16)
-                    Fig.salvar_e_fechar(base_path + base_dir + 'validacao_fl' + str(self.__controleFluxo.FLUXO_ID) + \
-                                        '_' + str(self.y.simbolos[iy]) + '_funcao_' + str(self.y.simbolos[iy]) + '_calculado_com_incerteza.png' \
-                                        if self.__flag.info['dadosvalidacao'] else \
-                                        base_path + base_dir + 'experimental_fl' + str(self.__controleFluxo.FLUXO_ID) + \
-                                        '_' + str(self.y.simbolos[iy]) + '_funcao_' + str(self.y.simbolos[iy]) + '_calculado_com_incerteza.png',
+                    Fig.salvar_e_fechar(base_path + base_dir + ('validacao' if self.__flag.info['dadosvalidacao'] else 'experimental' )+ \
+                                        '_fl' + str(self.__controleFluxo.FLUXO_ID) + '_' + str(self.y.simbolos[iy]) + \
+                                        '_funcao_' + str(self.y.simbolos[iy]) + '_calculado_com_incerteza.png',
                                         config_axes=True,
-                                        reiniciar=False if not self.__flag.info['dadosvalidacao'] else True) # caso não tenha dados
+                                        reiniciar=(False if not self.__flag.info['dadosvalidacao'] else True)) # caso não tenha dados
                                         # de validação é aplicado um teste baseado no teste F que usará este gráfico.
 
                     if not self.__flag.info['dadosvalidacao']:
@@ -2189,7 +2185,8 @@ class EstimacaoNaoLinear:
                         Fig.grafico_dispersao_sem_incerteza(y, array(ycalc_inferior_F),
                                                             color='r', corrigir_limites=False, config_axes=False)
                         Fig.grafico_dispersao_sem_incerteza(y, array(ycalc_superior_F), color='r',
-                                                            corrigir_limites=False, config_axes=False)
+                                                            corrigir_limites=True, config_axes=False, add_legenda=True)
+                        Fig.set_legenda(['Limites baseados no teste F'], fontsize = 16, loc='best')
                         Fig.salvar_e_fechar(base_path + base_dir + 'experimental_fl' + str(self.__controleFluxo.FLUXO_ID) + \
                                                 '_' + str(self.y.simbolos[iy]) + '_funcao_' + str(self.y.simbolos[iy]) + '_calculado_com_incerteza_testeF.png',
                                             config_axes=False)
@@ -2215,63 +2212,57 @@ class EstimacaoNaoLinear:
                 for i,simb in enumerate(self.y.simbolos):
                     base_dir = sep + self._configFolder['graficos-analiseResiduos'] + sep + self.y.simbolos[i] + sep
                     Validacao_Diretorio(base_path,base_dir)
-                    #ymodelo vs. Resíduos
-                    fig = figure()
-                    ax = fig.add_subplot(1,1,1)
-                    plot(self.y.calculado.matriz_estimativa[:,i],self.y.residuos.matriz_estimativa[:,i], 'o')
-                    plot([min(self.y.calculado.matriz_estimativa[:,i]),max(self.y.calculado.matriz_estimativa[:,i])],
-                         [mean(self.y.residuos.matriz_estimativa[:,i])]*2, '-.r', label=u'Média resíduos '+self.y.simbolos[i])
-                    xlabel(u'Valores calculados '+self.y.labelGraficos()[i])
-                    ylabel(u'Resíduos '+self.y.labelGraficos()[i])
-                    ax.yaxis.grid(color='gray', linestyle='dashed')
-                    ax.xaxis.grid(color='gray', linestyle='dashed')
-                    ax.axhline(0, color='black', lw=2)
-                    # Escala do gráfico em notação científica
-                    ax.yaxis.get_major_formatter().set_powerlimits((-2, 2))
-                    ax.xaxis.get_major_formatter().set_powerlimits((-2, 2))
-                    legend()
-                    fig.savefig(base_path+base_dir+'residuos_fl'+str(self.__controleFluxo.FLUXO_ID)+'_versus_'+self.y.simbolos[i]+'_calculado.png')
-                    close()
+                    # Resíduos vs ycalculado
+                    Fig.grafico_dispersao_sem_incerteza(array([min(self.y.calculado.matriz_estimativa[:, i]), max(self.y.calculado.matriz_estimativa[:, i])]),
+                                                        array([mean(self.y.residuos.matriz_estimativa[:, i])] * 2),
+                                                        linestyle='-.', color = 'r', linewidth = 2,
+                                                        add_legenda=True, corrigir_limites=False, config_axes=False)
+                    Fig.grafico_dispersao_sem_incerteza(self.y.calculado.matriz_estimativa[:,i], self.y.residuos.matriz_estimativa[:,i],
+                                                        marker='o', linestyle = 'none',
+                                                        label_x= self.y.labelGraficos()[i] + 'calculado',
+                                                        label_y=u'Resíduos '+self.y.labelGraficos()[i])
+                    Fig.set_legenda([u'Média resíduos ' + self.y.simbolos[i]], fontsize=16, loc='best')
+                    Fig.axes.axhline(0, color='black', lw=1, zorder=1)
+                    Fig.salvar_e_fechar(base_path+base_dir+'residuos_fl'+str(self.__controleFluxo.FLUXO_ID)+'_funcao_'\
+                                        +self.y.simbolos[i]+'_calculado.png')
 
-                    fig = figure()
-                    ax = fig.add_subplot(1,1,1)
-                    plot(self.y.validacao.matriz_estimativa[:,i],self.y.residuos.matriz_estimativa[:,i], 'o')
-                    plot([min(self.y.validacao.matriz_estimativa[:,i]),max(self.y.validacao.matriz_estimativa[:,i])],
-                         [mean(self.y.residuos.matriz_estimativa[:,i])]*2, '-.r', label=u'Média resíduos '+self.y.simbolos[i])
-                    ax.yaxis.grid(color='gray', linestyle='dashed')
-                    ax.xaxis.grid(color='gray', linestyle='dashed')
-                    ax.axhline(0, color='black', lw=2)
-                    # Escala do gráfico em notação científica
-                    ax.yaxis.get_major_formatter().set_powerlimits((-2, 2))
-                    ax.xaxis.get_major_formatter().set_powerlimits((-2, 2))
-                    legend()
-                    if self.__flag.info['dadosvalidacao']:
-                        xlabel(u'Valores de validação '+self.y.labelGraficos()[i])
-                        ylabel(u'Resíduos '+self.y.labelGraficos()[i])
-                        fig.savefig(base_path+base_dir+'residuos_fl'+str(self.__controleFluxo.FLUXO_ID)+'_versus_'+self.y.simbolos[i]+'_validacao.png')
-                    else:
-                        xlabel(u'Valores de experimentais '+self.y.labelGraficos()[i])
-                        ylabel(u'Resíduos '+self.y.labelGraficos()[i])
-                        fig.savefig(base_path+base_dir+'residuos_fl'+str(self.__controleFluxo.FLUXO_ID)+'_versus_'+self.y.simbolos[i]+'_experimental.png')
-                    close()
+                    # Resíduos vs yvalidacao
+                    Fig.grafico_dispersao_sem_incerteza(array([min(self.y.validacao.matriz_estimativa[:, i]),
+                                                               max(self.y.validacao.matriz_estimativa[:, i])]),
+                                                        array([mean(self.y.residuos.matriz_estimativa[:, i])] * 2),
+                                                        linestyle='-.', color='r', linewidth=2,
+                                                        add_legenda=True, corrigir_limites=False, config_axes=False)
+                    Fig.grafico_dispersao_sem_incerteza(self.y.validacao.matriz_estimativa[:, i],
+                                                        self.y.residuos.matriz_estimativa[:, i],
+                                                        marker='o', linestyle='none')
+                    Fig.set_label(label_x=self.y.labelGraficos()[i]+' '+(u'validação' if self.__flag.info['dadosvalidacao'] else u'experimental'),
+                                  label_y=u'Resíduos ' + self.y.labelGraficos()[i])
+                    Fig.set_legenda([u'Média resíduos ' + self.y.simbolos[i]], fontsize=16, loc='best')
+                    Fig.axes.axhline(0, color='black', lw=1, zorder=1)
+                    Fig.salvar_e_fechar(
+                        base_path + base_dir + 'residuos_fl' + str(self.__controleFluxo.FLUXO_ID) + '_funcao_' +
+                        self.y.simbolos[i] + '_' + ('validacao' if self.__flag.info['dadosvalidacao'] else 'experimental')+'.png')
 
                     for j, simbol in enumerate(self.x.simbolos):
-                        #X experimental vs. Resíduos
-                        fig = figure()
-                        ax = fig.add_subplot(1,1,1)
-                        plot(self.x.experimental.matriz_estimativa[:,j],self.y.residuos.matriz_estimativa[:,i], 'o')
-                        plot([min(self.x.experimental.matriz_estimativa[:,j]),max(self.x.experimental.matriz_estimativa[:,j])],[mean(self.y.residuos.matriz_estimativa[:,i])]*2, '-.r', label=u'Média resíduos '+self.y.simbolos[i])
-                        xlabel(self.x.labelGraficos()[j] + ' experimental')
-                        ylabel(u'Resíduos '+self.y.labelGraficos()[i])
-                        ax.yaxis.grid(color='gray', linestyle='dashed')
-                        ax.xaxis.grid(color='gray', linestyle='dashed')
-                        ax.axhline(0, color='black', lw=2)
-                        # Escala do gráfico em notação científica
-                        ax.yaxis.get_major_formatter().set_powerlimits((-2, 2))
-                        ax.xaxis.get_major_formatter().set_powerlimits((-2, 2))
-                        legend()
-                        fig.savefig(base_path+base_dir+'residuos_fl'+str(self.__controleFluxo.FLUXO_ID)+'_versus_'+self.x.simbolos[j]+'_experimental.png')
-                        close()
+                        #Resíduos vs. X experimental/validacao
+                        if self.__flag.info['dadosvalidacao']:
+                            x = self.x.validacao.matriz_estimativa[:,j]
+                        else:
+                            x = self.x.experimental.matriz_estimativa[:,j]
+
+                        Fig.grafico_dispersao_sem_incerteza(array([min(x), max(x)]),
+                                                            array([mean(self.y.residuos.matriz_estimativa[:, i])] * 2),
+                                                            linestyle='-.', color='r', linewidth=2,
+                                                            add_legenda=True, corrigir_limites=False, config_axes=False)
+                        Fig.grafico_dispersao_sem_incerteza(x, self.y.residuos.matriz_estimativa[:, i],
+                                                        marker='o', linestyle='none')
+                        Fig.set_label(label_x= self.x.labelGraficos()[j] +' '+ (u'validação' if self.__flag.info['dadosvalidacao'] else u'experimental'),
+                                  label_y=u'Resíduos ' + self.y.labelGraficos()[i])
+                        Fig.set_legenda([u'Média resíduos ' + self.y.simbolos[i]], fontsize=16, loc='best')
+                        Fig.axes.axhline(0, color='black', lw=1, zorder=1)
+                        Fig.salvar_e_fechar(base_path+base_dir+'residuos_fl'+str(self.__controleFluxo.FLUXO_ID) + '_funcao_' \
+                                            +self.x.simbolos[j]+'_'+ \
+                                            ('validacao' if self.__flag.info['dadosvalidacao'] else 'experimental')+'.png')
 
             else:
                 warn('Os gráficos envolvendo a análise de resíduos não puderam ser criados, pois o método analiseResiduos não foi executado.',UserWarning)
