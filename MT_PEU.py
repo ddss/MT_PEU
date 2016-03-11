@@ -1944,8 +1944,8 @@ class EstimacaoNaoLinear:
                 Validacao_Diretorio(base_path,base_dir)
                 # gráficos gerados para os dados experimentais
                 if self.__flag.info['dadosexperimentais'] == True:
-                    self.x.Graficos(base_path, base_dir, ID=['experimental'], fluxo=0)
-                    self.y.Graficos(base_path, base_dir, ID=['experimental'], fluxo=0)
+                    self.x.Graficos(base_path, base_dir, ID=['experimental'], fluxo=0, Fig=Fig)
+                    self.y.Graficos(base_path, base_dir, ID=['experimental'], fluxo=0, Fig=Fig)
 
                     # Gráficos das grandezas y em função de x
                     for iy in xrange(self.y.NV):
@@ -1971,8 +1971,8 @@ class EstimacaoNaoLinear:
                 if self.__flag.info['dadosvalidacao'] == True:
                     base_dir = sep + self._configFolder['graficos-grandezas-entrada-validacao'] + sep
                     Validacao_Diretorio(base_path, base_dir)
-                    self.x.Graficos(base_path, base_dir, ID=['validacao'], fluxo=self.__controleFluxo.FLUXO_ID)
-                    self.y.Graficos(base_path, base_dir, ID=['validacao'], fluxo=self.__controleFluxo.FLUXO_ID)
+                    self.x.Graficos(base_path, base_dir, ID=['validacao'], fluxo=self.__controleFluxo.FLUXO_ID, Fig=Fig)
+                    self.y.Graficos(base_path, base_dir, ID=['validacao'], fluxo=self.__controleFluxo.FLUXO_ID, Fig=Fig)
 
                     # Gráficos das grandezas y em função de x
                     for iy in xrange(self.y.NV):
@@ -2010,8 +2010,8 @@ class EstimacaoNaoLinear:
 
             # Predição deve ter sido executada no fluxo de trabalho
             if self.__controleFluxo.predicao:
-                self.x.Graficos(base_path, base_dir, ID=['calculado'], fluxo=self.__controleFluxo.FLUXO_ID)
-                self.y.Graficos(base_path, base_dir, ID=['calculado'], fluxo=self.__controleFluxo.FLUXO_ID)
+                self.x.Graficos(base_path, base_dir, ID=['calculado'], fluxo=self.__controleFluxo.FLUXO_ID, Fig=Fig)
+                self.y.Graficos(base_path, base_dir, ID=['calculado'], fluxo=self.__controleFluxo.FLUXO_ID, Fig=Fig)
 
             else:
                 warn('Os gráficos envolvendo somente as grandezas calculadas (X e Y) não puderam ser criados, pois o método predicao não foi executado.',UserWarning)
@@ -2199,10 +2199,10 @@ class EstimacaoNaoLinear:
                 # Gráficos relacionados aos resíduos das grandezas independentes, caso
                 # seja realizada a reconciliação
                 if self.__flag.info['reconciliacao'] == True:
-                    self.x.Graficos(base_path, base_dir, ID=['residuo'], fluxo=self.__controleFluxo.FLUXO_ID)
+                    self.x.Graficos(base_path, base_dir, ID=['residuo'], fluxo=self.__controleFluxo.FLUXO_ID, Fig=Fig)
 
                 # Gráficos relacionados aos resíduos das grandezas dependentes
-                self.y.Graficos(base_path, base_dir, ID=['residuo'], fluxo=self.__controleFluxo.FLUXO_ID)
+                self.y.Graficos(base_path, base_dir, ID=['residuo'], fluxo=self.__controleFluxo.FLUXO_ID, Fig=Fig)
 
                 # Grafico dos resíduos em função dos dados de validação (ou experimentais) e calculados
                 for i,simb in enumerate(self.y.simbolos):

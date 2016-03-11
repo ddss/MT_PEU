@@ -7,7 +7,7 @@ Arquivo que contém a classe gráficos
 
 # Importação de pacotes
 
-from numpy import arctan2, degrees, sqrt, sort, argsort
+from numpy import arctan2, degrees, sqrt, sort, argsort, mean, std, nan, amin, amax
 
 from numpy.linalg import eigh, inv
 
@@ -15,6 +15,10 @@ from matplotlib.pyplot import figure, close, clf
 from matplotlib.ticker import FixedFormatter
 
 from matplotlib.patches import Ellipse
+
+from scipy.stats import probplot
+
+# Definição da classe
 
 class Grafico:
     def __init__(self, **kwargs):
@@ -153,7 +157,6 @@ class Grafico:
         :param **kwargs: keyword argumentos a serem passados para método self.matplotlib.pyplot.plot
 
         """
-        #if isinstance()
         # Organizando os vetores
         y = y[argsort(x)]
         x = sort(x)
@@ -257,6 +260,7 @@ class Grafico:
 
     def autocorr(self, x, label_x = None, label_y=None, config_axes = True, corrigir_limites=True, **kwargs):
         u"""
+        Gráficos de autocorrelação.
 
         :param x: dados para o gráfico
         :param label_x ('string): label para o eixo x
@@ -277,6 +281,52 @@ class Grafico:
 
         if config_axes:
             self.config_axes(formato_cientifico=False)
+
+    def histograma(self, x, label_x = None, label_y = None, config_axes=True, **kwargs):
+        u"""
+        Histograma
+
+        :param x (array): dados para o gráfico
+        :param label_x ('string): label para o eixo x
+        :param label_y ('string):: label para o eixo y
+        :param config_axes (bool): executa self.config_axes
+        :param kwargs: keyword arguments para matplotlib.pyplot.hist
+        """
+
+        self.axes.hist(x, **kwargs)
+
+        self.set_label(label_x, label_y)
+
+        if config_axes:
+            self.config_axes()
+
+    def probplot(self, x, label_y, config_axes=True, **kwargs):
+        u"""
+        Gráfico de probabilidade para normal (teste)
+
+        :param x (array): dados
+        :param label_y: label para eixo y
+        :param config_axes (bool): executa método self.config_axes
+        :param kwargs: kwargs para plot
+        """
+
+        res = probplot(x, dist='norm', sparams=(mean(x), std(x, ddof=1)))
+
+        if not (nan in res[0][0].tolist() or nan in res[0][1].tolist() or nan in res[1]):
+            self.axes.plot(res[0][0], res[0][1], 'o', res[0][0], res[1][0] * res[0][0] + res[1][1], **kwargs)
+
+        self.set_label('Quantis', label_y=label_y)
+
+        xmin = amin(res[0][0])
+        xmax = amax(res[0][0])
+        ymin = amin(x)
+        ymax = amax(x)
+        posx = xmin + 0.70 * (xmax - xmin)
+        posy = ymin + 0.01 * (ymax - ymin)
+        self.axes.text(posx, posy, '$R^2$={:1.4f}'.format(res[1][2]))
+
+        if config_axes:
+            self.config_axes()
 
     def elipse_covariancia(self, cov, pos, c2=2, add_legenda=True):#, **kwargs):
         """

@@ -5,8 +5,8 @@ Created on Mon Feb  2 11:05:02 2015
 @author: danielsantana
 """
 # Importação de pacotes de terceiros
-from numpy import array, transpose ,size, diag, linspace, min, max, \
-    mean,  std, amin, amax, ndarray, insert, nan, correlate, isfinite, arange
+from numpy import array, size, diag, linspace, min, max, \
+    mean,  std, ndarray, insert, isfinite, arange, sqrt
 
 from numpy.linalg import cond
 
@@ -15,13 +15,11 @@ from statsmodels.stats.diagnostic import acorr_ljungbox, het_breushpagan, het_wh
 from statsmodels.stats.stattools import durbin_watson
 from statsmodels.graphics.correlation import plot_corr
 
-from scipy.stats import normaltest, shapiro, ttest_1samp, kstest, probplot
+from scipy.stats import normaltest, shapiro, ttest_1samp, kstest
 
-from matplotlib.pyplot import figure, axes, axis, plot, errorbar, subplot, xlabel, ylabel,\
-    title, legend, savefig, xlim, ylim, close, grid, text, hist, boxplot, stem, acorr
+from matplotlib.pyplot import savefig, close
     
 from matplotlib.colors import LinearSegmentedColormap
-    
 
 from os import getcwd, sep
 
@@ -621,104 +619,8 @@ class Grandeza:
             raise NameError(u'Os testes estatísticos são válidos apenas para o resíduos')
 
         self.estatisticas = pvalor
-        
-    def __construtor_graficos(self, Xlabel, Ylabel,x,y,base_path,base_dir,fluxo, ID, tipo, **kwargs):
-        u'''
-         Método para gerar os gráficos.
-        =======
-        Entrada
-        =======
-        * ``Xlabel`` : Label do eixo x \
-        * ``Ylabel``  : Label do eixo y \
-        * ``x`` : conjuntos de dados pro eixo x, caso tenha.\
-        * ``y ``  : conjuntos de dados pro eixo y, caso tenha.  \
-        *  ``base_path`` : caminho onde os gráficos deverão ser salvos    \
-        *  ``ID``       : Identificação da grandeza. Este ID é útil apenas para as grandezas \
-        dependentes e independentes, ele identifica para qual atributo os gráficos devem ser avaliados. \
-        Caso seja None, será feito os gráficos para TODOS os atributos disponíveis. \
-        *  ``Fluxo``     : identificação do fluxo de trabalho   \
-        * ``Tipo``  : tipo de gráfico a ser feito, deve ser string, opções:'boxplot': usa boxplot, 'hist': usa hist, 'tendencia: usa plot normal', 'autocorrelacao': usa acorr, 'probplot'
-        *`` kwargs`` : qualquer kwarg extra do gráfico pode ser passada para o construtor, desde que seja propriedade do gráfico e que esteja na lista de argumentos esperados
-        '''
-    
-        kwargsdict = {}
-        #obs: adicionar qualquer kwarg de um gráfico em especifico que possua tal propriedade nesta lista, exemplo: o plot normal possui a kwarg marker, logo marker teve que ser passado
-        expected_args = ["legenda", "media","sym", "usevlines", "normed", "maxlags", 'label', 'marker', 'ls',\
-        'xnames', 'ynames', 'title', 'normcolor', 'cmap']
-        for key in kwargs.keys():
-            if key in expected_args:
-                kwargsdict[key] = kwargs[key]
-            else:
-                raise Exception("Argumentos esperados ".format(expected_args))
-        fig = figure()
-        ax=fig.add_subplot(1,1,1)
-        legenda=False
-        media=False
-        if kwargs.has_key('media') or kwargs.has_key('legenda'):
-             media=kwargs.pop('media')
-             legenda= kwargs.pop('legenda')
-        if tipo=='autocorrelacao':
-           acorr(y, **kwargs)
-           xlim(0,len(y))
-           ax.yaxis.grid(color='gray', linestyle='dashed')
-           ax.xaxis.grid(color='gray', linestyle='dashed')
-           xlabel(Xlabel)
-           ylabel(Ylabel)
-        if tipo=='tendencia':
-#           plot(x,y, 'o',label=u'Ordem de coleta')
-#           plot(x,y, **kwargs)
-           plot(x, y,**kwargs)
-           ax.axhline(0, color='black', lw=1)
-           ax.axvline(0,color='black', lw=1)
-           if media==True:
-                  plot(linspace(0,len(y)+1,num=len(y+1)),[mean(y)]*len(y), 'r', label=u'Valor médio')
-#                 plot(x,[mean(y)]*size(y), kwargs['label'][1])     
-          
-            # obtençao do tick do grafico
-           # eixo x
-           label_tick_x   = ax.get_xticks().tolist()
-           tamanho_tick_x = (label_tick_x[1] - label_tick_x[0])/2
-           # eixo y
-           label_tick_y = ax.get_yticks().tolist()
-           tamanho_tick_y = (label_tick_y[1] - label_tick_y[0])/2
-           # Modificação do limite dos gráficos
-           xmin   = min(x)     - tamanho_tick_x
-           xmax   = max(x)     + tamanho_tick_x
-           ymin   = min(y) - tamanho_tick_y
-           ymax   = max(y) + tamanho_tick_y
-           xlim(xmin,xmax)
-           ylim(ymin,ymax)
-           xlabel(Xlabel)
-           ylabel(Ylabel)
-           ax.yaxis.grid(color='gray', linestyle='dashed')
-           ax.xaxis.grid(color='gray', linestyle='dashed')
-        if tipo=='hist':
-           hist(y, normed=True)
-           xlabel(Xlabel)
-           ylabel(Ylabel)
-        if tipo=='probplot':
-          res = probplot(y, dist='norm', sparams=(mean(y),std(y,ddof=1)))
-          if not (nan in res[0][0].tolist() or nan in res[0][1].tolist() or nan in res[1]):
-             plot(res[0][0], res[0][1], 'o', res[0][0], res[1][0]*res[0][0] + res[1][1])
-             xlabel(Xlabel)
-             ylabel(Ylabel)
-             xmin = amin(res[0][0])
-             xmax = amax(res[0][0])
-             ymin = amin(y)
-             ymax = amax(y)
-             posx = xmin + 0.70 * (xmax - xmin)
-             posy = ymin + 0.01 * (ymax - ymin)
-             text(posx, posy, "$R^2$=%1.4f" % res[1][2])    
-             ax.yaxis.grid(color='gray', linestyle='dashed')
-             ax.xaxis.grid(color='gray', linestyle='dashed')  
-#        if tipo== 'pcolor':
-#           plot_corr(y,   ynames=listalabel, title=u'Matriz de correlação ' + self.__ID_disponivel[0],normcolor=True, cmap=cm1)
 
-        if legenda==True:
-              legend(loc='best')      
-        fig.savefig(base_path+base_dir+'{}_fl'.format(ID[0])+str(fluxo)+'_{}'.format(tipo))        
-        close()              
-    def Graficos(self,base_path=None,base_dir=None,ID=None,fluxo=None, cmap=['k','r','0.75','w','0.75','r','k']):
+    def Graficos(self,base_path=None,base_dir=None,ID=None,fluxo=None, cmap=['k','r','0.75','w','0.75','r','k'],Fig=None):
         u'''
         Método para gerar os gráficos das grandezas, cujas informações só dependam dela.
         
@@ -733,7 +635,7 @@ class Grandeza:
         * Fluxo       : identificação do fluxo de trabalho
         * cmap : definição de cores para o pcolor:
          b: blue ;  g: green; r: red;    c: cyan;  m: magenta; y: yellow; k: black; w: white; 0.75: grey
-       
+       * Fig (objeto): objetivo Grafico (Graficos.Grafico)
        Funções: 
         * probplot  : Gera um gráfico de probabilidade de dados de exemplo contra os quantis de uma distribuição teórica especificado (a distribuição normal por padrão).
                       Calcula uma linha de melhor ajuste para os dados se "encaixar" é verdadeiro e traça os resultados usando Matplotlib.
@@ -755,10 +657,11 @@ class Grandeza:
         if fluxo is None:
             fluxo = 0
 
+        if Fig is None:
+            Fig = Grafico(dpi=60)
         # ---------------------------------------------------------------------
         # CRIAÇÃO DOS GRÁFICOS
         # ---------------------------------------------------------------------
-        Fig = Grafico(dpi=60)
 
         base_dir  = sep + 'Grandezas' + sep if base_dir is None else sep + base_dir + sep
         Validacao_Diretorio(base_path,base_dir)
@@ -829,7 +732,7 @@ class Grandeza:
                 Fig.grafico_dispersao_sem_incerteza(array([min(x), max(x)]), array([mean(dados)] * 2),
                                                     linestyle='-.', color='r', linewidth=2,
                                                     add_legenda=True, corrigir_limites=False, config_axes=False)
-                Fig.grafico_dispersao_sem_incerteza(x, dados, label_x='Amostra', label_y=self.labelGraficos()[i],
+                Fig.grafico_dispersao_sem_incerteza(x, dados, label_x='Amostra', label_y=u'Resíduos {}'.format(self.labelGraficos()[i]),
                                                     marker='o', linestyle='None')
                 Fig.axes.axhline(0, color='black', lw=1, zorder=1)
                 Fig.set_legenda(['Média dos resíduos'], loc = 'best')
@@ -837,19 +740,21 @@ class Grandeza:
 
                 # AUTO CORRELAÇÃO
                 #Gera um gráfico de barras que verifica a autocorrelação
-                Fig.autocorr(dados, label_x='Lag', label_y=u'Autocorrelação de {}'.format(self.labelGraficos(printunit=False)[i]),
+                Fig.autocorr(dados, label_x='Lag', label_y=u'Autocorrelação resíduos {}'.format(self.labelGraficos(printunit=False)[i]),
                              normed=True, maxlags=None)
                 Fig.salvar_e_fechar(base_path+base_dir+'residuo_fl'+str(fluxo)+'_autocorrelacao.png')
 
                 # HISTOGRAMA                
                 #Gera um gráfico de histograma, importante na verificação da pdf
-                self.__construtor_graficos(self.labelGraficos()[i], u'Frequência',None,dados,base_path,base_dir,fluxo, ID,'hist')
+                Fig.histograma(dados, label_x=u'Resíduos {}'.format(self.labelGraficos()[i]), label_y=u'Densidade de probabilidade',
+                               normed=True,bins=int(sqrt(dados.shape[0])))
+                Fig.salvar_e_fechar(base_path+base_dir+'residuo_fl'+str(fluxo)+'_histograma.png')
 
                 # NORMALIDADE 
                 #Verifica se os dados são oriundos de uma pdf normal, o indicativo disto é a obtenção de uma reta 
-                self.__construtor_graficos('Quantis', 'Valores ordenados de {}'.format(self.labelGraficos(printunit=False)[i]),None,dados,base_path,base_dir,fluxo, ID,'probplot')         
-              
-                
+                Fig.probplot(dados, label_y=u'Valores ordenados resíduos {}'.format(self.labelGraficos(printunit=False)[i]))
+                Fig.salvar_e_fechar(base_path+base_dir+'residuo_fl'+str(fluxo)+'_probplot.png')
+
         if ('experimental' in ID or 'validacao' in ID or 'calculado' in ID):
                 
             if 'residuo' in ID:  # remover de ID o resíduo, pois foi tratado separadamente
@@ -860,14 +765,17 @@ class Grandeza:
                 y  = eval('self.'+atributo+'.matriz_estimativa')
                 NE = eval('self.'+atributo+'.NE')
 
-                for i,symb in enumerate(self.simbolos):
+                for i, symb in enumerate(self.simbolos):
                     # Gráficos da estimação
                     base_dir = sep + symb + sep
                     Validacao_Diretorio(base_path,base_dir)
                     dados = y[:,i]
                     x   = linspace(1,NE,num=NE)
                     #Gráfico em função do numero de observações
-                    self.__construtor_graficos(u'Número de pontos',self.labelGraficos(atributo)[i],x,dados,base_path,base_dir,fluxo, ID, 'tendencia', marker='o', ls='None')
+                    Fig.grafico_dispersao_sem_incerteza(x, dados, label_x='Amostra',
+                                                        label_y=self.labelGraficos(atributo)[i],
+                                                        marker='o', linestyle='None')
+                    Fig.salvar_e_fechar(base_path + base_dir + atributo + '_fl' + str(fluxo) + '_tendencia.png')
 
             if 'experimental' in ID:
 
@@ -875,17 +783,19 @@ class Grandeza:
                     # Gráficos da estimação
 
                     base_dir = sep + self.simbolos[i] + sep
-                    Validacao_Diretorio(base_path,base_dir)
+                    Validacao_Diretorio(base_path, base_dir)
                     dados = self.experimental.matriz_estimativa[:,i]
-                    
 
                     # AUTO CORRELAÇÃO
                     # Gera um gráfico de barras que verifica a autocorrelação
-                    self.__construtor_graficos('Lag', u'Autocorrelação de {}'.format(self.labelGraficos(printunit=False)[i]),None,dados,base_path,base_dir,fluxo, ID,'autocorrelacao', usevlines=True,normed=True, maxlags=None)
-                    
+                    Fig.autocorr(dados, label_x='Lag',
+                                 label_y=u'Autocorrelação de {}'.format(self.labelGraficos(printunit=False)[i]),
+                                 normed=True, maxlags=None)
+                    Fig.salvar_e_fechar(base_path + base_dir + 'experimental_fl' + str(fluxo) + '_autocorrelacao.png')
+
             if 'validacao' in ID:
 
-                for i,nome in enumerate(self.simbolos):
+                for i, nome in enumerate(self.simbolos):
                     # Gráficos da estimação
                     base_dir = sep + self.simbolos[i] + sep
                     Validacao_Diretorio(base_path,base_dir)
@@ -894,4 +804,7 @@ class Grandeza:
 
                     # AUTO CORRELAÇÃO
                     # Gera um gráfico de barras que verifica a autocorrelação
-                    self.__construtor_graficos('Lag', u'Autocorrelação de {}'.format(self.labelGraficos(printunit=False)[i]),None,dados,base_path,base_dir,fluxo, ID,'autocorrelacao', usevlines=True,normed=True, maxlags=None)
+                    Fig.autocorr(dados, label_x='Lag',
+                                 label_y=u'Autocorrelação de {}'.format(self.labelGraficos(printunit=False)[i]),
+                                 normed=True, maxlags=None)
+                    Fig.salvar_e_fechar(base_path + base_dir + 'validacao_fl' + str(fluxo) + '_autocorrelacao.png')
