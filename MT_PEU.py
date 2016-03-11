@@ -11,11 +11,11 @@ Principais classes do motor de cálculo do PEU
 # IMPORTAÇÃO DE PACOTES DE TERCEIROS
 # ---------------------------------------------------------------------
 # Cálculos científicos
-from numpy import array, size, linspace, min, max, copy, cos, sin, radians,\
-    mean, ones, ndarray, nanmax, nanmin
+from numpy import array, size, linspace, min, max, copy,\
+    mean, ones, ndarray, nanmax, nanmin, arange
 
 from numpy.random import uniform, triangular
-from scipy.stats import f, t, chi2, norm
+from scipy.stats import f, t, chi2
 from scipy.misc import factorial
 from numpy.linalg import inv
 from math import floor, log10
@@ -256,7 +256,7 @@ class EstimacaoNaoLinear:
         * Scipy
         * Matplotlib - 1.4.3
         * Math
-        * PSO - versão 0.2-beta **Obtida no link https://github.com/ddss/PSO/releases/tag/v0.2-beta. Os códigos devem estar dentro de uma pasta de nome PSO**
+        * PSO - versão 0.3-beta **Obtida no link https://github.com/ddss/PSO/releases/tag/v0.3-beta. Os códigos devem estar dentro de uma pasta de nome PSO**
         * statsmodels
 
         =======================
@@ -557,7 +557,7 @@ class EstimacaoNaoLinear:
         self.__tiposDisponiveisEntrada = ('experimental', 'validacao')
 
         # Algoritmos de otimização disponíveis
-        self.__AlgoritmosOtimizacao = ('PSO',)
+        self.__AlgoritmosOtimizacao = ('PSOFamily',)
 
         # métodos para avaliação da incerteza
         self.__metodosIncerteza = ('2InvHessiana', 'Geral', 'SensibilidadeModelo')
@@ -824,7 +824,7 @@ class EstimacaoNaoLinear:
         return grandeza
 
 
-    def otimiza(self,limite_inferior,limite_superior,estimativa_inicial=None,algoritmo='PSO',args=None,**kwargs):
+    def otimiza(self,limite_inferior,limite_superior,estimativa_inicial=None,algoritmo='PSOFamily',args=None,**kwargs):
         u"""
         Método para realização da otimização
 
@@ -905,7 +905,7 @@ class EstimacaoNaoLinear:
         # definindo que args são argumentos extras a serem passados para a função objetivo (e, portanto, não sofrem validação)
         self.__args_user = args
 
-        if algoritmo == 'PSO':
+        if algoritmo == 'PSOFamily':
             # indica que este algoritmo possui gráficos de desempenho
             self.__flag.ToggleActive('graficootimizacao')
             # indica que esta algoritmo possui relatório de desempenho
@@ -1054,9 +1054,8 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # OBTENÇÃO DO PONTO ÓTIMO
         # ---------------------------------------------------------------------
-        # Só usa o método GETFOotimo se este não fora executado
-        if not self.__controleFluxo.GETFOotimo:
-            self.__GETFOotimo()
+
+        self.__GETFOotimo()
 
         # ---------------------------------------------------------------------
         # VARIÁVEIS INTERNAS
@@ -1964,7 +1963,7 @@ class EstimacaoNaoLinear:
                                                                 self.y.experimental.matriz_incerteza[:,iy],
                                                                 label_x=self.x.labelGraficos('experimental')[ix],
                                                                 label_y=self.y.labelGraficos('experimental')[iy],
-                                                                fator_abrangencia_x=2., fator_abrangencia_y=2, fmt='o')
+                                                                fator_abrangencia_x=2., fator_abrangencia_y=2., fmt='o')
                             Fig.salvar_e_fechar(base_path+base_dir+'experimental'+'_fl'+str(0)+'_'+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_com_incerteza')
                 # gráficos gerados para os dados de validação, apenas se estes forem diferentes dos experimentais,
                 # apesar dos atributos de validação sempre existirem
@@ -2022,7 +2021,7 @@ class EstimacaoNaoLinear:
             # otimiza deve ter sido alguma vez no contexto global e o algoritmo de otimização possui gráficos de desempenho
             if self.__controleFluxo.otimizacao and self.__flag.info['graficootimizacao']:
                 # Gráficos da otimização
-                self.Otimizacao.Graficos(base_path+base_dir,Nome_param=self.parametros.labelGraficos(),FO2a2=True)
+                self.Otimizacao.Graficos(base_path+base_dir, Nome_param=self.parametros.labelGraficos(), FO2a2=True)
 
             else:
                 warn('Os gráficos de otimizacao não puderam ser criados, o algoritmo de otimização utilizado não possui gráficos de desempenho OU o método otimizacao não foi executado.',UserWarning)
@@ -2056,9 +2055,9 @@ class EstimacaoNaoLinear:
                             for it in xrange(size(self.parametros.regiao_abrangencia)/self.parametros.NV):
                                 aux1.append(self.parametros.regiao_abrangencia[it][p1])
                                 aux2.append(self.parametros.regiao_abrangencia[it][p2])
-                            Fig.grafico_dispersao_sem_incerteza(aux1, aux2,
+                            Fig.grafico_dispersao_sem_incerteza(array(aux1), array(aux2),
                                                                 add_legenda=True, corrigir_limites=False,
-                                                                marker = 'o', linestyle='None', color='b', linewidth=2.0, zorder=1)
+                                                                marker='o', linestyle='None', color='b', linewidth=2.0, zorder=1)
                         # PLOT da região de abrangência pelo método da linearização (elipse)
                         fisher, FOcomparacao = self.__criteriosAbrangencia()
 
@@ -2069,7 +2068,7 @@ class EstimacaoNaoLinear:
                                                FOcomparacao)
 
                         if self.__controleFluxo.regiaoAbrangencia and self.parametros.regiao_abrangencia != []:
-                            Fig.set_legenda([u'Verossimilhança','Elipse'],loc='best', fontsize=15)
+                            Fig.set_legenda([u'Verossimilhança','Elipse'], loc='best', fontsize=15)
                         else:
                             Fig.set_legenda(['Elipse'], loc='best', fontsize=15)
 
@@ -2123,6 +2122,8 @@ class EstimacaoNaoLinear:
                 for iy in xrange(self.y.NV):
                     y  = self.y.validacao.matriz_estimativa[:,iy]
                     ym = self.y.calculado.matriz_estimativa[:,iy]
+                    amostras = arange(1,self.y.validacao.NE+1,1)
+
                     diagonal = linspace(min(y), max(y))
 
                     # Gráfico comparativo entre valores experimentais e calculados pelo modelo, sem variância
@@ -2137,6 +2138,20 @@ class EstimacaoNaoLinear:
                                         '_fl'+str(self.__controleFluxo.FLUXO_ID) + '_' + str(self.y.simbolos[iy])+ \
                                         '_funcao_'+str(self.y.simbolos[iy])+'_calculado_sem_incerteza.png',
                                         config_axes=True)
+                    # Gráfico comparativo entre valores experimentais e calculados pelo modelo, sem variância em função
+                    # das amostras
+                    Fig.grafico_dispersao_sem_incerteza(amostras, ym, marker='o', linestyle='None', color='r',
+                                                        corrigir_limites=False, config_axes=False, add_legenda=True)
+                    Fig.grafico_dispersao_sem_incerteza(amostras, y, marker='o', linestyle='None', color='b', add_legenda=True)
+                    Fig.set_label('Amostras', self.y.simbolos[iy], fontsize=16)
+                    Fig.set_legenda(['calculado','validacao' if self.__flag.info['dadosvalidacao'] else 'experimental'],
+                                    fontsize=16, loc='best')
+                    Fig.salvar_e_fechar(
+                        base_path + base_dir + ('validacao' if self.__flag.info['dadosvalidacao'] else 'experimental') + \
+                        '_fl' + str(self.__controleFluxo.FLUXO_ID) + '_' + str(self.y.simbolos[iy]) + \
+                        '_funcao_amostras_calculado_sem_incerteza.png',
+                        config_axes=True
+                        )
 
                     # Gráfico comparativo entre valores experimentais e calculados pelo modelo, com variância
 
@@ -2144,9 +2159,20 @@ class EstimacaoNaoLinear:
 
                     yerr_validacao = self.y.validacao.matriz_incerteza[:,iy]
 
-                    # Gráfico comparativo entre valores experimentais e calculados pelo modelo, com variância
-                    #yerr_calculado    = incerteza_expandida_Yc[:,iy]
-                    #yerr_experimental = incerteza_expandida_Ye[:,iy]
+                    # Gráfico comparativo entre valores experimentais (validação) e calculados pelo modelo, com variância
+                    Fig.grafico_dispersao_com_incerteza(amostras, y, None, yerr_validacao, fator_abrangencia_y=t_val,
+                                                        fmt="o", color = 'b', config_axes=False, corrigir_limites=False,
+                                                        add_legenda=True)
+                    Fig.grafico_dispersao_com_incerteza(amostras, ym, None, yerr_calculado, fator_abrangencia_y=t_cal,
+                                                        fmt="o", color = 'r', config_axes=False, add_legenda=True)
+                    Fig.set_label('Amostras', self.y.simbolos[iy], fontsize=16)
+                    Fig.set_legenda(['calculado', 'validacao' if self.__flag.info['dadosvalidacao'] else 'experimental'],
+                        fontsize=16, loc='best')
+                    Fig.salvar_e_fechar(
+                        base_path + base_dir + ('validacao' if self.__flag.info['dadosvalidacao'] else 'experimental') + \
+                        '_fl' + str(self.__controleFluxo.FLUXO_ID) + '_' + str(self.y.simbolos[iy]) + \
+                        '_funcao_amostras_calculado_com_incerteza.png', config_axes=True)
+
                     Fig.grafico_dispersao_com_incerteza(y, ym, yerr_validacao, yerr_calculado,
                                                         fator_abrangencia_x=t_cal, fator_abrangencia_y=t_val,
                                                         fmt="o", corrigir_limites=True, config_axes=False)
@@ -2162,7 +2188,10 @@ class EstimacaoNaoLinear:
                                         config_axes=True,
                                         reiniciar=(False if not self.__flag.info['dadosvalidacao'] else True)) # caso não tenha dados
                                         # de validação é aplicado um teste baseado no teste F que usará este gráfico.
+                    # gráfico comparativo entre os valores experimentais (validação) e calculados pelo modelo, com variância
+                    # em função das amostras
 
+                    # gráficos do teste F
                     if not self.__flag.info['dadosvalidacao']:
                         # Gráfico do Teste F
                         ycalc_inferior_F = []
@@ -2275,7 +2304,7 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # DEFINIÇÃO DA CLASSE
         # ---------------------------------------------------------------------
-        saida = Relatorio(self.__base_path,sep +self._configFolder['relatorio']+ sep)
+        saida = Relatorio(self.__base_path,sep +self._configFolder['relatorio']+ sep, **kwargs)
 
         # ---------------------------------------------------------------------
         # RELATÓRIO DOS PARÂMETROS
@@ -2303,4 +2332,4 @@ class EstimacaoNaoLinear:
         # RELATÓRIO DA PREDIÇÃO E ANÁLISE DE RESÍDUOS
         # ---------------------------------------------------------------------
         if self.__flag.info['relatoriootimizacao']:
-            self.Otimizacao.Relatorios(base_path=self.__base_path + sep +self._configFolder['relatorio'] + sep,titulo_relatorio='relatorio-otimizacao.txt')
+            self.Otimizacao.Relatorios(base_path=self.__base_path + sep +self._configFolder['relatorio'] + sep,titulo_relatorio='relatorio-otimizacao.txt', **kwargs)

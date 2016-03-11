@@ -96,12 +96,11 @@ class Grafico:
         u"""
         Método para atualizar os limites do axes. Avalia se os novos limites definidos não omitem informações
 
-        x_lim: limites de x
-        y_lim: limites de y
+        x_lim (array) : limites de x
+        y_lim (array): limites de y
         """
         xlim_original = self.axes.get_xlim()
         ylim_original = self.axes.get_ylim()
-
         self.axes.set_xlim(min(xlim_original[0], x_lim[0]), max(xlim_original[1], x_lim[1]))
         self.axes.set_ylim(min(ylim_original[0], y_lim[0]), max(ylim_original[1], y_lim[1]))
 
@@ -186,7 +185,7 @@ class Grafico:
             self.lista_graficos.append(dispersao_sem_incerteza)
 
     def grafico_dispersao_com_incerteza(self, x, y, ux, uy, label_x = None, label_y = None,
-                                        fator_abrangencia_x = 2, fator_abrangencia_y = 2,
+                                        fator_abrangencia_x = 2., fator_abrangencia_y = 2.,
                                         add_legenda = False, corrigir_limites = True, config_axes = True, **kwargs):
         u"""
         ========
@@ -194,6 +193,8 @@ class Grafico:
         ========
         :param x (array): dados de x
         :param y (array): dados de y
+        :param ux (array ou None): incerteza de x
+        :param uy (array ou None): incerteza de y
         :param label_x (string): label do eixo x
         :param label_y (string): label do eixo y
         :param fator_abrangencia: fator de abrangencia
@@ -205,15 +206,26 @@ class Grafico:
 
         :param **kwargs: keyword argumentos a serem passados para método self.matplotlib.pyplot.errorbar
         """
+        if not isinstance(fator_abrangencia_x, float) or not isinstance(fator_abrangencia_y, float):
+            raise TypeError('Fatores de abrangência precisam ser floats.')
+
         # organizando os vetores
         y = y[argsort(x)]
-        ux = ux[argsort(x)]
-        uy = uy[argsort(x)]
+        if ux is not None:
+            ux = ux[argsort(x)]
+        if uy is not None:
+            uy = uy[argsort(x)]
         x = sort(x)
 
         # incerteza expandida
-        xerr = fator_abrangencia_x*ux
-        yerr = fator_abrangencia_y*uy
+        if ux is not None:
+            xerr = fator_abrangencia_x*ux
+        else:
+            xerr = None
+        if uy is not None:
+            yerr = fator_abrangencia_y*uy
+        else:
+            yerr = None
 
         # gráfico
         dispersao_com_incerteza = self.axes.errorbar(x, y, xerr=xerr, yerr=yerr, **kwargs)
@@ -224,10 +236,18 @@ class Grafico:
         # Modificação do limite dos gráficos
         if corrigir_limites:
             step_x_tickloc, step_y_tickloc = self.get_step_tick()
-            xmin = min(x-xerr) - step_x_tickloc / 4.
-            xmax = max(x+xerr) + step_x_tickloc / 4.
-            ymin = min(y-yerr) - step_y_tickloc / 4.
-            ymax = max(y+yerr) + step_y_tickloc / 4.
+            if ux is not None:
+                xmin = min(x-xerr) - step_x_tickloc / 4.
+                xmax = max(x+xerr) + step_x_tickloc / 4.
+            else:
+                xmin = min(x) - step_x_tickloc / 4.
+                xmax = max(x) + step_x_tickloc / 4.
+            if uy is not None:
+                ymin = min(y-yerr) - step_y_tickloc / 4.
+                ymax = max(y+yerr) + step_y_tickloc / 4.
+            else:
+                ymin = min(y) - step_y_tickloc / 4.
+                ymax = max(y) + step_y_tickloc / 4.
             self.set_limites((xmin, xmax), (ymin, ymax))
 
         # Configuração dos axes
