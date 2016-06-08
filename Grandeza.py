@@ -149,7 +149,7 @@ class Grandeza:
 
         # Verificação se os símbolos possuem caracteres especiais
         for simb in simbolos:
-            if set('[~!@#$%^&*()+{}":;\']+$').intersection(simb):
+            if not simb.isalnum():
                 raise NameError('Os simbolos das grandezas não podem ter caracteres especiais. Simbolo incorreto: '+simb)
 
         # Verificação se os símbolos são distintos

@@ -475,8 +475,7 @@ class EstimacaoNaoLinear:
             raise TypeError('O nome do projeto deve ser um string.')
 
         # Verificação se o nome do projeto possui caracteres especiais
-        # set: conjunto de elementos distintos não ordenados (trabalha com teoria de conjuntos)
-        if set('[~!@#$%^&*()+{}":;\']+$').intersection(projeto):
+        if not projeto.isalnum():
             raise NameError('O nome do projeto não pode conter caracteres especiais')
 
         # Verificação se o base_path é uma string
@@ -996,8 +995,8 @@ class EstimacaoNaoLinear:
         USO
         ===
         * Inclusão da estimativa dos parâmetros: irá substituir o método de otimização. Será necessário executar o método incertezaParametros
-        * Inclusão da estimativa dos parâmetros e variancia:  irá substituir o método de otimização e uma parte do método de incertezaParametros. Neste caso, não será possível
-        executar o método regiaoAbrangencia, devido à não execução da otimização.
+        * Inclusão da estimativa dos parâmetros e variancia:  irá substituir o método de otimização e uma parte do método de incertezaParametros.
+        Para preencher a região pelo método da verossimilhança, o método incertezaParametros deve ser executado (irá substituir a incerteza inseirda).
         * Inclusão da estimativa dos parâmetros, variancia e regiao:  irá substituir o método de otimização e incertezaParametros
 
         =================
@@ -1765,11 +1764,10 @@ class EstimacaoNaoLinear:
         # TesteF = F(PA,NP,NE*NY-NP)
         fisher = f.ppf(self.PA,self.parametros.NV,(self.y.experimental.NE*self.y.NV-self.parametros.NV))
 
-        # Valor máximo da função objetivo que um certo conjunto de parâmetros pode gerar para estar contido
-        # na região de abrangência
-        FOcomparacao = self.FOotimo*(1+float(self.parametros.NV)/(self.y.experimental.NE*self.y.NV-float(self.parametros.NV))*fisher)
+        # Valor para a ellipse de abrangência:
+        ellipseComparacao = self.FOotimo*(float(self.parametros.NV)/(self.y.experimental.NE*self.y.NV-float(self.parametros.NV))*fisher)
 
-        return fisher, FOcomparacao
+        return fisher, ellipseComparacao
 
     def regiaoAbrangencia(self):
         u"""
@@ -1789,13 +1787,13 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # DETERMINAÇÃO DA REGIÃO DE ABRANGÊNCIA PELO CRITÉRIO DE FISHER
         # ---------------------------------------------------------------------
-        fisher, FOcomparacao = self.__criteriosAbrangencia()
+        fisher, ellipseComparacao = self.__criteriosAbrangencia()
 
         # Comparação dos valores da função objetivo avaliados na etapa de otimização com FOcomparacao, caso
         # sejam menores, os respectivos parâmetros estarão contidos da região de abrangência.
         regiao = []
         for pos,fitness in enumerate(self.__hist_Fitness):
-            if fitness <= FOcomparacao+self.FOotimo:
+            if fitness <= ellipseComparacao+self.FOotimo:
                 regiao.append(self.__hist_Posicoes[pos])
 
         # ---------------------------------------------------------------------
@@ -2059,13 +2057,13 @@ class EstimacaoNaoLinear:
                                                                 add_legenda=True, corrigir_limites=False,
                                                                 marker='o', linestyle='None', color='b', linewidth=2.0, zorder=1)
                         # PLOT da região de abrangência pelo método da linearização (elipse)
-                        fisher, FOcomparacao = self.__criteriosAbrangencia()
+                        fisher, ellipseComparacao = self.__criteriosAbrangencia()
 
                         cov = array([[self.parametros.matriz_covariancia[p1,p1], self.parametros.matriz_covariancia[p1,p2]],
                                      [self.parametros.matriz_covariancia[p2,p1], self.parametros.matriz_covariancia[p2,p2]]])
 
                         Fig.elipse_covariancia(cov, [self.parametros.estimativa[p1],self.parametros.estimativa[p2]],
-                                               FOcomparacao)
+                                               ellipseComparacao)
 
                         if self.__controleFluxo.regiaoAbrangencia and self.parametros.regiao_abrangencia != []:
                             Fig.set_legenda([u'Verossimilhança','Elipse'], loc='best', fontsize=15)
@@ -2143,7 +2141,7 @@ class EstimacaoNaoLinear:
                     Fig.grafico_dispersao_sem_incerteza(amostras, ym, marker='o', linestyle='None', color='r',
                                                         corrigir_limites=False, config_axes=False, add_legenda=True)
                     Fig.grafico_dispersao_sem_incerteza(amostras, y, marker='o', linestyle='None', color='b', add_legenda=True)
-                    Fig.set_label('Amostras', self.y.simbolos[iy], fontsize=16)
+                    Fig.set_label('Amostras', self.y.labelGraficos()[iy], fontsize=16)
                     Fig.set_legenda(['calculado','validacao' if self.__flag.info['dadosvalidacao'] else 'experimental'],
                                     fontsize=16, loc='best')
                     Fig.salvar_e_fechar(
@@ -2160,12 +2158,13 @@ class EstimacaoNaoLinear:
                     yerr_validacao = self.y.validacao.matriz_incerteza[:,iy]
 
                     # Gráfico comparativo entre valores experimentais (validação) e calculados pelo modelo, com variância
+                    # Em função do número da amostra
                     Fig.grafico_dispersao_com_incerteza(amostras, y, None, yerr_validacao, fator_abrangencia_y=t_val,
                                                         fmt="o", color = 'b', config_axes=False, corrigir_limites=False,
                                                         add_legenda=True)
                     Fig.grafico_dispersao_com_incerteza(amostras, ym, None, yerr_calculado, fator_abrangencia_y=t_cal,
                                                         fmt="o", color = 'r', config_axes=False, add_legenda=True)
-                    Fig.set_label('Amostras', self.y.simbolos[iy], fontsize=16)
+                    Fig.set_label('Amostras', self.y.labelGraficos()[iy], fontsize=16)
                     Fig.set_legenda(['calculado', 'validacao' if self.__flag.info['dadosvalidacao'] else 'experimental'],
                         fontsize=16, loc='best')
                     Fig.salvar_e_fechar(
@@ -2173,6 +2172,7 @@ class EstimacaoNaoLinear:
                         '_fl' + str(self.__controleFluxo.FLUXO_ID) + '_' + str(self.y.simbolos[iy]) + \
                         '_funcao_amostras_calculado_com_incerteza.png', config_axes=True)
 
+                    # ycalculado em função de yexperimental
                     Fig.grafico_dispersao_com_incerteza(y, ym, yerr_validacao, yerr_calculado,
                                                         fator_abrangencia_x=t_cal, fator_abrangencia_y=t_val,
                                                         fmt="o", corrigir_limites=True, config_axes=False)
