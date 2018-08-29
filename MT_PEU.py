@@ -12,8 +12,7 @@ Principais classes do motor de cálculo do PEU
 # ---------------------------------------------------------------------
 # Cálculos científicos
 from numpy import array, size, linspace, min, max, copy,\
-    mean, ones, ndarray, nanmax, nanmin, arange
-
+    mean, ones, ndarray, nanmax, nanmin, arange, transpose, concatenate
 from numpy.random import uniform, triangular
 from scipy.stats import f, t, chi2
 from scipy.misc import factorial
@@ -629,6 +628,20 @@ class EstimacaoNaoLinear:
 
         if udados.shape[0]*self.y.NV-float(self.parametros.NV) <= 0: # Verificar se há graus de liberdade suficiente
             warn('Graus de liberdade insuficientes. O seu conjunto de dados experimentais não é suficiente para estimar os parâmetros!',UserWarning)
+
+    def setEstimativa(self, tipo, *args):
+
+        if tipo == "x":
+            X = [transpose(array(args[i][0], ndmin=2)) for i in range(len(args))]
+
+            uX = [transpose(array(args[i][1], ndmin=2)) for i in range(len(args))]
+            return concatenate(X, axis=1), concatenate(uX, axis=1)
+        else:
+            Y = [transpose(array(args[i][0], ndmin=2)) for i in range(len(args))]
+
+            uY = [transpose(array(args[i][1], ndmin=2)) for i in range(len(args))]
+            return concatenate(Y, axis=1), concatenate(uY, axis=1)
+
 
     def gerarEntradas(self,x,y,ux,uy,glx=[],gly=[],tipo='experimental',uxy=None):
         u"""
