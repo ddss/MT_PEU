@@ -13,7 +13,8 @@ Principais classes do motor de cálculo do PEU
 # Cálculos científicos
 from numpy import array, size, linspace, min, max, copy,\
     mean, ones, ndarray, nanmax, nanmin, arange, transpose, concatenate
-from numpy.random import uniform, triangular
+ from numpy.core.multiarray import ndarray
+ from numpy.random import uniform, triangular
 from scipy.stats import f, t, chi2
 from scipy.misc import factorial
 from numpy.linalg import inv
@@ -27,7 +28,10 @@ from warnings import warn
 
 # Sistema
 import sys
-reload(sys)
+
+ from typing import List
+
+ reload(sys)
 sys.setdefaultencoding("utf-8") # Forçar o sistema utilizar o coding utf-8
 
 # ---------------------------------------------------------------------------
@@ -630,17 +634,21 @@ class EstimacaoNaoLinear:
             warn('Graus de liberdade insuficientes. O seu conjunto de dados experimentais não é suficiente para estimar os parâmetros!',UserWarning)
 
     def setEstimativa(self, tipo, *args):
-
         if tipo == "x":
             X = [transpose(array(args[i][0], ndmin=2)) for i in range(len(args))]
-
             uX = [transpose(array(args[i][1], ndmin=2)) for i in range(len(args))]
-            return concatenate(X, axis=1), concatenate(uX, axis=1)
+            self.__xtemp   = X
+            self.__uxtemp = uX
         else:
             Y = [transpose(array(args[i][0], ndmin=2)) for i in range(len(args))]
+            uY = [transpose(array(args[i][1], ndmin=2)) for i in range(len(args))]  # type: List[ndarray]
+            self.__ytemp = Y
+            self.__uytemp = uY
 
-            uY = [transpose(array(args[i][1], ndmin=2)) for i in range(len(args))]
-            return concatenate(Y, axis=1), concatenate(uY, axis=1)
+        # TODO:
+        # documentação
+        # validação
+        # controle do que fora executado
 
 
     def gerarEntradas(self,x,y,ux,uy,glx=[],gly=[],tipo='experimental',uxy=None):
@@ -666,6 +674,8 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # FLUXO
         # ---------------------------------------------------------------------
+        # TODO:
+        # Quando posso executar? (Variáveis temporárias cheias)
         self.__controleFluxo.SET_ETAPA('gerarEntradas')
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
@@ -700,12 +710,12 @@ class EstimacaoNaoLinear:
             # ---------------------------------------------------------------------
             # Salvando os dados experimentais nas variáveis.
             try:
-                self.x._SETexperimental(estimativa=x,matriz_incerteza=ux,gL=glx)
+                self.x._SETexperimental(estimativa=self.__xtemp,matriz_incerteza=self.__uxtemp,gL=glx)
             except Exception,erro:
                 raise RuntimeError('Erro na criação do conjunto experimental de X: {}'.format(erro))
 
             try:
-                self.y._SETexperimental(estimativa=y,matriz_incerteza=uy,gL=gly)
+                self.y._SETexperimental(estimativa=self.__ytemp,matriz_incerteza=self.__uytemp,gL=gly)
             except Exception, erro:
                 raise RuntimeError('Erro na criação do conjunto experimental de Y: {}'.format(erro))
 
@@ -745,6 +755,9 @@ class EstimacaoNaoLinear:
                 self.y._SETvalidacao(estimativa=y,matriz_incerteza=uy,gL=gly)
             except Exception, erro:
                 raise RuntimeError('Erro na criação do conjuno validação de Y: {}'.format(erro))
+
+        #TODO:
+        # transformar variáveis temporárias (temp) em listas vazias
 
     def _armazenarDicionario(self):
         u"""
