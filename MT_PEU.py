@@ -13,8 +13,8 @@ Principais classes do motor de cálculo do PEU
 # Cálculos científicos
 from numpy import array, size, linspace, min, max, copy,\
     mean, ones, ndarray, nanmax, nanmin, arange, transpose, concatenate
- from numpy.core.multiarray import ndarray
- from numpy.random import uniform, triangular
+from numpy.core.multiarray import ndarray
+from numpy.random import uniform, triangular
 from scipy.stats import f, t, chi2
 from scipy.misc import factorial
 from numpy.linalg import inv
@@ -29,9 +29,9 @@ from warnings import warn
 # Sistema
 import sys
 
- from typing import List
+from typing import List
 
- reload(sys)
+reload(sys)
 sys.setdefaultencoding("utf-8") # Forçar o sistema utilizar o coding utf-8
 
 # ---------------------------------------------------------------------------
@@ -634,6 +634,12 @@ class EstimacaoNaoLinear:
             warn('Graus de liberdade insuficientes. O seu conjunto de dados experimentais não é suficiente para estimar os parâmetros!',UserWarning)
 
     def setEstimativa(self, tipo, *args):
+        u"""
+        Método para tratar os dados de entrada
+
+        * Converte a entrada (lista) em array de duas dimensões (entrada e incerteza).
+        * Armazena as entradas e incertezas em variáveis temporárias.
+        """
         if tipo == "x":
             X = [transpose(array(args[i][0], ndmin=2)) for i in range(len(args))]
             uX = [transpose(array(args[i][1], ndmin=2)) for i in range(len(args))]
