@@ -97,7 +97,7 @@ inf=[0 ,20000]
 # PARTE III - GENÉRICO (INDEPENDE DO EXEMPLO)
 # =================================================================================
 #
-Estime.gerarEntradas(x,y,ux,uy,tipo='experimental')
+Estime.gerarEntradas(tipo='experimental')
 #print Estime._EstimacaoNaoLinear__etapas
 #grandeza = Estime._armazenarDicionario() # ETAPA PARA CRIAÇÃO DOS DICIONÁRIOS - Grandeza é uma variável que retorna as grandezas na forma de dicionário
 #Estime.gerarEntradas(x,y,ux,uy,tipo='experimental')

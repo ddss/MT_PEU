@@ -29,8 +29,6 @@ from warnings import warn
 # Sistema
 import sys
 
-from typing import List
-
 reload(sys)
 sys.setdefaultencoding("utf-8") # Forçar o sistema utilizar o coding utf-8
 
@@ -609,17 +607,17 @@ class EstimacaoNaoLinear:
         * verificar se as colunas dos arrays de entrada tem o mesmo número dos símbolos das variáveis definidas (y, x)
         * verificar se os graus de liberdade são suficientes para realizar a estimação
         """
-        if not isinstance(dados,ndarray):
-            raise TypeError('Os vetores de dados informando deve ser um array.')
+        #if not isinstance(dados,ndarray):
+        #    raise TypeError('Os vetores de dados informando deve ser um array.')
 
-        if not isinstance(udados,ndarray):
-            raise TypeError('O vetor contendo a incerteza dos dados informando deve ser um array.')
+        #if not isinstance(udados,ndarray):
+        #    raise TypeError('O vetor contendo a incerteza dos dados informando deve ser um array.')
 
-        if not dados.ndim == 2:
-            raise TypeError('A dimensão dos vetores de dados deve ser 2.')
+        #if not dados.ndim == 2:
+        #    raise TypeError('A dimensão dos vetores de dados deve ser 2.')
 
-        if not udados.ndim == 2:
-            raise TypeError('A dimensão contendo a incerteza dos dados deve ser 2.')
+        #if not udados.ndim == 2:
+        #    raise TypeError('A dimensão contendo a incerteza dos dados deve ser 2.')
 
         if dados.shape[1] != NV:
             raise ValueError('O número de variáveis definidas foi {:d}, mas foram inseridos dados para {:d} variáveis.'.format(NV,dados.shape[1]))
@@ -636,18 +634,40 @@ class EstimacaoNaoLinear:
     def setEstimativa(self, tipo, *args):
         u"""
         Método para tratar os dados de entrada
-
         * Converte a entrada (lista) em array de duas dimensões (entrada e incerteza).
         * Armazena as entradas e incertezas em variáveis temporárias.
+
+        ========
+        Entradas
+        ========
+        tipo (bool): 0 - grandeza independente | 1 - grandeza dependente
+        *args: deve receber tuplas, com listas contendo os dados medidos de estimativa e incerteza
+
+        x1 = [1,1,1]
+        ux1 = [1,1,1]
+
+        setEstimativa(0,(x1,ux1),(x2,ux2))
         """
+
         if tipo == "x":
-            X = [transpose(array(args[i][0], ndmin=2)) for i in range(len(args))]
+
+
+            X = transpose(array([args[i][0] for i in range(len(args))], ndmin=2))
             uX = [transpose(array(args[i][1], ndmin=2)) for i in range(len(args))]
+
+            print X
+
+            self.__validacaoDadosEntrada(X, uX, self.x.NV)
+
             self.__xtemp   = X
             self.__uxtemp = uX
         else:
+
             Y = [transpose(array(args[i][0], ndmin=2)) for i in range(len(args))]
             uY = [transpose(array(args[i][1], ndmin=2)) for i in range(len(args))]  # type: List[ndarray]
+
+            self.__validacaoDadosEntrada(Y, uY, self.y.NV)
+
             self.__ytemp = Y
             self.__uytemp = uY
 
@@ -655,9 +675,12 @@ class EstimacaoNaoLinear:
         # documentação
         # validação
         # controle do que fora executado
+        # graus de liberdade devem ser passados por aqui
+        # trocar nome do método setDados
+        # Validação dos dados de entrada x, y, ux e uy
 
 
-    def gerarEntradas(self,x,y,ux,uy,glx=[],gly=[],tipo='experimental',uxy=None):
+    def gerarEntradas(self,glx=[],gly=[],tipo='experimental',uxy=None):
         u"""
         Método para incluir os dados de entrada da estimação
 
@@ -665,10 +688,6 @@ class EstimacaoNaoLinear:
         Entradas (Obrigatórias)
         =======================
 
-        * x         : array com os dados das variáveis independentes na forma de colunas
-        * ux        : array com as incertezas das variáveis independentes na forma de colunas
-        * y         : array com os dados das variáveis dependentes na forma de colunas
-        * uy        : array com as incertezas das variáveis dependentes na forma de colunas
         * glx       : graus de liberdade para as grandezas de entrada
         * gly       : graus de liberdada para as grandezas de saída
         * tipo      : string que define se os dados são experimentais (para estimação) ou de validação.
@@ -680,8 +699,6 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # FLUXO
         # ---------------------------------------------------------------------
-        # TODO:
-        # Quando posso executar? (Variáveis temporárias cheias)
         self.__controleFluxo.SET_ETAPA('gerarEntradas')
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
@@ -692,13 +709,10 @@ class EstimacaoNaoLinear:
                 set([tipo]).difference(self.__tiposDisponiveisEntrada)) + ' não estão disponíveis. Usar: ' + ','.join(
                 self.__tiposDisponiveisEntrada) + '.')
 
-        # Validação dos dados de entrada x, y, ux e uy
-        self.__validacaoDadosEntrada(x, ux, self.x.NV)
-        self.__validacaoDadosEntrada(y, uy, self.y.NV)
 
         # Validação do número de dados experimentais
-        if x.shape[0] != y.shape[0]:
-            raise ValueError('Foram inseridos {:d} dados para as grandezas dependentes, mas {:d} para as independentes'.format(y.shape[0],x.shape[0]))
+        if self.__xtemp.shape[0] != self.__ytemp.shape[0]:
+            raise ValueError('Foram inseridos {:d} dados para as grandezas dependentes, mas {:d} para as independentes'.format(self.__ytemp.shape[0],self.__xtemp.shape[0]))
 
         # ---------------------------------------------------------------------
         # EXECUÇÃO
@@ -764,6 +778,10 @@ class EstimacaoNaoLinear:
 
         #TODO:
         # transformar variáveis temporárias (temp) em listas vazias
+        # Quando posso executar? (Variáveis temporárias cheias)
+        # Trocar nome do método: definirConjunto
+        # trocar os tipo experimental e validaçao -> estimacao e predicao
+        # trocar as flags para ficar de acordo
 
     def _armazenarDicionario(self):
         u"""
