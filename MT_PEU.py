@@ -607,18 +607,6 @@ class EstimacaoNaoLinear:
         * verificar se as colunas dos arrays de entrada tem o mesmo número dos símbolos das variáveis definidas (y, x)
         * verificar se os graus de liberdade são suficientes para realizar a estimação
         """
-        #if not isinstance(dados,ndarray):
-        #    raise TypeError('Os vetores de dados informando deve ser um array.')
-
-        #if not isinstance(udados,ndarray):
-        #    raise TypeError('O vetor contendo a incerteza dos dados informando deve ser um array.')
-
-        #if not dados.ndim == 2:
-        #    raise TypeError('A dimensão dos vetores de dados deve ser 2.')
-
-        #if not udados.ndim == 2:
-        #    raise TypeError('A dimensão contendo a incerteza dos dados deve ser 2.')
-
         if dados.shape[1] != NV:
             raise ValueError('O número de variáveis definidas foi {:d}, mas foram inseridos dados para {:d} variáveis.'.format(NV,dados.shape[1]))
 
@@ -631,7 +619,7 @@ class EstimacaoNaoLinear:
         if udados.shape[0]*self.y.NV-float(self.parametros.NV) <= 0: # Verificar se há graus de liberdade suficiente
             warn('Graus de liberdade insuficientes. O seu conjunto de dados experimentais não é suficiente para estimar os parâmetros!',UserWarning)
 
-    def setEstimativa(self, tipo, *args):
+    def setDados(self, tipo, *args):
         u"""
         Método para tratar os dados de entrada
         * Converte a entrada (lista) em array de duas dimensões (entrada e incerteza).
@@ -643,19 +631,25 @@ class EstimacaoNaoLinear:
         tipo (bool): 0 - grandeza independente | 1 - grandeza dependente
         *args: deve receber tuplas, com listas contendo os dados medidos de estimativa e incerteza
 
-        x1 = [1,1,1]
+        x1 = [1,2,3]
         ux1 = [1,1,1]
+        x2 = [ 4,5,6 ]
+        ux2 = [1,1,1]
 
         setEstimativa(0,(x1,ux1),(x2,ux2))
+        [1 1]
+        [2 1]
+        [3 1]
+
+        [4 1]
+        [5 1]
+        [6 1]
         """
 
         if tipo == "x":
 
-
             X = transpose(array([args[i][0] for i in range(len(args))], ndmin=2))
             uX = [transpose(array(args[i][1], ndmin=2)) for i in range(len(args))]
-
-            print X
 
             self.__validacaoDadosEntrada(X, uX, self.x.NV)
 
@@ -663,7 +657,7 @@ class EstimacaoNaoLinear:
             self.__uxtemp = uX
         else:
 
-            Y = [transpose(array(args[i][0], ndmin=2)) for i in range(len(args))]
+            Y = transpose(array([args[i][0] for i in range(len(args))], ndmin=2))
             uY = [transpose(array(args[i][1], ndmin=2)) for i in range(len(args))]  # type: List[ndarray]
 
             self.__validacaoDadosEntrada(Y, uY, self.y.NV)
@@ -680,7 +674,7 @@ class EstimacaoNaoLinear:
         # Validação dos dados de entrada x, y, ux e uy
 
 
-    def gerarEntradas(self,glx=[],gly=[],tipo='experimental',uxy=None):
+    def definirConjunto(self,glx=[],gly=[],tipo='estimacao',uxy=None):
         u"""
         Método para incluir os dados de entrada da estimação
 
@@ -730,18 +724,18 @@ class EstimacaoNaoLinear:
             # ---------------------------------------------------------------------
             # Salvando os dados experimentais nas variáveis.
             try:
-                self.x._SETexperimental(estimativa=self.__xtemp,matriz_incerteza=self.__uxtemp,gL=glx)
+                self.x._SETestimacao(estimativa=self.__xtemp,matriz_incerteza=self.__uxtemp,gL=glx)
             except Exception,erro:
                 raise RuntimeError('Erro na criação do conjunto experimental de X: {}'.format(erro))
 
             try:
-                self.y._SETexperimental(estimativa=self.__ytemp,matriz_incerteza=self.__uytemp,gL=gly)
+                self.y._SETestimacao(estimativa=self.__ytemp,matriz_incerteza=self.__uytemp,gL=gly)
             except Exception, erro:
                 raise RuntimeError('Erro na criação do conjunto experimental de Y: {}'.format(erro))
 
-        # dados de validação
+        # dados de predição
         if tipo == self.__tiposDisponiveisEntrada[1]:
-            self.__flag.ToggleActive('dadosvalidacao')
+            self.__flag.ToggleActive('dadospredicão')
 
             self.__controleFluxo.reiniciarParcial()
             # ---------------------------------------------------------------------
@@ -749,12 +743,12 @@ class EstimacaoNaoLinear:
             # ---------------------------------------------------------------------
             # Salvando os dados de validação.
             try:
-                self.x._SETvalidacao(estimativa=x,matriz_incerteza=ux,gL=glx)
+                self.x._SETpredicao(estimativa=x,matriz_incerteza=ux,gL=glx)
             except Exception, erro:
                 raise RuntimeError('Erro na criação do conjunto validação de X: {}'.format(erro))
 
             try:
-                self.y._SETvalidacao(estimativa=y,matriz_incerteza=uy,gL=gly)
+                self.y._SETpredicao(estimativa=y,matriz_incerteza=uy,gL=gly)
             except Exception, erro:
                 raise RuntimeError('Erro na criação do conjunto validação de Y: {}'.format(erro))
 
@@ -767,14 +761,22 @@ class EstimacaoNaoLinear:
             # ---------------------------------------------------------------------
             # Salvando os dados de validação.
             try:
-                self.x._SETvalidacao(estimativa=x,matriz_incerteza=ux,gL=glx)
+                self.x._SETpredicao(estimativa=x,matriz_incerteza=ux,gL=glx)
             except Exception, erro:
                 raise RuntimeError('Erro na criação do conjunto validação de X: {}'.format(erro))
 
             try:
-                self.y._SETvalidacao(estimativa=y,matriz_incerteza=uy,gL=gly)
+                self.y._SETpredicao(estimativa=y,matriz_incerteza=uy,gL=gly)
             except Exception, erro:
                 raise RuntimeError('Erro na criação do conjuno validação de Y: {}'.format(erro))
+
+            # Transformando variáveis temporárias ( xtemp, uxtemp, ytemp, uytemp) em listas vazias
+
+            del xtemp [:]
+            del uxtemp [:]
+            del ytemp [:]
+            del uytemp [:]
+
 
         #TODO:
         # transformar variáveis temporárias (temp) em listas vazias
