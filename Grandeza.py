@@ -124,7 +124,7 @@ class Grandeza:
         # VARIÁVEIS INTERNAS
         # ---------------------------------------------------------------------   
         self.__ID = [] # ID`s que a grandeza possui
-        self.__ID_disponivel = ['experimental','validacao','calculado','parametro','residuo'] # Todos os ID's disponíveis
+        self.__ID_disponivel = ['estimacao','predicao','calculado','parametro','residuo'] # Todos os ID's disponíveis
 
     def __validacaoEntrada(self,simbolos,nomes,unidades,label_latex):
         u'''
