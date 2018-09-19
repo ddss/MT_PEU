@@ -51,7 +51,7 @@ x2 = [600.0,600.0,612.0,612.0,612.0,612.0,620.0,620.0,620.0,
 
 ux2 = [1]*41
 
-Estime.setDados("x",(x1,ux1),(x2,ux2))
+Estime.setDados(0,(x1,ux1),(x2,ux2))
 
 y = [0.9,0.949,0.886,0.785,0.791,0.890,0.787,0.877,0.938,
 0.782,0.827,0.696,0.582,0.795,0.800,0.790,0.883,0.712,0.576,0.715,0.673,
@@ -60,7 +60,7 @@ y = [0.9,0.949,0.886,0.785,0.791,0.890,0.787,0.877,0.938,
 
 uy1 = [1]*41
 
-Estime.setDados("y",(y,uy1))
+Estime.setDados(1,(y,uy1))
 
 sup=[50,30000]
 inf=[0 ,20000]
@@ -97,10 +97,10 @@ inf=[0 ,20000]
 # =================================================================================
 #
 #<<<<<<< Updated upstream
-Estime.gerarEntradas(tipo='experimental')
+Estime.definirConjunto(tipo='estimacao')
 #print Estime._EstimacaoNaoLinear__etapas
 #=======
-Estime.gerarEntradas(x,y,ux,uy,tipo='experimental')
+Estime.definirConjunto(tipo='predicao')
 #zprint Estime._EstimacaoNaoLinear__etapas
 #>>>>>>> Stashed changes
 #grandeza = Estime._armazenarDicionario() # ETAPA PARA CRIAÇÃO DOS DICIONÁRIOS - Grandeza é uma variável que retorna as grandezas na forma de dicionário

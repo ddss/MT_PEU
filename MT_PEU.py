@@ -12,7 +12,7 @@ Principais classes do motor de cálculo do PEU
 # ---------------------------------------------------------------------
 # Cálculos científicos
 from numpy import array, size, linspace, min, max, copy,\
-    mean, ones, ndarray, nanmax, nanmin, arange, transpose, concatenate
+    mean, ones, ndarray, nanmax, nanmin, arange, transpose, delete, concatenate
 from numpy.core.multiarray import ndarray
 from numpy.random import uniform, triangular
 from scipy.stats import f, t, chi2
@@ -75,7 +75,8 @@ class EstimacaoNaoLinear:
 
             * definem as etapas predecessoras e/ou sucessoras de cada etapa (atributo)
             """
-            self.gerarEntradas = 0
+            self.setDados = 0
+            self.setConjunto = 0
             self.otimizacao = 0
             self.SETparametro = 0
             self.GETFOotimo = 0
@@ -113,12 +114,12 @@ class EstimacaoNaoLinear:
                 teste = teste if teste != [] else [True]
                 # Caso nenhuma predecessora tenha sido executada, retorna um erro
                 if not any(teste):
-                    raise SyntaxError('Para executar o método {} deve executar antes {}'.format(etapa, ' ou '.join(
+                    raise SyntaxError('Para executar o método {} deve executar antes {}.'.format(etapa, ' ou '.join(
                         getattr(self, '_predecessora_' + etapa))))
             # atribuindo o valor 1 (executado) ao atributo referente à etapa, atualmente em execução
             setattr(self, etapa, 1)
 
-        def reiniciar(self,manter='gerarEntradas'):
+        def reiniciar(self,manter='setConjunto'):
             u"""
             Método utilizado para reiniciar o fluxo. (IMPACTA todas as etapas)
 
@@ -176,12 +177,16 @@ class EstimacaoNaoLinear:
             return self.__fluxoID
 
         @property
-        def _predecessora_gerarEntradas(self):
+        def _predecessora_setDados(self):
             return []
 
         @property
+        def _predecessora_definirConjunto(self):
+            return ['setDados']
+
+        @property
         def _predecessora_otimizacao(self):
-            return ['gerarEntradas']
+            return ['setConjunto']
 
         @property
         def _predecessora_SETparametro(self):
@@ -215,7 +220,7 @@ class EstimacaoNaoLinear:
 
         @property
         def _predecessora_armazenarDicionario(self):
-            return ['gerarEntradas']
+            return ['definirConjunto']
 
         @property
         def _predecessora_mapeamentoFO(self):
@@ -531,7 +536,7 @@ class EstimacaoNaoLinear:
 
         # Flags para controle de informações
         self.__flag = flag()
-        self.__flag.setCaracteristica(['dadosexperimentais','dadosvalidacao',
+        self.__flag.setCaracteristica(['dadosestimacao','dadospredicao',
                                        'reconciliacao','preenchimentoRegiao',
                                        'graficootimizacao','relatoriootimizacao'])
         # uso das caracterśiticas:
@@ -554,7 +559,7 @@ class EstimacaoNaoLinear:
                               'relatorio':'Relatorios'}
 
         # Tipos de dados disponíveis para entrada de dados
-        self.__tiposDisponiveisEntrada = ('experimental', 'validacao')
+        self.__tiposDisponiveisEntrada = ('estimacao', 'predicao')
 
         # Algoritmos de otimização disponíveis
         self.__AlgoritmosOtimizacao = ('PSOFamily',)
@@ -571,6 +576,12 @@ class EstimacaoNaoLinear:
 
         # tipos de algoritmos de preenchimento de região de abrangência disponíveis
         self.__tipoPreenchimento = ('PSO', 'MonteCarlo')
+
+        # variáveis auxiliares para definição de conjunto de dados
+        self.__xtemp = None
+        self.__uxtemp = None
+        self.__ytemp = None
+        self.__uytemp = None
 
     def _args_FO(self):
         """
@@ -603,8 +614,8 @@ class EstimacaoNaoLinear:
         u"""
         Validação dos dados de entrada
 
-        * verificar se os dados e suas incertezas são arrays de 2 dimensões, com o mesmo número de pontos
         * verificar se as colunas dos arrays de entrada tem o mesmo número dos símbolos das variáveis definidas (y, x)
+        * verificar se o número de pontos é o mesmo
         * verificar se os graus de liberdade são suficientes para realizar a estimação
         """
         if dados.shape[1] != NV:
@@ -621,9 +632,10 @@ class EstimacaoNaoLinear:
 
     def setDados(self, tipo, *args):
         u"""
-        Método para tratar os dados de entrada
-        * Converte a entrada (lista) em array de duas dimensões (entrada e incerteza).
-        * Armazena as entradas e incertezas em variáveis temporárias.
+        Método para tratar os dados de entrada de grandezas dependentes e independentes
+        * Converte pares de listas de dados e suas respectivas incertezas em arrays de duas dimensões (um array para entrada e outro para incerteza).
+        * Estes arrays são armazenados como variáveis temporárias.
+        * É necessário executar o método definirConjunto logo após a definição destas grandezas.
 
         ========
         Entradas
@@ -631,50 +643,73 @@ class EstimacaoNaoLinear:
         tipo (bool): 0 - grandeza independente | 1 - grandeza dependente
         *args: deve receber tuplas, com listas contendo os dados medidos de estimativa e incerteza
 
+        ========
+        Exemplo
+        ========
         x1 = [1,2,3]
         ux1 = [1,1,1]
         x2 = [ 4,5,6 ]
         ux2 = [1,1,1]
 
-        setEstimativa(0,(x1,ux1),(x2,ux2))
-        [1 1]
-        [2 1]
-        [3 1]
+        y1  = [5,7,8]
+        uy1 = [1,1,1]
 
-        [4 1]
-        [5 1]
-        [6 1]
+        Estime = EstimacaoNaoLinear(WLS,Modelo,simbolos_x=['x1','x2'], simbolos_y=['y1'], simbolos_param=['A','B'])
+        Estime.setDados(0,(x1,ux1),(x2,ux2))
+        Estime.setDados(1,(y1,uy1))
+
+        Internamente as variáveis serão convertidas para
+        grandezas independentes
+        [1 4]
+        [2 5]
+        [3 6]
+        incertezas
+        [1 1]
+        [1 1]
+        [1 1]
+        grandezas dependentes
+        [5]
+        [7]
+        [8]
+        incertezas
+        [1]
+        [1]
+        [1]
         """
 
-        if tipo == "x":
+        self.__controleFluxo.SET_ETAPA('setDados')
 
-            X = transpose(array([args[i][0] for i in range(len(args))], ndmin=2))
-            uX = [transpose(array(args[i][1], ndmin=2)) for i in range(len(args))]
+        if tipo == 0:
+
+            X  = transpose(array([args[i][0] for i in range(len(args))], ndmin=2))
+            uX = transpose(array([args[i][1] for i in range(len(args))], ndmin=2))
 
             self.__validacaoDadosEntrada(X, uX, self.x.NV)
 
             self.__xtemp   = X
             self.__uxtemp = uX
+
         else:
 
-            Y = transpose(array([args[i][0] for i in range(len(args))], ndmin=2))
-            uY = [transpose(array(args[i][1], ndmin=2)) for i in range(len(args))]  # type: List[ndarray]
+            Y  = transpose(array([args[i][0] for i in range(len(args))], ndmin=2))
+            uY = transpose(array([args[i][1] for i in range(len(args))], ndmin=2))
 
             self.__validacaoDadosEntrada(Y, uY, self.y.NV)
 
             self.__ytemp = Y
             self.__uytemp = uY
 
+
         # TODO:
         # documentação
-        # validação
-        # controle do que fora executado
+        # validação de args
+        # (ok) controle do que fora executado
         # graus de liberdade devem ser passados por aqui
-        # trocar nome do método setDados
+        # (ok) trocar nome do método setDados
         # Validação dos dados de entrada x, y, ux e uy
 
 
-    def definirConjunto(self,glx=[],gly=[],tipo='estimacao',uxy=None):
+    def setConjunto(self,glx=[],gly=[],tipo='estimacao',uxy=None):
         u"""
         Método para incluir os dados de entrada da estimação
 
@@ -693,18 +728,21 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # FLUXO
         # ---------------------------------------------------------------------
-        self.__controleFluxo.SET_ETAPA('gerarEntradas')
+        self.__controleFluxo.SET_ETAPA('setConjunto')
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------
+        if (self.__xtemp is None) or (self.__ytemp is None) or (self.__uxtemp is None) or (self.__uytemp is None):
+            raise ValueError('É necessário executar o método setDados para definir dados para grandezas dependentes (y) e independentes (x).')
+
         # validação do tipo
         if not set([tipo]).issubset(self.__tiposDisponiveisEntrada):
             raise ValueError('A(s) entrada(s) ' + ','.join(
                 set([tipo]).difference(self.__tiposDisponiveisEntrada)) + ' não estão disponíveis. Usar: ' + ','.join(
                 self.__tiposDisponiveisEntrada) + '.')
 
-
         # Validação do número de dados experimentais
+
         if self.__xtemp.shape[0] != self.__ytemp.shape[0]:
             raise ValueError('Foram inseridos {:d} dados para as grandezas dependentes, mas {:d} para as independentes'.format(self.__ytemp.shape[0],self.__xtemp.shape[0]))
 
@@ -713,11 +751,11 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # dados experimentais
         if tipo == self.__tiposDisponiveisEntrada[0]:
-            self.__flag.ToggleActive('dadosexperimentais')
+            self.__flag.ToggleActive('dadosestimacao')
             # caso o ID do fluxo seja 0, então não há necessidade de reiniciar, caso contrário, reiniciar.
             if self.__controleFluxo.FLUXO_ID != 0:
                 self.__controleFluxo.reiniciar()
-                if self.__flag.info['dadosvalidacao']:
+                if self.__flag.info['dadospredicao']:
                     warn('O fluxo foi reiniciado, faz-se necessário incluir novos dados de validação', UserWarning)
             # ---------------------------------------------------------------------
             # ATRIBUIÇÃO A GRANDEZAS
@@ -743,16 +781,16 @@ class EstimacaoNaoLinear:
             # ---------------------------------------------------------------------
             # Salvando os dados de validação.
             try:
-                self.x._SETpredicao(estimativa=x,matriz_incerteza=ux,gL=glx)
+                self.x._SETpredicao(estimativa=self.__xtemp,matriz_incerteza=self.__uxtemp,gL=glx)
             except Exception, erro:
                 raise RuntimeError('Erro na criação do conjunto validação de X: {}'.format(erro))
 
             try:
-                self.y._SETpredicao(estimativa=y,matriz_incerteza=uy,gL=gly)
+                self.y._SETpredicao(estimativa=self.__ytemp,matriz_incerteza=self.__uytemp,gL=gly)
             except Exception, erro:
                 raise RuntimeError('Erro na criação do conjunto validação de Y: {}'.format(erro))
 
-        if not self.__flag.info['dadosvalidacao']:
+        if not self.__flag.info['dadospredicao']:
             # Caso gerarEntradas seja executado somente para os dados experimentais,
             # será assumido que estes são os dados de validação, pois todos os cálculos 
             # de predição são realizados para os dados de validação.
@@ -761,28 +799,25 @@ class EstimacaoNaoLinear:
             # ---------------------------------------------------------------------
             # Salvando os dados de validação.
             try:
-                self.x._SETpredicao(estimativa=x,matriz_incerteza=ux,gL=glx)
+                self.x._SETpredicao(estimativa=self.__xtemp,matriz_incerteza=self.__uxtemp,gL=glx)
             except Exception, erro:
                 raise RuntimeError('Erro na criação do conjunto validação de X: {}'.format(erro))
 
             try:
-                self.y._SETpredicao(estimativa=y,matriz_incerteza=uy,gL=gly)
+                self.y._SETpredicao(estimativa=self.__ytemp,matriz_incerteza=self.__uytemp,gL=gly)
             except Exception, erro:
                 raise RuntimeError('Erro na criação do conjuno validação de Y: {}'.format(erro))
 
-            # Transformando variáveis temporárias ( xtemp, uxtemp, ytemp, uytemp) em listas vazias
-
-            del xtemp [:]
-            del uxtemp [:]
-            del ytemp [:]
-            del uytemp [:]
-
+        # Transformando variáveis temporárias ( xtemp, uxtemp, ytemp, uytemp) em listas vazias
+        self.__xtemp = None
+        self.__uxtemp = None
+        self.__ytemp = None
+        self.__uytemp = None
 
         #TODO:
-        # transformar variáveis temporárias (temp) em listas vazias
+        # (+-) transformar variáveis temporárias (temp) em listas vazias
         # Quando posso executar? (Variáveis temporárias cheias)
-        # Trocar nome do método: definirConjunto
-        # trocar os tipo experimental e validaçao -> estimacao e predicao
+        # (+-) trocar os tipo experimental e validaçao -> estimacao e predicao
         # trocar as flags para ficar de acordo
 
     def _armazenarDicionario(self):
