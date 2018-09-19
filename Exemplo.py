@@ -43,7 +43,6 @@ x2 = transpose(array([600.0,600.0,612.0,612.0,612.0,612.0,620.0,620.0,620.0,
 639.0,639.0,639.0,639.0,639.0,639.0,639.0],ndmin=2))
 
 x = concatenate((x1,x2),axis=1)
-
 ux = ones((41,2))
 
 y = transpose(array([0.9,0.949,0.886,0.785,0.791,0.890,0.787,0.877,0.938,
@@ -53,7 +52,7 @@ y = transpose(array([0.9,0.949,0.886,0.785,0.791,0.890,0.787,0.877,0.938,
 
 uy = ones((41,1))
 
-tipo = 2 # tipo: modelo a ser escolhido - 0 (exemplo 5.11), 1 (exemplo 5.12) ou 2 (exemplo 5.13)
+tipo = 0 # tipo: modelo a ser escolhido - 0 (exemplo 5.11), 1 (exemplo 5.12) ou 2 (exemplo 5.13)
 
 Estime = EstimacaoNaoLinear(WLS,Modelo, simbolos_x=[r't','T'], unidades_x=['s','K'], label_latex_x=[r'$t$','$T$'],
                             simbolos_y=[r'y'], unidades_y=['adm'],
