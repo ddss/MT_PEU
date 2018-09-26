@@ -96,27 +96,23 @@ inf=[0 ,20000]
 # PARTE III - GENÉRICO (INDEPENDE DO EXEMPLO)
 # =================================================================================
 #
-#<<<<<<< Updated upstream
+
 Estime.setConjunto(tipo='estimacao')
-#print Estime._EstimacaoNaoLinear__etapas
-#=======
-Estime.setConjunto(tipo='predicao')
-#zprint Estime._EstimacaoNaoLinear__etapas
-#>>>>>>> Stashed changes
+
+#Estime.setConjunto(tipo='predicao')
+
 #grandeza = Estime._armazenarDicionario() # ETAPA PARA CRIAÇÃO DOS DICIONÁRIOS - Grandeza é uma variável que retorna as grandezas na forma de dicionário
-#Estime.setConjunto(x,y,ux,uy,tipo='estimacao)
-#Estime.setConjunto(x,y,ux,uy,tipo='predicao')
 
 # Otimização
-# Estime.otimiza(limite_superior=sup,limite_inferior=inf,algoritmo='PSOFamily',itmax=500,
-#                 Num_particulas=30,metodo={'busca':'Otimo','algoritmo':'PSO','inercia':'TVIW-linear'},args=[tipo],printit=True)
+Estime.otimiza(limite_superior=sup,limite_inferior=inf,algoritmo='PSOFamily',itmax=500,
+                 Num_particulas=30,metodo={'busca':'Otimo','algoritmo':'PSO','inercia':'TVIW-linear'},args=[tipo],printit=True)
 #Estime.SETparametro([0.0075862408745003265, 27642.662773759967],args=[tipo])
-#Estime.incertezaParametros(delta=1e-5,metodoIncerteza='SensibilidadeModelo',preencherregiao=True)
-#Estime.predicao()
-#Estime.analiseResiduos()
-#etapas = ['otimizacao','grandezas-entrada', 'predicao','grandezas-calculadas','analiseResiduos', 'regiaoAbrangencia']
-#Estime.graficos(etapas)
-#Estime.relatorio(export_y=True,export_cov_y=True)
+Estime.incertezaParametros(delta=1e-5,metodoIncerteza='SensibilidadeModelo',preencherregiao=True)
+Estime.predicao()
+Estime.analiseResiduos()
+etapas = ['otimizacao','grandezas-entrada', 'predicao','grandezas-calculadas','analiseResiduos', 'regiaoAbrangencia']
+Estime.graficos(etapas)
+Estime.relatorio(export_y=True,export_cov_y=True)
 
 ##################################################################################
 ##################################################################################

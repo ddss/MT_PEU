@@ -549,8 +549,8 @@ class EstimacaoNaoLinear:
 
         # Variável que controla o nome das pastas criadas pelos métodos gráficos e relatórios
         self._configFolder = {'graficos':'Graficos',
-                              'graficos-grandezas-entrada-experimental':'Grandezas',
-                              'graficos-grandezas-entrada-validacao':'Grandezas',
+                              'graficos-grandezas-entrada-estimacao':'Grandezas',
+                              'graficos-grandezas-entrada-predicao':'Grandezas',
                               'graficos-grandezas-calculadas':'Grandezas',
                               'graficos-predicao':'Predicao',
                               'graficos-regiaoAbrangencia':'Regiao',
@@ -641,7 +641,7 @@ class EstimacaoNaoLinear:
         Entradas
         ========
         tipo (bool): 0 - grandeza independente | 1 - grandeza dependente
-        *args: deve receber tuplas, com listas contendo os dados medidos de estimativa e incerteza
+        *args: deve receber tuplas, com listas contendo pares de vetores com as estimativas dos dados medidos e suas incertezas.
 
         ========
         Exemplo
@@ -677,6 +677,11 @@ class EstimacaoNaoLinear:
         [1]
         """
 
+        for ele in args:
+            if not (isinstance(ele, list) or isinstance(ele, tuple)):
+                raise TypeError('Cada par de grandeza com a sua incerteza, precisa ser uma lista ou tupla')
+
+
         self.__controleFluxo.SET_ETAPA('setDados')
 
         if tipo == 0:
@@ -701,12 +706,12 @@ class EstimacaoNaoLinear:
 
 
         # TODO:
-        # documentação
         # validação de args
-        # (ok) controle do que fora executado
+        # args[i] (i=1,.....,len(args)) -> tuple or list
+        # len(args[i]) = 2
+        # args[i][0] -> list or tuple
+        # args[i][1] -> list or tuple
         # graus de liberdade devem ser passados por aqui
-        # (ok) trocar nome do método setDados
-        # Validação dos dados de entrada x, y, ux e uy
 
 
     def setConjunto(self,glx=[],gly=[],tipo='estimacao',uxy=None):
@@ -764,12 +769,12 @@ class EstimacaoNaoLinear:
             try:
                 self.x._SETestimacao(estimativa=self.__xtemp,matriz_incerteza=self.__uxtemp,gL=glx)
             except Exception,erro:
-                raise RuntimeError('Erro na criação do conjunto experimental de X: {}'.format(erro))
+                raise RuntimeError('Erro na criação do conjunto de estimação da grandeza X: {}'.format(erro))
 
             try:
                 self.y._SETestimacao(estimativa=self.__ytemp,matriz_incerteza=self.__uytemp,gL=gly)
             except Exception, erro:
-                raise RuntimeError('Erro na criação do conjunto experimental de Y: {}'.format(erro))
+                raise RuntimeError('Erro na criação do conjunto de estimação da grandeza Y: {}'.format(erro))
 
         # dados de predição
         if tipo == self.__tiposDisponiveisEntrada[1]:
@@ -815,10 +820,7 @@ class EstimacaoNaoLinear:
         self.__uytemp = None
 
         #TODO:
-        # (+-) transformar variáveis temporárias (temp) em listas vazias
-        # Quando posso executar? (Variáveis temporárias cheias)
-        # (+-) trocar os tipo experimental e validaçao -> estimacao e predicao
-        # trocar as flags para ficar de acordo
+        # Adequar documentação para o novo padrão
 
     def _armazenarDicionario(self):
         u"""
@@ -958,8 +960,8 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
 
         # se não houver dados experimentais -> erro
-        if not self.__flag.info['dadosexperimentais']:
-            raise SyntaxError('Para executar a otimização, faz-se necessário dados experimentais')
+        if not self.__flag.info['dadosestimacao']:
+            raise SyntaxError('Para executar a otimização, faz-se necessário dados para estimação')
 
         # se SETparametro não pode ser executado antes de otimiza.
         if self.__controleFluxo.SETparametro:
@@ -2023,11 +2025,11 @@ class EstimacaoNaoLinear:
         # grandezas-entrada
         if (self.__tipoGraficos[1] in tipos):
             # se gerarEntradas foi executado alguma vez:
-            if self.__controleFluxo.gerarEntradas:
-                base_dir = sep + self._configFolder['graficos-grandezas-entrada-experimental'] + sep
+            if self.__controleFluxo.setDados:
+                base_dir = sep + self._configFolder['graficos-grandezas-entrada-estimacao'] + sep
                 Validacao_Diretorio(base_path,base_dir)
                 # gráficos gerados para os dados experimentais
-                if self.__flag.info['dadosexperimentais'] == True:
+                if self.__flag.info['dadosestimacao'] == True:
                     self.x.Graficos(base_path, base_dir, ID=['estimacao'], fluxo=0, Fig=Fig)
                     self.y.Graficos(base_path, base_dir, ID=['estimacao'], fluxo=0, Fig=Fig)
 
@@ -2053,7 +2055,7 @@ class EstimacaoNaoLinear:
                 # gráficos gerados para os dados de validação, apenas se estes forem diferentes dos experimentais,
                 # apesar dos atributos de validação sempre existirem
                 if self.__flag.info['dadospredicao'] == True:
-                    base_dir = sep + self._configFolder['graficos-grandezas-entrada-validacao'] + sep
+                    base_dir = sep + self._configFolder['graficos-grandezas-entrada-predicao'] + sep
                     Validacao_Diretorio(base_path, base_dir)
                     self.x.Graficos(base_path, base_dir, ID=['predicao'], fluxo=self.__controleFluxo.FLUXO_ID, Fig=Fig)
                     self.y.Graficos(base_path, base_dir, ID=['predicao'], fluxo=self.__controleFluxo.FLUXO_ID, Fig=Fig)
@@ -2219,7 +2221,7 @@ class EstimacaoNaoLinear:
                     Fig.set_label(self.y.labelGraficos('predicao')[iy] \
                                   if self.__flag.info['dadospredicao'] else self.y.labelGraficos('estimacao')[iy],
                                   self.y.labelGraficos('calculado')[iy], fontsize = 16)
-                    Fig.salvar_e_fechar(base_path+base_dir+('predicao' if self.__flag.info['dadosvalidacao'] else 'estimacao')+\
+                    Fig.salvar_e_fechar(base_path+base_dir+('predicao' if self.__flag.info['dadospredicao'] else 'estimacao')+\
                                         '_fl'+str(self.__controleFluxo.FLUXO_ID) + '_' + str(self.y.simbolos[iy])+ \
                                         '_funcao_'+str(self.y.simbolos[iy])+'_calculado_sem_incerteza.png',
                                         config_axes=True)
@@ -2347,7 +2349,7 @@ class EstimacaoNaoLinear:
                     Fig.grafico_dispersao_sem_incerteza(self.y.predicao.matriz_estimativa[:, i],
                                                         self.y.residuos.matriz_estimativa[:, i],
                                                         marker='o', linestyle='none')
-                    Fig.set_label(label_x=self.y.labelGraficos()[i]+' '+(u'validação' if self.__flag.info['dadospredicao'] else u'experimental'),
+                    Fig.set_label(label_x=self.y.labelGraficos()[i]+' '+(u'validação' if self.__flag.info['dadospredicao'] else u'estimacao'),
                                   label_y=u'Resíduos ' + self.y.labelGraficos()[i])
                     Fig.set_legenda([u'Média resíduos ' + self.y.simbolos[i]], fontsize=16, loc='best')
                     Fig.axes.axhline(0, color='black', lw=1, zorder=1)
@@ -2368,7 +2370,7 @@ class EstimacaoNaoLinear:
                                                             add_legenda=True, corrigir_limites=False, config_axes=False)
                         Fig.grafico_dispersao_sem_incerteza(x, self.y.residuos.matriz_estimativa[:, i],
                                                         marker='o', linestyle='none')
-                        Fig.set_label(label_x= self.x.labelGraficos()[j] +' '+ (u'predição' if self.__flag.info['dadospredicao'] else u'experimental'),
+                        Fig.set_label(label_x= self.x.labelGraficos()[j] +' '+ (u'predição' if self.__flag.info['dadospredicao'] else u'estimacao'),
                                   label_y=u'Resíduos ' + self.y.labelGraficos()[i])
                         Fig.set_legenda([u'Média resíduos ' + self.y.simbolos[i]], fontsize=16, loc='best')
                         Fig.axes.axhline(0, color='black', lw=1, zorder=1)
