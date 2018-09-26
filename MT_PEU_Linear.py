@@ -171,7 +171,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         if (self.parametros.NV == self.x.NV+1):
             self._EstimacaoNaoLinear__flag.ToggleActive('calc_termo_independente')
 
-    def gerarEntradas(self,x,y,ux,uy,glx=[],gly=[],tipo='experimental',uxy=None):
+    def gerarEntradas(self,x,y,ux,uy,glx=[],gly=[],tipo='estimacao',uxy=None):
         u'''
         Método para incluir os dados de entrada da estimação
         
@@ -190,7 +190,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # ---------------------------------------------------------------------
         # FLUXO
         # ---------------------------------------------------------------------
-        self._EstimacaoNaoLinear__controleFluxo.SET_ETAPA('gerarEntradas')
+        self._EstimacaoNaoLinear__controleFluxo.SET_ETAPA('setConjunto')
 
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
@@ -221,7 +221,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             ux              = hstack((ux,ones((shape(x)[0],1))))
             coluna_dumb = True
 
-        if tipo == 'experimental':
+        if tipo == 'estimacao':
             self._EstimacaoNaoLinear__flag.ToggleActive('dadosexperimentais')
             if self._EstimacaoNaoLinear__controleFluxo.FLUXO_ID != 0:
                 self._EstimacaoNaoLinear__controleFluxo.reiniciar()
@@ -240,8 +240,8 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             except Exception, erro:
                 raise RuntimeError('Erro na criação do conjunto experimental de Y: {}'.format(erro))
 
-        if tipo == 'validacao':
-            self._EstimacaoNaoLinear__flag.ToggleActive('dadosvalidacao')
+        if tipo == 'predicao':
+            self._EstimacaoNaoLinear__flag.ToggleActive('dadospredicao')
             self._EstimacaoNaoLinear__controleFluxo.reiniciarParcial()
 
             # ---------------------------------------------------------------------
@@ -258,7 +258,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             except Exception, erro:
                 raise RuntimeError('Erro na criação do conjunto validação de Y: {}'.format(erro))
 
-        if self._EstimacaoNaoLinear__flag.info['dadosvalidacao'] == False:
+        if self._EstimacaoNaoLinear__flag.info['dadospredicao'] == False:
             # Caso gerarEntradas seja executado somente para os dados experimentais,
             # será assumido que estes são os dados de validação, pois todos os cálculos 
             # de predição são realizados para os dados de validação.

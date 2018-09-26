@@ -97,15 +97,15 @@ inf=[0 ,20000]
 # =================================================================================
 #
 #<<<<<<< Updated upstream
-Estime.definirConjunto(tipo='estimacao')
+Estime.setConjunto(tipo='estimacao')
 #print Estime._EstimacaoNaoLinear__etapas
 #=======
-Estime.definirConjunto(tipo='predicao')
+Estime.setConjunto(tipo='predicao')
 #zprint Estime._EstimacaoNaoLinear__etapas
 #>>>>>>> Stashed changes
 #grandeza = Estime._armazenarDicionario() # ETAPA PARA CRIAÇÃO DOS DICIONÁRIOS - Grandeza é uma variável que retorna as grandezas na forma de dicionário
-#Estime.gerarEntradas(x,y,ux,uy,tipo='experimental')
-#Estime.gerarEntradas(x,y,ux,uy,tipo='validacao')
+#Estime.setConjunto(x,y,ux,uy,tipo='estimacao)
+#Estime.setConjunto(x,y,ux,uy,tipo='predicao')
 
 # Otimização
 # Estime.otimiza(limite_superior=sup,limite_inferior=inf,algoritmo='PSOFamily',itmax=500,
