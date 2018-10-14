@@ -12,13 +12,15 @@ Principais classes do motor de cálculo do PEU
 # ---------------------------------------------------------------------
 # Cálculos científicos
 from numpy import array, size, linspace, min, max, copy,\
-    mean, ones, ndarray, nanmax, nanmin, arange, transpose, delete, concatenate
+    mean, ones, ndarray, nanmax, nanmin, arange, transpose, delete, concatenate, linalg
 from numpy.core.multiarray import ndarray
 from numpy.random import uniform, triangular
 from scipy.stats import f, t, chi2
 from scipy.misc import factorial
 from numpy.linalg import inv
 from math import floor, log10
+from threading import Thread
+from scipy import transpose, dot, concatenate, matrix
 
 # Pacotes do sistema operacional
 from os import getcwd, sep
@@ -42,7 +44,42 @@ from subrotinas import Validacao_Diretorio, plot_cov_ellipse, vetor_delta,\
 from Graficos import Grafico
 from Relatorio import Relatorio
 from Flag import flag
-from Funcao_Objetivo import WLS
+#from Funcao_Objetivo import WLS
+
+
+class WLS(Thread):
+     result = 0
+
+     def __init__(self, p, argumentos):
+         Thread.__init__(self)
+
+         self.param = p
+
+         self.y = argumentos[0]
+         self.x = argumentos[1]
+         self.Vy = argumentos[2]
+         self.Vx = argumentos[3]
+         self.args = argumentos[4]
+
+         # Modelo
+         self.modelo = argumentos[5]
+
+         # Simbologia (especificidade do PEU)
+         self.simb_x = argumentos[6]
+         self.simb_y = argumentos[7]
+         self.simb_param = argumentos[8]
+
+     def run(self):
+         ym = self.modelo(self.param, self.x, [self.args, self.simb_x, self.simb_y, self.simb_param])
+         ym.start()
+         ym.join()
+
+         ym = matriz2vetor(ym.result)
+         # print '-------------'
+         # print ym
+         # print '-------------'
+         d = self.y - ym
+         self.result = float(dot(dot(transpose(d), linalg.inv(self.Vy)), d))
 
 class EstimacaoNaoLinear:
 
@@ -681,7 +718,6 @@ class EstimacaoNaoLinear:
         for ele in args:
             if not (isinstance(ele, list) or isinstance(ele, tuple)):
                 raise TypeError('Cada par de grandeza com a sua incerteza, precisa ser uma lista ou tupla')
-
 
         self.__controleFluxo.SET_ETAPA('setDados')
 

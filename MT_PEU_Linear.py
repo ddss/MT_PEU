@@ -22,7 +22,7 @@ from warnings import warn
 # Rotinas Internas
 from MT_PEU import EstimacaoNaoLinear
 
-from Funcao_Objetivo import WLS
+#from Funcao_Objetivo import WLS
 
 # Fim da importação
 class Modelo(Thread):

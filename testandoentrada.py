@@ -12,7 +12,7 @@ use('Agg')
 
 from Modelo import Modelo
 from MT_PEU import EstimacaoNaoLinear
-from MT_PEU_Linear import EstimacaoLinear
+#from MT_PEU_Linear import EstimacaoLinear
 
 ##################################################################################
 ##################################################################################
