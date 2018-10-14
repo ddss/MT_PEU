@@ -10,7 +10,6 @@ Exemplos de validação
 from matplotlib import use
 use('Agg')
 
-from Funcao_Objetivo import WLS
 from Modelo import Modelo
 from MT_PEU import EstimacaoNaoLinear
 from MT_PEU_Linear import EstimacaoLinear
@@ -30,7 +29,7 @@ from MT_PEU_Linear import EstimacaoLinear
 # ---------------------------------------------------------------------------------
 tipo = 2 # tipo: modelo a ser escolhido - 0 (exemplo 5.11), 1 (exemplo 5.12) ou 2 (exemplo 5.13)
 
-Estime = EstimacaoNaoLinear(WLS,Modelo, simbolos_x=[r't','T'], unidades_x=['s','K'], label_latex_x=[r'$t$','$T$'],
+Estime = EstimacaoNaoLinear(Modelo, simbolos_x=[r't','T'], unidades_x=['s','K'], label_latex_x=[r'$t$','$T$'],
                             simbolos_y=[r'y'], unidades_y=['adm'],
                             simbolos_param=['ko','E'], unidades_param=['unid1','unid2'],label_latex_param=[r'$k_o$',r'$E$'],
                             projeto='EX%d'%tipo)
@@ -128,15 +127,15 @@ Estime.relatorio(export_y=True,export_cov_y=True)
 # ER = EstimacaoLinear(['y'],['x'],['p1'],projeto='LINEAR_semB')
 # x = array([[0],[1],[2],[3],[4],[5]])
 # y = array([[.1],[.9],[2.2],[3.2],[3.9],[4.8]])
-# ER.gerarEntradas(x,y,array([[1],[1],[1],[1],[1],[1]]),array([[1],[1],[1],[1],[1],[1]]),tipo='experimental')
-# #ER.gerarEntradas(x,y,array([[1],[1],[1],[1],[1],[1]]),array([[1],[1],[1],[1],[1],[1]]),tipo='validacao')
+# ER.setConjunto(x,y,array([[1],[1],[1],[1],[1],[1]]),array([[1],[1],[1],[1],[1],[1]]),tipo='estimacao')
+# #ER.setConjunto(x,y,array([[1],[1],[1],[1],[1],[1]]),array([[1],[1],[1],[1],[1],[1]]),tipo='predicao')
 #
 # Com o cálculo do termo independente
 #ER = EstimacaoLinear(['y'],['x'],['p1','p2'],projeto='LINEARcomB1')
 #x = array([[0],[1],[2],[3],[4],[5]])
 #y = array([[.1],[.9],[2.2],[3.2],[3.9],[4.8]])
-#ER.gerarEntradas(x,y,array([[1],[1],[1],[1],[1],[1]]),array([[1],[1],[1],[1],[1],[1]]),tipo='experimental')
-#ER.gerarEntradas(x,y,array([[1],[1],[1],[1],[1],[1]]),array([[1],[1],[1],[1],[1],[1]]),tipo='validacao')
+#ER.setConjunto(x,y,array([[1],[1],[1],[1],[1],[1]]),array([[1],[1],[1],[1],[1],[1]]),tipo='estimacao')
+#ER.setConjunto(x,y,array([[1],[1],[1],[1],[1],[1]]),array([[1],[1],[1],[1],[1],[1]]),tipo='predicao')
 
 # =================================================================================
 # PARTE II - GENÉRICO (INDEPENDE DO EXEMPLO)

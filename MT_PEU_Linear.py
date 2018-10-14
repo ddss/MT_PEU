@@ -99,22 +99,22 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             
         **ESTIMAÇÂO DE PARÂMETROS** 
         
-        * ``gerarEntradas``        : método para incluir dados obtidos de experimentos. Neste há a opção de determinar \
+        * ``setConjunto``        : método para incluir dados obtidos de experimentos. Neste há a opção de determinar \
         se estes dados serão utilizados como dados para estimar os parâmetros ou para validação. (Vide documentação do método)
-        * ``otimiza``              : método para realizar a otimização, com base nos dados fornecidos em gerarEntradas.
-        * ``incertezaParametros``  : método que avalia a incerteza dos parâmetros (Vide documentação do método)   
-        * ``gerarEntradas``        : (é opcional para inclusão de dados de validação)
+        * ``otimiza``              : método para realizar a otimização, com base nos dados fornecidos em setConjunto.
+        * ``incertezaParametros``  : método que avalia a incerteza dos parâmetros (Vide documentação do método)
+        * ``setConjunto``        : (é opcional para inclusão de dados de validação)
         * ``Predicao``             : método que avalia a predição do modelo e sua incerteza ou utilizando os pontos experimentais ou de \
         validação, se disponível (Vide documentação do método) 
         * ``analiseResiduos``      : método para executar a análise de resíduos (Vide documentação do método)
         * ``graficos``             : método para criação dos gráficos (Vide documentação do método)
-        * ``_armazenarDicionario`` : método que returna as grandezas sob a forma de um dicionário (Vide documentação do método)
+        * ``_armazenarDicionario`` : método que retorna as grandezas sob a forma de um dicionário (Vide documentação do método)
         
         ====================
         Fluxo de trabalho        
         ====================
         
-        Esta classe valida a correta ordem de execução dos métodos. É importante salientar que cada vez que o método ``gerarEntradas`` \
+        Esta classe valida a correta ordem de execução dos métodos. É importante salientar que cada vez que o método ``setConjunto`` \
         é utilizado, é criado um novo ``Fluxo de trabalho``, ou seja, o motor de cálculo valida de alguns métodos precisam ser reexecutados \
         devido a entrada de novos dados.
         
@@ -132,9 +132,9 @@ class EstimacaoLinear(EstimacaoNaoLinear):
                 
         * ``x`` : objeto Grandeza que contém todas as informações referentes às grandezas \
         independentes sob a forma de atributos:
-            * ``experimental`` : referente aos dados experimentais. Principais atributos: ``matriz_estimativa``, ``matriz_covariancia``
+            * ``estimação`` : referente aos dados experimentais. Principais atributos: ``matriz_estimativa``, ``matriz_covariancia``
             * ``calculado``    : referente aos dados calculados pelo modelo. Principais atributos: ``matriz_estimativa``, ``matriz_covariancia``
-            * ``validacao``    : referente aos dados de validação. Principais atributos: ``matriz_estimativa``, ``matriz_covariancia``
+            * ``predição``    : referente aos dados de validação. Principais atributos: ``matriz_estimativa``, ``matriz_covariancia``
             * ``residuos``     : referente aos resíduos de regressão. Principais atributos: ``matriz_estimativa``, ``estatisticas``
             
         * ``y``          : objeto Grandeza que contém todas as informações referentes às grandezas \
@@ -151,7 +151,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # INICIANDO A CLASSE INIT
         # ---------------------------------------------------------------------
 
-        EstimacaoNaoLinear.__init__(self,WLS,Modelo,simbolos_y,simbolos_x,simbolos_param,PA,projeto,**kwargs)
+        EstimacaoNaoLinear.__init__(self,Modelo,simbolos_y,simbolos_x,simbolos_param,PA,projeto,**kwargs)
 
         self._EstimacaoNaoLinear__flag.setCaracteristica(['calc_termo_independente'])
 
@@ -171,7 +171,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         if (self.parametros.NV == self.x.NV+1):
             self._EstimacaoNaoLinear__flag.ToggleActive('calc_termo_independente')
 
-    def gerarEntradas(self,x,y,ux,uy,glx=[],gly=[],tipo='estimacao',uxy=None):
+    def setConjunto(self,x,y,ux,uy,glx=[],gly=[],tipo='estimacao',uxy=None):
         u'''
         Método para incluir os dados de entrada da estimação
         
@@ -222,7 +222,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             coluna_dumb = True
 
         if tipo == 'estimacao':
-            self._EstimacaoNaoLinear__flag.ToggleActive('dadosexperimentais')
+            self._EstimacaoNaoLinear__flag.ToggleActive('dadosetimacao')
             if self._EstimacaoNaoLinear__controleFluxo.FLUXO_ID != 0:
                 self._EstimacaoNaoLinear__controleFluxo.reiniciar()
                 warn('Fluxo reiniciado, reinsira os dos dados de validação, caso houver.')
@@ -288,7 +288,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------
-        if not self._EstimacaoNaoLinear__flag.info['dadosexperimentais']:
+        if not self._EstimacaoNaoLinear__flag.info['dadosestimacoa']:
             raise TypeError(u'Para executar a otimização, faz-se necessário dados experimentais.')
 
         if self._EstimacaoNaoLinear__controleFluxo.SETparametro:

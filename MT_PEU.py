@@ -42,6 +42,7 @@ from subrotinas import Validacao_Diretorio, plot_cov_ellipse, vetor_delta,\
 from Graficos import Grafico
 from Relatorio import Relatorio
 from Flag import flag
+from Funcao_Objetivo import WLS
 
 class EstimacaoNaoLinear:
 
@@ -64,10 +65,10 @@ class EstimacaoNaoLinear:
             MÉTODOS:
             ========
 
-            * .SET_ETAPA: método para, na execução da Estimacao, indicar qual etapa está sendo avaliada.o método irá avaliar
+            * .SET_ETAPA: método para, na execução da Estimacao, indicar qual etapa está sendo avaliada.O método irá avaliar
             se as etapas predecessoras foram executadas.
             * .reiniciar: reinicia o fluxo. Atribui 0 a todos os atributos.
-            * .reiniicarParcial: reiniciar parcialmente o fluxo. Exemplo: quando dados de validação forem inseridos.
+            * .reinicicarParcial: reiniciar parcialmente o fluxo. Exemplo: quando dados de validação forem inseridos.
 
             =============
             PROPRIEDADES:
@@ -101,7 +102,7 @@ class EstimacaoNaoLinear:
             ENTRADAS:
             =========
 
-            * etapa (string): define a etapa que está sem execução e se deseja validar. Deve ter mesmo nome que um
+            * etapa (string): define a etapa que está em execução e se deseja validar. Deve ter mesmo nome que um
             dos atributos (em __init__)
             * ignoreValidacao (bool): irá ignorar a validação e atribuir 1 à etapa
 
@@ -242,7 +243,7 @@ class EstimacaoNaoLinear:
         def _sucessoresValidacao(self):
             return ['predicao', 'analiseResiduos', 'armazenarDicionario', 'Gy', 'S']
 
-    def __init__(self, FO, Modelo, simbolos_y, simbolos_x, simbolos_param, PA=0.95, projeto='Projeto', **kwargs):
+    def __init__(self, Modelo, simbolos_y, simbolos_x, simbolos_param, PA=0.95, projeto='Projeto', **kwargs):
         u"""
         Classe para executar a estimação de parâmetros de modelos não lineares.
 
@@ -307,39 +308,39 @@ class EstimacaoNaoLinear:
 
         **ESTIMAÇÂO DE PARÂMETROS**
 
-        * ``gerarEntradas``        : método para incluir dados obtidos de experimentos. Neste há a opção de determinar \
+        * ``setConjunto``        : método para incluir dados obtidos de experimentos. Neste há a opção de determinar \
         se estes dados serão utilizados como dados para estimar os parâmetros ou para validação. (Vide documentação do método)
-        * ``otimiza``              : método para realizar a otimização, com base nos dados fornecidos em gerarEntradas.
+        * ``otimiza``              : método para realizar a otimização, com base nos dados fornecidos em setConjunto.
         * ``incertezaParametros``  : método que avalia a incerteza dos parâmetros (Vide documentação do método)
-        * ``gerarEntradas``        : (é opcional para inclusão de dados de validação)
+        * ``setConjunto``        : (é opcional para inclusão de dados de validação)
         * ``Predicao``             : método que avalia a predição do modelo e sua incerteza ou utilizando os dados de validação. Caso estes \
         não estejam disponíveis, será utilizado os mesmos dados de estimação (Vide documentação do método)
         * ``analiseResiduos``      : método para executar a análise de resíduos (Vide documentação do método)
         * ``graficos``             : método para criação dos gráficos (Vide documentação do método)
-        * ``_armazenarDicionario`` : método que returna as grandezas sob a forma de um dicionário (Vide documentação do método)
+        * ``_armazenarDicionario`` : método que retorna as grandezas sob a forma de um dicionário (Vide documentação do método)
 
         **PREDIÇÃO**
 
-        * ``gerarEntradas``        : método para incluir dados obtidos de experimentos. Neste há a opção de determinar \
+        * ``setConjunto``        : método para incluir dados obtidos de experimentos. Neste há a opção de determinar \
         se estes dados serão utilizados como dados para estimar os parâmetros ou para validação. (Vide documentação do método)
         * ``SETparametro``         : método adicionar manualmente valores das estimativas dos parâmetros e sua matriz covarãncia. É assumido \
         que os parâmetros foram estimados para o conjunto de dados fornecidos para estimação.
-        * ``gerarEntradas``        : (é opcional para inclusão de dados de validação)
+        * ``setConjunto``        : (é opcional para inclusão de dados de validação)
         * incertezaParametros      : (é opcional para avaliação da incerteza, caso não incluído em SETparametro). Entretanto, este estará limitado a \
         calcular a matriz de covariância dos parâmetros. Não será avaliada a região de abrangẽncia (esta deve ser incluída via SETparametro)
         * ``Predicao``             : método que avalia a predição do modelo e sua incerteza ou utilizando os dados de validação. Caso estes \
         não estejam disponíveis, será utilizado os mesmos dados de estimação (Vide documentação do método)
         * ``analiseResiduos``      : método para executar a análise de resíduos (Vide documentação do método)
         * ``graficos``             : método para criação dos gráficos (Vide documentação do método)
-        * ``_armazenarDicionario`` : método que returna as grandezas sob a forma de um dicionário (Vide documentação do método)
+        * ``_armazenarDicionario`` : método que retorna as grandezas sob a forma de um dicionário (Vide documentação do método)
 
 
         **OBSERVAÇÃO**: A ordem de execução dos métodos é importante. Esta classe só permite a execução de métodos, caso as etapas predescessoras tenham sido
         executadas. Entretanto, alguns métodos possuem flexibilidade. Segue abaixo algumas exemplos:
-        * gerarEntradas para definir os dados de estimação deve ser sempre executado antes de otimiza
-        * gerarEntradas para definir os dados de validação deve ser sempre executado antes de predicao
+        * setConjunto para definir os dados de estimação deve ser sempre executado antes de otimiza
+        * setConjunto para definir os dados de validação deve ser sempre executado antes de predicao
         * graficos é um método que pode ser executado em diferentes momentos:
-            * se for solicitado os gráficos das grandezas-entrada, o método pode ser executado logo após gerarEntradas
+            * se for solicitado os gráficos das grandezas-entrada, o método pode ser executado logo após setDados
             * se for solicitado os gráficos da otimização, o método pode ser executado logo após otimização
 
         =================
@@ -347,10 +348,10 @@ class EstimacaoNaoLinear:
         =================
 
         Esta classe possui uma classe interna, Fluxo, que valida a correta ordem de execução dos métodos. É importante
-        salientar que cada vez que o método ``gerarEntradas`` é utilizado, é criado um novo ``Fluxo de trabalho`` ou ele
+        salientar que cada vez que o método ``setConjunto`` é utilizado, é criado um novo ``Fluxo de trabalho`` ou ele
         ``Reinicia`` todos.
 
-        **Observação 1**: Se forem adicionados diferentes dados de validação (execuções do método gerarEntradas para incluir tais dados), \
+        **Observação 1**: Se forem adicionados diferentes dados de validação (execuções do método setDados para incluir tais dados), \
         são iniciado novos fluxos.
 
         **Observação 2**: Se forem adicionados novos dados para estimacao, todo o histórico de fluxos é apagado e reniciado.
@@ -367,9 +368,9 @@ class EstimacaoNaoLinear:
 
         * ``x`` : objeto Grandeza que contém todas as informações referentes às grandezas \
         independentes sob a forma de atributos:
-            * ``experimental`` : referente aos dados experimentais. Principais atributos: ``matriz_estimativa``, ``matriz_covariancia``
+            * ``estimação`` : referente aos dados experimentais. Principais atributos: ``matriz_estimativa``, ``matriz_covariancia``
             * ``calculado``    : referente aos dados calculados pelo modelo. Principais atributos: ``matriz_estimativa``, ``matriz_covariancia``
-            * ``validacao``    : referente aos dados de validação. Principais atributos: ``matriz_estimativa``, ``matriz_covariancia``
+            * ``predicao``    : referente aos dados de validação. Principais atributos: ``matriz_estimativa``, ``matriz_covariancia``
             * ``residuos``     : referente aos resíduos de regressão. Principais atributos: ``matriz_estimativa``, ``estatisticas``
 
         * ``y``          : objeto Grandeza que contém todas as informações referentes às grandezas \
@@ -424,8 +425,8 @@ class EstimacaoNaoLinear:
         args em otimiza.
 
         * .__flag: classe flag que controla o comportamento do algoritmo. Flags disponíveis:
-            *'dadosexperimentais': identifica se dados para a estimação doram inseridos
-            * 'dadosvalidacao'   : identifica se dados para validação forma inseridos
+            *'dadosestimação': identifica se dados para a estimação doram inseridos
+            * 'dadospredicao'   : identifica se dados para validação forma inseridos
             * 'reconciliacao'    : identifica se foi solicitada reconciliação de dados (HOLD: aguarda implementação da
             reconciliação)
             * 'graficootimizacao': identifica se o algoritmo de otimização tem gráficos de desempenho
@@ -442,7 +443,7 @@ class EstimacaoNaoLinear:
         * ._deltaHessiana: incremento a ser utilizado para avaliar a matriz Hessiana (pode ser definido via kwargs no método
         incertezaParametros e/ou Predicao)
         * ._deltaGy: incremento a ser utilizado para avaliar a matriz Gy (derivadas segundas da função objetivo em relação
-        a dados experimentias de y e parâmetros) (pode ser definido via kwargs no método incertezaParametros e/ou Predicao)
+        a dados estimação de y e parâmetros) (pode ser definido via kwargs no método incertezaParametros e/ou Predicao)
         * ._deltaS: incremento a ser utilizado para avalair a transposta da matriz jacobiana do modelo em relação aos
         parâmetros (pode ser definido via kwargs no método incertezaParametros e/ou Predicao)
         * .Hessiana: salva a matriz Hessiana (somente avaliada após incertezaParametros ou Predicao - a depender do método solicitado)
@@ -517,7 +518,7 @@ class EstimacaoNaoLinear:
         # CRIAÇÃO DAS VARIÁVEIS INTERNAS
         # ---------------------------------------------------------------------
         # Função objetivo
-        self.__FO        = FO
+        self.__WLS        = WLS
         # Modelo
         self.__modelo    = Modelo
         # Argumentos extras a serem passados para o modelo definidos pelo usuário.
@@ -540,8 +541,8 @@ class EstimacaoNaoLinear:
                                        'reconciliacao','preenchimentoRegiao',
                                        'graficootimizacao','relatoriootimizacao'])
         # uso das caracterśiticas:
-        # dadosexperimentais: indicar se dadosexperimentais foram inseridos
-        # dadosvalidacao: indicar se dadosvalidacao foram inseridos
+        # dadosestimacao: indicar se dadosestimacao foram inseridos
+        # dadospredicao: indicar se dadospredicao foram inseridos
         # reconciliacao: indicar se reconciliacao está sendo executada
         # graficootimizacao: indicar se na etapa de otimização são utilizados algoritmos de otimização que possuem
         #                    gráficos de desempenho
@@ -583,7 +584,7 @@ class EstimacaoNaoLinear:
         self.__ytemp = None
         self.__uytemp = None
 
-    def _args_FO(self):
+    def _args_WLS(self):
         """
         Método que retorna argumentos extras a serem passados para a função objetivo
 
@@ -635,7 +636,7 @@ class EstimacaoNaoLinear:
         Método para tratar os dados de entrada de grandezas dependentes e independentes
         * Converte pares de listas de dados e suas respectivas incertezas em arrays de duas dimensões (um array para entrada e outro para incerteza).
         * Estes arrays são armazenados como variáveis temporárias.
-        * É necessário executar o método definirConjunto logo após a definição destas grandezas.
+        * É necessário executar o método setConjunto logo após a definição destas grandezas.
 
         ========
         Entradas
@@ -849,16 +850,16 @@ class EstimacaoNaoLinear:
         for j, simbolo in enumerate(self.y.simbolos):
             grandeza[simbolo] = Grandeza([simbolo],[self.y.nomes[j]],[self.y.unidades[j]],[self.y.label_latex[j]])
 
-            # Salvando os dados experimentais
+            # Salvando os dados estimação
             if self.__flag.info['dadosestimacao']:
                 # Salvando dados experimentais
                 grandeza[simbolo]._SETestimacao(estimativa=self.y.estimacao.matriz_estimativa[:,j:j+1],
                                                    matriz_incerteza=self.y.estimacao.matriz_incerteza[:,j:j+1],
                                                    gL=self.y.estimacao.gL[j])
 
-            # Salvando os dados validação
+            # Salvando os dados predição
             if self.__flag.info['dadospredicao']:
-                # Salvando dados experimentais
+                # Salvando dados estimação
                 grandeza[simbolo]._SETpredicao(estimativa=self.y.predicao.matriz_estimativa[:,j:j+1],
                                                 matriz_incerteza=self.y.predicao.matriz_incerteza[:,j:j+1],
                                                 gL=self.y.predicao.gL[j])
@@ -877,13 +878,13 @@ class EstimacaoNaoLinear:
         for j, simbolo in enumerate(self.x.simbolos):
             grandeza[simbolo] = Grandeza([simbolo],[self.x.nomes[j]],[self.x.unidades[j]],[self.x.label_latex[j]])
 
-            # Salvando dados experimentais
+            # Salvando dados estimação
             if self.__flag.info['dadosestimacao']:
                 grandeza[simbolo]._SETestimacao(estimativa=self.x.estimacao.matriz_estimativa[:,j:j+1],
                                                    matriz_incerteza=self.x.estimacao.matriz_incerteza[:,j:j+1],
                                                    gL=self.x.estimacao.gL[j])
 
-            # Salvando dados de validação
+            # Salvando dados de predição
             if self.__flag.info['dadospredicao']:
                 grandeza[simbolo]._SETpredicao(estimativa=self.x.predicao.matriz_estimativa[:,j:j+1],
                                                 matriz_incerteza=self.x.predicao.matriz_incerteza[:,j:j+1],
@@ -920,7 +921,7 @@ class EstimacaoNaoLinear:
         Métodos predecessores
         =====================
 
-        Faz-se necessário executaro método ``gerarEntradas``, informando os dados experimentais \
+        Faz-se necessário executaro método ``setConjunto``, informando os dados estimação \
         antes de executar a otimização.
 
         =======================
@@ -1024,8 +1025,8 @@ class EstimacaoNaoLinear:
             # EXECUÇÃO OTIMIZAÇÃO
             # ---------------------------------------------------------------------
             # OS argumentos extras (kwargs e kwrsbusca) são passados diretamente para o algoritmo
-            self.Otimizacao = PSO(limite_superior,limite_inferior,args_model=self._args_FO(),**kwargs)
-            self.Otimizacao.Busca(self.__FO,**kwargsbusca)
+            self.Otimizacao = PSO(limite_superior,limite_inferior,args_model=self._args_WLS(),**kwargs)
+            self.Otimizacao.Busca(self.__WLS,**kwargsbusca)
 
             # ---------------------------------------------------------------------
             # HISTÓRICO DA OTIMIZAÇÃO
@@ -1060,7 +1061,7 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # OBTENÇÃO DO PONTO ÓTIMO DA FUNÇÃO OBJETIVO
         # ---------------------------------------------------------------------
-        FO = self.__FO(self.parametros.estimativa, self._args_FO())
+        FO = self.__WLS(self.parametros.estimativa, self._args_WLS())
         FO.run()
 
         self.FOotimo = FO.result
@@ -1107,9 +1108,9 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------
-        # Caso não haja dados experimentais -> erro
-        if not self.__flag.info['dadosexperimentais']:
-            raise SyntaxError('Faz-se necessário adicionar dados experimentais.')
+        # Caso não haja dados de estimação -> erro
+        if not self.__flag.info['dadosestimacao']:
+            raise SyntaxError('Faz-se necessário adicionar dados estimacao.')
 
         # SETparametro não pode ser executado em conjunto com otimiza
         if self.__controleFluxo.otimizacao:
@@ -1465,11 +1466,11 @@ class EstimacaoNaoLinear:
 
                     # Cálculo da função objetivo para seu respectivo vetor alterado para utilização na derivação numérica.
                     # Inicialização das threads
-                    FO_delta_positivo=self.__FO(vetor_parametro_delta_positivo,self._args_FO())
+                    FO_delta_positivo=self.__WLS(vetor_parametro_delta_positivo,self._args_WLS())
                     FO_delta_positivo.start()
                     FO_delta_positivo.join()
 
-                    FO_delta_negativo=self.__FO(vetor_parametro_delta_negativo,self._args_FO())
+                    FO_delta_negativo=self.__WLS(vetor_parametro_delta_negativo,self._args_WLS())
                     FO_delta_negativo.start()
                     FO_delta_negativo.join()
 
@@ -1483,25 +1484,25 @@ class EstimacaoNaoLinear:
                     # vetor com o incremento do parâmetro i,j
                     vetor_parametro_delta_ipositivo_jpositivo = vetor_delta(self.parametros.estimativa,[i,j],[delta1,delta2])
 
-                    FO_ipositivo_jpositivo=self.__FO(vetor_parametro_delta_ipositivo_jpositivo,self._args_FO())
+                    FO_ipositivo_jpositivo=self.__WLS(vetor_parametro_delta_ipositivo_jpositivo,self._args_WLS())
                     FO_ipositivo_jpositivo.start()
                     FO_ipositivo_jpositivo.join()
 
                     vetor_parametro_delta_inegativo_jpositivo=vetor_delta(self.parametros.estimativa,[i,j],[-delta1,delta2])
 
-                    FO_inegativo_jpositivo=self.__FO(vetor_parametro_delta_inegativo_jpositivo,self._args_FO())
+                    FO_inegativo_jpositivo=self.__WLS(vetor_parametro_delta_inegativo_jpositivo,self._args_WLS())
                     FO_inegativo_jpositivo.start()
                     FO_inegativo_jpositivo.join()
 
                     vetor_parametro_delta_ipositivo_jnegativo=vetor_delta(self.parametros.estimativa,[i,j],[delta1,-delta2])
 
-                    FO_ipositivo_jnegativo=self.__FO(vetor_parametro_delta_ipositivo_jnegativo,self._args_FO())
+                    FO_ipositivo_jnegativo=self.__WLS(vetor_parametro_delta_ipositivo_jnegativo,self._args_WLS())
                     FO_ipositivo_jnegativo.start()
                     FO_ipositivo_jnegativo.join()
 
                     vetor_parametro_delta_inegativo_jnegativo=vetor_delta(self.parametros.estimativa,[i,j],[-delta1,-delta2])
 
-                    FO_inegativo_jnegativo=self.__FO(vetor_parametro_delta_inegativo_jnegativo,self._args_FO())
+                    FO_inegativo_jnegativo=self.__WLS(vetor_parametro_delta_inegativo_jnegativo,self._args_WLS())
                     FO_inegativo_jnegativo.start()
                     FO_inegativo_jnegativo.join()
 
@@ -1566,30 +1567,30 @@ class EstimacaoNaoLinear:
                 vetor_y_delta_jpositivo         = vetor_delta(self.y.estimacao.vetor_estimativa,j,delta2)
 
                 # Agumentos extras a serem passados para a FO.
-                args                            = copy(self._args_FO()).tolist()
+                args                            = copy(self._args_WLS()).tolist()
                 # Posição [0] da lista de argumantos contem o vetor das variáveis dependentes que será alterado.
                 args[0]                         = vetor_y_delta_jpositivo
 
-                FO_ipositivo_jpositivo          = self.__FO(vetor_parametro_delta_ipositivo,args) # Valor da _FO para vetores de Ys e parametros alterados.
+                FO_ipositivo_jpositivo          = self.__WLS(vetor_parametro_delta_ipositivo,args) # Valor da _FO para vetores de Ys e parametros alterados.
                 FO_ipositivo_jpositivo.start()
                 FO_ipositivo_jpositivo.join()
 
                 # Processo similar ao anterior. Uso de subrrotina vetor_delta.
                 vetor_parametro_delta_inegativo = vetor_delta(self.parametros.estimativa,i,-delta1)
 
-                FO_inegativo_jpositivo          = self.__FO(vetor_parametro_delta_inegativo,args) # Valor da _FO para vetores de Ys e parametros alterados.
+                FO_inegativo_jpositivo          = self.__WLS(vetor_parametro_delta_inegativo,args) # Valor da _FO para vetores de Ys e parametros alterados.
                 FO_inegativo_jpositivo.start()
                 FO_inegativo_jpositivo.join()
 
                 vetor_y_delta_jnegativo         = vetor_delta(self.y.estimacao.vetor_estimativa,j,-delta2)
-                args                            = copy(self._args_FO()).tolist()
+                args                            = copy(self._args_WLS()).tolist()
                 args[0]                         = vetor_y_delta_jnegativo
 
-                FO_ipositivo_jnegativo          = self.__FO(vetor_parametro_delta_ipositivo,args) #Mesma ideia, fazendo isso para aplicar a equação de derivada central de segunda ordem.
+                FO_ipositivo_jnegativo          = self.__WLS(vetor_parametro_delta_ipositivo,args) #Mesma ideia, fazendo isso para aplicar a equação de derivada central de segunda ordem.
                 FO_ipositivo_jnegativo.start()
                 FO_ipositivo_jnegativo.join()
 
-                FO_inegativo_jnegativo          = self.__FO(vetor_parametro_delta_inegativo,args) #Idem
+                FO_inegativo_jnegativo          = self.__WLS(vetor_parametro_delta_inegativo,args) #Idem
                 FO_inegativo_jnegativo.start()
                 FO_inegativo_jnegativo.join()
 
@@ -1808,8 +1809,8 @@ class EstimacaoNaoLinear:
 
             kwargs['NP'] = self.parametros.NV
 
-            PSO_preenchimento = PSO(limite_superior,limite_inferior,args_model=self._args_FO(),**kwargs)
-            PSO_preenchimento.Busca(self.__FO,**kwargsbusca)
+            PSO_preenchimento = PSO(limite_superior,limite_inferior,args_model=self._args_WLS(),**kwargs)
+            PSO_preenchimento.Busca(self.__WLS,**kwargsbusca)
 
             # ---------------------------------------------------------------------
             # HISTÓRICO DA OTIMIZAÇÃO
@@ -1839,7 +1840,7 @@ class EstimacaoNaoLinear:
                     amostra = [triangular(limite_inferior[i], self.parametros.estimativa[i], limite_superior[i], 1)[0]
                                for i in xrange(self.parametros.NV)]
 
-                FO = self.__FO(amostra, self._args_FO())
+                FO = self.__WLS(amostra, self._args_WLS())
                 FO.run()
                 self.__hist_Posicoes.append(amostra)
                 self.__hist_Fitness.append(FO.result)
