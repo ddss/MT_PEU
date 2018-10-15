@@ -171,7 +171,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         if (self.parametros.NV == self.x.NV+1):
             self._EstimacaoNaoLinear__flag.ToggleActive('calc_termo_independente')
 
-    def setConjunto(self,x,y,ux,uy,glx=[],gly=[],tipo='estimacao',uxy=None):
+    def setConjunto(self,glx=[],gly=[],tipo='estimacao',uxy=None):
         u'''
         Método para incluir os dados de entrada da estimação
         
@@ -195,10 +195,6 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------
-        # Validação dos dados de entrada x, y, xval e yval - É tomado como referência
-        # a quantidade de observações das variáveis x.
-        self._EstimacaoNaoLinear__validacaoDadosEntrada(x  ,ux   ,self.x.NV)
-        self._EstimacaoNaoLinear__validacaoDadosEntrada(y  ,uy   ,self.y.NV)
 
         # Validação da sintaxe
         if not set([tipo]).issubset(self._EstimacaoNaoLinear__tiposDisponiveisEntrada):
@@ -207,7 +203,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
                 self._EstimacaoNaoLinear__tiposDisponiveisEntrada) + '.')
 
         # Validação do número de dados experimentais
-        if x.shape[0] != y.shape[0]:
+        if self._EstimacaoNaoLinear__xtemp.shape[0] != self._EstimacaoNaoLinear__ytemp.shape[0]:
             raise ValueError('Foram inseridos {:d} dados para as grandezas dependentes, mas {:d} para as independentes'.format(y.shape[0],x.shape[0]))
 
         # ---------------------------------------------------------------------
@@ -217,12 +213,12 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # o cálculo do termo independente
         coluna_dumb = False
         if self._EstimacaoNaoLinear__flag.info['calc_termo_independente']:
-            x               = hstack((x,ones((shape(x)[0],1))))
-            ux              = hstack((ux,ones((shape(x)[0],1))))
+            self._EstimacaoNaoLinear__xtemp  = hstack((self._EstimacaoNaoLinear__xtemp,ones((shape(self._EstimacaoNaoLinear__xtemp)[0],1))))
+            self._EstimacaoNaoLinear__uxtemp = hstack((self._EstimacaoNaoLinear__uxtemp,ones((shape(self._EstimacaoNaoLinear__uxtemp)[0],1))))
             coluna_dumb = True
 
         if tipo == 'estimacao':
-            self._EstimacaoNaoLinear__flag.ToggleActive('dadosetimacao')
+            self._EstimacaoNaoLinear__flag.ToggleActive('dadosestimacao')
             if self._EstimacaoNaoLinear__controleFluxo.FLUXO_ID != 0:
                 self._EstimacaoNaoLinear__controleFluxo.reiniciar()
                 warn('Fluxo reiniciado, reinsira os dos dados de validação, caso houver.')
@@ -231,12 +227,12 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             # ---------------------------------------------------------------------
             # Salvando os dados experimentais nas variáveis.
             try:
-                self.x._SETexperimental(estimativa=x,matriz_incerteza=ux,gL=glx,coluna_dumb=coluna_dumb)
+                self.x._SETestimacao(estimativa=self._EstimacaoNaoLinear__xtemp,matriz_incerteza=self._EstimacaoNaoLinear__uxtemp,gL=glx,coluna_dumb=coluna_dumb)
             except Exception, erro:
                 raise RuntimeError('Erro na criação do conjunto experimental de X: {}'.format(erro))
 
             try:
-                self.y._SETexperimental(estimativa=y,matriz_incerteza=uy,gL=gly)
+                self.y._SETestimacao(estimativa=self._EstimacaoNaoLinear__ytemp,matriz_incerteza=self._EstimacaoNaoLinear__uytemp,gL=gly)
             except Exception, erro:
                 raise RuntimeError('Erro na criação do conjunto experimental de Y: {}'.format(erro))
 
@@ -249,12 +245,12 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             # ---------------------------------------------------------------------
             # Salvando os dados de validação.
             try:
-                self.x._SETvalidacao(estimativa=x,matriz_incerteza=ux,gL=glx,coluna_dumb=coluna_dumb)
+                self.x._SETpredicao(estimativa=self._EstimacaoNaoLinear__xtemp,matriz_incerteza=self._EstimacaoNaoLinear__uxtemp,gL=glx,coluna_dumb=coluna_dumb)
             except Exception, erro:
                 raise RuntimeError('Erro na criação do conjunto validação de X: {}'.format(erro))
 
             try:
-                self.y._SETvalidacao(estimativa=y,matriz_incerteza=uy,gL=gly)
+                self.y._SETpredicao(estimativa=self._EstimacaoNaoLinear__ytemp,matriz_incerteza=self._EstimacaoNaoLinear__uytemp,gL=gly)
             except Exception, erro:
                 raise RuntimeError('Erro na criação do conjunto validação de Y: {}'.format(erro))
 
@@ -267,14 +263,21 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             # ---------------------------------------------------------------------
             # Salvando os dados de validação.
             try:
-                self.x._SETvalidacao(estimativa=x,matriz_incerteza=ux,gL=glx,coluna_dumb=coluna_dumb)
+                self.x._SETpredicao(estimativa=self._EstimacaoNaoLinear__xtemp,matriz_incerteza=self._EstimacaoNaoLinear__uxtemp,gL=glx,coluna_dumb=coluna_dumb)
             except Exception, erro:
                 raise RuntimeError('Erro na criação do conjunto validação de X: {}'.format(erro))
 
             try:
-                self.y._SETvalidacao(estimativa=y,matriz_incerteza=uy,gL=gly)
+                self.y._SETpredicao(estimativa=self._EstimacaoNaoLinear__ytemp,matriz_incerteza=self._EstimacaoNaoLinear__uytemp,gL=gly)
             except Exception, erro:
                 raise RuntimeError('Erro na criação do conjunto validação de Y: {}'.format(erro))
+
+        # Transformando variáveis temporárias ( xtemp, uxtemp, ytemp, uytemp) em listas vazias
+        self._EstimacaoNaoLinear__xtemp = None
+        self._EstimacaoNaoLinear__uxtemp = None
+        self._EstimacaoNaoLinear__ytemp = None
+        self._EstimacaoNaoLinear__uytemp = None
+
 
     def otimiza(self):
         u'''
@@ -288,7 +291,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------
-        if not self._EstimacaoNaoLinear__flag.info['dadosestimacoa']:
+        if not self._EstimacaoNaoLinear__flag.info['dadosestimacao']:
             raise TypeError(u'Para executar a otimização, faz-se necessário dados experimentais.')
 
         if self._EstimacaoNaoLinear__controleFluxo.SETparametro:

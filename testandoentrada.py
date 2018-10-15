@@ -12,7 +12,7 @@ use('Agg')
 
 from Modelo import Modelo
 from MT_PEU import EstimacaoNaoLinear
-#from MT_PEU_Linear import EstimacaoLinear
+from MT_PEU_Linear import EstimacaoLinear
 
 ##################################################################################
 ##################################################################################
@@ -32,7 +32,7 @@ tipo = 2 # tipo: modelo a ser escolhido - 0 (exemplo 5.11), 1 (exemplo 5.12) ou 
 Estime = EstimacaoNaoLinear(Modelo, simbolos_x=[r't','T'], unidades_x=['s','K'], label_latex_x=[r'$t$','$T$'],
                             simbolos_y=[r'y'], unidades_y=['adm'],
                             simbolos_param=['ko','E'], unidades_param=['unid1','unid2'],label_latex_param=[r'$k_o$',r'$E$'],
-                            projeto='EX%d'%tipo)
+                            projeto='testE%d'%tipo)
 
 #Tempo
 x1 = [120.0,60.0,60.0,120.0,120.0,60.0,60.0,30.0,15.0,60.0,
@@ -103,13 +103,14 @@ Estime.setConjunto(tipo='estimacao')
 #grandeza = Estime._armazenarDicionario() # ETAPA PARA CRIAÇÃO DOS DICIONÁRIOS - Grandeza é uma variável que retorna as grandezas na forma de dicionário
 
 # Otimização
-Estime.otimiza(limite_superior=sup,limite_inferior=inf,algoritmo='PSOFamily',itmax=500,
-                 Num_particulas=30,metodo={'busca':'Otimo','algoritmo':'PSO','inercia':'TVIW-linear'},args=[tipo],printit=True)
+#Estime.otimiza(limite_superior=sup,limite_inferior=inf,algoritmo='PSOFamily',itmax=500,
+#                 Num_particulas=30,metodo={'busca':'Otimo','algoritmo':'PSO','inercia':'TVIW-linear'},args=[tipo],printit=True)
 #Estime.SETparametro([0.0075862408745003265, 27642.662773759967],args=[tipo])
-Estime.incertezaParametros(delta=1e-5,metodoIncerteza='SensibilidadeModelo',preencherregiao=True)
-Estime.predicao()
-Estime.analiseResiduos()
+#Estime.incertezaParametros(delta=1e-5,metodoIncerteza='SensibilidadeModelo',preencherregiao=True)
+#Estime.predicao()
+#Estime.analiseResiduos()
 etapas = ['otimizacao','grandezas-entrada', 'predicao','grandezas-calculadas','analiseResiduos', 'regiaoAbrangencia']
+#etapas = ['grandezas-entrada']
 Estime.graficos(etapas)
 Estime.relatorio(export_y=True,export_cov_y=True)
 
@@ -124,18 +125,30 @@ Estime.relatorio(export_y=True,export_cov_y=True)
 # =================================================================================
 #
 # # #Sem o cálculo do termo independente
-# ER = EstimacaoLinear(['y'],['x'],['p1'],projeto='LINEAR_semB')
-# x = array([[0],[1],[2],[3],[4],[5]])
-# y = array([[.1],[.9],[2.2],[3.2],[3.9],[4.8]])
-# ER.setConjunto(x,y,array([[1],[1],[1],[1],[1],[1]]),array([[1],[1],[1],[1],[1],[1]]),tipo='estimacao')
-# #ER.setConjunto(x,y,array([[1],[1],[1],[1],[1],[1]]),array([[1],[1],[1],[1],[1],[1]]),tipo='predicao')
-#
+ER = EstimacaoLinear(['y'],['x'],['p1'],projeto='LINEARsemB')
+x = [0,1,2,3,4,5]
+ux = [1,1,1,1,1,1]
+
+y = [.1,.9,2.2,3.2,3.9,4.8]
+uy = [1,1,1,1,1,1]
+
+ER.setDados(0,(x,ux))
+ER.setDados(1,(y,uy))
+
+ER.setConjunto()
+
 # Com o cálculo do termo independente
 #ER = EstimacaoLinear(['y'],['x'],['p1','p2'],projeto='LINEARcomB1')
-#x = array([[0],[1],[2],[3],[4],[5]])
-#y = array([[.1],[.9],[2.2],[3.2],[3.9],[4.8]])
-#ER.setConjunto(x,y,array([[1],[1],[1],[1],[1],[1]]),array([[1],[1],[1],[1],[1],[1]]),tipo='estimacao')
-#ER.setConjunto(x,y,array([[1],[1],[1],[1],[1],[1]]),array([[1],[1],[1],[1],[1],[1]]),tipo='predicao')
+# x = [0,1,2,3,4,5]
+# ux = [1,1,1,1,1,1]
+#
+# y = [.1,.9,2.2,3.2,3.9,4.8]
+# uy = [1,1,1,1,1,1]
+#
+# ER.setDados(0,(x,ux))
+# ER.setDados(1,(y,uy))
+#
+# ER.setConjunto()
 
 # =================================================================================
 # PARTE II - GENÉRICO (INDEPENDE DO EXEMPLO)
