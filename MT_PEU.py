@@ -555,7 +555,7 @@ class EstimacaoNaoLinear:
         # CRIAÇÃO DAS VARIÁVEIS INTERNAS
         # ---------------------------------------------------------------------
         # Função objetivo
-        self.__WLS        = WLS
+        self.__FO        = WLS
         # Modelo
         self.__modelo    = Modelo
         # Argumentos extras a serem passados para o modelo definidos pelo usuário.
@@ -621,7 +621,7 @@ class EstimacaoNaoLinear:
         self.__ytemp = None
         self.__uytemp = None
 
-    def _args_WLS(self):
+    def _args_FO(self):
         """
         Método que retorna argumentos extras a serem passados para a função objetivo
 
@@ -1061,8 +1061,8 @@ class EstimacaoNaoLinear:
             # EXECUÇÃO OTIMIZAÇÃO
             # ---------------------------------------------------------------------
             # OS argumentos extras (kwargs e kwrsbusca) são passados diretamente para o algoritmo
-            self.Otimizacao = PSO(limite_superior,limite_inferior,args_model=self._args_WLS(),**kwargs)
-            self.Otimizacao.Busca(self.__WLS,**kwargsbusca)
+            self.Otimizacao = PSO(limite_superior,limite_inferior,args_model=self._args_FO(),**kwargs)
+            self.Otimizacao.Busca(self.__FO,**kwargsbusca)
 
             # ---------------------------------------------------------------------
             # HISTÓRICO DA OTIMIZAÇÃO
@@ -1097,7 +1097,7 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # OBTENÇÃO DO PONTO ÓTIMO DA FUNÇÃO OBJETIVO
         # ---------------------------------------------------------------------
-        FO = self.__WLS(self.parametros.estimativa, self._args_WLS())
+        FO = self.__FO(self.parametros.estimativa, self._args_FO())
         FO.run()
 
         self.FOotimo = FO.result
@@ -1502,11 +1502,11 @@ class EstimacaoNaoLinear:
 
                     # Cálculo da função objetivo para seu respectivo vetor alterado para utilização na derivação numérica.
                     # Inicialização das threads
-                    FO_delta_positivo=self.__WLS(vetor_parametro_delta_positivo,self._args_WLS())
+                    FO_delta_positivo=self.__FO(vetor_parametro_delta_positivo,self._args_FO())
                     FO_delta_positivo.start()
                     FO_delta_positivo.join()
 
-                    FO_delta_negativo=self.__WLS(vetor_parametro_delta_negativo,self._args_WLS())
+                    FO_delta_negativo=self.__FO(vetor_parametro_delta_negativo,self._args_FO())
                     FO_delta_negativo.start()
                     FO_delta_negativo.join()
 
@@ -1520,25 +1520,25 @@ class EstimacaoNaoLinear:
                     # vetor com o incremento do parâmetro i,j
                     vetor_parametro_delta_ipositivo_jpositivo = vetor_delta(self.parametros.estimativa,[i,j],[delta1,delta2])
 
-                    FO_ipositivo_jpositivo=self.__WLS(vetor_parametro_delta_ipositivo_jpositivo,self._args_WLS())
+                    FO_ipositivo_jpositivo=self.__FO(vetor_parametro_delta_ipositivo_jpositivo,self._args_FO())
                     FO_ipositivo_jpositivo.start()
                     FO_ipositivo_jpositivo.join()
 
                     vetor_parametro_delta_inegativo_jpositivo=vetor_delta(self.parametros.estimativa,[i,j],[-delta1,delta2])
 
-                    FO_inegativo_jpositivo=self.__WLS(vetor_parametro_delta_inegativo_jpositivo,self._args_WLS())
+                    FO_inegativo_jpositivo=self.__FO(vetor_parametro_delta_inegativo_jpositivo,self._args_FO())
                     FO_inegativo_jpositivo.start()
                     FO_inegativo_jpositivo.join()
 
                     vetor_parametro_delta_ipositivo_jnegativo=vetor_delta(self.parametros.estimativa,[i,j],[delta1,-delta2])
 
-                    FO_ipositivo_jnegativo=self.__WLS(vetor_parametro_delta_ipositivo_jnegativo,self._args_WLS())
+                    FO_ipositivo_jnegativo=self.__FO(vetor_parametro_delta_ipositivo_jnegativo,self._args_FO())
                     FO_ipositivo_jnegativo.start()
                     FO_ipositivo_jnegativo.join()
 
                     vetor_parametro_delta_inegativo_jnegativo=vetor_delta(self.parametros.estimativa,[i,j],[-delta1,-delta2])
 
-                    FO_inegativo_jnegativo=self.__WLS(vetor_parametro_delta_inegativo_jnegativo,self._args_WLS())
+                    FO_inegativo_jnegativo=self.__FO(vetor_parametro_delta_inegativo_jnegativo,self._args_FO())
                     FO_inegativo_jnegativo.start()
                     FO_inegativo_jnegativo.join()
 
@@ -1603,30 +1603,30 @@ class EstimacaoNaoLinear:
                 vetor_y_delta_jpositivo         = vetor_delta(self.y.estimacao.vetor_estimativa,j,delta2)
 
                 # Agumentos extras a serem passados para a FO.
-                args                            = copy(self._args_WLS()).tolist()
+                args                            = copy(self._args_FO()).tolist()
                 # Posição [0] da lista de argumantos contem o vetor das variáveis dependentes que será alterado.
                 args[0]                         = vetor_y_delta_jpositivo
 
-                FO_ipositivo_jpositivo          = self.__WLS(vetor_parametro_delta_ipositivo,args) # Valor da _FO para vetores de Ys e parametros alterados.
+                FO_ipositivo_jpositivo          = self.__FO(vetor_parametro_delta_ipositivo,args) # Valor da _FO para vetores de Ys e parametros alterados.
                 FO_ipositivo_jpositivo.start()
                 FO_ipositivo_jpositivo.join()
 
                 # Processo similar ao anterior. Uso de subrrotina vetor_delta.
                 vetor_parametro_delta_inegativo = vetor_delta(self.parametros.estimativa,i,-delta1)
 
-                FO_inegativo_jpositivo          = self.__WLS(vetor_parametro_delta_inegativo,args) # Valor da _FO para vetores de Ys e parametros alterados.
+                FO_inegativo_jpositivo          = self.__FO(vetor_parametro_delta_inegativo,args) # Valor da _FO para vetores de Ys e parametros alterados.
                 FO_inegativo_jpositivo.start()
                 FO_inegativo_jpositivo.join()
 
                 vetor_y_delta_jnegativo         = vetor_delta(self.y.estimacao.vetor_estimativa,j,-delta2)
-                args                            = copy(self._args_WLS()).tolist()
+                args                            = copy(self._args_FO()).tolist()
                 args[0]                         = vetor_y_delta_jnegativo
 
-                FO_ipositivo_jnegativo          = self.__WLS(vetor_parametro_delta_ipositivo,args) #Mesma ideia, fazendo isso para aplicar a equação de derivada central de segunda ordem.
+                FO_ipositivo_jnegativo          = self.__FO(vetor_parametro_delta_ipositivo,args) #Mesma ideia, fazendo isso para aplicar a equação de derivada central de segunda ordem.
                 FO_ipositivo_jnegativo.start()
                 FO_ipositivo_jnegativo.join()
 
-                FO_inegativo_jnegativo          = self.__WLS(vetor_parametro_delta_inegativo,args) #Idem
+                FO_inegativo_jnegativo          = self.__FO(vetor_parametro_delta_inegativo,args) #Idem
                 FO_inegativo_jnegativo.start()
                 FO_inegativo_jnegativo.join()
 
@@ -1845,8 +1845,8 @@ class EstimacaoNaoLinear:
 
             kwargs['NP'] = self.parametros.NV
 
-            PSO_preenchimento = PSO(limite_superior,limite_inferior,args_model=self._args_WLS(),**kwargs)
-            PSO_preenchimento.Busca(self.__WLS,**kwargsbusca)
+            PSO_preenchimento = PSO(limite_superior,limite_inferior,args_model=self._args_FO(),**kwargs)
+            PSO_preenchimento.Busca(self.__FO,**kwargsbusca)
 
             # ---------------------------------------------------------------------
             # HISTÓRICO DA OTIMIZAÇÃO
@@ -1876,7 +1876,7 @@ class EstimacaoNaoLinear:
                     amostra = [triangular(limite_inferior[i], self.parametros.estimativa[i], limite_superior[i], 1)[0]
                                for i in xrange(self.parametros.NV)]
 
-                FO = self.__WLS(amostra, self._args_WLS())
+                FO = self.__FO(amostra, self._args_FO())
                 FO.run()
                 self.__hist_Posicoes.append(amostra)
                 self.__hist_Fitness.append(FO.result)
