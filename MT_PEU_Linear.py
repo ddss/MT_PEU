@@ -300,9 +300,9 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # ---------------------------------------------------------------------
         # RESOLUÇÃO
         # ---------------------------------------------------------------------
-        X   = self.x.experimental.matriz_estimativa
-        Uyy = self.y.experimental.matriz_covariancia
-        y   = self.y.experimental.vetor_estimativa
+        X   = self.x.estimacao.matriz_estimativa
+        Uyy = self.y.estimacao.matriz_covariancia
+        y   = self.y.estimacao.vetor_estimativa
         variancia = inv(X.transpose().dot(inv(Uyy)).dot(X))
         parametros = variancia.dot(X.transpose().dot(inv(Uyy))).dot(y)
 
@@ -346,8 +346,8 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # CÁLCULO DA MATRIZ DE COVARIÂNCIA
         # ---------------------------------------------------------------------
         # Caso a matriz de covariância não seja calculada, ela será aqui calculada
-        X   = self.x.experimental.matriz_estimativa
-        Uyy = self.y.experimental.matriz_covariancia
+        X   = self.x.estimacao.matriz_estimativa
+        Uyy = self.y.estimacao.matriz_covariancia
         variancia = inv(X.transpose().dot(inv(Uyy)).dot(X))
         self.parametros._updateParametro(matriz_covariancia=variancia)
 

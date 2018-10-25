@@ -2061,7 +2061,7 @@ class EstimacaoNaoLinear:
         # Gráficos referentes aos dados de entrada (experimentais)
         # grandezas-entrada
         if (self.__tipoGraficos[1] in tipos):
-            # se gerarEntradas foi executado alguma vez:
+            # se setConjunto foi executado alguma vez:
             if self.__controleFluxo.setDados:
                 base_dir = sep + self._configFolder['graficos-grandezas-entrada-estimacao'] + sep
                 Validacao_Diretorio(base_path,base_dir)
@@ -2117,7 +2117,7 @@ class EstimacaoNaoLinear:
                                                                 fator_abrangencia_x=2., fator_abrangencia_y=2., fmt= 'o')
                             Fig.salvar_e_fechar(base_path+base_dir+'predicao'+'_fl'+str(self.__controleFluxo.FLUXO_ID)+'_'+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_com_incerteza')
             else:
-                warn('Os gráficos de entrada não puderam ser criados, pois o método gerarEntradas não foi executado.',UserWarning)
+                warn('Os gráficos de entrada não puderam ser criados, pois o método setConjunto não foi executado.',UserWarning)
 
         # Gráficos referentes aos dados de saída (calculados)
         # grandezas-calculado
@@ -2291,7 +2291,7 @@ class EstimacaoNaoLinear:
                     Fig.grafico_dispersao_com_incerteza(amostras, ym, None, yerr_calculado, fator_abrangencia_y=t_cal,
                                                         fmt="o", color = 'r', config_axes=False, add_legenda=True)
                     Fig.set_label('Amostras', self.y.labelGraficos()[iy], fontsize=16)
-                    Fig.set_legenda(['calculado', 'predicao' if self.__flag.info['dadospredicao'] else 'estimacao'],
+                    Fig.set_legenda(['calculado', 'dados para predicao' if self.__flag.info['dadospredicao'] else 'dados para estimacao'],
                         fontsize=16, loc='best')
                     Fig.salvar_e_fechar(
                         base_path + base_dir + ('predicao' if self.__flag.info['dadospredicao'] else 'estimacao') + \
