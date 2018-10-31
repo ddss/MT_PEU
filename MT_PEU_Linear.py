@@ -204,7 +204,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
 
         # Validação do número de dados experimentais
         if self._EstimacaoNaoLinear__xtemp.shape[0] != self._EstimacaoNaoLinear__ytemp.shape[0]:
-            raise ValueError('Foram inseridos {:d} dados para as grandezas dependentes, mas {:d} para as independentes'.format(y.shape[0],x.shape[0]))
+            raise ValueError('Foram inseridos {:d} dados para as grandezas dependentes, mas {:d} para as independentes'.format(self.__ytemp.shape[0],self.__xtemp.shape[0]))
 
         # ---------------------------------------------------------------------
         # MODIFICAÇÕES DAS MATRIZES DE DADOS
@@ -221,7 +221,8 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             self._EstimacaoNaoLinear__flag.ToggleActive('dadosestimacao')
             if self._EstimacaoNaoLinear__controleFluxo.FLUXO_ID != 0:
                 self._EstimacaoNaoLinear__controleFluxo.reiniciar()
-                warn('Fluxo reiniciado, reinsira os dos dados de validação, caso houver.')
+                if self.__flag.info['dadospredicao']:
+                    warn('O fluxo foi reiniciado, faz-se necessário incluir novos dados de validação.')
             # ---------------------------------------------------------------------
             # ATRIBUIÇÃO A GRANDEZAS
             # ---------------------------------------------------------------------
@@ -229,12 +230,12 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             try:
                 self.x._SETestimacao(estimativa=self._EstimacaoNaoLinear__xtemp,matriz_incerteza=self._EstimacaoNaoLinear__uxtemp,gL=glx,coluna_dumb=coluna_dumb)
             except Exception, erro:
-                raise RuntimeError('Erro na criação do conjunto experimental de X: {}'.format(erro))
+                raise RuntimeError('Erro na criação do conjunto de estimação da grandeza X: {}'.format(erro))
 
             try:
                 self.y._SETestimacao(estimativa=self._EstimacaoNaoLinear__ytemp,matriz_incerteza=self._EstimacaoNaoLinear__uytemp,gL=gly)
             except Exception, erro:
-                raise RuntimeError('Erro na criação do conjunto experimental de Y: {}'.format(erro))
+                raise RuntimeError('Erro na criação do conjunto de estimação da grandeza Y: {}'.format(erro))
 
         if tipo == 'predicao':
             self._EstimacaoNaoLinear__flag.ToggleActive('dadospredicao')

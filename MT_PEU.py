@@ -2037,7 +2037,7 @@ class EstimacaoNaoLinear:
             * 'analiseResiduos': gráficos referentes à análise de resíduos.
         """
         # Início da Figura que conterá os gráficos -> objeto
-        Fig = Grafico(dpi=60)
+        Fig = Grafico(dpi=300)
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------         
@@ -2264,11 +2264,11 @@ class EstimacaoNaoLinear:
                                         config_axes=True)
                     # Gráfico comparativo entre valores experimentais e calculados pelo modelo, sem variância em função
                     # das amostras
+                    Fig.grafico_dispersao_sem_incerteza(amostras, y, marker='o', linestyle='None', color='b', add_legenda=True)
                     Fig.grafico_dispersao_sem_incerteza(amostras, ym, marker='o', linestyle='None', color='r',
                                                         corrigir_limites=False, config_axes=False, add_legenda=True)
-                    Fig.grafico_dispersao_sem_incerteza(amostras, y, marker='o', linestyle='None', color='b', add_legenda=True)
                     Fig.set_label('Amostras', self.y.labelGraficos()[iy], fontsize=16)
-                    Fig.set_legenda(['calculado','predicao' if self.__flag.info['dadospredicao'] else 'estimacao'],
+                    Fig.set_legenda(['dados para predicao' if self.__flag.info['dadospredicao'] else 'dados para estimacao','calculado'],
                                     fontsize=16, loc='best')
                     Fig.salvar_e_fechar(
                         base_path + base_dir + ('predicao' if self.__flag.info['dadospredicao'] else 'estimacao') + \

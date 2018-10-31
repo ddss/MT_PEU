@@ -109,10 +109,10 @@ Estime.setConjunto(tipo='estimacao')
 #Estime.incertezaParametros(delta=1e-5,metodoIncerteza='SensibilidadeModelo',preencherregiao=True)
 #Estime.predicao()
 #Estime.analiseResiduos()
-etapas = ['otimizacao','grandezas-entrada', 'predicao','grandezas-calculadas','analiseResiduos', 'regiaoAbrangencia']
+#etapas = ['otimizacao','grandezas-entrada', 'predicao','grandezas-calculadas','analiseResiduos', 'regiaoAbrangencia']
 #etapas = ['grandezas-entrada']
-Estime.graficos(etapas)
-Estime.relatorio(export_y=True,export_cov_y=True)
+#Estime.graficos(etapas)
+#Estime.relatorio(export_y=True,export_cov_y=True)
 
 ##################################################################################
 ##################################################################################
