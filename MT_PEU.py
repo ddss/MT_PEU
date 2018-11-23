@@ -804,18 +804,18 @@ class EstimacaoNaoLinear:
             # ---------------------------------------------------------------------
             # Salvando os dados experimentais nas variáveis.
             try:
-                self.x._SETestimacao(estimativa=self.__xtemp,matriz_incerteza=self.__uxtemp,gL=glx)
+                self.x._SETdadosestimacao(estimativa=self.__xtemp,matriz_incerteza=self.__uxtemp,gL=glx)
             except Exception,erro:
                 raise RuntimeError('Erro na criação do conjunto de estimação da grandeza X: {}'.format(erro))
 
             try:
-                self.y._SETestimacao(estimativa=self.__ytemp,matriz_incerteza=self.__uytemp,gL=gly)
+                self.y._SETdadosestimacao(estimativa=self.__ytemp,matriz_incerteza=self.__uytemp,gL=gly)
             except Exception, erro:
                 raise RuntimeError('Erro na criação do conjunto de estimação da grandeza Y: {}'.format(erro))
 
         # dados de predição
         if tipo == self.__tiposDisponiveisEntrada[1]:
-            self.__flag.ToggleActive('dadospredicão')
+            self.__flag.ToggleActive('dadospredicao')
 
             self.__controleFluxo.reiniciarParcial()
             # ---------------------------------------------------------------------
@@ -823,12 +823,12 @@ class EstimacaoNaoLinear:
             # ---------------------------------------------------------------------
             # Salvando os dados de validação.
             try:
-                self.x._SETpredicao(estimativa=self.__xtemp,matriz_incerteza=self.__uxtemp,gL=glx)
+                self.x._SETdadosvalidacao(estimativa=self.__xtemp,matriz_incerteza=self.__uxtemp,gL=glx)
             except Exception, erro:
                 raise RuntimeError('Erro na criação do conjunto validação de X: {}'.format(erro))
 
             try:
-                self.y._SETpredicao(estimativa=self.__ytemp,matriz_incerteza=self.__uytemp,gL=gly)
+                self.y._SETdadosvalidacao(estimativa=self.__ytemp,matriz_incerteza=self.__uytemp,gL=gly)
             except Exception, erro:
                 raise RuntimeError('Erro na criação do conjunto validação de Y: {}'.format(erro))
 
@@ -841,12 +841,12 @@ class EstimacaoNaoLinear:
             # ---------------------------------------------------------------------
             # Salvando os dados de validação.
             try:
-                self.x._SETpredicao(estimativa=self.__xtemp,matriz_incerteza=self.__uxtemp,gL=glx)
+                self.x._SETdadosvalidacao(estimativa=self.__xtemp,matriz_incerteza=self.__uxtemp,gL=glx)
             except Exception, erro:
                 raise RuntimeError('Erro na criação do conjunto validação de X: {}'.format(erro))
 
             try:
-                self.y._SETpredicao(estimativa=self.__ytemp,matriz_incerteza=self.__uytemp,gL=gly)
+                self.y._SETdadosvalidacao(estimativa=self.__ytemp,matriz_incerteza=self.__uytemp,gL=gly)
             except Exception, erro:
                 raise RuntimeError('Erro na criação do conjuno validação de Y: {}'.format(erro))
 
@@ -889,14 +889,14 @@ class EstimacaoNaoLinear:
             # Salvando os dados estimação
             if self.__flag.info['dadosestimacao']:
                 # Salvando dados experimentais
-                grandeza[simbolo]._SETestimacao(estimativa=self.y.estimacao.matriz_estimativa[:,j:j+1],
+                grandeza[simbolo]._SETdadosestimacao(estimativa=self.y.estimacao.matriz_estimativa[:,j:j+1],
                                                    matriz_incerteza=self.y.estimacao.matriz_incerteza[:,j:j+1],
                                                    gL=self.y.estimacao.gL[j])
 
             # Salvando os dados predição
             if self.__flag.info['dadospredicao']:
                 # Salvando dados estimação
-                grandeza[simbolo]._SETpredicao(estimativa=self.y.predicao.matriz_estimativa[:,j:j+1],
+                grandeza[simbolo]._SETdadosvalidacao(estimativa=self.y.predicao.matriz_estimativa[:,j:j+1],
                                                 matriz_incerteza=self.y.predicao.matriz_incerteza[:,j:j+1],
                                                 gL=self.y.predicao.gL[j])
 
@@ -916,13 +916,13 @@ class EstimacaoNaoLinear:
 
             # Salvando dados estimação
             if self.__flag.info['dadosestimacao']:
-                grandeza[simbolo]._SETestimacao(estimativa=self.x.estimacao.matriz_estimativa[:,j:j+1],
+                grandeza[simbolo]._SETdadosestimacao(estimativa=self.x.estimacao.matriz_estimativa[:,j:j+1],
                                                    matriz_incerteza=self.x.estimacao.matriz_incerteza[:,j:j+1],
                                                    gL=self.x.estimacao.gL[j])
 
             # Salvando dados de predição
             if self.__flag.info['dadospredicao']:
-                grandeza[simbolo]._SETpredicao(estimativa=self.x.predicao.matriz_estimativa[:,j:j+1],
+                grandeza[simbolo]._SETdadosvalidacao(estimativa=self.x.predicao.matriz_estimativa[:,j:j+1],
                                                 matriz_incerteza=self.x.predicao.matriz_incerteza[:,j:j+1],
                                                 gL=self.x.predicao.gL[j])
 
@@ -2154,7 +2154,7 @@ class EstimacaoNaoLinear:
         if self.__tipoGraficos[0] in tipos:
             # os gráficos da região de abrangência só são executados se a matriz de covariância
             # dos parâmetros existir.
-            if self.parametros.matriz_covariancia is not None:
+            if self.__controleFluxo.incertezaParametros:
                 # Gráficos da estimação
                 base_dir = sep + self._configFolder['graficos-regiaoAbrangencia'] + sep
                 Validacao_Diretorio(base_path, base_dir)

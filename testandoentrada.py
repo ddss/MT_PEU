@@ -32,7 +32,7 @@ tipo = 2 # tipo: modelo a ser escolhido - 0 (exemplo 5.11), 1 (exemplo 5.12) ou 
 Estime = EstimacaoNaoLinear(Modelo, simbolos_x=[r't','T'], unidades_x=['s','K'], label_latex_x=[r'$t$','$T$'],
                             simbolos_y=[r'y'], unidades_y=['adm'],
                             simbolos_param=['ko','E'], unidades_param=['unid1','unid2'],label_latex_param=[r'$k_o$',r'$E$'],
-                            projeto='testE%d'%tipo)
+                            projeto='teste%d'%tipo)
 
 #Tempo
 x1 = [120.0,60.0,60.0,120.0,120.0,60.0,60.0,30.0,15.0,60.0,
@@ -100,19 +100,19 @@ Estime.setConjunto(tipo='estimacao')
 
 #Estime.setConjunto(tipo='predicao')
 
-#grandeza = Estime._armazenarDicionario() # ETAPA PARA CRIAÇÃO DOS DICIONÁRIOS - Grandeza é uma variável que retorna as grandezas na forma de dicionário
+grandeza = Estime._armazenarDicionario() # ETAPA PARA CRIAÇÃO DOS DICIONÁRIOS - Grandeza é uma variável que retorna as grandezas na forma de dicionário
 
 # Otimização
-#Estime.otimiza(limite_superior=sup,limite_inferior=inf,algoritmo='PSOFamily',itmax=500,
-#                 Num_particulas=30,metodo={'busca':'Otimo','algoritmo':'PSO','inercia':'TVIW-linear'},args=[tipo],printit=True)
+Estime.otimiza(limite_superior=sup,limite_inferior=inf,algoritmo='PSOFamily',itmax=500,
+                 Num_particulas=30,metodo={'busca':'Otimo','algoritmo':'PSO','inercia':'TVIW-linear'},args=[tipo],printit=True)
 #Estime.SETparametro([0.0075862408745003265, 27642.662773759967],args=[tipo])
-#Estime.incertezaParametros(delta=1e-5,metodoIncerteza='SensibilidadeModelo',preencherregiao=True)
-#Estime.predicao()
-#Estime.analiseResiduos()
-#etapas = ['otimizacao','grandezas-entrada', 'predicao','grandezas-calculadas','analiseResiduos', 'regiaoAbrangencia']
-#etapas = ['grandezas-entrada']
-#Estime.graficos(etapas)
-#Estime.relatorio(export_y=True,export_cov_y=True)
+Estime.incertezaParametros(delta=1e-5,metodoIncerteza='SensibilidadeModelo',preencherregiao=True)
+Estime.predicao()
+Estime.analiseResiduos()
+etapas = ['otimizacao','grandezas-entrada', 'predicao','grandezas-calculadas','analiseResiduos', 'regiaoAbrangencia']
+etapas = ['grandezas-entrada']
+Estime.graficos(etapas)
+Estime.relatorio(export_y=True,export_cov_y=True)
 
 ##################################################################################
 ##################################################################################

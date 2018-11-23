@@ -322,7 +322,7 @@ class Grandeza:
                 if not isfinite(cond(self.matriz_covariancia)):
                     raise TypeError('A matriz de covariância da grandeza é singular.')
 
-    def _SETestimacao(self,estimativa,matriz_incerteza=None,matriz_covariancia=None,gL=[],NE=None,**kwargs):
+    def _SETdadosestimacao(self,estimativa,matriz_incerteza=None,matriz_covariancia=None,gL=[],NE=None,**kwargs):
 
         self.__ID.append(self.__ID_disponivel[0]) #estimacao
 
@@ -330,7 +330,7 @@ class Grandeza:
                                        matriz_incerteza=matriz_incerteza,matriz_covariancia=matriz_covariancia,
                                        gL=gL,NE=NE,**kwargs)
 
-    def _SETpredicao(self,estimativa,matriz_incerteza=None,matriz_covariancia=None,gL=[],NE=None,**kwargs):
+    def _SETdadosvalidacao(self,estimativa,matriz_incerteza=None,matriz_covariancia=None,gL=[],NE=None,**kwargs):
 
         if hasattr(self, self.__ID_disponivel[0]):#estimacao
             kwargs['coluna_dumb'] =  self.estimacao._coluna_dumb
