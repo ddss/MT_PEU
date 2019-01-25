@@ -19,7 +19,7 @@ from scipy.stats import f, t, chi2
 from scipy.misc import factorial
 from numpy.linalg import inv
 from math import floor, log10
-from threading import Thread
+#from threading import Thread
 from scipy import transpose, dot, concatenate, matrix
 
 # Pacotes do sistema operacional
@@ -40,46 +40,45 @@ sys.setdefaultencoding("utf-8") # Forçar o sistema utilizar o coding utf-8
 from PSO.PSO import PSO   # Deve haver uma pasta com os códigos-fonte do PSO
 from Grandeza import Grandeza
 from subrotinas import Validacao_Diretorio, plot_cov_ellipse, vetor_delta,\
-    matriz2vetor
+    matriz2vetor, WLS
 from Graficos import Grafico
 from Relatorio import Relatorio
 from Flag import flag
-#from Funcao_Objetivo import WLS
 
 
-class WLS(Thread):
-     result = 0
+#class WLS(Thread):
+#     result = 0
 
-     def __init__(self, p, argumentos):
-         Thread.__init__(self)
+#     def __init__(self, p, argumentos):
+#         Thread.__init__(self)
 
-         self.param = p
+#         self.param = p
 
-         self.y = argumentos[0]
-         self.x = argumentos[1]
-         self.Vy = argumentos[2]
-         self.Vx = argumentos[3]
-         self.args = argumentos[4]
+#         self.y = argumentos[0]
+#         self.x = argumentos[1]
+#         self.Vy = argumentos[2]
+#         self.Vx = argumentos[3]
+#         self.args = argumentos[4]
 
-         # Modelo
-         self.modelo = argumentos[5]
+        # Modelo
+#         self.modelo = argumentos[5]
 
          # Simbologia (especificidade do PEU)
-         self.simb_x = argumentos[6]
-         self.simb_y = argumentos[7]
-         self.simb_param = argumentos[8]
+#         self.simb_x = argumentos[6]
+#         self.simb_y = argumentos[7]
+#         self.simb_param = argumentos[8]
 
-     def run(self):
-         ym = self.modelo(self.param, self.x, [self.args, self.simb_x, self.simb_y, self.simb_param])
-         ym.start()
-         ym.join()
+#     def run(self):
+#         ym = self.modelo(self.param, self.x, [self.args, self.simb_x, self.simb_y, self.simb_param])
+#         ym.start()
+#         ym.join()
 
-         ym = matriz2vetor(ym.result)
+#         ym = matriz2vetor(ym.result)
          # print '-------------'
          # print ym
          # print '-------------'
-         d = self.y - ym
-         self.result = float(dot(dot(transpose(d), linalg.inv(self.Vy)), d))
+#         d = self.y - ym
+#         self.result = float(dot(dot(transpose(d), linalg.inv(self.Vy)), d))
 
 class EstimacaoNaoLinear:
 
@@ -462,8 +461,8 @@ class EstimacaoNaoLinear:
         args em otimiza.
 
         * .__flag: classe flag que controla o comportamento do algoritmo. Flags disponíveis:
-            *'dadosestimação': identifica se dados para a estimação doram inseridos
-            * 'dadospredicao'   : identifica se dados para validação forma inseridos
+            *'dadosestimação': identifica se dados para a estimação foram inseridos
+            * 'dadospredicao'   : identifica se dados para validação foram inseridos
             * 'reconciliacao'    : identifica se foi solicitada reconciliação de dados (HOLD: aguarda implementação da
             reconciliação)
             * 'graficootimizacao': identifica se o algoritmo de otimização tem gráficos de desempenho
@@ -949,7 +948,7 @@ class EstimacaoNaoLinear:
         return grandeza
 
 
-    def otimiza(self,limite_inferior,limite_superior,estimativa_inicial=None,algoritmo='PSOFamily',args=None,**kwargs):
+    def otimiza(self,limite_inferior,limite_superior, estimativa_inicial=None, algoritmo='PSOFamily',args=None,**kwargs):
         u"""
         Método para realização da otimização
 

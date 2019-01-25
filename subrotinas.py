@@ -17,6 +17,32 @@ from matplotlib.patches import Ellipse
 
 from Graficos import Grafico
 
+def WLS (parametros, argumentos):
+    u"""
+    Subrotina para ......
+    """
+    y = argumentos[0]
+    x = argumentos[1]
+    Vy = argumentos[2]
+    Vx = argumentos[3]
+    args = argumentos[4]
+
+    # Modelo
+    modelo = argumentos[5]
+
+    # Simbologia (especificidade do PEU)
+    simb_x = argumentos[6]
+    simb_y = argumentos[7]
+    simb_parametros = argumentos[8]
+
+    ym = modelo(parametros, x, [args, simb_x, simb_y, simb_parametros])
+    ym = matriz2vetor(ym.result)
+
+    d = y - ym
+    result = float(dot(dot(transpose(d), linalg.inv(Vy)), d))
+
+    return result
+
 def matriz2vetor(matriz):
     u"""
     Subrotina para converter uma matriz (array com várias colunas) em um vetor (array com uma coluna)
