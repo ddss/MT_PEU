@@ -1096,10 +1096,7 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # OBTENÇÃO DO PONTO ÓTIMO DA FUNÇÃO OBJETIVO
         # ---------------------------------------------------------------------
-        FO = self.__FO(self.parametros.estimativa, self._args_FO())
-        FO.run()
-
-        self.FOotimo = FO.result
+        self.FOotimo = self.__FO(self.parametros.estimativa, self._args_FO())
 
     def SETparametro(self,estimativa,variancia=None,regiao=None,**kwargs):
         u"""
