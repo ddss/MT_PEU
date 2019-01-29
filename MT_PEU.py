@@ -21,7 +21,7 @@ from numpy.linalg import inv
 from math import floor, log10
 #from threading import Thread
 from scipy import transpose, dot, concatenate, matrix
-
+from scipy.optimize import  minimize, rosen, rosen_der
 # Pacotes do sistema operacional
 from os import getcwd, sep
 
@@ -948,7 +948,7 @@ class EstimacaoNaoLinear:
         return grandeza
 
 
-    def otimiza(self,limite_inferior,limite_superior, estimativa_inicial=None, algoritmo='PSOFamily',args=None,**kwargs):
+    def otimiza(self,estimativa_inicial, limite_inferior=None,limite_superior=None, algoritmo= 'Nelder-Mead',args=None,**kwargs):
         u"""
         Método para realização da otimização
 
@@ -1029,54 +1029,40 @@ class EstimacaoNaoLinear:
         # definindo que args são argumentos extras a serem passados para a função objetivo (e, portanto, não sofrem validação)
         self.__args_user = args
 
-        if algoritmo == 'PSOFamily':
-            # indica que este algoritmo possui gráficos de desempenho
-            self.__flag.ToggleActive('graficootimizacao')
-            # indica que esta algoritmo possui relatório de desempenho
-            self.__flag.ToggleActive('relatoriootimizacao')
-            # O algoritmo de PSO realiza o mapeamentoFO
-            self.__controleFluxo.SET_ETAPA('mapeamentoFO')
+        # indica que este algoritmo possui gráficos de desempenho
+        self.__flag.ToggleInactive('graficootimizacao')
+        # indica que esta algoritmo possui relatório de desempenho
+        self.__flag.ToggleInactive('relatoriootimizacao')
 
-            # Separação de keywords para os diferentes métodos
-            # keywarg para a etapa de busca:
-            kwargsbusca = {}
-            if kwargs.get('printit') is not None:
-                kwargsbusca['printit'] = kwargs.pop('printit')
+        #kwargs['NP'] = self.parametros.NV
 
-            kwargs['NP'] = self.parametros.NV
-            # ---------------------------------------------------------------------
-            # VALIDAÇÃO DO MODELO
-            # ---------------------------------------------------------------------            
-            # Verificação se o modelo é executável nos limites de busca
-            try:
+        # ---------------------------------------------------------------------
+        # VALIDAÇÃO DO MODELO
+        # ---------------------------------------------------------------------
+        # Verificação se o modelo é executável nos limites de busca
+        try: #validar se foi passado os limites superior e inferior. Obrigatorio estimativa inicial
+            if limite_superior is not None:
                 aux = self.__modelo(limite_superior,self.x.predicao.matriz_estimativa,self._args_model())
-                aux.run()
+            if limite_inferior  is not None:
                 aux = self.__modelo(limite_inferior,self.x.predicao.matriz_estimativa,self._args_model())
-                aux.run()
-            except Exception, erro:
-                raise SyntaxError(u'Erro no modelo, quando avaliado nos limites de busca definidos. Erro identificado: "{}".'.format(erro))
+            if estimativa_inicial is None:
+                raise SyntaxError('Para executar a otimização, faz-se necessário estimativa inicial')
+
+        except Exception, erro:
+            raise SyntaxError(u'Erro no modelo, quando avaliado nos limites de busca definidos. Erro identificado: "{}".'.format(erro))
 
             # ---------------------------------------------------------------------
             # EXECUÇÃO OTIMIZAÇÃO
             # ---------------------------------------------------------------------
             # OS argumentos extras (kwargs e kwrsbusca) são passados diretamente para o algoritmo
-            self.Otimizacao = PSO(limite_superior,limite_inferior,args_model=self._args_FO(),**kwargs)
+            self.Otimizacao = minimize(args_model=self._args_FO, estimativa_inicial, method = 'Nelder-Mead', limite_superior,limite_inferior,**kwargs)
             self.Otimizacao.Busca(self.__FO,**kwargsbusca)
 
-            # ---------------------------------------------------------------------
-            # HISTÓRICO DA OTIMIZAÇÃO
-            # ---------------------------------------------------------------------
-            for it in xrange(self.Otimizacao.n_historico):
-                for ID_particula in xrange(self.Otimizacao.Num_particulas):
-                    self.__hist_Posicoes.append(self.Otimizacao.historico_posicoes[it][ID_particula])
-                    self.__hist_Fitness.append(self.Otimizacao.historico_fitness[it][ID_particula])
-
-            # ---------------------------------------------------------------------
             # ATRIBUIÇÃO A GRANDEZAS
             # ---------------------------------------------------------------------
             # Atribuindo o valor ótimo dos parâmetros
             # Toda vez que a otimização é executada toda informação anterior sobre parâmetros é perdida
-            self.parametros._SETparametro(self.Otimizacao.gbest,None,None,limite_superior=limite_superior,limite_inferior=limite_inferior)
+            self.parametros._SETparametro(self.Otimizacao.x,None,None,limite_superior=limite_superior,limite_inferior=limite_inferior)
 
         # ---------------------------------------------------------------------
         # OBTENÇÃO DO PONTO ÓTIMO DA FUNÇÃO OBJETIVO
@@ -1168,7 +1154,6 @@ class EstimacaoNaoLinear:
         # Avaliação do modelo no ponto ótimo informado
         try:
             aux = self.__modelo(self.parametros.estimativa,self.x.predicao.matriz_estimativa,self._args_model())
-            aux.run()
         except Exception, erro:
             raise SyntaxError(u'Erro no modelo quando avaliado na estimativa dos parâmetros informada. Erro identificado: "{}"'.format(erro))
 
@@ -1401,7 +1386,6 @@ class EstimacaoNaoLinear:
         # PREDIÇÃO
         # ---------------------------------------------------------------------
         aux = self.__modelo(self.parametros.estimativa,self.x.predicao.matriz_estimativa,self._args_model())
-        aux.run()
 
         # ---------------------------------------------------------------------
         # AVALIAÇÃO DA PREDIÇÃO (Y CALCULADO PELO MODELO)
@@ -1430,7 +1414,7 @@ class EstimacaoNaoLinear:
         # --------------------------------------------------------------------
         # ATRIBUIÇÃO A GRANDEZAS
         # -------------------------------------------------------------------
-        self.y._SETcalculado(estimativa=aux.result,matriz_covariancia=Uyycalculado,
+        self.y._SETcalculado(estimativa=aux,matriz_covariancia=Uyycalculado,
                              gL=[[self.y.estimacao.NE*self.y.NV-self.parametros.NV]*self.y.predicao.NE]*self.y.NV,
                              NE=self.y.predicao.NE)
         self.x._SETcalculado(estimativa=self.x.predicao.matriz_estimativa,matriz_covariancia=self.x.predicao.matriz_covariancia,
@@ -1499,15 +1483,11 @@ class EstimacaoNaoLinear:
                     # Cálculo da função objetivo para seu respectivo vetor alterado para utilização na derivação numérica.
                     # Inicialização das threads
                     FO_delta_positivo=self.__FO(vetor_parametro_delta_positivo,self._args_FO())
-                    FO_delta_positivo.start()
-                    FO_delta_positivo.join()
 
                     FO_delta_negativo=self.__FO(vetor_parametro_delta_negativo,self._args_FO())
-                    FO_delta_negativo.start()
-                    FO_delta_negativo.join()
 
                     # Fórmula de diferença finita para i=j. (Disponível em, Gilat, Amos; MATLAB Com Aplicação em Engenharia, 2a ed, Bookman, 2006.)
-                    matriz_hessiana[i][j]=(FO_delta_positivo.result-2*FO_otimo+FO_delta_negativo.result)/(delta1*delta2)
+                    matriz_hessiana[i][j]=(FO_delta_positivo-2*FO_otimo+FO_delta_negativo)/(delta1*delta2)
 
                 #-------------------------------------------------------------------------------
                 #Aplicação da derivada numérica de segunda ordem para os demais elementos da matriz.
@@ -1517,31 +1497,24 @@ class EstimacaoNaoLinear:
                     vetor_parametro_delta_ipositivo_jpositivo = vetor_delta(self.parametros.estimativa,[i,j],[delta1,delta2])
 
                     FO_ipositivo_jpositivo=self.__FO(vetor_parametro_delta_ipositivo_jpositivo,self._args_FO())
-                    FO_ipositivo_jpositivo.start()
-                    FO_ipositivo_jpositivo.join()
 
                     vetor_parametro_delta_inegativo_jpositivo=vetor_delta(self.parametros.estimativa,[i,j],[-delta1,delta2])
 
                     FO_inegativo_jpositivo=self.__FO(vetor_parametro_delta_inegativo_jpositivo,self._args_FO())
-                    FO_inegativo_jpositivo.start()
-                    FO_inegativo_jpositivo.join()
 
                     vetor_parametro_delta_ipositivo_jnegativo=vetor_delta(self.parametros.estimativa,[i,j],[delta1,-delta2])
 
                     FO_ipositivo_jnegativo=self.__FO(vetor_parametro_delta_ipositivo_jnegativo,self._args_FO())
-                    FO_ipositivo_jnegativo.start()
-                    FO_ipositivo_jnegativo.join()
 
                     vetor_parametro_delta_inegativo_jnegativo=vetor_delta(self.parametros.estimativa,[i,j],[-delta1,-delta2])
 
                     FO_inegativo_jnegativo=self.__FO(vetor_parametro_delta_inegativo_jnegativo,self._args_FO())
-                    FO_inegativo_jnegativo.start()
-                    FO_inegativo_jnegativo.join()
+
 
                     # Fórmula de diferença finita para i=~j. Dedução do próprio autor, baseado em intruções da bibliografia:\
                     #(Gilat, Amos; MATLAB Com Aplicação em Engenharia, 2a ed, Bookman, 2006.)
-                    matriz_hessiana[i][j]=((FO_ipositivo_jpositivo.result-FO_inegativo_jpositivo.result)/(2*delta1)\
-                    -(FO_ipositivo_jnegativo.result-FO_inegativo_jnegativo.result)/(2*delta1))/(2*delta2)
+                    matriz_hessiana[i][j]=((FO_ipositivo_jpositivo-FO_inegativo_jpositivo)/(2*delta1)\
+                    -(FO_ipositivo_jnegativo-FO_inegativo_jnegativo)/(2*delta1))/(2*delta2)
 
         return array(matriz_hessiana)
 
@@ -1604,32 +1577,24 @@ class EstimacaoNaoLinear:
                 args[0]                         = vetor_y_delta_jpositivo
 
                 FO_ipositivo_jpositivo          = self.__FO(vetor_parametro_delta_ipositivo,args) # Valor da _FO para vetores de Ys e parametros alterados.
-                FO_ipositivo_jpositivo.start()
-                FO_ipositivo_jpositivo.join()
 
                 # Processo similar ao anterior. Uso de subrrotina vetor_delta.
                 vetor_parametro_delta_inegativo = vetor_delta(self.parametros.estimativa,i,-delta1)
 
                 FO_inegativo_jpositivo          = self.__FO(vetor_parametro_delta_inegativo,args) # Valor da _FO para vetores de Ys e parametros alterados.
-                FO_inegativo_jpositivo.start()
-                FO_inegativo_jpositivo.join()
 
                 vetor_y_delta_jnegativo         = vetor_delta(self.y.estimacao.vetor_estimativa,j,-delta2)
                 args                            = copy(self._args_FO()).tolist()
                 args[0]                         = vetor_y_delta_jnegativo
 
                 FO_ipositivo_jnegativo          = self.__FO(vetor_parametro_delta_ipositivo,args) #Mesma ideia, fazendo isso para aplicar a equação de derivada central de segunda ordem.
-                FO_ipositivo_jnegativo.start()
-                FO_ipositivo_jnegativo.join()
 
                 FO_inegativo_jnegativo          = self.__FO(vetor_parametro_delta_inegativo,args) #Idem
-                FO_inegativo_jnegativo.start()
-                FO_inegativo_jnegativo.join()
 
                 # Fórmula de diferença finita para i=~j. Dedução do próprio autor, baseado em intruções da bibliografia:\
                 # (Gilat, Amos; MATLAB Com Aplicação em Engenharia, 2a ed, Bookman, 2006.)
-                matriz_Gy[i][j]=((FO_ipositivo_jpositivo.result-FO_inegativo_jpositivo.result)/(2*delta1)\
-                -(FO_ipositivo_jnegativo.result-FO_inegativo_jnegativo.result)/(2*delta1))/(2*delta2)
+                matriz_Gy[i][j]=((FO_ipositivo_jpositivo-FO_inegativo_jpositivo)/(2*delta1)\
+                -(FO_ipositivo_jnegativo-FO_inegativo_jnegativo)/(2*delta1))/(2*delta2)
 
         return array(matriz_Gy)
 
@@ -1701,18 +1666,12 @@ class EstimacaoNaoLinear:
                 #Valores para o modelo com os parâmetros acrescidos (matriz na foma de array).
                 ycalculado_delta_positivo       = self.__modelo(vetor_parametro_delta_i_positivo,x,self._args_model())
 
-                ycalculado_delta_positivo.start()
-                ycalculado_delta_positivo.join()
-
                 #Valores para o modelo com os parâmetros decrescidos (matriz na foma de array).
                 ycalculado_delta_negativo       = self.__modelo(vetor_parametro_delta_i_negativo,x,self._args_model())
 
-                ycalculado_delta_negativo.start()
-                ycalculado_delta_negativo.join()
-
                 # Fórmula de diferença finita de primeira ordem. Fonte bibliográfica bibliográfia:\
                 #(Gilat, Amos; MATLAB Com Aplicação em Engenharia, 2a ed, Bookman, 2006.) - página (?)
-                matriz_S[:,i:i+1] =  (matriz2vetor(ycalculado_delta_positivo.result) - matriz2vetor(ycalculado_delta_negativo.result))/(2*delta_alpha)
+                matriz_S[:,i:i+1] =  (matriz2vetor(ycalculado_delta_positivo) - matriz2vetor(ycalculado_delta_negativo))/(2*delta_alpha)
 
         return matriz_S
 
@@ -1873,9 +1832,9 @@ class EstimacaoNaoLinear:
                                for i in xrange(self.parametros.NV)]
 
                 FO = self.__FO(amostra, self._args_FO())
-                FO.run()
+
                 self.__hist_Posicoes.append(amostra)
-                self.__hist_Fitness.append(FO.result)
+                self.__hist_Fitness.append(FO)
 
     def __criteriosAbrangencia(self):
         u"""
