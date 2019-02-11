@@ -37,7 +37,8 @@ sys.setdefaultencoding("utf-8") # Forçar o sistema utilizar o coding utf-8
 # ---------------------------------------------------------------------------
 # IMPORTAÇÃO DE SUBROTINAS PRÓPRIAS E ADAPTAÇÕES (DESENVOLVIDAS PELO GI-UFBA)
 # ---------------------------------------------------------------------------
-from PSO.PSO import PSO   # Deve haver uma pasta com os códigos-fonte do PSO
+#
+
 from Grandeza import Grandeza
 from subrotinas import Validacao_Diretorio, plot_cov_ellipse, vetor_delta,\
     matriz2vetor, WLS
@@ -599,7 +600,7 @@ class EstimacaoNaoLinear:
         self.__tiposDisponiveisEntrada = ('estimacao', 'predicao')
 
         # Algoritmos de otimização disponíveis
-        self.__AlgoritmosOtimizacao = ('PSOFamily',)
+        self.__AlgoritmosOtimizacao = ('Nelder-Mead',)
 
         # métodos para avaliação da incerteza
         self.__metodosIncerteza = ('2InvHessiana', 'Geral', 'SensibilidadeModelo')
@@ -612,7 +613,7 @@ class EstimacaoNaoLinear:
                                'otimizacao', 'analiseResiduos')
 
         # tipos de algoritmos de preenchimento de região de abrangência disponíveis
-        self.__tipoPreenchimento = ('PSO', 'MonteCarlo')
+        self.__tipoPreenchimento = ('MonteCarlo')
 
         # variáveis auxiliares para definição de conjunto de dados
         self.__xtemp = None
@@ -1014,11 +1015,12 @@ class EstimacaoNaoLinear:
                     self.__AlgoritmosOtimizacao) + '.')
 
         # validação da estimativa inicial:
-        if estimativa_inicial is not None:
-            if not isinstance(estimativa_inicial, list) or len(estimativa_inicial) != self.parametros.NV:
-                raise TypeError(
-                    'A estimativa inicial deve ser uma lista de dimensão do número de parâmetros, definida nos símbolos. Número de parâmetros: {}'.format(
-                        self.parametros.NV))
+        if estimativa_inicial is None:
+            raise SyntaxError('Para executar a otimização, faz-se necessário estimativa inicial')
+        if not isinstance(estimativa_inicial, list) or len(estimativa_inicial) != self.parametros.NV:
+            raise TypeError(
+             'A estimativa inicial deve ser uma lista de dimensão do número de parâmetros, definida nos símbolos. Número de parâmetros: {}'.format(
+              self.parametros.NV))
 
         # ---------------------------------------------------------------------
         # EXECUÇÃO
@@ -1046,7 +1048,8 @@ class EstimacaoNaoLinear:
             if limite_inferior  is not None:
                 aux = self.__modelo(limite_inferior,self.x.predicao.matriz_estimativa,self._args_model())
             if estimativa_inicial is None:
-                raise SyntaxError('Para executar a otimização, faz-se necessário estimativa inicial')
+                aux = self.__modelo(estimativa_inicial, self.x.predicao.matriz_estimativa, self._args_model())
+
 
         except Exception, erro:
             raise SyntaxError(u'Erro no modelo, quando avaliado nos limites de busca definidos. Erro identificado: "{}".'.format(erro))
@@ -1055,8 +1058,7 @@ class EstimacaoNaoLinear:
             # EXECUÇÃO OTIMIZAÇÃO
             # ---------------------------------------------------------------------
             # OS argumentos extras (kwargs e kwrsbusca) são passados diretamente para o algoritmo
-            self.Otimizacao = minimize(args_model=self._args_FO, estimativa_inicial, method = 'Nelder-Mead', limite_superior,limite_inferior,**kwargs)
-            self.Otimizacao.Busca(self.__FO,**kwargsbusca)
+            self.Otimizacao = minimize(self.__FO, estimativa_inicial, args=(), method='Nelder-Mead')
 
             # ATRIBUIÇÃO A GRANDEZAS
             # ---------------------------------------------------------------------
@@ -1778,38 +1780,6 @@ class EstimacaoNaoLinear:
             limite_inferior = [extremo_elipse_inferior[i] - (extremo_elipse_superior[i]-extremo_elipse_inferior[i])*fatorlimitebusca for i in xrange(self.parametros.NV)]
         else:
             kwargs.pop('limite_inferior') # retira limite_inferior dos argumentos extras
-
-        # ---------------------------------------------------------------------
-        # MÉTODO DO PSO
-        # ---------------------------------------------------------------------
-        if tipo == self.__tipoPreenchimento[0]:
-
-            if kwargs.get('itmax') is None:
-                kwargs['itmax'] = 500
-
-            if kwargs.get('metodo') is None:
-                kwargs['metodo'] = {'busca':'Regiao','algoritmo':'PSO','inercia':'Constante'}
-                kwargs['otimo']  = self.parametros.estimativa
-
-            # Separação de keywords para os diferentes métodos
-            # keywarg para a etapa de busca:
-            kwargsbusca = {}
-            if kwargs.get('printit') is not None:
-                kwargsbusca['printit'] = kwargs.get('printit')
-                del kwargs['printit']
-
-            kwargs['NP'] = self.parametros.NV
-
-            PSO_preenchimento = PSO(limite_superior,limite_inferior,args_model=self._args_FO(),**kwargs)
-            PSO_preenchimento.Busca(self.__FO,**kwargsbusca)
-
-            # ---------------------------------------------------------------------
-            # HISTÓRICO DA OTIMIZAÇÃO
-            # ---------------------------------------------------------------------
-            for it in xrange(PSO_preenchimento.n_historico):
-                for ID_particula in xrange(PSO_preenchimento.Num_particulas):
-                    self.__hist_Posicoes.append(PSO_preenchimento.historico_posicoes[it][ID_particula])
-                    self.__hist_Fitness.append(PSO_preenchimento.historico_fitness[it][ID_particula])
 
         # ---------------------------------------------------------------------
         # MÉTODO MONTE CARLO
