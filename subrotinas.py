@@ -17,10 +17,12 @@ from matplotlib.patches import Ellipse
 
 from Graficos import Grafico
 
-def WLS (parametros, argumentos):
+def WLS (parametros,*argumentos):
     u"""
     Subrotina para ......
     """
+    argumentos = argumentos[0]
+
     y = argumentos[0] #dados experimentais da grandeza dependente (x)
     x = argumentos[1] #dados experimentais da grandeza independente (y)
     Vy = argumentos[2] #incerteza (Uy)

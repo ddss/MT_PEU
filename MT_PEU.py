@@ -47,39 +47,6 @@ from Relatorio import Relatorio
 from Flag import flag
 
 
-#class WLS(Thread):
-#     result = 0
-
-#     def __init__(self, p, argumentos):
-#         Thread.__init__(self)
-
-#         self.param = p
-
-#         self.y = argumentos[0]
-#         self.x = argumentos[1]
-#         self.Vy = argumentos[2]
-#         self.Vx = argumentos[3]
-#         self.args = argumentos[4]
-
-        # Modelo
-#         self.modelo = argumentos[5]
-
-         # Simbologia (especificidade do PEU)
-#         self.simb_x = argumentos[6]
-#         self.simb_y = argumentos[7]
-#         self.simb_param = argumentos[8]
-
-#     def run(self):
-#         ym = self.modelo(self.param, self.x, [self.args, self.simb_x, self.simb_y, self.simb_param])
-#         ym.start()
-#         ym.join()
-
-#         ym = matriz2vetor(ym.result)
-         # print '-------------'
-         # print ym
-         # print '-------------'
-#         d = self.y - ym
-#         self.result = float(dot(dot(transpose(d), linalg.inv(self.Vy)), d))
 
 class EstimacaoNaoLinear:
 
@@ -963,25 +930,24 @@ class EstimacaoNaoLinear:
         =======================
         Entradas (obrigatórias)
         =======================
-
-        * limite_inferior (list): lista com os limites inferior para os parâmetros. **Usado para o método de PSO**
-        * limite_superior (list): lista com os limites inferior para os parâmetros. **Usado para o método de PSO**
+        * estimativa_inicial (list): lista com as estimativas iniciais para os parâmetros. **Usado para outros métodos de otimização**
+        * algoritmo (string): string informando o algoritmo de otimização a ser utilizado. Cada algoritmo tem suas próprias keywords
 
         ====================
         Entradas (opcionais)
         ====================
 
-        * estimativa_inicial (list): lista com as estimativas iniciais para os parâmetros. **Usado para outros métodos de otimização**
-        * algoritmo (string): string informando o algoritmo de otimização a ser utilizado. Cada algoritmo tem suas próprias keywords
+        * limite_inferior (list): lista com os limites inferior para os parâmetros. **Usado para o método de PSO**
+        * limite_superior (list): lista com os limites superior para os parâmetros. **Usado para o método de PSO**
         * args: argumentos extras a serem passados para o modelo
 
         ===============================
         Keywords (argumentos opcionais)
         ===============================
 
-        algoritmo = PSO
+        algoritmo = Nelder-Mead
 
-        Para os argumentos extras para o algoritmo de PSO, vide documentação.
+        Para os argumentos extras, vide documentação.
 
         ==========
         Observação
@@ -1034,7 +1000,7 @@ class EstimacaoNaoLinear:
         # indica que este algoritmo possui gráficos de desempenho
         self.__flag.ToggleInactive('graficootimizacao')
         # indica que esta algoritmo possui relatório de desempenho
-        self.__flag.ToggleInactive('relatoriootimizacao')
+        self.__flag.ToggleActive('relatoriootimizacao')
 
         #kwargs['NP'] = self.parametros.NV
 
@@ -1054,23 +1020,23 @@ class EstimacaoNaoLinear:
         except Exception, erro:
             raise SyntaxError(u'Erro no modelo, quando avaliado nos limites de busca definidos. Erro identificado: "{}".'.format(erro))
 
-            # ---------------------------------------------------------------------
-            # EXECUÇÃO OTIMIZAÇÃO
-            # ---------------------------------------------------------------------
-            # OS argumentos extras (kwargs e kwrsbusca) são passados diretamente para o algoritmo
-            self.Otimizacao = minimize(self.__FO, estimativa_inicial, args=(), method='Nelder-Mead')
+        # ---------------------------------------------------------------------
+        # EXECUÇÃO OTIMIZAÇÃO
+        # ---------------------------------------------------------------------
+        # OS argumentos extras (kwargs e kwrsbusca) são passados diretamente para o algoritmo
+        self.Otimizacao = minimize(self.__FO, estimativa_inicial, args=self._args_FO(), method='Nelder-Mead')
 
-            # ATRIBUIÇÃO A GRANDEZAS
-            # ---------------------------------------------------------------------
-            # Atribuindo o valor ótimo dos parâmetros
-            # Toda vez que a otimização é executada toda informação anterior sobre parâmetros é perdida
-            self.parametros._SETparametro(self.Otimizacao.x,None,None,limite_superior=limite_superior,limite_inferior=limite_inferior)
+        # ATRIBUIÇÃO A GRANDEZAS
+        # ---------------------------------------------------------------------
+        # Atribuindo o valor ótimo dos parâmetros
+        # Toda vez que a otimização é executada toda informação anterior sobre parâmetros é perdida
+
+        self.parametros._SETparametro(list(self.Otimizacao.x),None,None,limite_superior=limite_superior,limite_inferior=limite_inferior)
 
         # ---------------------------------------------------------------------
         # OBTENÇÃO DO PONTO ÓTIMO DA FUNÇÃO OBJETIVO
         # ---------------------------------------------------------------------
         self.__GETFOotimo()
-
 
     def __GETFOotimo(self):
         '''
@@ -2383,4 +2349,4 @@ class EstimacaoNaoLinear:
         # RELATÓRIO DA PREDIÇÃO E ANÁLISE DE RESÍDUOS
         # ---------------------------------------------------------------------
         if self.__flag.info['relatoriootimizacao']:
-            self.Otimizacao.Relatorios(base_path=self.__base_path + sep +self._configFolder['relatorio'] + sep,titulo_relatorio='relatorio-otimizacao.txt', **kwargs)
+            saida.Otimizacao(self.Otimizacao)
