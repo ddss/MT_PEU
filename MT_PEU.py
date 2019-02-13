@@ -567,7 +567,7 @@ class EstimacaoNaoLinear:
         self.__tiposDisponiveisEntrada = ('estimacao', 'predicao')
 
         # Algoritmos de otimização disponíveis
-        self.__AlgoritmosOtimizacao = ('Nelder-Mead',)
+        self.__AlgoritmosOtimizacao = ('Nelder-Mead','Powell')
 
         # métodos para avaliação da incerteza
         self.__metodosIncerteza = ('2InvHessiana', 'Geral', 'SensibilidadeModelo')
@@ -916,7 +916,7 @@ class EstimacaoNaoLinear:
         return grandeza
 
 
-    def otimiza(self,estimativa_inicial, limite_inferior=None,limite_superior=None, algoritmo= 'Nelder-Mead',args=None,**kwargs):
+    def otimiza(self,estimativa_inicial, limite_inferior=None,limite_superior=None, algoritmo='Nelder-Mead',args=None,tol=None,options={}):
         u"""
         Método para realização da otimização
 
@@ -1024,7 +1024,7 @@ class EstimacaoNaoLinear:
         # EXECUÇÃO OTIMIZAÇÃO
         # ---------------------------------------------------------------------
         # OS argumentos extras (kwargs e kwrsbusca) são passados diretamente para o algoritmo
-        self.Otimizacao = minimize(self.__FO, estimativa_inicial, args=self._args_FO(), method='Nelder-Mead')
+        self.Otimizacao = minimize(self.__FO, estimativa_inicial, args=self._args_FO(), method=algoritmo)
 
         # ATRIBUIÇÃO A GRANDEZAS
         # ---------------------------------------------------------------------
