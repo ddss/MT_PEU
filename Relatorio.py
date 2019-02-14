@@ -334,3 +334,6 @@ class Relatorio:
                         f.write('{:.5g} '.format(y.calculado.matriz_covariancia[i,j]))
                     f.write(self.__quebra)
             f.close()
+
+    def Otimizacao(self,Otimizacao):
+        pass

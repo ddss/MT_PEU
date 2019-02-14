@@ -22,7 +22,7 @@ from warnings import warn
 # Rotinas Internas
 from MT_PEU import EstimacaoNaoLinear
 
-from Funcao_Objetivo import WLS
+#from Funcao_Objetivo import WLS
 
 # Fim da importação
 class Modelo(Thread):
@@ -99,22 +99,22 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             
         **ESTIMAÇÂO DE PARÂMETROS** 
         
-        * ``gerarEntradas``        : método para incluir dados obtidos de experimentos. Neste há a opção de determinar \
+        * ``setConjunto``        : método para incluir dados obtidos de experimentos. Neste há a opção de determinar \
         se estes dados serão utilizados como dados para estimar os parâmetros ou para validação. (Vide documentação do método)
-        * ``otimiza``              : método para realizar a otimização, com base nos dados fornecidos em gerarEntradas.
-        * ``incertezaParametros``  : método que avalia a incerteza dos parâmetros (Vide documentação do método)   
-        * ``gerarEntradas``        : (é opcional para inclusão de dados de validação)
+        * ``otimiza``              : método para realizar a otimização, com base nos dados fornecidos em setConjunto.
+        * ``incertezaParametros``  : método que avalia a incerteza dos parâmetros (Vide documentação do método)
+        * ``setConjunto``        : (é opcional para inclusão de dados de validação)
         * ``Predicao``             : método que avalia a predição do modelo e sua incerteza ou utilizando os pontos experimentais ou de \
         validação, se disponível (Vide documentação do método) 
         * ``analiseResiduos``      : método para executar a análise de resíduos (Vide documentação do método)
         * ``graficos``             : método para criação dos gráficos (Vide documentação do método)
-        * ``_armazenarDicionario`` : método que returna as grandezas sob a forma de um dicionário (Vide documentação do método)
+        * ``_armazenarDicionario`` : método que retorna as grandezas sob a forma de um dicionário (Vide documentação do método)
         
         ====================
         Fluxo de trabalho        
         ====================
         
-        Esta classe valida a correta ordem de execução dos métodos. É importante salientar que cada vez que o método ``gerarEntradas`` \
+        Esta classe valida a correta ordem de execução dos métodos. É importante salientar que cada vez que o método ``setConjunto`` \
         é utilizado, é criado um novo ``Fluxo de trabalho``, ou seja, o motor de cálculo valida de alguns métodos precisam ser reexecutados \
         devido a entrada de novos dados.
         
@@ -132,9 +132,9 @@ class EstimacaoLinear(EstimacaoNaoLinear):
                 
         * ``x`` : objeto Grandeza que contém todas as informações referentes às grandezas \
         independentes sob a forma de atributos:
-            * ``experimental`` : referente aos dados experimentais. Principais atributos: ``matriz_estimativa``, ``matriz_covariancia``
+            * ``estimação`` : referente aos dados experimentais. Principais atributos: ``matriz_estimativa``, ``matriz_covariancia``
             * ``calculado``    : referente aos dados calculados pelo modelo. Principais atributos: ``matriz_estimativa``, ``matriz_covariancia``
-            * ``validacao``    : referente aos dados de validação. Principais atributos: ``matriz_estimativa``, ``matriz_covariancia``
+            * ``predição``    : referente aos dados de validação. Principais atributos: ``matriz_estimativa``, ``matriz_covariancia``
             * ``residuos``     : referente aos resíduos de regressão. Principais atributos: ``matriz_estimativa``, ``estatisticas``
             
         * ``y``          : objeto Grandeza que contém todas as informações referentes às grandezas \
@@ -151,7 +151,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # INICIANDO A CLASSE INIT
         # ---------------------------------------------------------------------
 
-        EstimacaoNaoLinear.__init__(self,WLS,Modelo,simbolos_y,simbolos_x,simbolos_param,PA,projeto,**kwargs)
+        EstimacaoNaoLinear.__init__(self,Modelo,simbolos_y,simbolos_x,simbolos_param,PA,projeto,**kwargs)
 
         self._EstimacaoNaoLinear__flag.setCaracteristica(['calc_termo_independente'])
 
@@ -171,7 +171,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         if (self.parametros.NV == self.x.NV+1):
             self._EstimacaoNaoLinear__flag.ToggleActive('calc_termo_independente')
 
-    def gerarEntradas(self,x,y,ux,uy,glx=[],gly=[],tipo='experimental',uxy=None):
+    def setConjunto(self,glx=[],gly=[],tipo='estimacao',uxy=None):
         u'''
         Método para incluir os dados de entrada da estimação
         
@@ -190,15 +190,11 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # ---------------------------------------------------------------------
         # FLUXO
         # ---------------------------------------------------------------------
-        self._EstimacaoNaoLinear__controleFluxo.SET_ETAPA('gerarEntradas')
+        self._EstimacaoNaoLinear__controleFluxo.SET_ETAPA('setConjunto')
 
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------
-        # Validação dos dados de entrada x, y, xval e yval - É tomado como referência
-        # a quantidade de observações das variáveis x.
-        self._EstimacaoNaoLinear__validacaoDadosEntrada(x  ,ux   ,self.x.NV)
-        self._EstimacaoNaoLinear__validacaoDadosEntrada(y  ,uy   ,self.y.NV)
 
         # Validação da sintaxe
         if not set([tipo]).issubset(self._EstimacaoNaoLinear__tiposDisponiveisEntrada):
@@ -207,8 +203,8 @@ class EstimacaoLinear(EstimacaoNaoLinear):
                 self._EstimacaoNaoLinear__tiposDisponiveisEntrada) + '.')
 
         # Validação do número de dados experimentais
-        if x.shape[0] != y.shape[0]:
-            raise ValueError('Foram inseridos {:d} dados para as grandezas dependentes, mas {:d} para as independentes'.format(y.shape[0],x.shape[0]))
+        if self._EstimacaoNaoLinear__xtemp.shape[0] != self._EstimacaoNaoLinear__ytemp.shape[0]:
+            raise ValueError('Foram inseridos {:d} dados para as grandezas dependentes, mas {:d} para as independentes'.format(self.__ytemp.shape[0],self.__xtemp.shape[0]))
 
         # ---------------------------------------------------------------------
         # MODIFICAÇÕES DAS MATRIZES DE DADOS
@@ -217,31 +213,32 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # o cálculo do termo independente
         coluna_dumb = False
         if self._EstimacaoNaoLinear__flag.info['calc_termo_independente']:
-            x               = hstack((x,ones((shape(x)[0],1))))
-            ux              = hstack((ux,ones((shape(x)[0],1))))
+            self._EstimacaoNaoLinear__xtemp  = hstack((self._EstimacaoNaoLinear__xtemp,ones((shape(self._EstimacaoNaoLinear__xtemp)[0],1))))
+            self._EstimacaoNaoLinear__uxtemp = hstack((self._EstimacaoNaoLinear__uxtemp,ones((shape(self._EstimacaoNaoLinear__uxtemp)[0],1))))
             coluna_dumb = True
 
-        if tipo == 'experimental':
-            self._EstimacaoNaoLinear__flag.ToggleActive('dadosexperimentais')
+        if tipo == 'estimacao':
+            self._EstimacaoNaoLinear__flag.ToggleActive('dadosestimacao')
             if self._EstimacaoNaoLinear__controleFluxo.FLUXO_ID != 0:
                 self._EstimacaoNaoLinear__controleFluxo.reiniciar()
-                warn('Fluxo reiniciado, reinsira os dos dados de validação, caso houver.')
+                if self.__flag.info['dadospredicao']:
+                    warn('O fluxo foi reiniciado, faz-se necessário incluir novos dados de validação.')
             # ---------------------------------------------------------------------
             # ATRIBUIÇÃO A GRANDEZAS
             # ---------------------------------------------------------------------
             # Salvando os dados experimentais nas variáveis.
             try:
-                self.x._SETexperimental(estimativa=x,matriz_incerteza=ux,gL=glx,coluna_dumb=coluna_dumb)
+                self.x._SETdadosestimacao(estimativa=self._EstimacaoNaoLinear__xtemp,matriz_incerteza=self._EstimacaoNaoLinear__uxtemp,gL=glx,coluna_dumb=coluna_dumb)
             except Exception, erro:
-                raise RuntimeError('Erro na criação do conjunto experimental de X: {}'.format(erro))
+                raise RuntimeError('Erro na criação do conjunto de estimação da grandeza X: {}'.format(erro))
 
             try:
-                self.y._SETexperimental(estimativa=y,matriz_incerteza=uy,gL=gly)
+                self.y._SETdadosestimacao(estimativa=self._EstimacaoNaoLinear__ytemp,matriz_incerteza=self._EstimacaoNaoLinear__uytemp,gL=gly)
             except Exception, erro:
-                raise RuntimeError('Erro na criação do conjunto experimental de Y: {}'.format(erro))
+                raise RuntimeError('Erro na criação do conjunto de estimação da grandeza Y: {}'.format(erro))
 
-        if tipo == 'validacao':
-            self._EstimacaoNaoLinear__flag.ToggleActive('dadosvalidacao')
+        if tipo == 'predicao':
+            self._EstimacaoNaoLinear__flag.ToggleActive('dadospredicao')
             self._EstimacaoNaoLinear__controleFluxo.reiniciarParcial()
 
             # ---------------------------------------------------------------------
@@ -249,16 +246,16 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             # ---------------------------------------------------------------------
             # Salvando os dados de validação.
             try:
-                self.x._SETvalidacao(estimativa=x,matriz_incerteza=ux,gL=glx,coluna_dumb=coluna_dumb)
+                self.x._SETdadosvalidacao(estimativa=self._EstimacaoNaoLinear__xtemp,matriz_incerteza=self._EstimacaoNaoLinear__uxtemp,gL=glx,coluna_dumb=coluna_dumb)
             except Exception, erro:
                 raise RuntimeError('Erro na criação do conjunto validação de X: {}'.format(erro))
 
             try:
-                self.y._SETvalidacao(estimativa=y,matriz_incerteza=uy,gL=gly)
+                self.y._SETdadosvalidacao(estimativa=self._EstimacaoNaoLinear__ytemp,matriz_incerteza=self._EstimacaoNaoLinear__uytemp,gL=gly)
             except Exception, erro:
                 raise RuntimeError('Erro na criação do conjunto validação de Y: {}'.format(erro))
 
-        if self._EstimacaoNaoLinear__flag.info['dadosvalidacao'] == False:
+        if self._EstimacaoNaoLinear__flag.info['dadospredicao'] == False:
             # Caso gerarEntradas seja executado somente para os dados experimentais,
             # será assumido que estes são os dados de validação, pois todos os cálculos 
             # de predição são realizados para os dados de validação.
@@ -267,14 +264,21 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             # ---------------------------------------------------------------------
             # Salvando os dados de validação.
             try:
-                self.x._SETvalidacao(estimativa=x,matriz_incerteza=ux,gL=glx,coluna_dumb=coluna_dumb)
+                self.x._SETdadosvalidacao(estimativa=self._EstimacaoNaoLinear__xtemp,matriz_incerteza=self._EstimacaoNaoLinear__uxtemp,gL=glx,coluna_dumb=coluna_dumb)
             except Exception, erro:
                 raise RuntimeError('Erro na criação do conjunto validação de X: {}'.format(erro))
 
             try:
-                self.y._SETvalidacao(estimativa=y,matriz_incerteza=uy,gL=gly)
+                self.y._SETdadosvalidacao(estimativa=self._EstimacaoNaoLinear__ytemp,matriz_incerteza=self._EstimacaoNaoLinear__uytemp,gL=gly)
             except Exception, erro:
                 raise RuntimeError('Erro na criação do conjunto validação de Y: {}'.format(erro))
+
+        # Transformando variáveis temporárias ( xtemp, uxtemp, ytemp, uytemp) em listas vazias
+        self._EstimacaoNaoLinear__xtemp = None
+        self._EstimacaoNaoLinear__uxtemp = None
+        self._EstimacaoNaoLinear__ytemp = None
+        self._EstimacaoNaoLinear__uytemp = None
+
 
     def otimiza(self):
         u'''
@@ -288,7 +292,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------
-        if not self._EstimacaoNaoLinear__flag.info['dadosexperimentais']:
+        if not self._EstimacaoNaoLinear__flag.info['dadosestimacao']:
             raise TypeError(u'Para executar a otimização, faz-se necessário dados experimentais.')
 
         if self._EstimacaoNaoLinear__controleFluxo.SETparametro:
@@ -297,9 +301,9 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # ---------------------------------------------------------------------
         # RESOLUÇÃO
         # ---------------------------------------------------------------------
-        X   = self.x.experimental.matriz_estimativa
-        Uyy = self.y.experimental.matriz_covariancia
-        y   = self.y.experimental.vetor_estimativa
+        X   = self.x.estimacao.matriz_estimativa
+        Uyy = self.y.estimacao.matriz_covariancia
+        y   = self.y.estimacao.vetor_estimativa
         variancia = inv(X.transpose().dot(inv(Uyy)).dot(X))
         parametros = variancia.dot(X.transpose().dot(inv(Uyy))).dot(y)
 
@@ -343,8 +347,8 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # CÁLCULO DA MATRIZ DE COVARIÂNCIA
         # ---------------------------------------------------------------------
         # Caso a matriz de covariância não seja calculada, ela será aqui calculada
-        X   = self.x.experimental.matriz_estimativa
-        Uyy = self.y.experimental.matriz_covariancia
+        X   = self.x.estimacao.matriz_estimativa
+        Uyy = self.y.estimacao.matriz_covariancia
         variancia = inv(X.transpose().dot(inv(Uyy)).dot(X))
         self.parametros._updateParametro(matriz_covariancia=variancia)
 

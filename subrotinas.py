@@ -6,7 +6,7 @@ Arquivo que contém subrotinas genéricas para uso pelo MT_PEU.
 """
 
 from numpy import concatenate, size, arctan2, degrees, sqrt, \
-    copy, ones, array, cos, sin, pi, roots, linspace, iscomplex
+    copy, ones, array, cos, sin, pi, roots, linspace, iscomplex, transpose, dot
 from numpy.linalg import eigh, inv
 from os import path, makedirs
 
@@ -16,6 +16,33 @@ from matplotlib.pyplot import figure, axes, axis, plot, errorbar, subplot, xlabe
 from matplotlib.patches import Ellipse
 
 from Graficos import Grafico
+
+def WLS (parametros,*argumentos):
+    u"""
+    Subrotina para ......
+    """
+    argumentos = argumentos[0]
+
+    y = argumentos[0] #dados experimentais da grandeza dependente (x)
+    x = argumentos[1] #dados experimentais da grandeza independente (y)
+    Vy = argumentos[2] #incerteza (Uy)
+    Vx = argumentos[3] #incerteza (Ux)
+    args = argumentos[4] #argumentos externos passados pelo usuário
+
+    # Modelo
+    modelo = argumentos[5]
+
+    # Simbologia (especificidade do PEU)
+    simb_x = argumentos[6]
+    simb_y = argumentos[7]
+    simb_parametros = argumentos[8]
+
+    ym = matriz2vetor(modelo(parametros, x, [args, simb_x, simb_y, simb_parametros]))
+
+    d = y - ym
+    result = float(dot(dot(transpose(d), inv(Vy)), d))
+
+    return result
 
 def matriz2vetor(matriz):
     u"""

@@ -124,7 +124,7 @@ class Grandeza:
         # VARIÁVEIS INTERNAS
         # ---------------------------------------------------------------------   
         self.__ID = [] # ID`s que a grandeza possui
-        self.__ID_disponivel = ['experimental','validacao','calculado','parametro','residuo'] # Todos os ID's disponíveis
+        self.__ID_disponivel = ['estimacao','predicao','calculado','parametro','residuo'] # Todos os ID's disponíveis
 
     def __validacaoEntrada(self,simbolos,nomes,unidades,label_latex):
         u'''
@@ -149,7 +149,7 @@ class Grandeza:
 
         # Verificação se os símbolos possuem caracteres especiais
         for simb in simbolos:
-            if set('[~!@#$%^&*()+{}":;\']+$').intersection(simb):
+            if not simb.isalnum():
                 raise NameError('Os simbolos das grandezas não podem ter caracteres especiais. Simbolo incorreto: '+simb)
 
         # Verificação se os símbolos são distintos
@@ -322,31 +322,31 @@ class Grandeza:
                 if not isfinite(cond(self.matriz_covariancia)):
                     raise TypeError('A matriz de covariância da grandeza é singular.')
 
-    def _SETexperimental(self,estimativa,matriz_incerteza=None,matriz_covariancia=None,gL=[],NE=None,**kwargs):
+    def _SETdadosestimacao(self,estimativa,matriz_incerteza=None,matriz_covariancia=None,gL=[],NE=None,**kwargs):
 
-        self.__ID.append('experimental')
-        # self.experimental = Organizador(estimativa,variancia,gL,tipo)
-        self.experimental = self.Dados(estimativa,self.NV,
+        self.__ID.append(self.__ID_disponivel[0]) #estimacao
+
+        self.estimacao = self.Dados(estimativa,self.NV,
                                        matriz_incerteza=matriz_incerteza,matriz_covariancia=matriz_covariancia,
                                        gL=gL,NE=NE,**kwargs)
 
-    def _SETvalidacao(self,estimativa,matriz_incerteza=None,matriz_covariancia=None,gL=[],NE=None,**kwargs):
+    def _SETdadosvalidacao(self,estimativa,matriz_incerteza=None,matriz_covariancia=None,gL=[],NE=None,**kwargs):
 
-        if hasattr(self, 'experimental'):
-            kwargs['coluna_dumb'] =  self.experimental._coluna_dumb
+        if hasattr(self, self.__ID_disponivel[0]):#estimacao
+            kwargs['coluna_dumb'] =  self.estimacao._coluna_dumb
 
-        self.__ID.append('validacao')
+        self.__ID.append(self.__ID_disponivel[1])
         # self.validacao = Organizador(estimativa,variancia,gL,tipo)
-        self.validacao = self.Dados(estimativa,self.NV,
+        self.predicao = self.Dados(estimativa,self.NV,
                                     matriz_incerteza=matriz_incerteza,matriz_covariancia=matriz_covariancia,
                                     gL=gL,NE=NE,**kwargs)
 
     def _SETcalculado(self,estimativa,matriz_incerteza=None,matriz_covariancia=None,gL=[],NE=None,**kwargs):
 
-        if hasattr(self, 'experimental'):
-            kwargs['coluna_dumb'] =  self.experimental._coluna_dumb
+        if hasattr(self, self.__ID_disponivel[0]):
+            kwargs['coluna_dumb'] =  self.estimacao._coluna_dumb
 
-        self.__ID.append('calculado')
+        self.__ID.append(self.__ID_disponivel[2])
         #self.calculado = Organizador(estimativa,variancia,gL,tipo,NE)
         self.calculado = self.Dados(estimativa,self.NV,
                                     matriz_incerteza=matriz_incerteza,matriz_covariancia=matriz_covariancia,
@@ -354,10 +354,10 @@ class Grandeza:
 
     def _SETresiduos(self,estimativa,matriz_incerteza=None,matriz_covariancia=None,gL=[],NE=None,**kwargs):
 
-        if hasattr(self, 'experimental'):
-            kwargs['coluna_dumb'] =  self.experimental._coluna_dumb
+        if hasattr(self, self.__ID_disponivel[0]):
+            kwargs['coluna_dumb'] =  self.estimacao._coluna_dumb
 
-        self.__ID.append('residuo')
+        self.__ID.append( self.__ID_disponivel[4])
         # self.residuos = Organizador(estimativa,variancia,gL,tipo)
         self.residuos = self.Dados(estimativa,self.NV,
                                    matriz_incerteza=matriz_incerteza,matriz_covariancia=matriz_covariancia,
@@ -408,7 +408,7 @@ class Grandeza:
         # EXECUÇÃO
         # --------------------------------------
 
-        self.__ID.append('parametro')           
+        self.__ID.append(self.__ID_disponivel[3])
         self.estimativa         = estimativa
         self.matriz_covariancia = variancia
         # Cálculo da matriz de correlação
@@ -576,7 +576,7 @@ class Grandeza:
 
         '''
     
-        if 'residuo' in self.__ID: # Testes para os resíduos
+        if  self.__ID_disponivel[4] in self.__ID: # Testes para os resíduos
             # Variável para salvar os nomes dos testes estatísticos - consulta
             # identifica o nome do teste, e o tipo de resposta (1.0 - float, {} - dicionário, [] - lista)
             # É nessa variável que o Relatório se baseia para obter as informações
@@ -679,20 +679,20 @@ class Grandeza:
         if self.__ID_disponivel[0] in ID: # Gráfico Pcolor para experimental
             listalabel=[]
             for elemento in self.labelGraficos(printunit=False):
-                for i in xrange(self.experimental.NE):
+                for i in xrange(self.estimacao.NE):
                     listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
 
-            plot_corr(self.experimental.matriz_correlacao, xnames=listalabel,  ynames=listalabel, title=u'Matriz de correlação ' + self.__ID_disponivel[0],normcolor=True, cmap=cm1)
+            plot_corr(self.estimacao.matriz_correlacao, xnames=listalabel,  ynames=listalabel, title=u'Matriz de correlação ' + self.__ID_disponivel[0],normcolor=True, cmap=cm1)
             savefig(base_path+base_dir+self.__ID_disponivel[0]+'_fl'+str(fluxo)+'_'+'pcolor_matriz-correlacao')
             close()
 
         if self.__ID_disponivel[1] in ID: # Gráfico Pcolor para validação
             listalabel=[]
             for elemento in self.labelGraficos(printunit=False):
-                for i in xrange(self.validacao.NE):
+                for i in xrange(self.predicao.NE):
                     listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
 
-            plot_corr(self.validacao.matriz_correlacao, xnames=listalabel, ynames=listalabel, title=u'Matriz de correlação ' + self.__ID_disponivel[1],normcolor=True,cmap=cm1)
+            plot_corr(self.predicao.matriz_correlacao, xnames=listalabel, ynames=listalabel, title=u'Matriz de correlação ' + self.__ID_disponivel[1],normcolor=True,cmap=cm1)
             savefig(base_path+base_dir+self.__ID_disponivel[1]+'_fl'+str(fluxo)+'_'+'pcolor_matriz-correlacao')
             close()
 
@@ -712,7 +712,7 @@ class Grandeza:
             savefig(base_path+base_dir+self.__ID_disponivel[3]+'_fl'+str(fluxo)+'_'+'pcolor_matriz-correlacao')
             close()
 
-        if 'residuo' in ID:
+        if self.__ID_disponivel[4] in ID:
             # BOXPLOT
             #checa a variabilidade dos dados, assim como a existência de possíveis outliers
             Fig.boxplot(self.residuos.matriz_estimativa,label_x=self.labelGraficos(printunit=False), label_y='Resíduos')
@@ -755,10 +755,10 @@ class Grandeza:
                 Fig.probplot(dados, label_y=u'Valores ordenados resíduos {}'.format(self.labelGraficos(printunit=False)[i]))
                 Fig.salvar_e_fechar(base_path+base_dir+'residuo_fl'+str(fluxo)+'_probplot.png')
 
-        if ('experimental' in ID or 'validacao' in ID or 'calculado' in ID):
+        if (self.__ID_disponivel[0] in ID or self.__ID_disponivel[1] in ID or self.__ID_disponivel[2] in ID):
                 
-            if 'residuo' in ID:  # remover de ID o resíduo, pois foi tratado separadamente
-                ID.remove('residuo')
+            if self.__ID_disponivel[4] in ID:  # remover de ID o resíduo, pois foi tratado separadamente
+                ID.remove(self.__ID_disponivel[4])
 
             base_path = base_path + base_dir
             for atributo in ID:
@@ -777,14 +777,14 @@ class Grandeza:
                                                         marker='o', linestyle='None')
                     Fig.salvar_e_fechar(base_path + base_dir + atributo + '_fl' + str(fluxo) + '_tendencia.png')
 
-            if 'experimental' in ID:
+            if self.__ID_disponivel[0] in ID:
 
                 for i,nome in enumerate(self.simbolos):
                     # Gráficos da estimação
 
                     base_dir = sep + self.simbolos[i] + sep
                     Validacao_Diretorio(base_path, base_dir)
-                    dados = self.experimental.matriz_estimativa[:,i]
+                    dados = self.estimacao.matriz_estimativa[:,i]
 
                     # AUTO CORRELAÇÃO
                     # Gera um gráfico de barras que verifica a autocorrelação
@@ -793,14 +793,14 @@ class Grandeza:
                                  normed=True, maxlags=None)
                     Fig.salvar_e_fechar(base_path + base_dir + 'experimental_fl' + str(fluxo) + '_autocorrelacao.png')
 
-            if 'validacao' in ID:
+            if self.__ID_disponivel[1] in ID:
 
                 for i, nome in enumerate(self.simbolos):
                     # Gráficos da estimação
                     base_dir = sep + self.simbolos[i] + sep
                     Validacao_Diretorio(base_path,base_dir)
 
-                    dados = self.validacao.matriz_estimativa[:,i]
+                    dados = self.predicao.matriz_estimativa[:,i]
 
                     # AUTO CORRELAÇÃO
                     # Gera um gráfico de barras que verifica a autocorrelação
