@@ -67,7 +67,7 @@ Estime.setConjunto(tipo='estimacao')
 grandeza = Estime._armazenarDicionario() # ETAPA PARA CRIAÇÃO DOS DICIONÁRIOS - Grandeza é uma variável que retorna as grandezas na forma de dicionário
 
 # Otimização
-Estime.otimiza(estimativa_inicial=[0.005, 20000.000, 0, 0],algoritmo='Powell',args=[tipo])
+Estime.otimiza(estimativa_inicial=[3, 0.1, 5,0.4],algoritmo='Powell',args=[tipo])
 #Estime.SETparametro([0.0075862408745003265, 27642.662773759967],args=[tipo])
 Estime.incertezaParametros(delta=1e-5,metodoIncerteza='SensibilidadeModelo',preencherregiao=False)
 Estime.predicao()
