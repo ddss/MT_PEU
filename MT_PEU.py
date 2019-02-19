@@ -267,7 +267,6 @@ class EstimacaoNaoLinear:
         * Scipy
         * Matplotlib - 1.4.3
         * Math
-        * PSO - versão 0.3-beta **Obtida no link https://github.com/ddss/PSO/releases/tag/v0.3-beta. Os códigos devem estar dentro de uma pasta de nome PSO**
         * statsmodels
 
         =======================
@@ -567,7 +566,7 @@ class EstimacaoNaoLinear:
         self.__tiposDisponiveisEntrada = ('estimacao', 'predicao')
 
         # Algoritmos de otimização disponíveis
-        self.__AlgoritmosOtimizacao = ('Nelder-Mead','Powell')
+        self.__AlgoritmosOtimizacao = ('Nelder-Mead','Powell', 'BFGS', 'L-BFGS-B')
 
         # métodos para avaliação da incerteza
         self.__metodosIncerteza = ('2InvHessiana', 'Geral', 'SensibilidadeModelo')
@@ -931,22 +930,23 @@ class EstimacaoNaoLinear:
         Entradas (obrigatórias)
         =======================
         * estimativa_inicial (list): lista com as estimativas iniciais para os parâmetros. **Usado para outros métodos de otimização**
-        * algoritmo (string): string informando o algoritmo de otimização a ser utilizado. Cada algoritmo tem suas próprias keywords
 
         ====================
         Entradas (opcionais)
         ====================
 
-        * limite_inferior (list): lista com os limites inferior para os parâmetros. **Usado para o método de PSO**
-        * limite_superior (list): lista com os limites superior para os parâmetros. **Usado para o método de PSO**
+        * limite_inferior (list): lista com os limites inferior para os parâmetros.
+        * limite_superior (list): lista com os limites superior para os parâmetros.
         * args: argumentos extras a serem passados para o modelo
+        * algoritmo (string): string informando o algoritmo de otimização a ser utilizado. Cada algoritmo tem suas próprias keywords
 
         ===============================
         Keywords (argumentos opcionais)
         ===============================
 
-        algoritmo = Nelder-Mead
+        algoritmos disponíveis = Nelder-Mead, Powell, BFGS, L-BFGS-B
 
+        Vide documentação dos algoritmos em: https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html#scipy.optimize.minimize
         Para os argumentos extras, vide documentação.
 
         ==========
@@ -1184,7 +1184,6 @@ class EstimacaoNaoLinear:
         aos parâmetros e dados experimentais (y)
         * deltaS: delta a ser utilizado na matriz de derivadas do modelo em relação dos parâmetros.
         * delta: quando definido, ajusta deltaHess, deltaGy e deltaS para o valor definido
-        * kwargs para o algoritmo de PSO para executar o preenchimento da região.
         """
         # ---------------------------------------------------------------------
         # FLUXO
@@ -1650,16 +1649,7 @@ class EstimacaoNaoLinear:
         =================
         Keyword arguments
         =================
-            * metodoPreenchimento ('string'): define qual o método utilizado no preenchimento da região de abrangência. Se: PSO ou MonteCarlo (
-         Monte Carlo)
-        PSO:
-            * argumentos extras a serem passados para o PSO (Vide documentação do método)
-        MonteCarlo:
-            * limite_superior (list): limite máximo que define a região de abrangência.
-            * limite_inferior (list): limite mínimo que define a região de abrangência.
-            * iteracoes (int): número de iterações a serem realizadas. Default: 10000.
-            * fatorlimitebusca: quanto maior este fator, maior a faixa automática de busca baseada no range que a elipse abrange. Default: 1/10
-            * distribuicao (string): define como as amostras de parâmetros são geradas. Default: uniforme (até 2 parâmetros), triangular (mais de 3 parâmetros)
+            * metodoPreenchimento ('string'): define qual o método utilizado no preenchimento da região de abrangência. Disponível: MonteCarlo
         """
         # ---------------------------------------------------------------------
         # FLUXO
