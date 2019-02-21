@@ -946,7 +946,7 @@ class EstimacaoNaoLinear:
 
         algoritmos disponíveis = Nelder-Mead, Powell, BFGS, L-BFGS-B
 
-        Vide documentação dos algoritmos em: https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html#scipy.optimize.minimize
+        Vide documentação dos algoritmos em: https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html
         Para os argumentos extras, vide documentação.
 
         ==========
@@ -1025,7 +1025,7 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # OS argumentos extras (kwargs e kwrsbusca) são passados diretamente para o algoritmo
         self.Otimizacao = minimize(self.__FO, estimativa_inicial, args=self._args_FO(), method=algoritmo)
-
+        setattr(self.Otimizacao, 'method', algoritmo)
         # ATRIBUIÇÃO A GRANDEZAS
         # ---------------------------------------------------------------------
         # Atribuindo o valor ótimo dos parâmetros

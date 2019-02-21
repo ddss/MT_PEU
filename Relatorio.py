@@ -336,4 +336,20 @@ class Relatorio:
             f.close()
 
     def Otimizacao(self,Otimizacao):
-        pass
+        with open(self.__base_path + 'relatorio-otimizacao.txt', 'wb') as f:
+            f.write(('{:#^' + str(max([70, Otimizacao.x.size*18])) + '}' + self.__quebra).format(' RESUMO OTIMIZAÇÃO '))
+            f.write(('{:-^' + str(max([70, Otimizacao.x.size * 18])) + '}' + self.__quebra).format(' MÉTODO'))
+            f.write(('Algoritmo  : ' + '{:^10} ').format(Otimizacao.method) + self.__quebra)
+            f.write(self.__quebra)
+            #f.write(('{:-^' + str(max([70, Otimizacao.x.size * 18])) + '}' + self.__quebra).format('RESTRIÇÕES'))
+            #f.write(self.__quebra)
+            f.write(('{:-^' + str(max([70, Otimizacao.x.size * 18])) + '}' + self.__quebra).format('RESULTADOS'))
+            f.write(('Valor da função Objetivo : ' + '{:^10} ').format(Otimizacao.fun) + self.__quebra)
+            f.write(('Ponto ótimo  : ' + '{:^10} ').format(Otimizacao.x) + self.__quebra)
+            f.write(('Numero de Avaliações   : ' + '{:^10} ').format(Otimizacao.nfev) + self.__quebra)
+            f.write(('Numero de Iterações   : ' + '{:^10} ').format(Otimizacao.nit) + self.__quebra)
+            f.write(('Status   : ' + '{:^10} ').format(Otimizacao.message) + self.__quebra)
+            #f.write(('Valor Max   : ' + '{:^10} ').format(Otimizacao.x.max()) + self.__quebra)
+            #f.write(('Valor Min   : ' + '{:^10} ').format(Otimizacao.x.min()) + self.__quebra)
+            f.close()
+

@@ -39,7 +39,7 @@ def Modelo (param, x, args):
 # ---------------------------------------------------------------------------------
 # Exemplo validação: Exemplo resolvido 5.11, 5.12, 5.13 (capítulo 5) (Análise de Dados experimentais I)
 # ---------------------------------------------------------------------------------
-tipo = 1 # tipo: modelo a ser escolhido - 0 (exemplo 5.11), 1 (exemplo 5.12) ou 2 (exemplo 5.13)
+tipo = 2 # tipo: modelo a ser escolhido - 0 (exemplo 5.11), 1 (exemplo 5.12) ou 2 (exemplo 5.13)
 
 Estime = EstimacaoNaoLinear(Modelo, simbolos_x=[r't','T'], unidades_x=['s','K'], label_latex_x=[r'$t$','$T$'],
                             simbolos_y=[r'y'], unidades_y=['adm'],
@@ -88,12 +88,12 @@ Estime.setConjunto(tipo='estimacao')
 grandeza = Estime._armazenarDicionario() # ETAPA PARA CRIAÇÃO DOS DICIONÁRIOS - Grandeza é uma variável que retorna as grandezas na forma de dicionário
 
 # Otimização
-Estime.otimiza(estimativa_inicial= [0.005, 20000.000],algoritmo='BFGS',args=[tipo])
+Estime.otimiza(estimativa_inicial= [0.005, 20000.000],algoritmo='Nelder-Mead',args=[tipo])
 #Estime.SETparametro([0.0075862408745003265, 27642.662773759967],args=[tipo])
 Estime.incertezaParametros(delta=1e-5,metodoIncerteza='SensibilidadeModelo',preencherregiao=False)
 Estime.predicao()
 Estime.analiseResiduos()
 etapas = ['otimizacao','grandezas-entrada', 'predicao','grandezas-calculadas','analiseResiduos', 'regiaoAbrangencia']
-etapas = ['grandezas-entrada']
+#etapas = ['grandezas-entrada']
 Estime.graficos(etapas)
 Estime.relatorio(export_y=True,export_cov_y=True)
