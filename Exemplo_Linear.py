@@ -10,8 +10,8 @@ Exemplos de validação
 from matplotlib import use
 use('Agg')
 
+from numpy import array
 from MT_PEU_Linear import EstimacaoLinear
-
 
 ##################################################################################
 ##################################################################################
@@ -24,17 +24,17 @@ from MT_PEU_Linear import EstimacaoLinear
 # =================================================================================
 #
 # # #Sem o cálculo do termo independente
-ER = EstimacaoLinear(['y'],['x'],['p1'],projeto='LINEARsemB')
-x = [0,1,2,3,4,5]
-ux = [1,1,1,1,1,1]
+#ER = EstimacaoLinear(['y'],['x'],['p1'],projeto='LINEARsemB')
+#x = [0,1,2,3,4,5]
+#ux = [1,1,1,1,1,1]
 
-y = [.1,.9,2.2,3.2,3.9,4.8]
-uy = [1,1,1,1,1,1]
+#y = [.1,.9,2.2,3.2,3.9,4.8]
+#uy = [1,1,1,1,1,1]
 
-ER.setDados(0,(x,ux))
-ER.setDados(1,(y,uy))
+#ER.setDados(0,(x,ux))
+#ER.setDados(1,(y,uy))
 
-ER.setConjunto()
+#ER.setConjunto()
 
 # Com o cálculo do termo independente
 ER = EstimacaoLinear(['y'],['x'],['p1','p2'],projeto='LINEARcomB1')
@@ -53,10 +53,10 @@ ER.setConjunto()
 # PARTE II - GENÉRICO (INDEPENDE DO EXEMPLO)
 # =================================================================================
 
-#ER.otimiza()
+ER.otimiza()
 #ER.SETparametro([0.9571428571428567, 0.12380952380952503])
-#ER.incertezaParametros(iteracoes=1000,metodoPreenchimento='MonteCarlo')
-#ER.predicao(delta=1e-6)
-#ER.analiseResiduos()
-#ER.graficos(['analiseResiduos','regiaoAbrangencia', 'grandezas-entrada', 'predicao','grandezas-calculadas','otimizacao'])
-#ER.relatorio()
+ER.incertezaParametros(iteracoes=1000,metodoPreenchimento='MonteCarlo')
+ER.predicao(delta=1e-6)
+ER.analiseResiduos()
+ER.graficos(['analiseResiduos','regiaoAbrangencia', 'grandezas-entrada', 'predicao','grandezas-calculadas','otimizacao'])
+ER.relatorio()

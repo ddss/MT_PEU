@@ -22,23 +22,15 @@ from warnings import warn
 # Rotinas Internas
 from MT_PEU import EstimacaoNaoLinear
 
-#from Funcao_Objetivo import WLS
-
 # Fim da importação
-class Modelo(Thread):
-    result = 0
-    def __init__(self,param,x,args):
-        Thread.__init__(self)
 
-        self.param  = array(param,ndmin=2).transpose()
+def Modelo (param,x,args):
 
-        self.x      = x
+        param  = array(param,ndmin=2).transpose()
+        x      = x.dot(param)
+        args  = args
 
-        self.args  = args
-
-    def run(self):
-
-        self.result = self.x.dot(self.param)
+        return x
 
 class EstimacaoLinear(EstimacaoNaoLinear):
     

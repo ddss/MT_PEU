@@ -58,7 +58,7 @@ class Grafico:
         """
         if tick:
             # Formato dos ticks
-            self.axes.tick_params(reset=True, axis='both', right='off', top='off', direction='out', labelsize=14)
+            self.axes.tick_params(reset=True, axis='both', right='false', top='false', direction='out', labelsize=14)
 
         if formato_cientifico:
             if not isinstance(self.axes.get_xaxis().get_major_formatter(), FixedFormatter):
