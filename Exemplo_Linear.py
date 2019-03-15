@@ -55,7 +55,7 @@ ER.setConjunto()
 
 ER.otimiza()
 #ER.SETparametro([0.9571428571428567, 0.12380952380952503])
-ER.incertezaParametros(iteracoes=1000,metodoPreenchimento='MonteCarlo')
+ER.incertezaParametros(metodoPreenchimento='MonteCarlo')
 ER.predicao(delta=1e-6)
 ER.analiseResiduos()
 ER.graficos(['analiseResiduos','regiaoAbrangencia', 'grandezas-entrada', 'predicao','grandezas-calculadas','otimizacao'])

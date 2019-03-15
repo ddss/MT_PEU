@@ -274,7 +274,7 @@ class Grandeza:
             elif matriz_covariancia is not None:
                 if NE is not None:
                     self.matriz_covariancia = matriz_covariancia
-                    self.matriz_incerteza = diag(self.matriz_covariancia**0.5).reshape(
+                    self.matriz_incerteza = (diag(self.matriz_covariancia)**0.5).reshape(
                         (NE, self.matriz_estimativa.shape[1]), order='F')
                     self.matriz_correlacao = matrizcorrelacao(self.matriz_covariancia)
                 else:
@@ -414,7 +414,7 @@ class Grandeza:
         # Cálculo da matriz de correlação
         if variancia is not None:
             self.matriz_correlacao  = matrizcorrelacao(self.matriz_covariancia)
-            self.matriz_incerteza   = diag(self.matriz_covariancia**0.5).reshape((1,self.NV),order='F')
+            self.matriz_incerteza   = (diag(self.matriz_covariancia)**0.5).reshape((1,self.NV),order='F')
         else:
             self.matriz_correlacao  = None
             self.matriz_incerteza   = None
@@ -733,7 +733,7 @@ class Grandeza:
                                                     linestyle='-.', color='r', linewidth=2,
                                                     add_legenda=True, corrigir_limites=False, config_axes=False)
                 Fig.grafico_dispersao_sem_incerteza(x, dados, label_x='Amostra', label_y=u'Resíduos {}'.format(self.labelGraficos()[i]),
-                                                    marker='o', linestyle='None')
+                                                    marker='o', linestyle=None)
                 Fig.axes.axhline(0, color='black', lw=1, zorder=1)
                 Fig.set_legenda(['Média dos resíduos'], loc = 'best')
                 Fig.salvar_e_fechar(base_path+base_dir+'residuo_fl'+str(fluxo)+'_tendencia.png')
@@ -774,7 +774,7 @@ class Grandeza:
                     #Gráfico em função do numero de observações
                     Fig.grafico_dispersao_sem_incerteza(x, dados, label_x='Amostra',
                                                         label_y=self.labelGraficos(atributo)[i],
-                                                        marker='o', linestyle='None')
+                                                        marker='o', linestyle=None)
                     Fig.salvar_e_fechar(base_path + base_dir + atributo + '_fl' + str(fluxo) + '_tendencia.png')
 
             if self.__ID_disponivel[0] in ID:

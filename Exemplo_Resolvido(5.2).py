@@ -69,10 +69,10 @@ grandeza = Estime._armazenarDicionario() # ETAPA PARA CRIAÇÃO DOS DICIONÁRIOS
 # Otimização
 Estime.otimiza(estimativa_inicial=[3, 0.1, 5,0.4],algoritmo='L-BFGS-B',args=[tipo])
 #Estime.SETparametro([0.0075862408745003265, 27642.662773759967],args=[tipo])
-Estime.incertezaParametros(delta=1e-5,metodoIncerteza='SensibilidadeModelo',preencherregiao=False)
+Estime.incertezaParametros(delta=1e-5,metodoIncerteza='SensibilidadeModelo',preencherregiao=True)
 Estime.predicao()
 Estime.analiseResiduos()
-etapas = ['otimizacao','grandezas-entrada', 'predicao','grandezas-calculadas','analiseResiduos', 'regiaoAbrangencia']
-etapas = ['grandezas-entrada']
+etapas = ['grandezas-entrada']#, 'predicao','grandezas-calculadas','analiseResiduos', 'regiaoAbrangencia']
+#etapas = ['grandezas-entrada']
 Estime.graficos(etapas)
 Estime.relatorio(export_y=True,export_cov_y=True)

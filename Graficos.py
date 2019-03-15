@@ -58,7 +58,7 @@ class Grafico:
         """
         if tick:
             # Formato dos ticks
-            self.axes.tick_params(reset=True, axis='both', right='false', top='false', direction='out', labelsize=14)
+            self.axes.tick_params(reset=True, axis='both', right=False, top=False, direction='out', labelsize=14)
 
         if formato_cientifico:
             if not isinstance(self.axes.get_xaxis().get_major_formatter(), FixedFormatter):
@@ -75,7 +75,7 @@ class Grafico:
 
         if grid:
             # Definindo linhas de grade no major axes
-            self.axes.grid(b='True', which='major', axis='both', linestyle='dashed', color='gray', zorder=1)
+            self.axes.grid(b=True, which='major', axis='both', linestyle='dashed', color='gray', zorder=1)
 
     def get_step_tick(self):
         u"""

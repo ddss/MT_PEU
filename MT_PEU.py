@@ -566,7 +566,7 @@ class EstimacaoNaoLinear:
         self.__tiposDisponiveisEntrada = ('estimacao', 'predicao')
 
         # Algoritmos de otimização disponíveis
-        self.__AlgoritmosOtimizacao = ('Nelder-Mead','Powell', 'BFGS', 'L-BFGS-B')
+        self.__AlgoritmosOtimizacao = ('Nelder-Mead','Powell', 'BFGS', 'L-BFGS-B', 'CG')
 
         # métodos para avaliação da incerteza
         self.__metodosIncerteza = ('2InvHessiana', 'Geral', 'SensibilidadeModelo')
@@ -579,7 +579,7 @@ class EstimacaoNaoLinear:
                                'otimizacao', 'analiseResiduos')
 
         # tipos de algoritmos de preenchimento de região de abrangência disponíveis
-        self.__tipoPreenchimento = ('MonteCarlo')
+        self.__tipoPreenchimento = ('MonteCarlo',)
 
         # variáveis auxiliares para definição de conjunto de dados
         self.__xtemp = None
@@ -1668,7 +1668,7 @@ class EstimacaoNaoLinear:
                 tipo) + ' não está disponível. Métodos disponíveis ' + ', '.join(self.__tipoPreenchimento) + '.')
 
         # caso seja MonteCarlo:
-        if tipo == self.__tipoPreenchimento[1]:
+        if tipo == self.__tipoPreenchimento[0]:
             kwargsdisponiveis = ('iteracoes', 'limite_superior', 'limite_inferior', 'metodoPreenchimento',
                                  'fatorlimitebusca','distribuicao')
 
@@ -1740,7 +1740,7 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # MÉTODO MONTE CARLO
         # ---------------------------------------------------------------------
-        if tipo == self.__tipoPreenchimento[1]:
+        if tipo == self.__tipoPreenchimento[0]:
             iteracoes = int(kwargs.get('iteracoes') if kwargs.get('iteracoes') is not None else 10000)
             distribuicao = kwargs.get('distribuicao')
             if distribuicao is None:
@@ -1959,7 +1959,7 @@ class EstimacaoNaoLinear:
                                                                 self.y.estimacao.matriz_estimativa[:,iy],
                                                                 label_x=self.x.labelGraficos('estimacao')[ix],
                                                                 label_y=self.y.labelGraficos('estimacao')[iy],
-                                                                marker='o', linestyle='None')
+                                                                marker='o', linestyle=None)
                             Fig.salvar_e_fechar(base_path+base_dir+'estimacao'+'_fl'+str(0)+'_'+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_sem_incerteza')
                             # Gráficos com a incerteza
                             Fig.grafico_dispersao_com_incerteza(self.x.estimacao.matriz_estimativa[:,ix],
