@@ -35,7 +35,6 @@ def Modelo1(param,x,args):
 # ---------------------------------------------------------------------------------
 Estime = EstimacaoNaoLinear(Modelo1,simbolos_x=['x1','x2'],simbolos_y=['y1','y2'],simbolos_param=[r'a%d'%i for i in xrange(4)],
                           label_latex_param=[r'$\alpha_{%d}$'%i for i in xrange(4)],unidades_y=['kg','kg'],projeto='projeto')
-tipo = None
 
 x1 = [1.,2.,3.,5.,10,15.,20.,30.,40.,50.]
 y1 = [1.66,6.07,7.55,9.72,15.24,18.79,19.33,22.38,24.27,25.51]
@@ -67,8 +66,7 @@ Estime.setConjunto(tipo='estimacao')
 grandeza = Estime._armazenarDicionario() # ETAPA PARA CRIAÇÃO DOS DICIONÁRIOS - Grandeza é uma variável que retorna as grandezas na forma de dicionário
 
 # Otimização
-Estime.otimiza(estimativa_inicial=[3, 0.1, 5,0.4],algoritmo='L-BFGS-B',args=[tipo])
-#Estime.SETparametro([0.0075862408745003265, 27642.662773759967],args=[tipo])
+Estime.otimiza(estimativa_inicial=[3, 0.1, 5,0.4],algoritmo='Nelder-Mead')
 Estime.incertezaParametros(delta=1e-5,metodoIncerteza='SensibilidadeModelo',preencherregiao=True)
 Estime.predicao()
 Estime.analiseResiduos()
