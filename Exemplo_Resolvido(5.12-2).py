@@ -20,7 +20,6 @@ from numpy import exp
 ##################################################################################
 
 def Modelo (param, x, args):
-    tipo = args[0][0]
 
     tempo = x[:,0:1]
     T     = x[:,1:2]
@@ -28,9 +27,9 @@ def Modelo (param, x, args):
     ko = param[0]
     E  = param[1]
 
-    y1 = [exp(-(ko*10**17)*tempo*exp(-E/T)),exp(-tempo*exp(ko-E/T)),exp(-ko*tempo*exp(-E*(1/T-1./630.)))]
+    y2 = [exp(-ko*tempo*exp(-E*(1/T-1./630.)))]
 
-    return y1[tipo]
+    return y2
 
 # =================================================================================
 # PARTE II - INCLUSÃO DE DADOS (DEPENDE DO EXEMPLO)
@@ -39,12 +38,11 @@ def Modelo (param, x, args):
 # ---------------------------------------------------------------------------------
 # Exemplo validação: Exemplo resolvido 5.11, 5.12-1, 5.12-2 (capítulo 5) (Análise de Dados experimentais I)
 # ---------------------------------------------------------------------------------
-tipo = 2 # tipo: modelo a ser escolhido - 0 (exemplo 5.11), 1 (exemplo 5.12) ou 2 (exemplo 5.13)
 
 Estime = EstimacaoNaoLinear(Modelo, simbolos_x=[r't','T'], unidades_x=['s','K'], label_latex_x=[r'$t$','$T$'],
                             simbolos_y=[r'y'], unidades_y=['adm'],
                             simbolos_param=['ko','E'], unidades_param=['unid1','unid2'],label_latex_param=[r'$k_o$',r'$E$'],
-                            projeto='teste%d'%tipo)
+                            projeto='Teste2')
 
 #Tempo
 x1 = [120.0,60.0,60.0,120.0,120.0,60.0,60.0,30.0,15.0,60.0,
@@ -82,14 +80,12 @@ inf=[0 ,20000]
 #
 
 Estime.setConjunto(tipo='estimacao')
-
 #Estime.setConjunto(tipo='predicao')
 
 grandeza = Estime._armazenarDicionario() # ETAPA PARA CRIAÇÃO DOS DICIONÁRIOS - Grandeza é uma variável que retorna as grandezas na forma de dicionário
 
 # Otimização
-Estime.otimiza(estimativa_inicial= [0.005, 20000.000],algoritmo='Nelder-Mead',args=[tipo])
-#Estime.SETparametro([0.0075862408745003265, 27642.662773759967],args=[tipo])
+Estime.otimiza(estimativa_inicial= [0.005, 20000.000],algoritmo='Nelder-Mead')
 Estime.incertezaParametros(delta=1e-5,metodoIncerteza='SensibilidadeModelo',preencherregiao=False)
 Estime.predicao()
 Estime.analiseResiduos()

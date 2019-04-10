@@ -51,7 +51,7 @@ Iniciar a função para realizar a estimação:
 Estime = EstimacaoNaoLinear(Modelo, simbolos_x=[r't','T'], unidades_x=['s','K'], label_latex_x=[r'$t$','$T$'],
                             simbolos_y=[r'y'], unidades_y=['adm'],
                             simbolos_param=['ko','E'], unidades_param=['unid1','unid2'],label_latex_param=[r'$k_o$',r'$E$'],
-                            projeto='Teste1')
+                            projeto='Test0')
 
 u"""
 
