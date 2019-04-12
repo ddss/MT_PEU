@@ -641,6 +641,8 @@ class EstimacaoNaoLinear:
         * Estes arrays são armazenados como variáveis temporárias.
         * É necessário executar o método setConjunto logo após a definição destas grandezas.
 
+        Depois de definir as grandezas dependentes e independentes, deve ser executado o método setConjunto
+
         ========
         Entradas
         ========
@@ -662,23 +664,23 @@ class EstimacaoNaoLinear:
         Estime.setDados(0,(x1,ux1),(x2,ux2))
         Estime.setDados(1,(y1,uy1))
 
-        Internamente as variáveis serão convertidas para
+        Internamente as variáveis serão convertidas para arrays
         grandezas independentes
-        [1 4]
-        [2 5]
-        [3 6]
-        incertezas
-        [1 1]
-        [1 1]
-        [1 1]
+            [1 4]
+        x = [2 5]
+            [3 6]
+        e suas incertezas
+             [1 1]
+        ux = [1 1]
+             [1 1]
         grandezas dependentes
-        [5]
-        [7]
-        [8]
-        incertezas
-        [1]
-        [1]
-        [1]
+            [5]
+        y = [7]
+            [8]
+        e suas incertezas
+             [1]
+        uy = [1]
+             [1]
         """
 
         for ele in args:
@@ -719,7 +721,7 @@ class EstimacaoNaoLinear:
 
     def setConjunto(self,glx=[],gly=[],tipo='estimacao',uxy=None):
         u"""
-        Método para incluir os dados de entrada da estimação
+        Método para incluir os dados de entrada da estimação, deve ser executado após a setDados
 
         =======================
         Entradas (Obrigatórias)
