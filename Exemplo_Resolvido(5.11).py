@@ -25,7 +25,7 @@ def Modelo (param, x, args):
     ko = param[0]
     E  = param[1]
 
-    y1 = [exp(-(ko*10**17)*tempo*exp(-E/T))]
+    y1 = exp(-(ko*10**17)*tempo*exp(-E/T))
 
     u"""
 
@@ -118,7 +118,7 @@ Define que os dados experimentais previamente inseridos serão utilizados como u
 
 Estime.setConjunto(tipo='estimacao')
 
-grandeza = Estime._armazenarDicionario() # ETAPA PARA CRIAÇÃO DOS DICIONÁRIOS - Grandeza é uma variável que retorna as grandezas na forma de dicionário
+#grandeza = Estime._armazenarDicionario() # ETAPA PARA CRIAÇÃO DOS DICIONÁRIOS - Grandeza é uma variável que retorna as grandezas na forma de dicionário
 
 
 # Otimização

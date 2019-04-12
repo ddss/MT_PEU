@@ -27,7 +27,7 @@ def Modelo (param, x, args):
     ko = param[0]
     E  = param[1]
 
-    y2 = [exp(-ko*tempo*exp(-E*(1/T-1./630.)))]
+    y2 = exp(-ko*tempo*exp(-E*(1/T-1./630.)))
 
     return y2
 

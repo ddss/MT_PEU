@@ -27,9 +27,9 @@ def Modelo (param, x, args):
     ko = param[0]
     E  = param[1]
 
-    y1 = [exp(-tempo*exp(ko-E/T))]
+    y = exp(-tempo*exp(ko-E/T))
 
-    return y1
+    return y
 
 # =================================================================================
 # PARTE II - INCLUSÃO DE DADOS (DEPENDE DO EXEMPLO)
