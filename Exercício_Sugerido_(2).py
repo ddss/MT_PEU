@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-Exemplos de validação
+Exemplo de uso do MT_PEU
 
-@author(es): Daniel, Francisco, Anderson, Leomar, Victor, Leonardo
-@GrupoPesquisa: PROTEC
-@LinhadePesquisa: GI-UFBA
+EXERCÍCIO SUGERIDO (2) - Retirado do livro Schwaab e Pinto (2007, p. 371) que trata sobre a estimação de parâmetros.
+A resolução pode ser encontrada no cap. 6 do mesmo livro, p. 428.
+
 """
  # Define que o matplotlib não usará recursos de vídeo
 from matplotlib import use
@@ -12,6 +12,7 @@ use('Agg')
 
 from MT_PEU import EstimacaoNaoLinear
 from numpy import concatenate
+
 
 
 def Modelo1(param,x,args):
@@ -61,15 +62,22 @@ inf = [1., 0, 1., 0.]
 
 Estime.setConjunto(tipo='estimacao')
 
-#Estime.setConjunto(tipo='predicao')
-
 grandeza = Estime._armazenarDicionario() # ETAPA PARA CRIAÇÃO DOS DICIONÁRIOS - Grandeza é uma variável que retorna as grandezas na forma de dicionário
 
 # Otimização
-Estime.otimiza(estimativa_inicial=[3, 0.1, 5,0.4],algoritmo='Nelder-Mead',args=[tipo],)
+Estime.otimiza(estimativa_inicial=[3, 0.1, 5,0.4],algoritmo='Nelder-Mead')
 Estime.incertezaParametros(delta=1e-5,metodoIncerteza='SensibilidadeModelo',preencherregiao=False)
 Estime.predicao()
 Estime.analiseResiduos()
 etapas = ['grandezas-entrada', 'predicao','grandezas-calculadas','analiseResiduos', 'regiaoAbrangencia']
 Estime.graficos(etapas)
 Estime.relatorio(export_y=True,export_cov_y=True)
+
+u"""
+
+Referências: 
+
+SCHWAAB, M.M.;PINTO, J.C. Análise de Dados Experimentais I: Fundamentos da Estátistica e Estimação de Parâmetros. 
+Rio de Janeiro: e-papers, 2007.
+
+"""

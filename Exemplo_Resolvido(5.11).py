@@ -1,11 +1,20 @@
 # -*- coding: utf-8 -*-
 """
+Exemplos de validação
+
+@author(es): Daniel, Francisco, Anderson, Leomar, Victor, Leonardo, Regiane.
+@GrupoPesquisa: PROTEC
+@LinhadePesquisa: GI-UFBA
+
+
 Exemplo de uso do MT_PEU
 
-EXEMPLO (5.11) - Retirado do livro Schwaab e Pinto (2007, p. 323) que trata sobre a estimação de parâmetros do modelo cinético:
-
+EXEMPLO (5.11) - Retirado do livro Schwaab e Pinto (2007, p. 361) que trata sobre a estimação de parâmetros do modelo cinético:
 
 """
+# =================================================================================
+# PARTE I - INCLUSÃO DAS BIBLIOTECAS
+# =================================================================================
 
 from matplotlib import use
 use('Agg')
@@ -14,12 +23,12 @@ from MT_PEU import EstimacaoNaoLinear
 from numpy import exp
 
 # =================================================================================
-# PARTE II - INCLUSÃO DE DADOS (DEPENDE DO EXEMPLO)
+# PARTE II - CRIAÇÃO DO MODELO
 # =================================================================================
 
 u"""
-O modelo é definido na forma de uma subrotina ((def) do python) e representa a equação acima,onde: 
-y1 é a fração que resta do reagente, t é o tempo, T é a temperatura, por fim k0 e E são os parâmetros a serem estimados.
+O modelo é definido na forma de uma subrotina ((def) do python) e representa a equação abaixo,onde: 
+y é a fração que resta do reagente, tempo, T é a temperatura, por fim k0 e E são os parâmetros a serem estimados.
 
 """
 
@@ -38,7 +47,7 @@ def Modelo (param, x, args):
 
 
 # =================================================================================
-# PARTE II - INCLUSÃO DE DADOS (DEPENDE DO EXEMPLO)
+# PARTE III - INICIALIZAÇÃO DA CLASSE
 # =================================================================================
 
 u"""
@@ -53,7 +62,7 @@ Estime = EstimacaoNaoLinear(Modelo, simbolos_x=[r't','T'], unidades_x=['s','K'],
                             projeto='Test0')
 
 # =================================================================================
-# PARTE II - INCLUSÃO DE DADOS (DEPENDE DO EXEMPLO)
+# PARTE IV - INCLUSÃO DE DADOS (DEPENDE DO EXEMPLO)
 # =================================================================================
 
 u"""
@@ -112,7 +121,7 @@ Define que os dados experimentais previamente inseridos serão utilizados como u
 Estime.setConjunto(tipo='estimacao')
 
 # =================================================================================
-# PARTE IV - GENÉRICO (INDEPENDE DO EXEMPLO)
+# PARTE V - OTIMIZAÇÃO
 # =================================================================================
 
 u"""
@@ -125,23 +134,24 @@ com estimativa inicial em [0,03 , 20000,00], para k0 e E respectivamente.
 Estime.otimiza(estimativa_inicial= [0.005, 20000.000],algoritmo='Nelder-Mead')
 
 # =================================================================================
-# PARTE IV - GENÉRICO (INDEPENDE DO EXEMPLO)
+# PARTE VI - INCERTEZA
 # =================================================================================
 
 Estime.incertezaParametros(delta=1e-5,metodoIncerteza='SensibilidadeModelo',preencherregiao=True)
 
 # =================================================================================
-# PARTE IV - GENÉRICO (INDEPENDE DO EXEMPLO)
+# PARTE VII - PREDIÇÃO E ANALISE DE RESIDUOS
 # =================================================================================
 
 Estime.predicao()
 Estime.analiseResiduos()
 
 # =================================================================================
-# PARTE IV - GENÉRICO (INDEPENDE DO EXEMPLO)
+# PARTE VIII - GERAÇÃO DE GRÁFICOS E RELATÓRIO
 # =================================================================================
 
-etapas = ['otimizacao','grandezas-entrada', 'predicao','grandezas-calculadas','analiseResiduos', 'regiaoAbrangencia']
+#etapas = ['otimizacao', 'grandezas-entrada', 'predicao', 'grandezas-calculadas', 'analiseResiduos', 'regiaoAbrangencia']
+etapas = ['otimizacao', 'predicao', 'regiaoAbrangencia']
 Estime.graficos(etapas)
 Estime.relatorio(export_y=True,export_cov_y=True)
 
