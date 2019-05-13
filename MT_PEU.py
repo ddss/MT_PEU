@@ -1616,7 +1616,7 @@ class EstimacaoNaoLinear:
         #qual terá seus elementos substituidos pelo resultado da derivada das  função em relação aos\
         #parâmetros i de acordo o seguinte ''for''.
 
-        matriz_S = ones((self.y.NV*self.y.predicao.NE,self.parametros.NV))
+        matriz_S = ones((self.y.NV*x.shape[0],self.parametros.NV))
 
         for i in xrange(self.parametros.NV):
 
@@ -1888,10 +1888,10 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------             
         # Grandezas independentes
         if self.__flag.info['reconciliacao']:
-            self.x._testesEstatisticos(self.y.estimacao.matriz_estimativa)
+            self.x._testesEstatisticos(self.y.predicao.matriz_estimativa)
 
         # Grandezas dependentes            
-        self.y._testesEstatisticos(self.x.estimacao.matriz_estimativa)
+        self.y._testesEstatisticos(self.x.predicao.matriz_estimativa)
 
         # ---------------------------------------------------------------------
         # VALIDAÇÃO DO VALOR DA FUNÇÃO OBJETIVO COMO UMA CHI 2
