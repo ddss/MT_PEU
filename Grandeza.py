@@ -54,7 +54,7 @@ class Grandeza:
 
         **DEFINICIONAIS** - Usado para criação de atributos:
         
-        * ``_SETexperimental`` : irá criar o atributo experimental. Deve ser usado se se tratar de dados experimentais
+        * ``_SETestimação``    : irá criar o atributo estimação. Deve ser usado se se tratar de dados experimentais
         * ``_SETmodelo``       : irá criar o atributo modelo. Deve ser usado se se tratar de dados do modelo
         * ``_SETvalidacao``    : irá criar o atributo validacao. Deve ser usado se se tratar de dados de validação
         * ``_SETparametro``    : irá criar os atributos estimativa, matriz_covariancia, regiao_abrangencia. Deve ser usado para os parâmetros
@@ -80,7 +80,7 @@ class Grandeza:
         
         **GRANDEZAS DEPENDENTES E INDEPENDENTES**:
 
-        * ``.experimental`` (objeto): objeto Organizador que armazena os valores e incertezas dos dados experimentais \
+        * ``.estimação`` (objeto): objeto Organizador que armazena os valores e incertezas dos dados experimentais \
         (vide documentação do mesmo). **só exitirá após execução do método _SETexperimental**
         * ``.validacao``    (objeto): objeto Organizador que armazena os valores e incertezas dos dados de validação \
         (vide documentação do mesmo). **só exitirá após execução do método _SETvalidacao**
@@ -676,7 +676,7 @@ class Grandeza:
            
         cm1 = LinearSegmentedColormap.from_list("Correlacao-cmap",cmap)   
 
-        if self.__ID_disponivel[0] in ID: # Gráfico Pcolor para experimental
+        if self.__ID_disponivel[0] in ID: # Gráfico Pcolor para estimação
             listalabel=[]
             for elemento in self.labelGraficos(printunit=False):
                 for i in xrange(self.estimacao.NE):
@@ -686,7 +686,7 @@ class Grandeza:
             savefig(base_path+base_dir+self.__ID_disponivel[0]+'_fl'+str(fluxo)+'_'+'pcolor_matriz-correlacao')
             close()
 
-        if self.__ID_disponivel[1] in ID: # Gráfico Pcolor para validação
+        if self.__ID_disponivel[1] in ID: # Gráfico Pcolor para predição
             listalabel=[]
             for elemento in self.labelGraficos(printunit=False):
                 for i in xrange(self.predicao.NE):
@@ -791,7 +791,7 @@ class Grandeza:
                     Fig.autocorr(dados, label_x='Lag',
                                  label_y=u'Autocorrelação de {}'.format(self.labelGraficos(printunit=False)[i]),
                                  normed=True, maxlags=None)
-                    Fig.salvar_e_fechar(base_path + base_dir + 'experimental_fl' + str(fluxo) + '_autocorrelacao.png')
+                    Fig.salvar_e_fechar(base_path + base_dir + 'estimacao_fl' + str(fluxo) + '_autocorrelacao.png')
 
             if self.__ID_disponivel[1] in ID:
 
@@ -807,4 +807,4 @@ class Grandeza:
                     Fig.autocorr(dados, label_x='Lag',
                                  label_y=u'Autocorrelação de {}'.format(self.labelGraficos(printunit=False)[i]),
                                  normed=True, maxlags=None)
-                    Fig.salvar_e_fechar(base_path + base_dir + 'validacao_fl' + str(fluxo) + '_autocorrelacao.png')
+                    Fig.salvar_e_fechar(base_path + base_dir + 'predicao_fl' + str(fluxo) + '_autocorrelacao.png')

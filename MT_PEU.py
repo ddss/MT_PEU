@@ -732,7 +732,7 @@ class EstimacaoNaoLinear:
         * tipo      : string que define se os dados são experimentais (para estimação) ou de validação.
 
         **Aviso**:
-        * Caso não definidos dados de validação, será assumido os valores experimentais (de estimação)
+        * Caso não definidos dados de predição, será assumido os valores experimentais (de estimação)
         * Caso não definido graus de liberdade para as grandezas, será assumido o valor constante de 100
         """
         # ---------------------------------------------------------------------
@@ -1147,7 +1147,7 @@ class EstimacaoNaoLinear:
         if regiao is not None:
             self.__controleFluxo.SET_ETAPA('regiaoAbrangencia', ignoreValidacao=True)
 
-    def incertezaParametros(self,metodoIncerteza='2InvHessiana',preencherregiao=False,**kwargs):
+    def incertezaParametros(self,metodoIncerteza='2InvHessiana',preencherregiao=True,**kwargs):
         u"""
 
         Método para avaliação da matriz de covariãncia dos parâmetros e região de abrangência.
@@ -2278,7 +2278,7 @@ class EstimacaoNaoLinear:
                         self.y.simbolos[i] + '_' + ('predicao' if self.__flag.info['dadospredicao'] else 'estimacao')+'.png')
 
                     for j, simbol in enumerate(self.x.simbolos):
-                        #Resíduos vs. X experimental/validacao
+                        #Resíduos vs. X estimacao/validacao
                         if self.__flag.info['dadospredicao']:
                             x = self.x.predicao.matriz_estimativa[:,j]
                         else:

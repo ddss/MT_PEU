@@ -62,8 +62,6 @@ inf = [1., 0, 1., 0.]
 
 Estime.setConjunto(tipo='estimacao')
 
-grandeza = Estime._armazenarDicionario() # ETAPA PARA CRIAÇÃO DOS DICIONÁRIOS - Grandeza é uma variável que retorna as grandezas na forma de dicionário
-
 # Otimização
 Estime.otimiza(estimativa_inicial=[3, 0.1, 5,0.4],algoritmo='Nelder-Mead')
 Estime.incertezaParametros(delta=1e-5,metodoIncerteza='SensibilidadeModelo',preencherregiao=False)
@@ -71,7 +69,7 @@ Estime.predicao()
 Estime.analiseResiduos()
 etapas = ['grandezas-entrada', 'predicao','grandezas-calculadas','analiseResiduos', 'regiaoAbrangencia']
 Estime.graficos(etapas)
-Estime.relatorio(export_y=True,export_cov_y=True)
+Estime.relatorio()
 
 u"""
 

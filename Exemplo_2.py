@@ -2,13 +2,18 @@
 """
 Exemplo de uso do MT_PEU
 
-EXEMPLO (5.12-2) - Retirado do livro Schwaab e Pinto (2007, p. 366) que trata sobre a estimação de parâmetros do modelo cinético:
+EXEMPLO (5.12-1) - Retirado do livro Schwaab e Pinto (2007, p. 364) que trata sobre a estimação de parâmetros do modelo cinético:
+
 
 """
 
 # =================================================================================
 # PARTE I - INCLUSÃO DAS BIBLIOTECAS
 # =================================================================================
+""" 
+Abaixo estão representadas as bibliotecas necessárias para o correto funcionamento do programa:
+
+"""
 
  # Define que o matplotlib não usará recursos de vídeo
 from matplotlib import use
@@ -41,9 +46,9 @@ def Modelo (param, x, args):
     ko = param[0]
     E  = param[1]
 
-    y2 = exp(-ko*tempo*exp(-E*(1/T-1./630.)))
+    y = exp(-tempo*exp(ko-E/T))
 
-    return y2
+    return y
 
 # =================================================================================
 # PARTE III - INICIALIZAÇÃO DA CLASSE
@@ -55,10 +60,9 @@ Iniciar a classe para realizar a estimação:
 
 """
 
-Estime = EstimacaoNaoLinear(Modelo, simbolos_x=[r't','T'], unidades_x=['s','K'], label_latex_x=[r'$t$','$T$'],
+Estime = EstimacaoNaoLinear(Modelo, simbolos_x=[r't','T'], unidades_x=['s','K'],
                             simbolos_y=[r'y'], unidades_y=['adm'],
-                            simbolos_param=['ko','E'], unidades_param=['unid1','unid2'],label_latex_param=[r'$k_o$',r'$E$'],
-                            projeto='Teste2')
+                            simbolos_param=['ko','E'], unidades_param=['unid1','unid2'], projeto='Teste1')
 
 # =================================================================================
 # PARTE IV - INCLUSÃO DE DADOS (DEPENDE DO EXEMPLO)
@@ -70,18 +74,21 @@ Os dados experimentais da variável dependente (y) e das variáveis independente
 são disponibilizados em Schwaab e Pinto (2007, p.324), e apresentados abaixo na forma de listas:
 
 """
+
 #Tempo
-tempo = [120.0,60.0,120.0,60.0,30.0,15.0,
+tempo = [120.0,60.0,60.0,120.0,120.0,60.0,60.0,30.0,15.0,60.0,
 45.1,90.0,150.0,60.0,60.0,60.0,30.0,90.0,150.0,90.4,120.0,
 60.0,60.0,60.0,60.0,60.0,60.0,30.0,45.1,30.0,30.0,45.0,15.0,30.0,90.0,25.0,
 60.1,60.0,30.0,30.0,60.0]
 
 #Temperatura
-temperatura = [600.0,612.0,612.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,
+temperatura = [600.0,600.0,612.0,612.0,612.0,612.0,620.0,620.0,620.0,
+620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,
 620.0,620.0,620.0,620.0,620.0,620.0,631.0,631.0,631.0,631.0,631.0,639.0,639.0,
 639.0,639.0,639.0,639.0,639.0,639.0,639.0]
 
-y = [0.9,0.886,0.791,0.787,0.877,0.938,0.827,0.696,0.582,0.795,0.800,0.790,0.883,0.712,0.576,0.715,0.673,
+y = [0.9,0.949,0.886,0.785,0.791,0.890,0.787,0.877,0.938,
+0.782,0.827,0.696,0.582,0.795,0.800,0.790,0.883,0.712,0.576,0.715,0.673,
 0.802,0.802,0.804,0.794,0.804,0.799,0.764,0.688,0.717,0.802,0.695,0.808,
 0.655,0.309,0.689,0.437,0.425,0.638,.659,0.449]
 
@@ -92,9 +99,9 @@ o programa assume valor 1 para todos os dados (ux1, ux2, uy1):
 
 """
 
-uxtempo = [1]*37
-uxtemperatura = [1]*37
-uy1 = [1]*37
+uxtempo = [1]*41
+uxtemperatura = [1]*41
+uy = [1]*41
 
 u"""
 
@@ -105,7 +112,8 @@ e a opção 1 é para a grandeza independente.
 """
 
 Estime.setDados(0,(tempo,uxtempo),(temperatura,uxtemperatura))
-Estime.setDados(1,(y,uy1))
+Estime.setDados(1,(y,uy))
+
 
 u"""
 
@@ -114,19 +122,6 @@ Define que os dados experimentais previamente inseridos serão utilizados como u
 """
 
 Estime.setConjunto(tipo='estimacao')
-
-
-tempo = [60.0,120.0,60.0,60.0]
-
-temperatura = [600.0,612.0,612.0,620.0]
-
-y = [0.949,0.785,0.890,0.782]
-
-Estime.setDados(0,(tempo,[1,1,1,1]),(temperatura,[1,1,1,1]))
-Estime.setDados(1,(y,[1,1,1,1]))
-
-Estime.setConjunto(tipo='predicao')
-
 
 # =================================================================================
 # PARTE V - OTIMIZAÇÃO
@@ -139,7 +134,6 @@ caso não seja escolhido o algoritmo a ser utilizado, por padrão a otimização
 com estimativa inicial em [0,03 , 20000,00], para k0 e E respectivamente.
 
 """
-
 Estime.otimiza(estimativa_inicial= [0.005, 20000.000],algoritmo='Nelder-Mead')
 
 # =================================================================================
@@ -161,7 +155,7 @@ Estime.analiseResiduos()
 
 etapas = ['otimizacao','grandezas-entrada', 'predicao','grandezas-calculadas','analiseResiduos', 'regiaoAbrangencia']
 Estime.graficos(etapas)
-Estime.relatorio(export_y=True,export_cov_y=True)
+Estime.relatorio()
 
 
 u"""
