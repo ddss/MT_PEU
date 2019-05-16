@@ -98,9 +98,9 @@ o programa assume valor 1 para todos os dados (ux1, ux2, uy1):
 
 """
 
-uxtempo = [1]*37
-uxtemperatura = [1]*37
-uy1 = [1]*37
+uxtempo = [0.2]*37
+uxtemperatura = [0.2]*37
+uy1 = [0.2]*37
 
 u"""
 
@@ -120,19 +120,6 @@ Define que os dados experimentais previamente inseridos serão utilizados como u
 """
 
 Estime.setConjunto(tipo='estimacao')
-
-
-tempo = [60.0,120.0,60.0,60.0]
-
-temperatura = [600.0,612.0,612.0,620.0]
-
-y = [0.949,0.785,0.890,0.782]
-
-Estime.setDados(0,(tempo,[1,1,1,1]),(temperatura,[1,1,1,1]))
-Estime.setDados(1,(y,[1,1,1,1]))
-
-Estime.setConjunto(tipo='predicao')
-
 
 # =================================================================================
 # PARTE V - OTIMIZAÇÃO
@@ -168,6 +155,29 @@ Estime.analiseResiduos()
 etapas = ['otimizacao','grandezas-entrada', 'predicao','grandezas-calculadas','analiseResiduos', 'regiaoAbrangencia']
 Estime.graficos(etapas)
 Estime.relatorio()
+
+
+tempo = [60.0,120.0,60.0,60.0]
+
+temperatura = [600.0,612.0,612.0,620.0]
+
+y = [0.949,0.785,0.890,0.782]
+
+Estime.setDados(0,(tempo,[1,1,1,1]),(temperatura,[1,1,1,1]))
+Estime.setDados(1,(y,[1,1,1,1]))
+
+Estime.setConjunto(tipo='predicao')
+
+Estime.predicao()
+Estime.analiseResiduos()
+
+# =================================================================================
+# PARTE VIII - GRÁFICOS E RELATÓRIO
+# =================================================================================
+
+etapas = ['otimizacao','grandezas-entrada', 'predicao','grandezas-calculadas','analiseResiduos', 'regiaoAbrangencia']
+Estime.graficos(etapas)
+Estime.relatorio(export_y=True,export_cov_y=True)
 
 
 u"""

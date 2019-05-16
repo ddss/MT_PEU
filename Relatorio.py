@@ -17,7 +17,7 @@ from subrotinas import Validacao_Diretorio
 # ---------------------------------------------------------------------
 class Relatorio:
 
-    def __init__(self,base_path=None,base_dir=None,**kwargs):
+    def __init__(self,fluxo,base_path=None,base_dir=None,**kwargs):
         '''
         Classe para escrita de relatórios sobre estimação de parãmetros
 
@@ -41,6 +41,8 @@ class Relatorio:
             Validacao_Diretorio(base_path,base_dir)
 
         self.__base_path = base_path + base_dir
+
+        self.__fluxo = fluxo
 
     def Parametros(self,parametros,pontoOtimo):
         '''
@@ -149,7 +151,7 @@ class Relatorio:
         # ESCRITA DE ARQUIVO DE RELATÓRIO
         # ---------------------------------------------------------------------
         if estatisticas is not None:
-            with open(self.__base_path+'relatorio-predicao.txt','wb') as f:
+            with open(self.__base_path+'relatorio-predicao_fl'+self.__fluxo+'.txt','wb') as f:
                 # TÍTULO:
                 f.write(('{:#^'+str(max([70,y.NV*18]))+'}'+self.__quebra).format(' PREDIÇÃO '))
                 f.write(('{:=^'+str(max([70,y.NV*18]))+'}'+self.__quebra).format(' GRANDEZAS DEPENDENTES '))
@@ -320,7 +322,7 @@ class Relatorio:
         if export_y:
             cont = 0
             for symb in y.simbolos:
-                with open(self.__base_path+symb+'-calculado-predicao.txt','wb') as f:
+                with open(self.__base_path+symb+'-calculado-predicao_fl'+self.__fluxo+'.txt','wb') as f:
                     for i in xrange(y.calculado.NE):
                         f.write('{:.5g},{:.5g},{:.5g}'.format(y.calculado.matriz_estimativa[i,cont],y.calculado.matriz_incerteza[i,cont],y.calculado.gL[cont][i])+self.__quebra)
                 f.close()
@@ -328,7 +330,7 @@ class Relatorio:
 
         # matriz de covariância
         if export_cov_y:
-            with open(self.__base_path+'y-calculado-matriz-covariancia.txt','wb') as f:
+            with open(self.__base_path+'y-calculado-matriz-covariancia_fl'+self.__fluxo+'.txt','wb') as f:
                 for i in xrange(y.NV*y.calculado.NE):
                     for j in xrange(y.NV*y.calculado.NE):
                         f.write('{:.5g} '.format(y.calculado.matriz_covariancia[i,j]))
