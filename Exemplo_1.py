@@ -7,7 +7,7 @@ Exemplos de validação
 @LinhadePesquisa: GI-UFBA
 
 
-Exemplo básico de uso do MT_PEU.
+Exemplo básico de uso do MT_PEU, onde são apresentadas as configurações mínimas para o funcionamento do software.
 
 EXEMPLO (5.11) - Retirado do livro Schwaab e Pinto (2007, p. 361) que trata sobre a estimação de parâmetros do modelo cinético:
 
@@ -16,7 +16,7 @@ EXEMPLO (5.11) - Retirado do livro Schwaab e Pinto (2007, p. 361) que trata sobr
 # PARTE I - INCLUSÃO DAS BIBLIOTECAS
 # =================================================================================
 """ 
-Abaixo estão representadas as bibliotecas necessárias para o correto funcionamento do programa:
+Abaixo estão representadas as bibliotecas necessárias para a execução:
 
 """
 from matplotlib import use
@@ -55,7 +55,9 @@ def Modelo (param, x, args):
 
 u"""
 
-Iniciar a classe para realizar a estimação:
+Nessa etapa é inicializada a classe que realiza a estimação. Por padrão, informações como os simbolos das variáveis,
+são obrigatorias e passadas nesta etapa. Por definição o nome da pasta gerada (que contém relatórios e gráficos) será
+"Projetos".  
 
 """
 #Cria o objeto que realiza a estimação
@@ -114,7 +116,8 @@ Estime.setDados(1,(y,uy))
 
 u"""
 
-Define que os dados experimentais previamente inseridos serão utilizados como um conjunto de dados para o qual os parâmetros serão estimados:
+Define que os dados experimentais previamente inseridos serão utilizados como um conjunto de dados para o qual os 
+parâmetros serão estimados:
 
 """
 
@@ -128,14 +131,21 @@ u"""
 
 Otimização será realizada utilizando o algoritmo escolhido pelo usuário (disponiveis: Nelder-Mead, Powell, BFGS, L-BFGS-B, CG),
 caso não seja escolhido (como no exemplo abaixo), o algoritmo a ser utilizado por padrão a otimização será realizada utilizando o Nelder-Mead,
-com estimativa inicial em [0,03 , 20000,00], para k0 e E respectivamente.
+com estimativa inicial em [0,5 , 25000,00], para k0 e E respectivamente. Como não foi alterado, o algoritmo utilizado
+na otimização será o Nelder-Mead.
 
 """
-Estime.otimiza(estimativa_inicial= [0.005, 20000.000])
+Estime.otimiza(estimativa_inicial= [0.5, 25000.000])
 
 # =================================================================================
 # PARTE VI - INCERTEZA
 # =================================================================================
+
+u"""
+ Associada a toda medida existe uma incerteza. O método incerteza parâmetros calcula as incertezas 
+ associadas aos parâmetros (neste exemplo k0 e E). 
+ 
+"""
 
 Estime.incertezaParametros()
 
@@ -143,12 +153,27 @@ Estime.incertezaParametros()
 # PARTE VII - PREDIÇÃO E ANALISE DE RESIDUOS
 # =================================================================================
 
+u"""
+ No método predição, é feita a primeira analise sobre os resultados obtidos. A covariância é avaliada, 
+ e consequentemente a eficiencia do modelo. Em analise de residuos é possível vericar possíveis relações de dependencia 
+ e/ou tendencia entre as variaveis. Testes estatisticos como o de homocedasticidade, chi quadrado, etc são realizados
+ nesta etapa. A analise de residuos é feita prioritariamente com os dados de validação.
+
+"""
+
 Estime.predicao()
 Estime.analiseResiduos()
 
 # =================================================================================
 # PARTE VIII - GERAÇÃO DE GRÁFICOS E RELATÓRIO
 # =================================================================================
+
+u"""
+ Nesta etapa ocorre a geração dos dados de saída do programa : relátorios e gráficos. 
+ Os gráficos são gerados de acordo com as etapas que foram realizadas. No relátorio contém informações a respeito
+ dos testes estatisticos, função objetivo, matriz de covariância, status da otimização, dentre outros.
+
+"""
 
 etapas = ['otimizacao', 'grandezas-entrada', 'predicao', 'grandezas-calculadas', 'analiseResiduos', 'regiaoAbrangencia']
 Estime.graficos(etapas)

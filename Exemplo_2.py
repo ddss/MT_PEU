@@ -55,8 +55,9 @@ def Modelo (param, x, args):
 # =================================================================================
 
 u"""
-
-Iniciar a classe para realizar a estimação:
+Inicialização da classe que realiza estimação. Entradas opcionais como unidades, podem ser passadas nesta etapa.
+Também é possível renomear a pasta onde são gerados os aquivos com os resultados.como no exemplo a baixo, onde o nome
+da pasta foi alterado para 'Teste1'.
 
 """
 
@@ -69,7 +70,6 @@ Estime = EstimacaoNaoLinear(Modelo, simbolos_x=[r't','T'], unidades_x=['s','K'],
 # =================================================================================
 
 u"""
-
 Os dados experimentais da variável dependente (y) e das variáveis independentes (t e T)
 são disponibilizados em Schwaab e Pinto (2007, p.324), e apresentados abaixo na forma de listas:
 
@@ -93,7 +93,6 @@ y = [0.9,0.949,0.886,0.785,0.791,0.890,0.787,0.877,0.938,
 0.655,0.309,0.689,0.437,0.425,0.638,.659,0.449]
 
 u"""
-
 A plataforma MT_PEU necessita da incerteza dos dados experimentais, e quando está informação não é disponibilizada,
 o programa assume valor 1 para todos os dados (ux1, ux2, uy1):
 
@@ -104,7 +103,6 @@ uxtemperatura = [1]*41
 uy = [1]*41
 
 u"""
-
 Inclusão de dados experimentais na estimação:
 Inclui os dados experimentais nesse objeto (setDados), onde a opção 0 é para a grandeza dependente,
 e a opção 1 é para a grandeza independente.
@@ -116,8 +114,8 @@ Estime.setDados(1,(y,uy))
 
 
 u"""
-
-Define que os dados experimentais previamente inseridos serão utilizados como um conjunto de dados para o qual os parâmetros serão estimados:
+Define que os dados experimentais previamente inseridos serão utilizados como um conjunto de dados para o qual os 
+parâmetros serão estimados:
 
 """
 
@@ -128,17 +126,25 @@ Estime.setConjunto(tipo='estimacao')
 # =================================================================================
 
 u"""
-
 Otimização será realizada utilizando o algoritmo escolhido pelo usuário (disponiveis: Nelder-Mead, Powell, BFGS, L-BFGS-B, CG),
 caso não seja escolhido o algoritmo a ser utilizado, por padrão a otimização será realizada utilizando o Nelder-Mead,
 com estimativa inicial em [0,03 , 20000,00], para k0 e E respectivamente.
 
 """
-Estime.otimiza(estimativa_inicial= [0.005, 20000.000],algoritmo='Nelder-Mead')
+
+Estime.otimiza(estimativa_inicial= [0.03, 20000.000],algoritmo='Nelder-Mead')
 
 # =================================================================================
 # PARTE VI - INCERTEZA
 # =================================================================================
+
+u"""
+ Associada a toda medida existe uma incerteza. O método incerteza parâmetros calcula as incertezas 
+ associadas aos parâmetros (neste exemplo k0 e E). Nesta etapa é possível escolher o método útilizado para
+ avaliar a incerteza. Métodos disponíveis: 2InvHessiana, Geral, SensibilidadeModelo. Por definição o preenchimeto
+ da região de verossimilhança é 'True', caso necessário esta opção pode ser alterada nesta etapa.
+
+"""
 
 Estime.incertezaParametros(delta=1e-5,metodoIncerteza='SensibilidadeModelo',preencherregiao=False)
 
@@ -146,12 +152,27 @@ Estime.incertezaParametros(delta=1e-5,metodoIncerteza='SensibilidadeModelo',pree
 # PARTE VII - PREDIÇÃO E ANALISE DE RESIDUOS
 # =================================================================================
 
+u"""
+ No método predição, é feita a primeira analise sobre os resultados obtidos. A covariância é avaliada, 
+ e consequentemente a eficiencia do modelo. Em analise de residuos é possível vericar possíveis relações de dependencia 
+ e/ou tendencia entre as variaveis. Testes estatisticos como o de homocedasticidade, chi quadrado, etc são realizados
+ nesta etapa. A analise de residuos é feita prioritariamente com os dados de validação.
+
+"""
+
 Estime.predicao()
 Estime.analiseResiduos()
 
 # =================================================================================
 # PARTE VIII - GRÁFICOS E RELATÓRIO
 # =================================================================================
+
+u"""
+ Nesta etapa ocorre a geração dos dados de saída do programa : relátorios e gráficos. 
+ Os gráficos são gerados de acordo com as etapas que foram realizadas. No relátorio contém informações a respeito
+ dos testes estatisticos, função objetivo, matriz de covariância, status da otimização, dentre outros.
+
+"""
 
 etapas = ['otimizacao','grandezas-entrada', 'predicao','grandezas-calculadas','analiseResiduos', 'regiaoAbrangencia']
 Estime.graficos(etapas)
