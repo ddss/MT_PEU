@@ -6,6 +6,8 @@ Exemplos de validação
 @GrupoPesquisa: PROTEC
 @LinhadePesquisa: GI-UFBA
 
+EXEMPLO (4.12) - Retirado do livro Schwaab e Pinto (2007, p. 230) que trata sobre transferencia de calor:
+
 SUMÁRIO:
 
 I - INCLUSÃO DAS BIBLIOTECAS
@@ -40,26 +42,23 @@ from MT_PEU_Linear import EstimacaoLinear
 u"""
 
 Nessa etapa é inicializada a classe que realiza a estimação. 
-Também é possível renomear a pasta onde são apresentados os resultados.  
+Aqui é possível renomear a pasta onde são apresentados os resultados.  
 
 """
-
-# Com o cálculo do termo independente
-
-ER = EstimacaoLinear(['y'],['x'],['p1','p2'],projeto='LINEARcomB1')
+ER = EstimacaoLinear(['q'],['x'],['k'],projeto='LINEAR')
 
 # =================================================================================
 # III - INCLUSÃO DE DADOS
 # =================================================================================
 
-x = [0,1,2,3,4,5]
-ux = [1,1,1,1,1,1]
-#
-y = [.1,.9,2.2,3.2,3.9,4.8]
-uy = [1,1,1,1,1,1]
-#
+x = [10, 20, 30, 40]
+ux = [1, 1, 1, 1]
+
+q = [1050, 2000, 2950, 4000]
+uq= [1, 1, 1, 1]
+
 ER.setDados(0,(x,ux))
-ER.setDados(1,(y,uy))
+ER.setDados(1,(q,uq))
 #
 ER.setConjunto()
 
@@ -77,7 +76,6 @@ ER.otimiza()
 # =================================================================================
 # V - INCERTEZA E ANALISE DE RESIDUOS
 # =================================================================================
-
 u"""
 
  Na estimação linear, o metodo disponivel para avaliar a incerteza é o MonteCarlo.
@@ -85,7 +83,6 @@ u"""
  Em analise de residuos é possível vericar possíveis relações de dependencia e/ou tendencia entre as variaveis. 
 
 """
-
 ER.incertezaParametros(metodoPreenchimento='MonteCarlo')
 ER.predicao(delta=1e-6)
 ER.analiseResiduos()

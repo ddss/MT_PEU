@@ -4,12 +4,26 @@ Exemplo de uso do MT_PEU
 
 EXEMPLO (5.12-2) - Retirado do livro Schwaab e Pinto (2007, p. 366) que trata sobre a estimação de parâmetros do modelo cinético:
 
+SUMÁRIO:
+
+I - INCLUSÃO DAS BIBLIOTECAS
+II - CRIAÇÃO DO MODELO
+III - INICIALIZAÇÃO DA CLASSE
+IV - INCLUSÃO DE DADOS
+V - OTIMIZAÇÃO
+VI - INCERTEZA
+VII - PREDIÇÃO E ANALISE DE RESIDUOS
+VIII - GERAÇÃO DE GRÁFICOS E RELATÓRIO
+IX - OPCIONAL: PREDIÇÃO
+    IX.I - PREDIÇÃO E ANALISE DE RESIDUOS
+    IX.II- GRÁFICOS E RELATÓRIO
+
 """
 
 # =================================================================================
-# PARTE I - INCLUSÃO DAS BIBLIOTECAS
+# I - INCLUSÃO DAS BIBLIOTECAS
 # =================================================================================
-""" 
+u""" 
 Abaixo estão representadas as bibliotecas necessárias para o correto funcionamento do programa:
 
 """
@@ -21,19 +35,12 @@ use('Agg')
 from MT_PEU import EstimacaoNaoLinear
 from numpy import exp
 
-##################################################################################
-##################################################################################
-# EXEMPLOS PARA MODELOS NÃO LINEARES
-##################################################################################
-##################################################################################
-
 # =================================================================================
-# PARTE II - CRIAÇÃO DO MODELO
+# II - CRIAÇÃO DO MODELO
 # =================================================================================
 
 u"""
-O modelo é definido na forma de uma subrotina ((def) do python) e representa a equação abaixo,onde: 
-y é a fração que resta do reagente, tempo, T é a temperatura, por fim k0 e E são os parâmetros a serem estimados.
+Similar ao Exemplo_1, k0 e E são os parametros a serem estimados, diferindo apenas a equação do modelo. 
 
 """
 
@@ -54,15 +61,14 @@ def Modelo (param, x, args):
 # =================================================================================
 
 u"""
-Inicialização da classe que realiza estimação. Entradas opcionais como unidades, podem ser passadas nesta etapa.
-Também é possível renomear a pasta onde são gerados os aquivos com os resultados, como no exemplo a baixo, onde o nome
-da pasta foi alterado para 'Teste2'.
+Além de alterar unidades e renomear a pasta, mais entradas opcionais são fornecidas neste exemplo. 
+Através da opção label_latex é possivel formatar os titulos dos eixos dos gráficos .
 
 """
 
 Estime = EstimacaoNaoLinear(Modelo, simbolos_x=[r't','T'], unidades_x=['s','K'], label_latex_x=[r'$t$','$T$'],
                             simbolos_y=[r'y'], unidades_y=['adm'],
-                            simbolos_param=['ko','E'], unidades_param=['unid1','unid2'],label_latex_param=[r'$k_o$',r'$E$'],
+                            simbolos_param=['ko','E'], unidades_param=['adm','K'],label_latex_param=[r'$k_o$',r'$E$'],
                             projeto='Teste2')
 
 # =================================================================================
@@ -88,14 +94,14 @@ y = [0.9,0.886,0.791,0.787,0.877,0.938,0.827,0.696,0.582,0.795,0.790,0.883,0.576
 
 u"""
 
-A plataforma MT_PEU necessita da incerteza dos dados experimentais, e quando está informação não é disponibilizada,
-o programa assume valor 1 para todos os dados (ux1, ux2, uy1):
+Como entrada obrigatória, a plataforma MT_PEU necessita da incerteza dos dados experimentais (ux1, ux2, uy1).
+Neste exemplo, foram adotados 0.001 para incerteza uxtempo, 0.05 para incerteza uxtemperatura e 1 para uy.
 
 """
 
-uxtempo = [0.2]*29
-uxtemperatura = [0.2]*29
-uy1 = [0.2]*29
+uxtempo = [0.001]*29
+uxtemperatura = [0.05]*29
+uy1 = [1]*29
 
 u"""
 
@@ -122,35 +128,34 @@ Estime.setConjunto(tipo='estimacao')
 # =================================================================================
 
 u"""
-Otimização será realizada utilizando o algoritmo escolhido pelo usuário (disponiveis: Nelder-Mead, Powell, BFGS, L-BFGS-B, CG),
-caso não seja escolhido o algoritmo a ser utilizado, por padrão a otimização será realizada utilizando o Nelder-Mead,
-com estimativa inicial em [0,005 , 20000,00], para k0 e E respectivamente.
+Neste exemplo, o usuário tem a opção de escolha do algoritmo a ser utilizado na otimização. 
+Disponiveis: 'Nelder-Mead', 'Powell', 'BFGS', 'L-BFGS-B', 'CG'. 
 
 """
 
-Estime.otimiza(estimativa_inicial= [0.005, 20000.000],algoritmo='Nelder-Mead')
+Estime.otimiza(estimativa_inicial= [0.005, 20000.000],algoritmo='Powell')
 
 # =================================================================================
 # PARTE VI - INCERTEZA
 # =================================================================================
 
 u"""
- Associada a toda medida existe uma incerteza. O método incerteza parâmetros calcula as incertezas 
- associadas aos parâmetros (neste exemplo k0 e E). Nesta etapa é possível escolher o método útilizado para
- avaliar a incerteza. Métodos disponíveis: 2InvHessiana, Geral, SensibilidadeModelo. Por definição o preenchimeto
- da região de verossimilhança é 'True', caso necessário esta opção pode ser alterada nesta etapa.
+ Neste exemplo é possível escolher o método útilizado para avaliar a incerteza. 
+ Métodos disponíveis: 2InvHessiana, Geral, SensibilidadeModelo. 
+ Por definição o preenchimeto da região de verossimilhança é 'True', caso necessário esta opção pode ser alterada
 
 """
 
 Estime.incertezaParametros(delta=1e-5,metodoIncerteza='SensibilidadeModelo',preencherregiao=False)
 
 # =================================================================================
-# PARTE VII - PREDIÇÃO E ANALISE DE RESIDUOS
+# VII - PREDIÇÃO E ANALISE DE RESIDUOS
 # =================================================================================
 u"""
- No método predição, é feita a primeira analise sobre os resultados obtidos. A covariância é avaliada, 
- e consequentemente a eficiencia do modelo. Em analise de residuos é possível vericar possíveis relações de dependencia 
- e/ou tendencia entre as variaveis. Testes estatisticos como o de homocedasticidade, chi quadrado, etc são realizados
+ No método predição, é feita a avaliação da grandeza dependente com base nos parametros fornecidos. 
+ A covariância é avaliada, e consequentemente a eficiencia do modelo. 
+ Em analise de residuos é possível vericar possíveis relações de dependencia e/ou tendencia entre as variaveis. 
+ Testes estatisticos como o de homocedasticidade, chi quadrado, dentre outros são realizados
  nesta etapa. A analise de residuos é feita prioritariamente com os dados de validação.
 
 """
@@ -159,7 +164,7 @@ Estime.predicao()
 Estime.analiseResiduos()
 
 # =================================================================================
-# PARTE VIII - GRÁFICOS E RELATÓRIO
+# VIII - GRÁFICOS E RELATÓRIO
 # =================================================================================
 
 u"""
@@ -174,7 +179,7 @@ Estime.graficos(etapas)
 Estime.relatorio()
 
 # =================================================================================
-# PARTE IX - OPCIONAL
+# IX - OPCIONAL: PREDIÇÃO
 # =================================================================================
 
 u"""
@@ -191,9 +196,8 @@ temperatura = [600.0,612.0,612.0,620.0,620.0,620.0,620.0,639.0,639.0,620.0,620.0
 y = [0.949,0.785,0.890,0.782,0.800,0.802,0.799,0.655,0.638,0.712,0.794,0.717]
 
 u"""
-
-A plataforma MT_PEU necessita da incerteza dos dados experimentais, e quando está informação não é disponibilizada,
-o programa assume valor 1 para todos os dados (ux1, ux2, uy1):
+Como entrada obrigatória, a plataforma MT_PEU necessita da incerteza dos dados experimentais (ux1, ux2, uy1).
+Neste exemplo, foram adotados 0.001 para incerteza uxtempo, 0.05 para incerteza uxtemperatura e 1 para uy.
 
 """
 
@@ -221,15 +225,33 @@ para o qual os parâmetros serão preditos:
 Estime.setConjunto(tipo='predicao')
 
 # =================================================================================
-# PARTE VII - PREDIÇÃO E ANALISE DE RESIDUOS
+# IX.I - PREDIÇÃO E ANALISE DE RESIDUOS
 # =================================================================================
+
+u"""
+ No método predição, é feita a avaliação da grandeza dependente com base nos parametros fornecidos. 
+ A covariância é avaliada, e consequentemente a eficiencia do modelo. 
+ Em analise de residuos é possível vericar possíveis relações de dependencia e/ou tendencia entre as variaveis. 
+ Testes estatisticos como o de homocedasticidade, chi quadrado, dentre outros são realizados
+ nesta etapa. A analise de residuos é feita prioritariamente com os dados de validação.
+
+"""
 
 Estime.predicao()
 Estime.analiseResiduos()
 
 # =================================================================================
-# PARTE VIII - GRÁFICOS E RELATÓRIO
+# IX.II- GRÁFICOS E RELATÓRIO
 # =================================================================================
+
+u"""
+ Nesta etapa ocorre a geração dos dados de saída do programa : relátorios e gráficos. 
+ Os gráficos são gerados de acordo com as etapas que foram realizadas, seguindo um controle de fluxo. 
+ Para dados de estimação, os graficos apresentam 'fl0' na sua nomenclatura. Para dados de predição 'fl1'.
+ No relátorio contém informações a respeito
+ dos testes estatisticos, função objetivo, matriz de covariância, status da otimização, dentre outros.
+
+"""
 
 etapas = ['otimizacao','grandezas-entrada', 'predicao','grandezas-calculadas','analiseResiduos', 'regiaoAbrangencia']
 Estime.graficos(etapas)
@@ -243,5 +265,9 @@ Referências:
 
 SCHWAAB, M.M.;PINTO, J.C. Análise de Dados Experimentais I: Fundamentos da Estátistica e Estimação de Parâmetros. 
 Rio de Janeiro: e-papers, 2007.
+
+Avaliação de dados de medição — Guia para a expressão de incerteza de medição 
+http://www.inmetro.gov.br/noticias/conteudo/iso_gum_versao_site.pdf 
+
 
 """

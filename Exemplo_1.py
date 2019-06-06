@@ -11,11 +11,23 @@ Exemplo básico de uso do MT_PEU, onde são apresentadas as configurações mín
 
 EXEMPLO (5.11) - Retirado do livro Schwaab e Pinto (2007, p. 361) que trata sobre a estimação de parâmetros do modelo cinético:
 
+SUMÁRIO:
+
+I - INCLUSÃO DAS BIBLIOTECAS
+II - CRIAÇÃO DO MODELO
+III - INICIALIZAÇÃO DA CLASSE
+IV - INCLUSÃO DE DADOS
+V - OTIMIZAÇÃO
+VI - INCERTEZA
+VII - PREDIÇÃO E ANALISE DE RESIDUOS
+VIII - GERAÇÃO DE GRÁFICOS E RELATÓRIO
+
 """
+
 # =================================================================================
-# PARTE I - INCLUSÃO DAS BIBLIOTECAS
+# I - INCLUSÃO DAS BIBLIOTECAS.
 # =================================================================================
-""" 
+u""" 
 Abaixo estão representadas as bibliotecas necessárias para a execução:
 
 """
@@ -26,7 +38,7 @@ from MT_PEU import EstimacaoNaoLinear
 from numpy import exp
 
 # =================================================================================
-# PARTE II - CRIAÇÃO DO MODELO
+# II - CRIAÇÃO DO MODELO.
 # =================================================================================
 
 u"""
@@ -50,21 +62,21 @@ def Modelo (param, x, args):
 
 
 # =================================================================================
-# PARTE III - INICIALIZAÇÃO DA CLASSE
+# III - INICIALIZAÇÃO DA CLASSE
 # =================================================================================
 
 u"""
 
 Nessa etapa é inicializada a classe que realiza a estimação. Por padrão, informações como os simbolos das variáveis,
-são obrigatorias e passadas nesta etapa. Por definição o nome da pasta gerada (que contém relatórios e gráficos) será
-"Projetos".  
+são obrigatorias e passadas nesta etapa.  
 
 """
 #Cria o objeto que realiza a estimação
+
 Estime = EstimacaoNaoLinear(Modelo, simbolos_x=[r't','T'], simbolos_y=[r'y'], simbolos_param=['ko','E'])
 
 # =================================================================================
-# PARTE IV - INCLUSÃO DE DADOS (DEPENDE DO EXEMPLO)
+# IV - INCLUSÃO DE DADOS
 # =================================================================================
 
 u"""
@@ -90,8 +102,8 @@ temperatura = [600.0,600.0,612.0,612.0,612.0,612.0,620.0,620.0,620.0,
 
 u"""
 
-A plataforma MT_PEU necessita da incerteza dos dados experimentais, e quando está informação não é disponibilizada,
-o programa assume valor 1 para todos os dados (ux1, ux2, uy1):
+Como entrada obrigatória, a plataforma MT_PEU necessita da incerteza dos dados experimentais (ux1, ux2, uy1).
+Neste exemplo, foram adotados o valor 1 para as incertezas.
 
 """
 
@@ -124,39 +136,37 @@ parâmetros serão estimados:
 Estime.setConjunto(tipo='estimacao')
 
 # =================================================================================
-# PARTE V - OTIMIZAÇÃO
+# V - OTIMIZAÇÃO
 # =================================================================================
 
 u"""
 
-Otimização será realizada utilizando o algoritmo escolhido pelo usuário (disponiveis: Nelder-Mead, Powell, BFGS, L-BFGS-B, CG),
-caso não seja escolhido (como no exemplo abaixo), o algoritmo a ser utilizado por padrão a otimização será realizada utilizando o Nelder-Mead,
-com estimativa inicial em [0,5 , 25000,00], para k0 e E respectivamente. Como não foi alterado, o algoritmo utilizado
-na otimização será o Nelder-Mead.
+A otimização será realizada utilizando o algoritmo default (Nelder-Mead), se faz necessário informar a estimativa inicial.
 
 """
 Estime.otimiza(estimativa_inicial= [0.5, 25000.000])
 
 # =================================================================================
-# PARTE VI - INCERTEZA
+# VI - INCERTEZA
 # =================================================================================
 
 u"""
- Associada a toda medida existe uma incerteza. O método incerteza parâmetros calcula as incertezas 
- associadas aos parâmetros (neste exemplo k0 e E). 
+ "Associada a toda medida existe uma incerteza." 
+ Este método calcula as incertezas associadas aos parâmetros (neste exemplo k0 e E). 
  
 """
 
 Estime.incertezaParametros()
 
 # =================================================================================
-# PARTE VII - PREDIÇÃO E ANALISE DE RESIDUOS
+# VII - PREDIÇÃO E ANALISE DE RESIDUOS
 # =================================================================================
 
 u"""
- No método predição, é feita a primeira analise sobre os resultados obtidos. A covariância é avaliada, 
- e consequentemente a eficiencia do modelo. Em analise de residuos é possível vericar possíveis relações de dependencia 
- e/ou tendencia entre as variaveis. Testes estatisticos como o de homocedasticidade, chi quadrado, etc são realizados
+ No método predição, é feita a avaliação da grandeza dependente com base nos parametros fornecidos. 
+ A covariância é avaliada, e consequentemente a eficiencia do modelo. 
+ Em analise de residuos é possível vericar possíveis relações de dependencia e/ou tendencia entre as variaveis. 
+ Testes estatisticos como o de homocedasticidade, chi quadrado, dentre outros são realizados
  nesta etapa. A analise de residuos é feita prioritariamente com os dados de validação.
 
 """
@@ -165,7 +175,7 @@ Estime.predicao()
 Estime.analiseResiduos()
 
 # =================================================================================
-# PARTE VIII - GERAÇÃO DE GRÁFICOS E RELATÓRIO
+# VIII - GERAÇÃO DE GRÁFICOS E RELATÓRIO
 # =================================================================================
 
 u"""
@@ -185,5 +195,9 @@ Referências:
 
 SCHWAAB, M.M.;PINTO, J.C. Análise de Dados Experimentais I: Fundamentos da Estátistica e Estimação de Parâmetros. 
 Rio de Janeiro: e-papers, 2007.
+
+Avaliação de dados de medição — Guia para a expressão de incerteza de medição 
+http://www.inmetro.gov.br/noticias/conteudo/iso_gum_versao_site.pdf 
+
 
 """
