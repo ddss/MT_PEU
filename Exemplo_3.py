@@ -255,7 +255,7 @@ u"""
 
 etapas = ['otimizacao','grandezas-entrada', 'predicao','grandezas-calculadas','analiseResiduos', 'regiaoAbrangencia']
 Estime.graficos(etapas)
-Estime.relatorio
+Estime.relatorio()
 
 
 
