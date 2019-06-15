@@ -71,7 +71,7 @@ são obrigatorias e passadas nesta etapa.
 """
 
 Estime = EstimacaoNaoLinear(Modelo1,simbolos_x=['x1','x2'],simbolos_y=['y1','y2'],simbolos_param=['alpha1','alpha2', 'beta1', 'beta2'],
-                          label_latex_param=[r'$k_o$',r'$E$'],unidades_y=['kg','kg'],projeto='projeto')
+                          label_latex_param=[r'$\alpha_1$',r'$\alpha_2$',r'$\beta_1$',r'$\beta_2$'],unidades_y=['kg','kg'],projeto='projeto')
 
 # =================================================================================
 # IV - INCLUSÃO DE DADOS
@@ -141,7 +141,7 @@ u"""
 
 """
 
-Estime.incertezaParametros(delta=1e-5,metodoIncerteza='SensibilidadeModelo',preencherregiao=False)
+Estime.incertezaParametros(delta=1e-5,metodoIncerteza='SensibilidadeModelo',preencherregiao=True)
 # =================================================================================
 # VII - PREDIÇÃO E ANALISE DE RESIDUOS
 # =================================================================================
