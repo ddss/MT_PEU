@@ -60,7 +60,7 @@ class Relatorio:
         [1] https://docs.python.org/2/tutorial/inputoutput.html
         [2] https://docs.python.org/2/library/string.html#formatstrings
         '''
-        with open(self.__base_path+'relatorio-parametros.txt','wb') as f:
+        with open(self.__base_path+'relatorio-parametros.txt','wt') as f:
             # Criação do título: o tamanho dele será o máximo entre 65 e 18*NP (Apenas por estética)
             f.write(('{:#^'+str(max([70,parametros.NV*18]))+'}'+self.__quebra).format('PARÂMETROS'))
 
@@ -70,8 +70,8 @@ class Relatorio:
 
             if parametros.matriz_covariancia is not None:
                 # Matriz de covariância, incerteza e matriz de correlação
-                f.write(('Variância  : '+ '{:^10.3e} '*parametros.NV).format(*[parametros.matriz_covariancia[i,i] for i in xrange(parametros.NV)]) + self.__quebra)
-                f.write(('Incerteza  : '+ '{:^10.3e} '*parametros.NV).format(*[parametros.matriz_incerteza[0,i] for i in xrange(parametros.NV)]) + self.__quebra)
+                f.write(('Variância  : '+ '{:^10.3e} '*parametros.NV).format(*[parametros.matriz_covariancia[i,i] for i in range(parametros.NV)]) + self.__quebra)
+                f.write(('Incerteza  : '+ '{:^10.3e} '*parametros.NV).format(*[parametros.matriz_incerteza[0,i] for i in range(parametros.NV)]) + self.__quebra)
                 f.write(self.__quebra)
                 f.write('Matriz de covariância:'+self.__quebra)
                 f.write(str(parametros.matriz_covariancia)+self.__quebra)
@@ -151,7 +151,7 @@ class Relatorio:
         # ESCRITA DE ARQUIVO DE RELATÓRIO
         # ---------------------------------------------------------------------
         if estatisticas is not None:
-            with open(self.__base_path+'relatorio-predicao_fl'+self.__fluxo+'.txt','wb') as f:
+            with open(self.__base_path+'relatorio-predicao_fl'+self.__fluxo+'.txt','wt') as f:
                 # TÍTULO:
                 f.write(('{:#^'+str(max([70,y.NV*18]))+'}'+self.__quebra).format(' PREDIÇÃO '))
                 f.write(('{:=^'+str(max([70,y.NV*18]))+'}'+self.__quebra).format(' GRANDEZAS DEPENDENTES '))
@@ -322,30 +322,30 @@ class Relatorio:
         if export_y:
             cont = 0
             for symb in y.simbolos:
-                with open(self.__base_path+symb+'-calculado-predicao_fl'+self.__fluxo+'.txt','wb') as f:
-                    for i in xrange(y.calculado.NE):
+                with open(self.__base_path+symb+'-calculado-predicao_fl'+self.__fluxo+'.txt','wt') as f:
+                    for i in range(y.calculado.NE):
                         f.write('{:.5g},{:.5g},{:.5g}'.format(y.calculado.matriz_estimativa[i,cont],y.calculado.matriz_incerteza[i,cont],y.calculado.gL[cont][i])+self.__quebra)
                 f.close()
                 cont+=1
 
         # matriz de covariância
         if export_cov_y:
-            with open(self.__base_path+'y-calculado-matriz-covariancia_fl'+self.__fluxo+'.txt','wb') as f:
-                for i in xrange(y.NV*y.calculado.NE):
-                    for j in xrange(y.NV*y.calculado.NE):
+            with open(self.__base_path+'y-calculado-matriz-covariancia_fl'+self.__fluxo+'.txt','wt') as f:
+                for i in range(y.NV*y.calculado.NE):
+                    for j in range(y.NV*y.calculado.NE):
                         f.write('{:.5g} '.format(y.calculado.matriz_covariancia[i,j]))
                     f.write(self.__quebra)
             f.close()
 
     def Otimizacao(self,Otimizacao):
-        with open(self.__base_path + 'relatorio-otimizacao.txt', 'wb') as f:
+        with open(self.__base_path + 'relatorio-otimizacao.txt', 'wt') as f:
             f.write(('{:#^' + str(max([70, Otimizacao.x.size*18])) + '}' + self.__quebra).format(' RESUMO OTIMIZAÇÃO '))
             f.write(('{:-^' + str(max([70, Otimizacao.x.size * 18])) + '}' + self.__quebra).format(' MÉTODO'))
             f.write(('Algoritmo  : ' + '{:^10} ').format(Otimizacao.method) + self.__quebra)
             f.write(self.__quebra)
             f.write(('{:-^' + str(max([70, Otimizacao.x.size * 18])) + '}' + self.__quebra).format('RESULTADOS'))
             f.write(('Valor da função Objetivo : ' + '{:^10} ').format(Otimizacao.fun) + self.__quebra)
-            f.write(('Ponto ótimo  : ' + '{:^10} ').format(Otimizacao.x) + self.__quebra)
+            f.write(('Ponto ótimo  : ' + '{:^10.3e} '*Otimizacao.x.size).format(*list(Otimizacao.x)) + self.__quebra)
             f.write(('Numero de Avaliações   : ' + '{:^10} ').format(Otimizacao.nfev) + self.__quebra)
             f.write(('Status   : ' + '{:^10} ').format(Otimizacao.message) + self.__quebra)
 

@@ -122,7 +122,7 @@ parâmetros serão estimados:
 
 """
 
-Estime.setConjunto(tipo='estimacao')
+Estime.setConjunto()
 
 # =================================================================================
 # PARTE V - OTIMIZAÇÃO
@@ -135,8 +135,8 @@ Caso opte por não escolher, será utilizado o algoritmo default: Nelder-Mead, c
 
 """
 
-Estime.otimiza(estimativa_inicial= [0.03, 20000.000],algoritmo='Nelder-Mead')
-
+#Estime.otimiza(estimativa_inicial= [0.03, 20000.000],algoritmo='Nelder-Mead')
+Estime.SETparametro([3.900e+01, 2.764e+04])
 # =================================================================================
 # VI - INCERTEZA
 # =================================================================================
@@ -148,7 +148,7 @@ u"""
 
 """
 
-Estime.incertezaParametros(delta=1e-5,metodoIncerteza='SensibilidadeModelo',preencherregiao=False)
+Estime.incertezaParametros(delta=1e-5,metodoIncerteza='2InvHessiana',preencherregiao=True)
 
 # =================================================================================
 # VII - PREDIÇÃO E ANALISE DE RESIDUOS

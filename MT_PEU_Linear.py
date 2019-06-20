@@ -221,12 +221,12 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             # Salvando os dados experimentais nas variáveis.
             try:
                 self.x._SETdadosestimacao(estimativa=self._EstimacaoNaoLinear__xtemp,matriz_incerteza=self._EstimacaoNaoLinear__uxtemp,gL=glx,coluna_dumb=coluna_dumb)
-            except Exception, erro:
+            except Exception as erro:
                 raise RuntimeError('Erro na criação do conjunto de estimação da grandeza X: {}'.format(erro))
 
             try:
                 self.y._SETdadosestimacao(estimativa=self._EstimacaoNaoLinear__ytemp,matriz_incerteza=self._EstimacaoNaoLinear__uytemp,gL=gly)
-            except Exception, erro:
+            except Exception as erro:
                 raise RuntimeError('Erro na criação do conjunto de estimação da grandeza Y: {}'.format(erro))
 
         if tipo == 'predicao':
@@ -239,12 +239,12 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             # Salvando os dados de validação.
             try:
                 self.x._SETdadosvalidacao(estimativa=self._EstimacaoNaoLinear__xtemp,matriz_incerteza=self._EstimacaoNaoLinear__uxtemp,gL=glx,coluna_dumb=coluna_dumb)
-            except Exception, erro:
+            except Exception as erro:
                 raise RuntimeError('Erro na criação do conjunto validação de X: {}'.format(erro))
 
             try:
                 self.y._SETdadosvalidacao(estimativa=self._EstimacaoNaoLinear__ytemp,matriz_incerteza=self._EstimacaoNaoLinear__uytemp,gL=gly)
-            except Exception, erro:
+            except Exception as erro:
                 raise RuntimeError('Erro na criação do conjunto validação de Y: {}'.format(erro))
 
         if self._EstimacaoNaoLinear__flag.info['dadospredicao'] == False:
@@ -257,12 +257,12 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             # Salvando os dados de validação.
             try:
                 self.x._SETdadosvalidacao(estimativa=self._EstimacaoNaoLinear__xtemp,matriz_incerteza=self._EstimacaoNaoLinear__uxtemp,gL=glx,coluna_dumb=coluna_dumb)
-            except Exception, erro:
+            except Exception as erro:
                 raise RuntimeError('Erro na criação do conjunto validação de X: {}'.format(erro))
 
             try:
                 self.y._SETdadosvalidacao(estimativa=self._EstimacaoNaoLinear__ytemp,matriz_incerteza=self._EstimacaoNaoLinear__uytemp,gL=gly)
-            except Exception, erro:
+            except Exception as erro:
                 raise RuntimeError('Erro na criação do conjunto validação de Y: {}'.format(erro))
 
         # Transformando variáveis temporárias ( xtemp, uxtemp, ytemp, uytemp) em listas vazias
@@ -323,12 +323,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         Entradas opcionais
         ==================
 
-        * preencherregiao (bool): identifica se será realizado o preenchimento da região ou não.
-
-        ========
-        Keywords
-        ========
-        Keywords para o algoritmo de PSO responsável por avaliar a região de abrangência
+        * preencherregiao (bool): identifica se será executado algoritmo para preenchimento da região de abrangência.
         '''
         # ---------------------------------------------------------------------
         # FLUXO

@@ -486,7 +486,7 @@ class Grandeza:
         # Definição dos labels: latex ou nomes ou simbolos (nesta ordem)
         label = [None]*len(self.simbolos)
 
-        for z in xrange(self.NV):
+        for z in range(self.NV):
 
             if self.label_latex[z] is not None:
                 label[z] = self.label_latex[z]
@@ -679,7 +679,7 @@ class Grandeza:
         if self.__ID_disponivel[0] in ID: # Gráfico Pcolor para estimação
             listalabel=[]
             for elemento in self.labelGraficos(printunit=False):
-                for i in xrange(self.estimacao.NE):
+                for i in range(self.estimacao.NE):
                     listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
 
             plot_corr(self.estimacao.matriz_correlacao, xnames=listalabel,  ynames=listalabel, title=u'Matriz de correlação ' + self.__ID_disponivel[0],normcolor=True, cmap=cm1)
@@ -689,7 +689,7 @@ class Grandeza:
         if self.__ID_disponivel[1] in ID: # Gráfico Pcolor para predição
             listalabel=[]
             for elemento in self.labelGraficos(printunit=False):
-                for i in xrange(self.predicao.NE):
+                for i in range(self.predicao.NE):
                     listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
 
             plot_corr(self.predicao.matriz_correlacao, xnames=listalabel, ynames=listalabel, title=u'Matriz de correlação ' + self.__ID_disponivel[1],normcolor=True,cmap=cm1)
@@ -699,7 +699,7 @@ class Grandeza:
         if self.__ID_disponivel[2] in ID: # Gráfico Pcolor para calculado
             listalabel=[]
             for elemento in self.labelGraficos(printunit=False):
-                for i in xrange(self.calculado.NE):
+                for i in range(self.calculado.NE):
                     listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
 
             plot_corr(self.calculado.matriz_correlacao, xnames=listalabel, ynames=listalabel, title=u'Matriz de correlação ' + self.__ID_disponivel[2],normcolor=True,cmap=cm1)
@@ -747,7 +747,7 @@ class Grandeza:
                 # HISTOGRAMA                
                 #Gera um gráfico de histograma, importante na verificação da pdf
                 Fig.histograma(dados, label_x=u'Resíduos {}'.format(self.labelGraficos()[i]), label_y=u'Densidade de probabilidade',
-                               normed=True,bins=int(sqrt(dados.shape[0])))
+                               density=True,bins=int(sqrt(dados.shape[0])))
                 Fig.salvar_e_fechar(base_path+base_dir+'residuo_fl'+str(fluxo)+'_histograma.png')
 
                 # NORMALIDADE 
