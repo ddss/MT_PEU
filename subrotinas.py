@@ -70,7 +70,7 @@ def matriz2vetor(matriz):
     """
     # Obtenção da primeira coluna da matriz    
     vetor = matriz[:,0:1]
-    for i in xrange(1,size(matriz,1)):
+    for i in range(1,size(matriz,1)):
         # Concatenar as colunas abaixo da anterior
         vetor = concatenate((vetor,matriz[:,i:i+1]))
 
@@ -109,7 +109,7 @@ def vetor2matriz(vetor,NE):
     pos_final   = NE # última linha da primeira coluna
     matriz = vetor[pos_inicial:pos_final] # gera a primeira coluna
 
-    for i in xrange(1,size(vetor)/NE):
+    for i in range(1,size(vetor)/NE):
         pos_inicial += NE
         pos_final   += NE
         # concatenando as colunas uma ao lado da outra
@@ -244,8 +244,8 @@ def matrizcorrelacao(matriz_covariancia):
         raise ValueError(u'A matriz precisa ser quadrada para calcular a matriz dos coeficientes de correlação.')
 
     matriz_correlacao  = ones((size(matriz_covariancia,0),size(matriz_covariancia,0)))
-    for i in xrange(size(matriz_covariancia,0)):
-        for j in xrange(size(matriz_covariancia,0)):
+    for i in range(size(matriz_covariancia,0)):
+        for j in range(size(matriz_covariancia,0)):
             matriz_correlacao[i,j]  = matriz_covariancia[i,j]/sqrt(matriz_covariancia[i,i]*matriz_covariancia[j,j])
 
     return matriz_correlacao

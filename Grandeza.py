@@ -54,7 +54,7 @@ class Grandeza:
 
         **DEFINICIONAIS** - Usado para criação de atributos:
         
-        * ``_SETexperimental`` : irá criar o atributo experimental. Deve ser usado se se tratar de dados experimentais
+        * ``_SETestimação``    : irá criar o atributo estimação. Deve ser usado se se tratar de dados experimentais
         * ``_SETmodelo``       : irá criar o atributo modelo. Deve ser usado se se tratar de dados do modelo
         * ``_SETvalidacao``    : irá criar o atributo validacao. Deve ser usado se se tratar de dados de validação
         * ``_SETparametro``    : irá criar os atributos estimativa, matriz_covariancia, regiao_abrangencia. Deve ser usado para os parâmetros
@@ -80,7 +80,7 @@ class Grandeza:
         
         **GRANDEZAS DEPENDENTES E INDEPENDENTES**:
 
-        * ``.experimental`` (objeto): objeto Organizador que armazena os valores e incertezas dos dados experimentais \
+        * ``.estimação`` (objeto): objeto Organizador que armazena os valores e incertezas dos dados experimentais \
         (vide documentação do mesmo). **só exitirá após execução do método _SETexperimental**
         * ``.validacao``    (objeto): objeto Organizador que armazena os valores e incertezas dos dados de validação \
         (vide documentação do mesmo). **só exitirá após execução do método _SETvalidacao**
@@ -274,7 +274,7 @@ class Grandeza:
             elif matriz_covariancia is not None:
                 if NE is not None:
                     self.matriz_covariancia = matriz_covariancia
-                    self.matriz_incerteza = diag(self.matriz_covariancia**0.5).reshape(
+                    self.matriz_incerteza = (diag(self.matriz_covariancia)**0.5).reshape(
                         (NE, self.matriz_estimativa.shape[1]), order='F')
                     self.matriz_correlacao = matrizcorrelacao(self.matriz_covariancia)
                 else:
@@ -414,7 +414,7 @@ class Grandeza:
         # Cálculo da matriz de correlação
         if variancia is not None:
             self.matriz_correlacao  = matrizcorrelacao(self.matriz_covariancia)
-            self.matriz_incerteza   = diag(self.matriz_covariancia**0.5).reshape((1,self.NV),order='F')
+            self.matriz_incerteza   = (diag(self.matriz_covariancia)**0.5).reshape((1,self.NV),order='F')
         else:
             self.matriz_correlacao  = None
             self.matriz_incerteza   = None
@@ -486,7 +486,7 @@ class Grandeza:
         # Definição dos labels: latex ou nomes ou simbolos (nesta ordem)
         label = [None]*len(self.simbolos)
 
-        for z in xrange(self.NV):
+        for z in range(self.NV):
 
             if self.label_latex[z] is not None:
                 label[z] = self.label_latex[z]
@@ -676,20 +676,20 @@ class Grandeza:
            
         cm1 = LinearSegmentedColormap.from_list("Correlacao-cmap",cmap)   
 
-        if self.__ID_disponivel[0] in ID: # Gráfico Pcolor para experimental
+        if self.__ID_disponivel[0] in ID: # Gráfico Pcolor para estimação
             listalabel=[]
             for elemento in self.labelGraficos(printunit=False):
-                for i in xrange(self.estimacao.NE):
+                for i in range(self.estimacao.NE):
                     listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
 
             plot_corr(self.estimacao.matriz_correlacao, xnames=listalabel,  ynames=listalabel, title=u'Matriz de correlação ' + self.__ID_disponivel[0],normcolor=True, cmap=cm1)
             savefig(base_path+base_dir+self.__ID_disponivel[0]+'_fl'+str(fluxo)+'_'+'pcolor_matriz-correlacao')
             close()
 
-        if self.__ID_disponivel[1] in ID: # Gráfico Pcolor para validação
+        if self.__ID_disponivel[1] in ID: # Gráfico Pcolor para predição
             listalabel=[]
             for elemento in self.labelGraficos(printunit=False):
-                for i in xrange(self.predicao.NE):
+                for i in range(self.predicao.NE):
                     listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
 
             plot_corr(self.predicao.matriz_correlacao, xnames=listalabel, ynames=listalabel, title=u'Matriz de correlação ' + self.__ID_disponivel[1],normcolor=True,cmap=cm1)
@@ -699,7 +699,7 @@ class Grandeza:
         if self.__ID_disponivel[2] in ID: # Gráfico Pcolor para calculado
             listalabel=[]
             for elemento in self.labelGraficos(printunit=False):
-                for i in xrange(self.calculado.NE):
+                for i in range(self.calculado.NE):
                     listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
 
             plot_corr(self.calculado.matriz_correlacao, xnames=listalabel, ynames=listalabel, title=u'Matriz de correlação ' + self.__ID_disponivel[2],normcolor=True,cmap=cm1)
@@ -733,7 +733,7 @@ class Grandeza:
                                                     linestyle='-.', color='r', linewidth=2,
                                                     add_legenda=True, corrigir_limites=False, config_axes=False)
                 Fig.grafico_dispersao_sem_incerteza(x, dados, label_x='Amostra', label_y=u'Resíduos {}'.format(self.labelGraficos()[i]),
-                                                    marker='o', linestyle='None')
+                                                    marker='o', linestyle=None)
                 Fig.axes.axhline(0, color='black', lw=1, zorder=1)
                 Fig.set_legenda(['Média dos resíduos'], loc = 'best')
                 Fig.salvar_e_fechar(base_path+base_dir+'residuo_fl'+str(fluxo)+'_tendencia.png')
@@ -747,7 +747,7 @@ class Grandeza:
                 # HISTOGRAMA                
                 #Gera um gráfico de histograma, importante na verificação da pdf
                 Fig.histograma(dados, label_x=u'Resíduos {}'.format(self.labelGraficos()[i]), label_y=u'Densidade de probabilidade',
-                               normed=True,bins=int(sqrt(dados.shape[0])))
+                               density=True,bins=int(sqrt(dados.shape[0])))
                 Fig.salvar_e_fechar(base_path+base_dir+'residuo_fl'+str(fluxo)+'_histograma.png')
 
                 # NORMALIDADE 
@@ -774,7 +774,7 @@ class Grandeza:
                     #Gráfico em função do numero de observações
                     Fig.grafico_dispersao_sem_incerteza(x, dados, label_x='Amostra',
                                                         label_y=self.labelGraficos(atributo)[i],
-                                                        marker='o', linestyle='None')
+                                                        marker='o', linestyle=None)
                     Fig.salvar_e_fechar(base_path + base_dir + atributo + '_fl' + str(fluxo) + '_tendencia.png')
 
             if self.__ID_disponivel[0] in ID:
@@ -791,7 +791,7 @@ class Grandeza:
                     Fig.autocorr(dados, label_x='Lag',
                                  label_y=u'Autocorrelação de {}'.format(self.labelGraficos(printunit=False)[i]),
                                  normed=True, maxlags=None)
-                    Fig.salvar_e_fechar(base_path + base_dir + 'experimental_fl' + str(fluxo) + '_autocorrelacao.png')
+                    Fig.salvar_e_fechar(base_path + base_dir + 'estimacao_fl' + str(fluxo) + '_autocorrelacao.png')
 
             if self.__ID_disponivel[1] in ID:
 
@@ -807,4 +807,4 @@ class Grandeza:
                     Fig.autocorr(dados, label_x='Lag',
                                  label_y=u'Autocorrelação de {}'.format(self.labelGraficos(printunit=False)[i]),
                                  normed=True, maxlags=None)
-                    Fig.salvar_e_fechar(base_path + base_dir + 'validacao_fl' + str(fluxo) + '_autocorrelacao.png')
+                    Fig.salvar_e_fechar(base_path + base_dir + 'predicao_fl' + str(fluxo) + '_autocorrelacao.png')
