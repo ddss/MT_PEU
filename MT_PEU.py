@@ -24,7 +24,7 @@ from scipy import transpose, dot, concatenate, matrix
 from scipy.optimize import  minimize, rosen, rosen_der
 # Pacotes do sistema operacional
 from os import getcwd, sep
-
+from casadi import MX,vertcat,nlpsol,sum1
 # Exception Handling
 from warnings import warn
 
@@ -966,6 +966,66 @@ class EstimacaoNaoLinear:
 
         return grandeza
 
+    def __casadivariables(self):
+
+        self.pcas  = []
+        self.xcas  = []
+        self.ycas  = []
+        self.uycas = []
+
+        # Criação dos parâmetros casadi
+
+        for i in range(len(self.parametros.simbolos)):
+            self.pcas.append(MX.sym(self.parametros.simbolos[i]))
+
+        # Criação das variáveis casadi
+
+        for i in range(0, len(self.x.simbolos), 1):
+            self.xcas.append(MX.sym(self.x.simbolos[i], len(self.x.estimacao.matriz_estimativa[:,i:i+1])))
+
+        # Criação do y casadi
+        self.ycas = MX.sym(self.y.simbolos[0], len(self.y.estimacao.matriz_estimativa))
+
+        #Criação da matriz de incerteza casadi das variáveis dependentes
+        self.uycas = MX.sym('uy', len(self.y.estimacao.matriz_incerteza))
+
+        return self.pcas, self.xcas
+
+    def otimiza_cas(self,Estimativa_inicial, Modelo_cas):
+
+        self.Modelo_cas = Modelo_cas
+        param = []; variables = []; values = []
+
+        tipos = ['dependentes', 'incerteza', 'independentes']
+
+        #Colocando as variáveis com valor informado pelo usuário no formato que o otimizador pede
+        for j in tipos:
+            if j == 'dependentes':
+                variables = vertcat(variables,self.ycas)  # Quando estimar para MIMO o vetor ycas terá outros índices
+                values = vertcat(values, self.y.estimacao.matriz_estimativa)
+            elif j == 'incerteza':
+                variables = vertcat(variables, self.uycas)
+                values = vertcat(values, self.y.estimacao.matriz_incerteza)
+            elif j == 'independentes':
+                for i in range(len(self.x.simbolos)):
+                    variables = vertcat(variables, self.xcas[i]) #Variáveis pra o modelos casadi
+                    values = vertcat(values, self.x.estimacao.matriz_estimativa[:, i:i + 1]) #Valores das variáveis para otimizar
+
+        # Colocando as variáveis de decisão no formato que o otimizador pede
+        for i in range(len(self.pcas)):
+            param = vertcat(param, self.pcas[i])
+        #resolução
+        f_objetivo = sum1(((self.ycas - (self.Modelo_cas)) ** 2) / (self.uycas ** 2))  # as posições 0 e 1 do variables devem ser obedecidas
+        nlp = {'x': param, 'p': variables, 'f': f_objetivo}
+        S = nlpsol('S', 'ipopt', nlp)  # IPOT, BONMIN
+        r = S(x0=Estimativa_inicial, p=values)  # passando o valor das variáveis
+        theta_opt = r['x']
+
+        theta = []
+        for i in range(len(self.pcas)):
+            theta.append(theta_opt[i])
+
+        return theta[0], theta[1]
 
     def otimiza(self,estimativa_inicial, limite_inferior=None,limite_superior=None, algoritmo='Nelder-Mead',args=None,tol=None,options={}):
         u"""
