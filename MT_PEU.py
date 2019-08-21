@@ -16,7 +16,7 @@ from numpy import array, size, linspace, min, max, copy,\
 from numpy.core.multiarray import ndarray
 from numpy.random import uniform, triangular
 from scipy.stats import f, t, chi2
-from scipy.misc import factorial
+from scipy.special import factorial
 from numpy.linalg import inv
 from math import floor, log10
 #from threading import Thread

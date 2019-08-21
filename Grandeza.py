@@ -11,7 +11,7 @@ from numpy import array, size, diag, linspace, min, max, \
 from numpy.linalg import cond
 
 from statsmodels.stats.weightstats import ztest
-from statsmodels.stats.diagnostic import acorr_ljungbox, het_breushpagan, het_white, normal_ad
+from statsmodels.stats.diagnostic import acorr_ljungbox, het_breuschpagan, het_white, normal_ad
 from statsmodels.stats.stattools import durbin_watson
 from statsmodels.graphics.correlation import plot_corr
 
@@ -613,7 +613,7 @@ class Grandeza:
                 pvalor[nome]['residuo-Autocorrelacao'] = {'Durbin Watson':{'estatistica':durbin_watson(dados)}, 'Ljung-Box':{'p-valor chi2':float(ljungbox[1]),'p-valor Box-Pierce':float(ljungbox[3])}}
                 
                 # Testes para a Homocedásticidade:
-                pheter = [het_white(dados,insert(Explic, 0, 1, axis=1)),het_breushpagan(dados,Explic)]
+                pheter = [het_white(dados,insert(Explic, 0, 1, axis=1)),het_breuschpagan(dados,Explic)]
                 pvalor[nome]['residuo-Homocedasticidade'] = {'white test':{'p-valor multiplicador de Lagrange':pheter[0][1], 'p-valor Teste F':pheter[0][3]},'Bresh Pagan':{'p-valor multiplicador de Lagrange':pheter[1][1],'p-valor Teste F':pheter[1][3]}}
         else:
             raise NameError(u'Os testes estatísticos são válidos apenas para o resíduos')

@@ -74,7 +74,7 @@ Estime = EstimacaoNaoLinear(Modelo, simbolos_x=[r't','T'], unidades_x=['s','K'],
 
 u"""
 Os dados experimentais da variável dependente (y) e das variáveis independentes (t e T)
-são disponibilizados em Schwaab e Pinto (2007, p.324), e apresentados abaixo na forma de listas:
+são disponibilizados em Schwaab e Pinto (2007, p.326), e apresentados abaixo na forma de listas:
 
 """
 
