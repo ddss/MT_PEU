@@ -24,7 +24,7 @@ from scipy import transpose, dot, concatenate, matrix
 from scipy.optimize import  minimize, rosen, rosen_der
 # Pacotes do sistema operacional
 from os import getcwd, sep
-from casadi import MX,vertcat,nlpsol,sum1
+from casadi import MX,vertcat,horzcat,nlpsol,sum1,jacobian,mtimes,inv,diag,Function
 # Exception Handling
 from warnings import warn
 
@@ -978,54 +978,93 @@ class EstimacaoNaoLinear:
         for i in range(len(self.parametros.simbolos)):
             self.pcas.append(MX.sym(self.parametros.simbolos[i]))
 
-        # Criação das variáveis casadi
-
+        # Criação do x casadi
         for i in range(0, len(self.x.simbolos), 1):
             self.xcas.append(MX.sym(self.x.simbolos[i], len(self.x.estimacao.matriz_estimativa[:,i:i+1])))
 
         # Criação do y casadi
-        self.ycas = MX.sym(self.y.simbolos[0], len(self.y.estimacao.matriz_estimativa))
+        for i in range(0, len(self.y.simbolos), 1):
+            self.ycas.append(MX.sym(self.y.simbolos[i], len(self.y.estimacao.matriz_estimativa[:,i:i+1])))
 
-        #Criação da matriz de incerteza casadi das variáveis dependentes
-        self.uycas = MX.sym('uy', len(self.y.estimacao.matriz_incerteza))
+        #Criação das incertezas casadi das variáveis dependentes
+        for i in range(0, len(self.y.simbolos), 1):
+            self.uycas.append(MX.sym('ui'[i], len(self.y.estimacao.matriz_incerteza[:,i:i+1])))
 
-        return self.pcas, self.xcas
+        #Criação do modelo casadi através do modelo informado pelo usuário
+        self.cas_model = self.__modelo(self.pcas,self.xcas)
 
-    def otimiza_cas(self,Estimativa_inicial, Modelo_cas):
+        return self.xcas, self.ycas, self.uycas, self.cas_model
 
-        self.Modelo_cas = Modelo_cas
-        param = []; variables = []; values = []
+
+    def otimiza_cas(self,Estimativa_inicial):
+
+        #Chamada do método que cria as variáveis casadi
+        self.__casadivariables()
+
+        self.__param = []; self.__variables = []; self.__values = [] #irei utilizá-las em outro método, mas não quero que o usuário tenha acesso
+        y_obj = []; self.__uy_obj    = []
 
         tipos = ['dependentes', 'incerteza', 'independentes']
 
         #Colocando as variáveis com valor informado pelo usuário no formato que o otimizador pede
         for j in tipos:
             if j == 'dependentes':
-                variables = vertcat(variables,self.ycas)  # Quando estimar para MIMO o vetor ycas terá outros índices
-                values = vertcat(values, self.y.estimacao.matriz_estimativa)
+                for i in range(len(self.y.simbolos)):
+                    self.__variables = vertcat(self.__variables, self.ycas[i])
+                    y_obj = vertcat(y_obj,self.ycas[i]) #É necessário porque se utilizar o ycas direto na FO ele entra como lista e precisa ser um objeto MX
+                    self.__values = vertcat(self.__values, self.y.estimacao.matriz_estimativa[:, i:i + 1])
             elif j == 'incerteza':
-                variables = vertcat(variables, self.uycas)
-                values = vertcat(values, self.y.estimacao.matriz_incerteza)
+                for i in range(len(self.y.simbolos)):
+                    self.__variables = vertcat(self.__variables, self.uycas[i])#Para cada símbolo de y haverá uma matriz de incertezas
+                    self.__uy_obj = vertcat(self.__uy_obj, self.uycas[i])
+                    self.__values = vertcat(self.__values, self.y.estimacao.matriz_incerteza[:, i:i + 1])
             elif j == 'independentes':
                 for i in range(len(self.x.simbolos)):
-                    variables = vertcat(variables, self.xcas[i]) #Variáveis pra o modelos casadi
-                    values = vertcat(values, self.x.estimacao.matriz_estimativa[:, i:i + 1]) #Valores das variáveis para otimizar
+                    self.__variables = vertcat(self.__variables, self.xcas[i]) #No modelo cada variável está separada, não posso uni-las num símbolo só
+                    self.__values = vertcat(self.__values, self.x.estimacao.matriz_estimativa[:, i:i + 1]) #Valores das variáveis para otimizar
 
         # Colocando as variáveis de decisão no formato que o otimizador pede
         for i in range(len(self.pcas)):
-            param = vertcat(param, self.pcas[i])
+            self.__param = vertcat(self.__param, self.pcas[i])
+
         #resolução
-        f_objetivo = sum1(((self.ycas - (self.Modelo_cas)) ** 2) / (self.uycas ** 2))  # as posições 0 e 1 do variables devem ser obedecidas
-        nlp = {'x': param, 'p': variables, 'f': f_objetivo}
+        self.f_objetivo = sum1(((y_obj - (self.cas_model)) ** 2) / (self.__uy_obj ** 2))
+        nlp = {'x': self.__param, 'p': self.__variables, 'f': self.f_objetivo}
         S = nlpsol('S', 'ipopt', nlp)  # IPOT, BONMIN
-        r = S(x0=Estimativa_inicial, p=values)  # passando o valor das variáveis
-        theta_opt = r['x']
+        r = S(x0=Estimativa_inicial, p=self.__values)  # passando o valor das variáveis
+        self.opt_param = r['x']
 
-        theta = []
+        return self.opt_param, r['f']
+
+    def __matrixcas(self):
+
+        # cálculo da matriz hessiana
+
+        H = []
         for i in range(len(self.pcas)):
-            theta.append(theta_opt[i])
+            row = []
+            for j in range(len(self.pcas)):
+                row = horzcat(row, jacobian(jacobian(self.f_objetivo, self.pcas[i]), self.pcas[j])) #montagem de cada linha da Hessiana
+            H = vertcat(H, row) #as linhas montadas são então encaixadas na matriz Hessiana
 
-        return theta[0], theta[1]
+        f_H = Function('Hessiana', [self.__param, self.__variables], [H])
+        self.Hess = f_H(self.opt_param,self.__values) # aqui é obtido o valor númerico da Hessiana
+
+        # cálculo da matriz de covariância dos parâmetros
+
+        Gy = []
+        for i in range(len(self.pcas)):
+            row = []
+            for j in range(len(self.ycas)):
+                row = horzcat(row, jacobian(jacobian(self.f_objetivo, self.pcas[i]), self.ycas[j]))
+            Gy = vertcat(Gy, row)
+
+        Covar_par = mtimes(mtimes(mtimes(mtimes(inv(H), Gy), diag(self.__uy_obj)), Gy.T), inv(H)) #matriz de covariância
+
+        f_Uoo = Function('Covariancia_dos_parametros', [self.__param, self.__variables], [Covar_par])
+        self.Uoo = f_Uoo(self.opt_param, self.__values) # aqui é obtido o valor númerico da matriz de covariância dos parâmetros
+
+
 
     def otimiza(self,estimativa_inicial, limite_inferior=None,limite_superior=None, algoritmo='Nelder-Mead',args=None,tol=None,options={}):
         u"""

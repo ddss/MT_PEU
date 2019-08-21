@@ -1,18 +1,12 @@
 from MT_PEU import EstimacaoNaoLinear
 from numpy import exp
 
-def Modelo (param, x, args):
+def Modelo(param,x):
 
-    tempo = x[:,0:1]
-    T     = x[:,1:2]
+    ko, E = param[0], param[1]
+    tempo, T = x[0], x[1]
 
-    ko = param[0]
-    E  = param[1]
-
-    y = exp(-(ko*10**17)*tempo*exp(-E/T))
-
-
-    return y
+    return exp(-(ko*10**17)*tempo*exp(-E/T))
 
 Estime = EstimacaoNaoLinear(Modelo, simbolos_x=[r't','T'], simbolos_y=[r'y'], simbolos_param=['ko','E'])
 
@@ -40,13 +34,10 @@ Estime.setDados(1,(y,uy))
 Estime.setConjunto(tipo='estimacao')
 
 
-def modelocasadi(ko,E,tempo,T):
-    return exp(-(ko*10**17)*tempo*exp(-E/T))
+#Modelo_cas = modelocasadi(parameters[0],parameters[1],var_indep[0],var_indep[1])
 
-parameters, var_indep = Estime.casadivariables()
-Modelo_cas = modelocasadi(parameters[0],parameters[1],var_indep[0],var_indep[1])
+Estime.otimiza_cas(Estimativa_inicial = [0.5,25000])
 
-print(Estime.otimiza_cas(Estimativa_inicial = [0.5,25000],Modelo_cas = Modelo_cas))
 
 
 
