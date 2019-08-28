@@ -10,6 +10,7 @@ def Modelo(param,x):
 
 Estime = EstimacaoNaoLinear(Modelo, simbolos_x=[r't','T'], simbolos_y=[r'y'], simbolos_param=['ko','E'])
 
+
 y = [0.9,0.949,0.886,0.785,0.791,0.890,0.787,0.877,0.938,
 0.782,0.827,0.696,0.582,0.795,0.800,0.790,0.883,0.712,0.576,0.715,0.673,
 0.802,0.802,0.804,0.794,0.804,0.799,0.764,0.688,0.717,0.802,0.695,0.808,
@@ -32,13 +33,9 @@ uy = [1]*41; uxtempo = [1]*41; uxtemperatura = [1]*41
 Estime.setDados(0,(tempo,uxtempo),(temperatura,uxtemperatura))
 Estime.setDados(1,(y,uy))
 Estime.setConjunto(tipo='estimacao')
-
-
-#Modelo_cas = modelocasadi(parameters[0],parameters[1],var_indep[0],var_indep[1])
-
-Estime.otimiza_cas(Estimativa_inicial = [0.5,25000])
-
-
+Estime.optmize(Initial_estimative=[0.5,25000], Lower_bound=[0.2,-20000], Upper_bound=[1,30000], algoritmo='bonmin')
+#Estime.SETparametro(estimativa=[float(0.86232429),float(27642.66233)])
+Estime.incertezaParametros()
 
 
 

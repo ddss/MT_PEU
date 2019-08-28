@@ -27,6 +27,5 @@ uy2 = [1]*10
 Estime.setDados(0,(x1,ux1),(x2,ux2))
 Estime.setDados(1, (y1, uy1), (y2, uy2))
 Estime.setConjunto(tipo='estimacao')
-Estime.otimiza_cas(Estimativa_inicial=[3,0.1,5,0.4])
-
+Estime.optmize(Initial_estimative=[3,0.1,5,0.4])
 
