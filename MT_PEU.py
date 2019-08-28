@@ -1197,6 +1197,31 @@ class EstimacaoNaoLinear:
 
         return self.Gy
 
+    def __Matriz_S_cas(self):
+
+        S_cas = []
+        for i in range(len(self.pcas)):
+            S_cas = horzcat(S_cas,jacobian(self.__cas_model,self.pcas[i]))
+
+        S_fun = Function('Sensibilidade', [self.__param, self.__variables],[S_cas])
+        S_DM = S_fun(self.__opt_param, self.__values) # a matriz gerada aqui é um objteo tipo DM, característico do casadi
+
+        # ---------------------------------------------------------------------
+        # CONVERTENDO OS ELEMENTOS DA MATRIZ S PARA O TIPO FLOAT
+        # ---------------------------------------------------------------------
+
+        self.S = []
+        position = 0
+        for i in range(len(self.y.estimacao.matriz_estimativa)): # o tamanho das linhas é o número de observações de cada variável dependente
+            row = []
+            for j in range(len(self.pcas)): # o tamanho das colunas é o número de parâmetros a serem estimados
+                row = horzcat(float(S_DM[position]))
+                position = position + 1
+            self.S = vertcat(self.S, row)
+
+        a=1
+        return self.S
+
     def __matrixcas(self):
         u"""
         Método para criação das matrizes utilizando o casadi"""
@@ -1524,12 +1549,14 @@ class EstimacaoNaoLinear:
         # dados experimentais
         # Somente avaliada caso o método seja Geral
         if metodoIncerteza == self.__metodosIncerteza[1]:
-            self.Gy  = self.__Matriz_Gy(self._deltaGy)
+            #self.Gy  = self.__Matriz_Gy(self._deltaGy)
+            self.__Matriz_Gy()
 
         # Matriz de sensibilidade do modelo em relação aos parâmetros
         # Somente avaliada caso o método seja o simplificado
         if metodoIncerteza == self.__metodosIncerteza[2]:
-            self.S   = self.__Matriz_S(self.x.estimacao.matriz_estimativa,self._deltaS)
+            #self.S   = self.__Matriz_S(self.x.estimacao.matriz_estimativa,self._deltaS)
+            self.__Matriz_S_cas()
 
         # ---------------------------------------------------------------------
         # AVALIAÇÃO DA INCERTEZA DOS PARÂMETROS
@@ -1546,7 +1573,8 @@ class EstimacaoNaoLinear:
 
         # Método: simplificado -> inv(trans(S)*inv(Uyy)*S)
         elif metodoIncerteza == self.__metodosIncerteza[2]:
-            matriz_covariancia = inv(self.S.transpose().dot(inv(self.y.estimacao.matriz_covariancia)).dot(self.S))
+            matriz_covariancia = inv(mtimes(mtimes(self.S.T, inv(diag(self.__uy_obj))),self.S))
+            #matriz_covariancia = inv(self.S.transpose().dot(inv(self.y.estimacao.matriz_covariancia)).dot(self.S))
 
         # ---------------------------------------------------------------------
         # ATRIBUIÇÃO A GRANDEZA

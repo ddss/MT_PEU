@@ -35,7 +35,8 @@ Estime.setDados(1,(y,uy))
 Estime.setConjunto(tipo='estimacao')
 Estime.optmize(Initial_estimative=[0.5,25000], Lower_bound=[0.2,-20000], Upper_bound=[1,30000], algoritmo='bonmin')
 #Estime.SETparametro(estimativa=[float(0.86232429),float(27642.66233)])
-Estime.incertezaParametros()
+Estime.incertezaParametros(metodoIncerteza='SensibilidadeModelo')
+
 
 
 
