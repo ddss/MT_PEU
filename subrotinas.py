@@ -169,7 +169,8 @@ def plot_cov_ellipse(cov, pos, c2=2, ax=None, **kwargs):
     width, height = 2 * sqrt(c2*vals)
     ellip = Ellipse(xy=pos, width=width, height=height, angle=theta, **kwargs)
 
-    ax.add_artist(ellip)
+    if ax != 0:
+        ax.add_artist(ellip)
 
     # CÁLCULO DOS PONTOS PERTENCENTES AOS EIXOS DA ELIPSE:
     invcov = inv(cov)
@@ -192,7 +193,10 @@ def plot_cov_ellipse(cov, pos, c2=2, ax=None, **kwargs):
     coordenadas_y.extend([pos[1]+delta,pos[1]-delta])
     coordenadas_x.extend([pos[0]-delta*k,pos[0]+delta*k])
 
-    return ellip, coordenadas_x, coordenadas_y
+    if ax:
+        return ellip, coordenadas_x, coordenadas_y
+    else:
+        return coordenadas_x, coordenadas_y
 
 def vetor_delta(entrada_vetor,posicao,delta):
     u"""
