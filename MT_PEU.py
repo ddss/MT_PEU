@@ -24,7 +24,7 @@ from scipy import transpose, dot, concatenate, matrix
 from scipy.optimize import  minimize, rosen, rosen_der
 # Pacotes do sistema operacional
 from os import getcwd, sep
-from casadi import MX,DM,vertcat,horzcat,nlpsol,sum1,jacobian,mtimes,inv,diag,Function
+from casadi import MX,DM,vertcat,horzcat,nlpsol,sum1,jacobian,mtimes,inv as inv_cas, diag,Function
 # Exception Handling
 from warnings import warn
 
@@ -969,33 +969,32 @@ class EstimacaoNaoLinear:
     def __casadivariables(self):
 
         # --------------------------------------------------------------------------------
-        # CRIANDO AS VARIÁVEIS CASADI QUE SERÃO UITILIZADAS PARA CONSTRUIR O MODELO CASADI
+        # CREATION OF CASADI'S VARIABLES THAT WILL BE USED TO BUILD THE CASADI'S MODEL
         # --------------------------------------------------------------------- ----------
 
-        # devo tornar essas variáveis internas? E quando for inserir a reconciliação? Ela será uma outra classe ou um método dentro da Estimação?
-        self.pcas  = []
-        self.xcas  = []
-        self.ycas  = []
-        self.uycas = []
+        self.__pcas  = []
+        self.__xcas  = []
+        self.__ycas  = []
+        self.__uycas = []
 
-        # Criação dos parâmetros casadi
+        # Creation of decision variables in casadi's format
         for i in range(len(self.parametros.simbolos)):
-            self.pcas.append(MX.sym(self.parametros.simbolos[i]))
+            self.__pcas.append(MX.sym(self.parametros.simbolos[i]))
 
-        # Criação do x casadi
+        # Creation of independent variables in casadi's format
         for i in range(0, len(self.x.simbolos), 1):
-            self.xcas.append(MX.sym(self.x.simbolos[i], len(self.x.estimacao.matriz_estimativa[:,i:i+1])))
+            self.__xcas.append(MX.sym(self.x.simbolos[i], len(self.x.estimacao.matriz_estimativa[:,i:i+1])))
 
-        # Criação do y casadi
+        # Creation of dependent variables in casadi's format
         for i in range(0, len(self.y.simbolos), 1):
-            self.ycas.append(MX.sym(self.y.simbolos[i], len(self.y.estimacao.matriz_estimativa[:,i:i+1])))
+            self.__ycas.append(MX.sym(self.y.simbolos[i], len(self.y.estimacao.matriz_estimativa[:,i:i+1])))
 
-        #Criação das incertezas casadi das variáveis dependentes
+        # Creation of uncertainties of dependent variables in casadi's format
         for i in range(0, len(self.y.simbolos), 1):
-            self.uycas.append(MX.sym('ui'[i], len(self.y.estimacao.matriz_incerteza[:,i:i+1])))
+            self.__uycas.append(MX.sym('ui'[i], len(self.y.estimacao.matriz_incerteza[:,i:i+1])))
 
         # --------------------------------------------------------------------------------
-        # COLOCANDO AS VARIÁVEIS NO FORMATO QUE O OTIMIZADOR PEDE
+        # PUTTING THE VARIABLES IN THE FORMAT THE OPTIMIZER ASKS
         # --------------------------------------------------------------------- ----------
         self.__param     = []
         self.__variables = []
@@ -1003,34 +1002,34 @@ class EstimacaoNaoLinear:
         self.__y_obj     = []
         self.__uy_obj    = []
 
-        # Colocando as variáveis de decisão no formato que o otimizador pede
-        for i in range(len(self.pcas)):
-            self.__param = vertcat(self.__param, self.pcas[i])
+        # Decision Variables
+        for i in range(len(self.__pcas)):
+            self.__param = vertcat(self.__param, self.__pcas[i])
 
-        types = ['dependentes', 'incerteza', 'independentes'] #variables types
+        types = ['dependent', 'uncertainty', 'independent'] #variables types
 
-        # Colocando as variáveis com valor informado pelo usuário no formato que o otimizador pede
+        # dependent variables, independent variables and uncertainty
         for j in types:
-            if j == 'dependentes':
+            if j == 'dependent':
                 for i in range(len(self.y.simbolos)):
-                    self.__variables = vertcat(self.__variables, self.ycas[i])
-                    self.__y_obj = vertcat(self.__y_obj, self.ycas[i])  # É necessário porque se utilizar o ycas direto na FO ele entra como lista e precisa ser um objeto MX
+                    self.__variables = vertcat(self.__variables, self.__ycas[i])
+                    self.__y_obj = vertcat(self.__y_obj, self.__ycas[i])  # É necessário porque se utilizar o ycas direto na FO ele entra como lista e precisa ser um objeto MX
                     self.__values = vertcat(self.__values, self.y.estimacao.matriz_estimativa[:, i:i + 1])
-            elif j == 'incerteza':
+            elif j == 'uncertainty':
                 for i in range(len(self.y.simbolos)):
-                    self.__variables = vertcat(self.__variables,self.uycas[i])  # Para cada símbolo de y haverá uma matriz de incertezas
-                    self.__uy_obj = vertcat(self.__uy_obj, self.uycas[i])
+                    self.__variables = vertcat(self.__variables,self.__uycas[i])  # Para cada símbolo de y haverá uma matriz de incertezas
+                    self.__uy_obj = vertcat(self.__uy_obj, self.__uycas[i])
                     self.__values = vertcat(self.__values, self.y.estimacao.matriz_incerteza[:, i:i + 1])
-            elif j == 'independentes':
+            elif j == 'independent':
                 for i in range(len(self.x.simbolos)):
-                    self.__variables = vertcat(self.__variables, self.xcas[i])  # No modelo cada variável está separada, não posso uni-las num símbolo só
+                    self.__variables = vertcat(self.__variables, self.__xcas[i])  # No modelo cada variável está separada, não posso uni-las num símbolo só
                     self.__values = vertcat(self.__values, self.x.estimacao.matriz_estimativa[:,i:i + 1])  # Valores das variáveis para otimizar
 
-        #Definição do modelo
-        self.__cas_model  = self.__modelo(self.pcas, self.xcas) # Simbólico
+        # Model definition
+        self.__cas_model  = self.__modelo(self.__pcas, self.__xcas) # Simbólico
         self.__modelo_exc = Function('Modelo_executavel', [self.__param, self.__variables], [self.__cas_model]) # Executável
 
-        #Definição da função objetivo
+        # Objective function definition
         self.__f_objetivo     = sum1(((self.__y_obj - (self.__cas_model)) ** 2) / (self.__uy_obj ** 2)) # Simbólica
         self.__f_objetivo_exc = Function('FO_executavel',     [self.__param, self.__variables], [self.__f_objetivo]) # Executável
 
@@ -1172,10 +1171,10 @@ class EstimacaoNaoLinear:
     def __Hessiana_FO_Param_cas(self):
 
         Hessiana_cas = []
-        for i in range(len(self.pcas)):
+        for i in range(len(self.__pcas)):
             row = []
-            for j in range(len(self.pcas)):
-                row = horzcat(row, jacobian(jacobian(self.__f_objetivo, self.pcas[i]),self.pcas[j]))  # montagem de cada linha da Hessiana
+            for j in range(len(self.__pcas)):
+                row = horzcat(row, jacobian(jacobian(self.__f_objetivo, self.__pcas[i]),self.__pcas[j]))  # montagem de cada linha da Hessiana
             Hessiana_cas = vertcat(Hessiana_cas, row)  # as linhas montadas são então encaixadas na matriz Hessiana
 
         Hessiana_fun = Function('Hessiana', [self.__param, self.__variables], [Hessiana_cas])
@@ -1186,10 +1185,10 @@ class EstimacaoNaoLinear:
     def __Matriz_Gy(self):
 
         Gy_cas = []
-        for i in range(len(self.pcas)):
+        for i in range(len(self.__pcas)):
             row = []
-            for j in range(len(self.ycas)):
-                row = horzcat(row, jacobian(jacobian(self.__f_objetivo, self.pcas[i]), self.ycas[j]))
+            for j in range(len(self.__ycas)):
+                row = horzcat(row, jacobian(jacobian(self.__f_objetivo, self.__pcas[i]), self.__ycas[j]))
             Gy_cas = vertcat(Gy_cas, row)
 
         Gy_fun = Function('Gy', [self.__param, self.__variables], [Gy_cas])
@@ -1200,27 +1199,33 @@ class EstimacaoNaoLinear:
     def __Matriz_S_cas(self):
 
         S_cas = []
-        for i in range(len(self.pcas)):
-            S_cas = horzcat(S_cas,jacobian(self.__cas_model,self.pcas[i]))
+        for i in range(len(self.__pcas)):
+            S_cas = horzcat(S_cas,jacobian(self.__cas_model,self.__pcas[i]))
 
         S_fun = Function('Sensibilidade', [self.__param, self.__variables],[S_cas])
         S_DM = S_fun(self.__opt_param, self.__values) # a matriz gerada aqui é um objteo tipo DM, característico do casadi
-
         # ---------------------------------------------------------------------
         # CONVERTENDO OS ELEMENTOS DA MATRIZ S PARA O TIPO FLOAT
         # ---------------------------------------------------------------------
 
-        self.S = []
+        aux = self.__new_matrix(len(self.y.estimacao.matriz_estimativa),len(self.__pcas))
         position = 0
-        for i in range(len(self.y.estimacao.matriz_estimativa)): # o tamanho das linhas é o número de observações de cada variável dependente
-            row = []
-            for j in range(len(self.pcas)): # o tamanho das colunas é o número de parâmetros a serem estimados
-                row = horzcat(float(S_DM[position]))
+        for j in range(len(self.__pcas)): # o tamanho das linhas é o número de observações de cada variável dependente
+            for i in range(len(self.y.estimacao.matriz_estimativa)): # o tamanho das colunas é o número de parâmetros a serem estimados
+                aux[i][j] = (float(S_DM[position]))
                 position = position + 1
-            self.S = vertcat(self.S, row)
+        self.S = array(aux)
 
-        a=1
         return self.S
+
+    def __new_matrix(self, rows, colunms):
+        self.__matrix = []
+        for i in range(rows):
+            self.__matrix.append([])
+            for j in range(colunms):
+                self.__matrix[i].append([])
+
+        return self.__matrix
 
     def __matrixcas(self):
         u"""
@@ -1229,10 +1234,10 @@ class EstimacaoNaoLinear:
         # cálculo da matriz hessiana
 
         H = []
-        for i in range(len(self.pcas)):
+        for i in range(len(self.__pcas)):
             row = []
-            for j in range(len(self.pcas)):
-                row = horzcat(row, jacobian(jacobian(self.__f_objetivo, self.pcas[i]), self.pcas[j])) #montagem de cada linha da Hessiana
+            for j in range(len(self.__pcas)):
+                row = horzcat(row, jacobian(jacobian(self.__f_objetivo, self.__pcas[i]), self.__pcas[j])) #montagem de cada linha da Hessiana
             H = vertcat(H, row) #as linhas montadas são então encaixadas na matriz Hessiana
 
         f_H = Function('Hessiana', [self.__param, self.__variables], [H])
@@ -1241,13 +1246,13 @@ class EstimacaoNaoLinear:
         # cálculo da matriz de covariância dos parâmetros
 
         Gy = []
-        for i in range(len(self.pcas)):
+        for i in range(len(self.__pcas)):
             row = []
-            for j in range(len(self.ycas)):
-                row = horzcat(row, jacobian(jacobian(self.__f_objetivo, self.pcas[i]), self.ycas[j]))
+            for j in range(len(self.__ycas)):
+                row = horzcat(row, jacobian(jacobian(self.__f_objetivo, self.__pcas[i]), self.__ycas[j]))
             Gy = vertcat(Gy, row)
 
-        Covar_par = mtimes(mtimes(mtimes(mtimes(inv(H), Gy), diag(self.__uy_obj)), Gy.T), inv(H)) #matriz de covariância
+        Covar_par = mtimes(mtimes(mtimes(mtimes(inv_cas(H), Gy), diag(self.__uy_obj)), Gy.T), inv(H)) #matriz de covariância
 
         f_Uoo = Function('Covariancia_dos_parametros', [self.__param, self.__variables], [Covar_par])
         self.Uoo = f_Uoo(self.__opt_param, self.__values) # aqui é obtido o valor númerico da
@@ -1573,8 +1578,8 @@ class EstimacaoNaoLinear:
 
         # Método: simplificado -> inv(trans(S)*inv(Uyy)*S)
         elif metodoIncerteza == self.__metodosIncerteza[2]:
-            matriz_covariancia = inv(mtimes(mtimes(self.S.T, inv(diag(self.__uy_obj))),self.S))
-            #matriz_covariancia = inv(self.S.transpose().dot(inv(self.y.estimacao.matriz_covariancia)).dot(self.S))
+            #matriz_covariancia = inv(mtimes(mtimes(self.S.T, inv(diag(self.__uy_obj))),self.S))
+            matriz_covariancia = inv(self.S.transpose().dot(inv(self.y.estimacao.matriz_covariancia)).dot(self.S))
 
         # ---------------------------------------------------------------------
         # ATRIBUIÇÃO A GRANDEZA
