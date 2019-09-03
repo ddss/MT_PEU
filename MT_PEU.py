@@ -532,8 +532,6 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # CRIAÇÃO DAS VARIÁVEIS INTERNAS
         # ---------------------------------------------------------------------
-        # Função objetivo
-        self.__FO        = WLS
         # Modelo
         self.__modelo    = Modelo
         # Argumentos extras a serem passados para o modelo definidos pelo usuário.
@@ -608,22 +606,6 @@ class EstimacaoNaoLinear:
     def __tipoPreenchimento(self):
         # tipos de algoritmos de preenchimento de região de abrangência disponíveis
         return ('MonteCarlo',)
-
-    @property
-    def _args_FO(self):
-        """
-        Propriedade que retorna argumentos extras a serem passados para a função objetivo
-
-        :return: lista (list) com argumentos extras
-        """
-        # ---------------------------------------------------------------------
-        # LISTA DE ATRIBUTOS A SEREM INSERIDOS NA FUNÇÃO OBJETIVO
-        # ---------------------------------------------------------------------
-
-        return [self.y.estimacao.vetor_estimativa, self.x.estimacao.matriz_estimativa,
-                self.y.estimacao.matriz_covariancia, self.x.estimacao.matriz_covariancia,
-                self.__args_user, self.__modelo,
-                self.x.simbolos, self.y.simbolos, self.parametros.simbolos]
 
     @property
     def _args_model(self):
@@ -877,6 +859,72 @@ class EstimacaoNaoLinear:
         self.__ytemp = None
         self.__uytemp = None
 
+        # --------------------------------------------------------------------------------
+        # CREATION OF CASADI'S VARIABLES THAT WILL BE USED TO BUILD THE CASADI'S MODEL
+        # --------------------------------------------------------------------- ----------
+
+        self.__pcas = []
+        self.__xcas = []
+        self.__ycas = []
+        self.__uycas = []
+
+        # Creation of decision variables in casadi's format
+        for i in range(len(self.parametros.simbolos)):
+            self.__pcas.append(MX.sym(self.parametros.simbolos[i]))
+
+        # Creation of independent variables in casadi's format
+        for i in range(0, len(self.x.simbolos), 1):
+            self.__xcas.append(MX.sym(self.x.simbolos[i], len(self.x.estimacao.matriz_estimativa[:, i:i + 1])))
+
+        # Creation of dependent variables in casadi's format
+        for i in range(0, len(self.y.simbolos), 1):
+            self.__ycas.append(MX.sym(self.y.simbolos[i], len(self.y.estimacao.matriz_estimativa[:, i:i + 1])))
+
+        # Creation of uncertainties of dependent variables in casadi's format
+        for i in range(0, len(self.y.simbolos), 1):
+            self.__uycas.append(MX.sym('ui'[i], len(self.y.estimacao.matriz_incerteza[:, i:i + 1])))
+
+        # --------------------------------------------------------------------------------
+        # PUTTING THE VARIABLES IN THE FORMAT THE OPTIMIZER ASKS
+        # --------------------------------------------------------------------- ----------
+        self.__param = []
+        self.__variables = []
+        self.__values = []
+        self.__y_obj = []
+        self.__uy_obj = []
+
+        # Decision Variables
+        for i in range(len(self.__pcas)):
+            self.__param = vertcat(self.__param, self.__pcas[i])
+
+        types = ['dependent', 'uncertainty', 'independent']  # variables types
+
+        # dependent variables, independent variables and uncertainty
+        for j in types:
+            if j == 'dependent':
+                for i in range(len(self.y.simbolos)):
+                    self.__variables = vertcat(self.__variables, self.__ycas[i])
+                    self.__y_obj = vertcat(self.__y_obj, self.__ycas[i])  # This is necessary because if you use ycas direct in FO it is entered as a list
+                                                                          # must be a MX object
+                    self.__values = vertcat(self.__values, self.y.estimacao.matriz_estimativa[:, i:i + 1])
+            elif j == 'uncertainty':
+                for i in range(len(self.y.simbolos)):
+                    self.__variables = vertcat(self.__variables, self.__uycas[i])  # For each y symbol there will be an uncertainty matrix
+                    self.__uy_obj = vertcat(self.__uy_obj, self.__uycas[i])
+                    self.__values = vertcat(self.__values, self.y.estimacao.matriz_incerteza[:, i:i + 1])
+            elif j == 'independent':
+                for i in range(len(self.x.simbolos)):
+                    self.__variables = vertcat(self.__variables, self.__xcas[i])
+                    self.__values = vertcat(self.__values, self.x.estimacao.matriz_estimativa[:, i:i + 1])
+
+        # Model definition
+        self.__cas_model = self.__modelo(self.__pcas, self.__xcas)  # Symbolic
+        self.__modelo_exc = Function('Modelo_executavel', [self.__param, self.__variables], [self.__cas_model])  # Executable
+
+        # Objective function definition
+        self.__FO_cas = sum1(((self.__y_obj - (self.__cas_model)) ** 2) / (self.__uy_obj ** 2))  # Symbolic
+        self.__FO = Function('FO_executavel', [self.__param, self.__variables], [self.__FO_cas])  # Executable
+
     def _armazenarDicionario(self):
         u"""
         Método opcional para armazenar as Grandezas (x,y e parãmetros) na
@@ -966,75 +1014,7 @@ class EstimacaoNaoLinear:
 
         return grandeza
 
-    def __casadivariables(self):
-
-        # --------------------------------------------------------------------------------
-        # CREATION OF CASADI'S VARIABLES THAT WILL BE USED TO BUILD THE CASADI'S MODEL
-        # --------------------------------------------------------------------- ----------
-
-        self.__pcas  = []
-        self.__xcas  = []
-        self.__ycas  = []
-        self.__uycas = []
-
-        # Creation of decision variables in casadi's format
-        for i in range(len(self.parametros.simbolos)):
-            self.__pcas.append(MX.sym(self.parametros.simbolos[i]))
-
-        # Creation of independent variables in casadi's format
-        for i in range(0, len(self.x.simbolos), 1):
-            self.__xcas.append(MX.sym(self.x.simbolos[i], len(self.x.estimacao.matriz_estimativa[:,i:i+1])))
-
-        # Creation of dependent variables in casadi's format
-        for i in range(0, len(self.y.simbolos), 1):
-            self.__ycas.append(MX.sym(self.y.simbolos[i], len(self.y.estimacao.matriz_estimativa[:,i:i+1])))
-
-        # Creation of uncertainties of dependent variables in casadi's format
-        for i in range(0, len(self.y.simbolos), 1):
-            self.__uycas.append(MX.sym('ui'[i], len(self.y.estimacao.matriz_incerteza[:,i:i+1])))
-
-        # --------------------------------------------------------------------------------
-        # PUTTING THE VARIABLES IN THE FORMAT THE OPTIMIZER ASKS
-        # --------------------------------------------------------------------- ----------
-        self.__param     = []
-        self.__variables = []
-        self.__values    = []
-        self.__y_obj     = []
-        self.__uy_obj    = []
-
-        # Decision Variables
-        for i in range(len(self.__pcas)):
-            self.__param = vertcat(self.__param, self.__pcas[i])
-
-        types = ['dependent', 'uncertainty', 'independent'] #variables types
-
-        # dependent variables, independent variables and uncertainty
-        for j in types:
-            if j == 'dependent':
-                for i in range(len(self.y.simbolos)):
-                    self.__variables = vertcat(self.__variables, self.__ycas[i])
-                    self.__y_obj = vertcat(self.__y_obj, self.__ycas[i])  # É necessário porque se utilizar o ycas direto na FO ele entra como lista e precisa ser um objeto MX
-                    self.__values = vertcat(self.__values, self.y.estimacao.matriz_estimativa[:, i:i + 1])
-            elif j == 'uncertainty':
-                for i in range(len(self.y.simbolos)):
-                    self.__variables = vertcat(self.__variables,self.__uycas[i])  # Para cada símbolo de y haverá uma matriz de incertezas
-                    self.__uy_obj = vertcat(self.__uy_obj, self.__uycas[i])
-                    self.__values = vertcat(self.__values, self.y.estimacao.matriz_incerteza[:, i:i + 1])
-            elif j == 'independent':
-                for i in range(len(self.x.simbolos)):
-                    self.__variables = vertcat(self.__variables, self.__xcas[i])  # No modelo cada variável está separada, não posso uni-las num símbolo só
-                    self.__values = vertcat(self.__values, self.x.estimacao.matriz_estimativa[:,i:i + 1])  # Valores das variáveis para otimizar
-
-        # Model definition
-        self.__cas_model  = self.__modelo(self.__pcas, self.__xcas) # Simbólico
-        self.__modelo_exc = Function('Modelo_executavel', [self.__param, self.__variables], [self.__cas_model]) # Executável
-
-        # Objective function definition
-        self.__f_objetivo     = sum1(((self.__y_obj - (self.__cas_model)) ** 2) / (self.__uy_obj ** 2)) # Simbólica
-        self.__f_objetivo_exc = Function('FO_executavel',     [self.__param, self.__variables], [self.__f_objetivo]) # Executável
-
-
-    def optmize(self,Initial_estimative, Lower_bound=-inf,Upper_bound=inf, algoritmo ='ipopt', args=None):
+    def optimize(self,Initial_estimative, Lower_bound=-inf,Upper_bound=inf, algoritmo ='ipopt', args=None):
         u"""
         Método para realização da otimização
 
@@ -1123,8 +1103,7 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # VALIDAÇÃO DO MODELO
         # ---------------------------------------------------------------------
-        # Chamada do método que cria as variáveis casadi
-        self.__casadivariables()
+
         # Verificação se o modelo é executável nos limites de busca
         try:  # validar se foi passado os limites superior e inferior. Obrigatorio estimativa inicial
             if Upper_bound is not None:
@@ -1142,9 +1121,10 @@ class EstimacaoNaoLinear:
         # EXECUÇÃO OTIMIZAÇÃO
         # ---------------------------------------------------------------------
         #definição o problema de otimização
-        nlp = {'x': self.__param, 'p': self.__variables, 'f': self.__f_objetivo}
+        nlp = {'x': self.__param, 'p': self.__variables, 'f': self.__FO_cas}
+        options = {'print_time': False, 'ipopt':{'print_level': 0, 'file_print_level':5, 'output_file': self.__base_path+'Optimization_relatory'}}
         #montagem do problema de otimização
-        S = nlpsol('S', algoritmo, nlp)
+        S = nlpsol('S', algoritmo, nlp, options)
         #passagem dos argumentos
         self.Otimizacao = S(x0=Initial_estimative, p=self.__values, lbx=Lower_bound, ubx=Upper_bound)
         #setattr(self.Otimizacao, 'method', algoritmo)
@@ -1154,8 +1134,8 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # OBTENÇÃO DO PONTO ÓTIMO DA FUNÇÃO OBJETIVO
         # ---------------------------------------------------------------------
-        self.FOotimo = self.Otimizacao['f']
-
+        self.FOotimo = float(self.Otimizacao['f'])
+        #open(self.__base_path + "Optimization_relatory", "r")
         # ---------------------------------------------------------------------
         # OBTENÇÃO DO VALOR ÓTIMO DOS PARÂMETROS
         # ---------------------------------------------------------------------
@@ -1168,17 +1148,28 @@ class EstimacaoNaoLinear:
         self.parametros._SETparametro(self.__opt_param, None, None, limite_superior=Lower_bound,
                                       limite_inferior=Lower_bound)
 
-    def __Hessiana_FO_Param_cas(self):
+    def __Hessiana_FO_Param(self):
 
         Hessiana_cas = []
         for i in range(len(self.__pcas)):
             row = []
             for j in range(len(self.__pcas)):
-                row = horzcat(row, jacobian(jacobian(self.__f_objetivo, self.__pcas[i]),self.__pcas[j]))  # montagem de cada linha da Hessiana
+                row = horzcat(row, jacobian(jacobian(self.__FO_cas, self.__pcas[i]),self.__pcas[j]))  # montagem de cada linha da Hessiana
             Hessiana_cas = vertcat(Hessiana_cas, row)  # as linhas montadas são então encaixadas na matriz Hessiana
 
         Hessiana_fun = Function('Hessiana', [self.__param, self.__variables], [Hessiana_cas])
-        self.Hessiana = Hessiana_fun(self.__opt_param, self.__values)  # aqui é obtido o valor númerico da Hessiana
+        Hessiana_DM = Hessiana_fun(self.__opt_param, self.__values)  # aqui é obtido o valor númerico da Hessiana
+
+        # ---------------------------------------------------------------------
+        # CONVERTING THE MATRIX ELEMENTS TO THE FLOAT TYPE
+        # ---------------------------------------------------------------------
+        aux = self.__new_matrix(len(self.__pcas), len(self.__pcas))
+        position = 0
+        for j in range(len(self.__pcas)):
+            for i in range(len(self.__pcas)):
+                aux[i][j] = (float(Hessiana_DM[position]))
+                position = position + 1
+        self.Hessiana = array(aux)
 
         return self.Hessiana
 
@@ -1188,30 +1179,43 @@ class EstimacaoNaoLinear:
         for i in range(len(self.__pcas)):
             row = []
             for j in range(len(self.__ycas)):
-                row = horzcat(row, jacobian(jacobian(self.__f_objetivo, self.__pcas[i]), self.__ycas[j]))
+                row = horzcat(row, jacobian(jacobian(self.__FO_cas, self.__pcas[i]), self.__ycas[j]))
             Gy_cas = vertcat(Gy_cas, row)
 
         Gy_fun = Function('Gy', [self.__param, self.__variables], [Gy_cas])
-        self.Gy = Gy_fun(self.__opt_param, self.__values)
+        Gy_DM = Gy_fun(self.__opt_param, self.__values)
 
+        # ---------------------------------------------------------------------
+        # CONVERTING THE MATRIX ELEMENTS TO THE FLOAT TYPE
+        # ---------------------------------------------------------------------
+        aux = self.__new_matrix(len(self.__pcas),len(self.y.estimacao.vetor_estimativa))
+        position = 0
+        for i in range(len(self.y.estimacao.vetor_estimativa)):
+            for j in range(len(self.__pcas)):
+                aux[j][i] = (float(Gy_DM[position]))
+                position = position + 1
+        self.Gy = array(aux)
+        a=1
         return self.Gy
 
-    def __Matriz_S_cas(self):
+    def __Matriz_S(self):
+        u"""
+               Method for calvulate the array S(first derivatives of the model function in relation to the parameters)."""
 
         S_cas = []
         for i in range(len(self.__pcas)):
             S_cas = horzcat(S_cas,jacobian(self.__cas_model,self.__pcas[i]))
 
         S_fun = Function('Sensibilidade', [self.__param, self.__variables],[S_cas])
-        S_DM = S_fun(self.__opt_param, self.__values) # a matriz gerada aqui é um objteo tipo DM, característico do casadi
-        # ---------------------------------------------------------------------
-        # CONVERTENDO OS ELEMENTOS DA MATRIZ S PARA O TIPO FLOAT
-        # ---------------------------------------------------------------------
+        S_DM = S_fun(self.__opt_param, self.__values) # this array have a DM type
 
-        aux = self.__new_matrix(len(self.y.estimacao.matriz_estimativa),len(self.__pcas))
+        # ---------------------------------------------------------------------
+        # CONVERTING THE MATRIX ELEMENTS TO THE FLOAT TYPE
+        # ---------------------------------------------------------------------
+        aux = self.__new_matrix(len(self.y.estimacao.vetor_estimativa),len(self.__pcas))
         position = 0
-        for j in range(len(self.__pcas)): # o tamanho das linhas é o número de observações de cada variável dependente
-            for i in range(len(self.y.estimacao.matriz_estimativa)): # o tamanho das colunas é o número de parâmetros a serem estimados
+        for j in range(len(self.__pcas)):
+            for i in range(len(self.y.estimacao.vetor_estimativa)):
                 aux[i][j] = (float(S_DM[position]))
                 position = position + 1
         self.S = array(aux)
@@ -1219,6 +1223,9 @@ class EstimacaoNaoLinear:
         return self.S
 
     def __new_matrix(self, rows, colunms):
+        u"""
+               Method for creating empty arrays"""
+
         self.__matrix = []
         for i in range(rows):
             self.__matrix.append([])
@@ -1226,175 +1233,6 @@ class EstimacaoNaoLinear:
                 self.__matrix[i].append([])
 
         return self.__matrix
-
-    def __matrixcas(self):
-        u"""
-        Método para criação das matrizes utilizando o casadi"""
-
-        # cálculo da matriz hessiana
-
-        H = []
-        for i in range(len(self.__pcas)):
-            row = []
-            for j in range(len(self.__pcas)):
-                row = horzcat(row, jacobian(jacobian(self.__f_objetivo, self.__pcas[i]), self.__pcas[j])) #montagem de cada linha da Hessiana
-            H = vertcat(H, row) #as linhas montadas são então encaixadas na matriz Hessiana
-
-        f_H = Function('Hessiana', [self.__param, self.__variables], [H])
-        self.Hess = f_H(self.__opt_param,self.__values) # aqui é obtido o valor númerico da Hessiana
-
-        # cálculo da matriz de covariância dos parâmetros
-
-        Gy = []
-        for i in range(len(self.__pcas)):
-            row = []
-            for j in range(len(self.__ycas)):
-                row = horzcat(row, jacobian(jacobian(self.__f_objetivo, self.__pcas[i]), self.__ycas[j]))
-            Gy = vertcat(Gy, row)
-
-        Covar_par = mtimes(mtimes(mtimes(mtimes(inv_cas(H), Gy), diag(self.__uy_obj)), Gy.T), inv(H)) #matriz de covariância
-
-        f_Uoo = Function('Covariancia_dos_parametros', [self.__param, self.__variables], [Covar_par])
-        self.Uoo = f_Uoo(self.__opt_param, self.__values) # aqui é obtido o valor númerico da
-                                                          # matriz de covariância dos parâmetros
-
-
-    def otimiza(self,estimativa_inicial, limite_inferior=None,limite_superior=None, algoritmo='Nelder-Mead',args=None,tol=None,options={}):
-        u"""
-        Método para realização da otimização
-
-        =====================
-        Métodos predecessores
-        =====================
-
-        Faz-se necessário executaro método ``setConjunto``, informando os dados estimação \
-        antes de executar a otimização.
-
-        =======================
-        Entradas (obrigatórias)
-        =======================
-        * estimativa_inicial (list): lista com as estimativas iniciais para os parâmetros. **Usado para outros métodos de otimização**
-
-        ====================
-        Entradas (opcionais)
-        ====================
-
-        * limite_inferior (list): lista com os limites inferior para os parâmetros.
-        * limite_superior (list): lista com os limites superior para os parâmetros.
-        * args: argumentos extras a serem passados para o modelo
-        * algoritmo (string): string informando o algoritmo de otimização a ser utilizado. Cada algoritmo tem suas próprias keywords
-
-        ===============================
-        Keywords (argumentos opcionais)
-        ===============================
-
-        algoritmos disponíveis = Nelder-Mead, Powell, BFGS, L-BFGS-B
-
-        Vide documentação dos algoritmos em: https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html
-        Para os argumentos extras, vide documentação.
-
-        ==========
-        Observação
-        ==========
-        * Toda vez que a otimização é executada toda informação anterior sobre parâmetros é perdida
-        """
-        # ---------------------------------------------------------------------
-        # FLUXO
-        # ---------------------------------------------------------------------
-        self.__controleFluxo.SET_ETAPA('otimizacao')
-        # ---------------------------------------------------------------------
-        # VALIDAÇÃO
-        # ---------------------------------------------------------------------
-
-        # se não houver dados experimentais -> erro
-        if not self.__flag.info['dadosestimacao']:
-            raise SyntaxError('Para executar a otimização, faz-se necessário dados para estimação')
-
-        # se SETparametro não pode ser executado antes de otimiza.
-        if self.__controleFluxo.SETparametro:
-            raise SyntaxError('O método {} não pode ser executado com {}'.format('otimiza', 'SETparametro'))
-
-        # verificação se o algoritmo é um string
-        if not isinstance(algoritmo, str):
-            raise TypeError('O nome do algoritmo deve ser uma string.')
-
-        # verificação se o algoritmo está disponível
-        if not algoritmo in self.__AlgoritmosOtimizacao:
-            raise NameError(
-                'A opção {} de algoritmo não está correta. Algoritmos disponíveis: '.format(algoritmo) + ', '.join(
-                    self.__AlgoritmosOtimizacao) + '.')
-
-        # validação da estimativa inicial:
-        if estimativa_inicial is None:
-            raise SyntaxError('Para executar a otimização, faz-se necessário estimativa inicial')
-        if not isinstance(estimativa_inicial, list) or len(estimativa_inicial) != self.parametros.NV:
-            raise TypeError(
-             'A estimativa inicial deve ser uma lista de dimensão do número de parâmetros, definida nos símbolos. Número de parâmetros: {}'.format(
-              self.parametros.NV))
-
-        # ---------------------------------------------------------------------
-        # EXECUÇÃO
-        # ---------------------------------------------------------------------
-        # EstimacaoNaoLinear executa somente estimação SEM reconciliação
-        self.__flag.ToggleInactive('reconciliacao')
-
-        # definindo que args são argumentos extras a serem passados para a função objetivo (e, portanto, não sofrem validação)
-        self.__args_user = args
-
-        # indica que este algoritmo possui gráficos de desempenho
-        self.__flag.ToggleInactive('graficootimizacao')
-        # indica que esta algoritmo possui relatório de desempenho
-        self.__flag.ToggleActive('relatoriootimizacao')
-
-        #kwargs['NP'] = self.parametros.NV
-
-        # ---------------------------------------------------------------------
-        # VALIDAÇÃO DO MODELO
-        # ---------------------------------------------------------------------
-        # Verificação se o modelo é executável nos limites de busca
-        try: #validar se foi passado os limites superior e inferior. Obrigatorio estimativa inicial
-            if limite_superior is not None:
-                aux = self.__modelo(limite_superior,self.x.predicao.matriz_estimativa,self._args_model)
-            if limite_inferior  is not None:
-                aux = self.__modelo(limite_inferior,self.x.predicao.matriz_estimativa,self._args_model)
-            if estimativa_inicial is None:
-                aux = self.__modelo(estimativa_inicial, self.x.predicao.matriz_estimativa, self._args_model)
-
-
-        except Exception as erro:
-            raise SyntaxError(u'Erro no modelo, quando avaliado nos limites de busca definidos. Erro identificado: "{}".'.format(erro))
-
-        # ---------------------------------------------------------------------
-        # EXECUÇÃO OTIMIZAÇÃO
-        # ---------------------------------------------------------------------
-        # OS argumentos extras (kwargs e kwrsbusca) são passados diretamente para o algoritmo
-        self.Otimizacao = minimize(self.__FO, estimativa_inicial, args=self._args_FO, method=algoritmo)
-        setattr(self.Otimizacao, 'method', algoritmo)
-        # ATRIBUIÇÃO A GRANDEZAS
-        # ---------------------------------------------------------------------
-        # Atribuindo o valor ótimo dos parâmetros
-        # Toda vez que a otimização é executada toda informação anterior sobre parâmetros é perdida
-
-        self.parametros._SETparametro(list(self.Otimizacao.x),None,None,limite_superior=limite_superior,limite_inferior=limite_inferior)
-
-        # ---------------------------------------------------------------------
-        # OBTENÇÃO DO PONTO ÓTIMO DA FUNÇÃO OBJETIVO
-        # ---------------------------------------------------------------------
-        self.__GETFOotimo()
-
-    def __GETFOotimo(self):
-        '''
-        Método para obtenção do ponto ótimo da função objetivo
-        '''
-        # ---------------------------------------------------------------------
-        # FLUXO
-        # ---------------------------------------------------------------------
-        self.__controleFluxo.SET_ETAPA('GETFOotimo')
-
-        # ---------------------------------------------------------------------
-        # OBTENÇÃO DO PONTO ÓTIMO DA FUNÇÃO OBJETIVO
-        # ---------------------------------------------------------------------
-        self.FOotimo = self.__FO(self.parametros.estimativa, self._args_FO)
 
     def SETparametro(self,estimativa,variancia=None,regiao=None,**kwargs):
         u"""
@@ -1463,8 +1301,6 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # AVALIAÇÃO DO MODELO
         # ---------------------------------------------------------------------
-        # Chamada do método que cria as variáveis casadi
-        self.__casadivariables()
         # Avaliação do modelo no ponto ótimo informado
         try:
             aux = self.__modelo_exc(self.parametros.estimativa,self.__values)
@@ -1475,7 +1311,7 @@ class EstimacaoNaoLinear:
         # OBTENÇÃO DO PONTO ÓTIMO
         # ---------------------------------------------------------------------
 
-        self.FOotimo = self.__f_objetivo_exc(self.parametros.estimativa, self.__values)
+        self.FOotimo = self.__FO(self.parametros.estimativa, self.__values)
 
         # ---------------------------------------------------------------------
         # VARIÁVEIS INTERNAS
@@ -1544,8 +1380,7 @@ class EstimacaoNaoLinear:
         # Matriz Hessiana da função objetivo em relação aos parâmetros
         # somente avaliada se o método é 2InvHess ou Geral
         if metodoIncerteza == self.__metodosIncerteza[0] or metodoIncerteza == self.__metodosIncerteza[1]:
-            #self.Hessiana   = self.__Hessiana_FO_Param(self._deltaHessiana)
-            self.__Hessiana_FO_Param_cas()
+            self.__Hessiana_FO_Param()
 
             # Inversa da matriz hessiana a função objetivo em relação aos parâmetros
             invHess = inv(self.Hessiana)
@@ -1554,14 +1389,12 @@ class EstimacaoNaoLinear:
         # dados experimentais
         # Somente avaliada caso o método seja Geral
         if metodoIncerteza == self.__metodosIncerteza[1]:
-            #self.Gy  = self.__Matriz_Gy(self._deltaGy)
             self.__Matriz_Gy()
 
         # Matriz de sensibilidade do modelo em relação aos parâmetros
         # Somente avaliada caso o método seja o simplificado
         if metodoIncerteza == self.__metodosIncerteza[2]:
-            #self.S   = self.__Matriz_S(self.x.estimacao.matriz_estimativa,self._deltaS)
-            self.__Matriz_S_cas()
+            self.__Matriz_S()
 
         # ---------------------------------------------------------------------
         # AVALIAÇÃO DA INCERTEZA DOS PARÂMETROS
@@ -1578,7 +1411,6 @@ class EstimacaoNaoLinear:
 
         # Método: simplificado -> inv(trans(S)*inv(Uyy)*S)
         elif metodoIncerteza == self.__metodosIncerteza[2]:
-            #matriz_covariancia = inv(mtimes(mtimes(self.S.T, inv(diag(self.__uy_obj))),self.S))
             matriz_covariancia = inv(self.S.transpose().dot(inv(self.y.estimacao.matriz_covariancia)).dot(self.S))
 
         # ---------------------------------------------------------------------
@@ -1612,43 +1444,11 @@ class EstimacaoNaoLinear:
         É necessário executar a otimização (seguida de incertezaParametros) ou incluir o valor para a estimativa dos parâmetros e sua incerteza, pelo \
         método ``SETparametro`` (caso não defina incerteza, executar em seguida de incertezaParametros).
 
-
-        =================
-        Keyword arguments
-        =================
-        ** Por default, este método vai utilizar os últimos deltas definidos na etapa de avaliação da incerteza **
-
-        * deltaHess: delta a ser utilizado para a matriz Hessiana
-        * deltaGy: delta a ser utilzido para a matriz de derivadas parciais da função objetivo em relação
-        aos parâmetros e dados experimentais
-        * deltaS: delta a ser utilizado na matriz de derivadas do modelo em relação dos parâmetros.
-        * delta: quando definido, ajusta deltaHess, deltaGy e deltaS para o valor definido.
         """
         # ---------------------------------------------------------------------
         # FLUXO
         # ---------------------------------------------------------------------
         self.__controleFluxo.SET_ETAPA('predicao')
-
-        # ---------------------------------------------------------------------
-        # VALIDAÇÃO
-        # ---------------------------------------------------------------------      
-        keyincorreta = [key for key in kwargs.keys() if not key in self.__keywordsDerivadas]
-
-        if len(keyincorreta) != 0:
-            raise NameError('keyword(s) incorreta(s): ' + ', '.join(keyincorreta) + '.' +
-                            ' Keywords disponíveis: ' + ', '.join(self.__keywordsDerivadas) + '.')
-
-        # ---------------------------------------------------------------------
-        # DELTAS (INCREMENTO) DAS DERIVADAS
-        # ---------------------------------------------------------------------
-        if kwargs.get('delta') is not None:
-            kwargs['deltaHess'] = kwargs['delta']
-            kwargs['deltaGy'] = kwargs['delta']
-            kwargs['deltaS'] = kwargs['delta']
-
-        self._deltaHessiana = kwargs.get('deltaHess') if kwargs.get('deltaHess') is not None else self._deltaHessiana
-        self._deltaGy = kwargs.get('deltaGy') if kwargs.get('deltaGy') is not None else self._deltaGy
-        self._deltaS = kwargs.get('deltaS') if kwargs.get('deltaS') is not None else self._deltaS
 
         # ---------------------------------------------------------------------
         # AVALIAÇÃO DAS MATRIZES AUXILIARES
@@ -1657,7 +1457,7 @@ class EstimacaoNaoLinear:
         # Matriz Hessiana da função objetivo em relação aos parâmetros
         # Somente reavaliada caso o método que a avalia não tenha sido executado E não tenha dados validacao
         if not self.__controleFluxo.Hessiana and not self.__flag.info['dadospredicao']:
-            self.Hessiana = self.__Hessiana_FO_Param(self._deltaHessiana)
+            self.__Hessiana_FO_Param()
 
         # Inversa da matriz hessiana a função objetivo em relação aos parâmetros
         # Só avaliada se o método de avaliação da Hessiana for executado E não tenha dados validacao
@@ -1668,18 +1468,26 @@ class EstimacaoNaoLinear:
         # dados experimentais
         # Somente reavaliada caso o método que a avalia não tenha sido executado E não tenha dados validacao
         if not self.__controleFluxo.Gy and not self.__flag.info['dadospredicao']:
-            self.Gy  = self.__Matriz_Gy(self._deltaGy)
+            self.__Matriz_Gy()
 
         # S: transposto do jacobiano do modelo em relação aos parâmetros
         # Somente reavaliada caso não tenha sido avaliada OU se tenha dados de validação
         if not self.__controleFluxo.S or self.__flag.info['dadospredicao']:
             # Matriz de sensibilidade do modelo em relação aos parâmetros
-            self.S   = self.__Matriz_S(self.x.predicao.matriz_estimativa,self._deltaS)
+            self.__Matriz_S()
 
         # ---------------------------------------------------------------------
         # PREDIÇÃO
         # ---------------------------------------------------------------------
-        aux = self.__modelo(self.parametros.estimativa,self.x.predicao.matriz_estimativa,self._args_model)
+        aux_DM = self.__modelo_exc(self.parametros.estimativa,self.__values) # DM object
+
+        position = 0
+        aux = self.__new_matrix(len(self.y.estimacao.matriz_estimativa), len(self.y.simbolos))
+        for j in range(len(self.y.simbolos)):
+            for i in range(len(self.y.estimacao.matriz_estimativa)):
+                aux[i][j] = (float(aux_DM[position]))
+                position = position + 1
+        aux = array(aux) # float object
 
         # ---------------------------------------------------------------------
         # AVALIAÇÃO DA PREDIÇÃO (Y CALCULADO PELO MODELO)
@@ -1695,7 +1503,7 @@ class EstimacaoNaoLinear:
             # Neste caso, os dados de validação são os dados experimentais e será considerada
             # a covariância entre os parâmetros e dados experimentais
             # COVARIÃNCIA ENTRE PARÂMETROS E DADOS EXPERIMENTAIS
-            Covar_param_y_experimental = -invHess.dot(self.Gy).dot(self.y.predicao.matriz_covariancia)
+            Covar_param_y_experimental = -inv(self.Hessiana).dot(self.Gy).dot(self.y.predicao.matriz_covariancia)
             # PRIMEIRA PARCELA
             Uyycalculado_1 = self.S.dot(self.parametros.matriz_covariancia).dot(self.S.transpose())
             # SEGUNDA PARCELA            
@@ -1714,183 +1522,6 @@ class EstimacaoNaoLinear:
         self.x._SETcalculado(estimativa=self.x.predicao.matriz_estimativa,matriz_covariancia=self.x.predicao.matriz_covariancia,
                              gL=[[self.x.estimacao.NE*self.x.NV-self.parametros.NV]*self.x.predicao.NE]*self.x.NV,
                              NE=self.x.predicao.NE)
-
-    def __Hessiana_FO_Param(self,delta=1e-5):
-        u"""
-        Método para calcular a matriz Hessiana da função objetivo em relaçao aos parâmetros.
-
-        Está disponível o método de derivada central de segunda ordem.
-
-        ========
-        Entradas
-        ========
-        * delta(float): valor do incremento relativo para o cálculo da derivada. Incremento relativo à ordem de grandeza do parâmetro.
-
-        =====
-        Saída
-        =====
-
-        Retorna a matriz Hessiana(array)
-
-        ==========
-        Referência
-        ==========
-        """
-        # ---------------------------------------------------------------------
-        # FLUXO
-        # ---------------------------------------------------------------------
-        self.__controleFluxo.SET_ETAPA('Hessiana')
-        #---------------------------------------------------------------------------------------
-        # DEFINIÇÃO DA MATRIZ DE DERIVADAS PARCIAIS DA FUNÇÃO OBJETIVO EM RELAÇÃO AOS PARÂMETROS
-        #----------------------------------------------------------------------------------------
-
-        #Criação de matriz de ones com dimenção:(número de parâmetrosXnúmero de parâmetros) a\
-        #qual terá seus elementos substituidos pelo resultado da derivada das  funçâo em relação aos\
-        #parâmetros i e j de acordo determinação do for.
-        matriz_hessiana=[[1. for col in range(self.parametros.NV)] for row in range(self.parametros.NV)]
-
-        # Valor da função objetivo nos argumentos determinados pela otmização, ou seja, valor no ponto ótimo.
-        FO_otimo = self.FOotimo
-
-        #Estrutura iterativa para deslocamento pela matriz Hessiana anteriormente definida.
-        for i in range(self.parametros.NV):
-            for j in range(self.parametros.NV):
-
-                # Incrementos para as derivadas dos parâmetros, tendo delta1 e delta2 aplicados a qual parãmetro está ocorrendo a alteração\
-                #no vetor de parâmetros que é argumento da FO.
-                # Obs.: SE O VALOR DO PARÂMETRO FOR ZERO, APLICA-SE OS VALORES DE ''delta'' para ''delta1'' e/ou ''delta2'', pois não existe log de zero, causando erro.
-
-                delta1 = (10**(floor(log10(abs(self.parametros.estimativa[i])))))*delta if self.parametros.estimativa[i] != 0 else delta
-                delta2 = (10**(floor(log10(abs(self.parametros.estimativa[j])))))*delta if self.parametros.estimativa[j] != 0 else delta
-
-                #---------------------------------------------------------------------------------------
-                # Aplicação da derivada numérica de segunda ordem para os elementos da diagonal principal.
-                #----------------------------------------------------------------------------------------
-
-                if i==j:
-
-                    # Vetor com o incremento no parâmetro i
-                    vetor_parametro_delta_positivo = vetor_delta(self.parametros.estimativa,i,delta1)
-                    # Vetor com o incremento no parâmetro j.
-                    vetor_parametro_delta_negativo = vetor_delta(self.parametros.estimativa,j,-delta2)
-
-                    # Cálculo da função objetivo para seu respectivo vetor alterado para utilização na derivação numérica.
-                    # Inicialização das threads
-                    FO_delta_positivo=self.__FO(vetor_parametro_delta_positivo,self._args_FO)
-
-                    FO_delta_negativo=self.__FO(vetor_parametro_delta_negativo,self._args_FO)
-
-                    # Fórmula de diferença finita para i=j. (Disponível em, Gilat, Amos; MATLAB Com Aplicação em Engenharia, 2a ed, Bookman, 2006.)
-                    matriz_hessiana[i][j]=(FO_delta_positivo-2*FO_otimo+FO_delta_negativo)/(delta1*delta2)
-
-                #-------------------------------------------------------------------------------
-                #Aplicação da derivada numérica de segunda ordem para os demais elementos da matriz.
-                #-----------------------------------------------------------------------------------
-                else:
-                    # vetor com o incremento do parâmetro i,j
-                    vetor_parametro_delta_ipositivo_jpositivo = vetor_delta(self.parametros.estimativa,[i,j],[delta1,delta2])
-
-                    FO_ipositivo_jpositivo=self.__FO(vetor_parametro_delta_ipositivo_jpositivo,self._args_FO)
-
-                    vetor_parametro_delta_inegativo_jpositivo=vetor_delta(self.parametros.estimativa,[i,j],[-delta1,delta2])
-
-                    FO_inegativo_jpositivo=self.__FO(vetor_parametro_delta_inegativo_jpositivo,self._args_FO)
-
-                    vetor_parametro_delta_ipositivo_jnegativo=vetor_delta(self.parametros.estimativa,[i,j],[delta1,-delta2])
-
-                    FO_ipositivo_jnegativo=self.__FO(vetor_parametro_delta_ipositivo_jnegativo,self._args_FO)
-
-                    vetor_parametro_delta_inegativo_jnegativo=vetor_delta(self.parametros.estimativa,[i,j],[-delta1,-delta2])
-
-                    FO_inegativo_jnegativo=self.__FO(vetor_parametro_delta_inegativo_jnegativo,self._args_FO)
-
-
-                    # Fórmula de diferença finita para i=~j. Dedução do próprio autor, baseado em intruções da bibliografia:\
-                    #(Gilat, Amos; MATLAB Com Aplicação em Engenharia, 2a ed, Bookman, 2006.)
-                    matriz_hessiana[i][j]=((FO_ipositivo_jpositivo-FO_inegativo_jpositivo)/(2*delta1)\
-                    -(FO_ipositivo_jnegativo-FO_inegativo_jnegativo)/(2*delta1))/(2*delta2)
-
-        return array(matriz_hessiana)
-
-    def __Matriz_Gy(self,delta=1e-5):
-        u"""
-        Método para calcular a matriz Gy(derivada segunda da Fobj em relação aos parâmetros e y_experimentais).
-
-        Método de derivada central dada na forma parcial, em relação as variáveis\
-        dependentes distintas.
-
-        ========
-        Entradas
-        ========
-
-        * delta(float): valor do incremento relativo para o cálculo da derivada.\
-        Incremento relativo à ordem de grandeza do parâmetro ou da variável dependente.
-
-        =====
-        Saída
-        =====
-        * return a matriz Gy(array).
-
-        ==========
-        Referência
-        ==========
-        """
-        # ---------------------------------------------------------------------
-        # FLUXO
-        # ---------------------------------------------------------------------
-        self.__controleFluxo.SET_ETAPA('Gy')
-
-        # ---------------------------------------------------------------------
-        # EXECUÇÃO
-        # ---------------------------------------------------------------------
-        #Criação de matriz de ones com dimenção:(número de var. independentes* NE X número de parâmetros) a\
-        #qual terá seus elementos substituidos pelo resultado da derivada das  funçâo em relação aos\
-        #parâmetros i e Ys j de acordo determinação do for.
-
-        matriz_Gy = [[1. for col in range(self.y.NV*self.y.estimacao.NE)] for row in range(self.parametros.NV)]
-
-        #Estrutura iterativa para deslocamento pela matriz Gy anteriormente definida.
-        for i in range(self.parametros.NV):
-            for j in range(self.y.NV*self.y.estimacao.NE):
-
-                # Incremento no vetor de parâetros
-                # --------------------------------------------------------------
-                # OBS.: SE O VALOR DO PARÂMETRO e/ou DO Y FOR ZERO, APLICA-SE OS VALORES DE ''delta'' para ''delta1'' e/ou ''delta2'', pois não existe log de zero, causando erro.
-                # --------------------------------------------------------------
-                delta1 = (10**(floor(log10(abs(self.parametros.estimativa[i])))))*delta           if self.parametros.estimativa[i]           != 0 else delta
-                # incremento para a derivada nos valores de y
-                delta2 = (10**(floor(log10(abs(self.y.estimacao.vetor_estimativa[j])))))*delta if self.y.estimacao.vetor_estimativa[j] != 0 else delta
-
-                #Vetor alterado dos parâmetros para entrada na função objetivo
-                vetor_parametro_delta_ipositivo = vetor_delta(self.parametros.estimativa,i,delta1)
-                vetor_y_delta_jpositivo         = vetor_delta(self.y.estimacao.vetor_estimativa,j,delta2)
-
-                # Agumentos extras a serem passados para a FO.
-                args                            = copy(self._args_FO).tolist()
-                # Posição [0] da lista de argumantos contem o vetor das variáveis dependentes que será alterado.
-                args[0]                         = vetor_y_delta_jpositivo
-
-                FO_ipositivo_jpositivo          = self.__FO(vetor_parametro_delta_ipositivo,args) # Valor da _FO para vetores de Ys e parametros alterados.
-
-                # Processo similar ao anterior. Uso de subrrotina vetor_delta.
-                vetor_parametro_delta_inegativo = vetor_delta(self.parametros.estimativa,i,-delta1)
-
-                FO_inegativo_jpositivo          = self.__FO(vetor_parametro_delta_inegativo,args) # Valor da _FO para vetores de Ys e parametros alterados.
-
-                vetor_y_delta_jnegativo         = vetor_delta(self.y.estimacao.vetor_estimativa,j,-delta2)
-                args                            = copy(self._args_FO).tolist()
-                args[0]                         = vetor_y_delta_jnegativo
-
-                FO_ipositivo_jnegativo          = self.__FO(vetor_parametro_delta_ipositivo,args) #Mesma ideia, fazendo isso para aplicar a equação de derivada central de segunda ordem.
-
-                FO_inegativo_jnegativo          = self.__FO(vetor_parametro_delta_inegativo,args) #Idem
-
-                # Fórmula de diferença finita para i=~j. Dedução do próprio autor, baseado em intruções da bibliografia:\
-                # (Gilat, Amos; MATLAB Com Aplicação em Engenharia, 2a ed, Bookman, 2006.)
-                matriz_Gy[i][j]=((FO_ipositivo_jpositivo-FO_inegativo_jpositivo)/(2*delta1)\
-                -(FO_ipositivo_jnegativo-FO_inegativo_jnegativo)/(2*delta1))/(2*delta2)
-
-        return array(matriz_Gy)
 
     def __Matriz_Sx(self,delta=1e-5):
         u"""
@@ -1911,63 +1542,6 @@ class EstimacaoNaoLinear:
         Retorna a matriz Sx(array).
         """
         pass
-
-    def __Matriz_S(self,x,delta=1e-5):
-        u"""
-        Método para calcular a matriz S(derivadas primeiras da função do modelo em relação aos parâmetros).
-
-        Método de derivada central de primeira ordem em relação aos parâmetros(considera os parâmetros como variáveis do modelo).
-
-        ========
-        Entradas
-        ========
-        * x (array): vetor contendo a matriz das estimativas das grandezas independentes
-        * delta(float): valor do incremento relativo para o cálculo da derivada. Incremento relativo à ordem de grandeza do parâmetro.
-
-        =====
-        Saída
-        =====
-
-        Retorna a matriz S(array).
-        """
-        # ---------------------------------------------------------------------
-        # FLUXO
-        # ---------------------------------------------------------------------
-        self.__controleFluxo.SET_ETAPA('S')
-        # ---------------------------------------------------------------------
-        # EXECUÇÃO
-        # ---------------------------------------------------------------------
-        #Criação de matriz de ones com dimenção:(número de Y*NE X número de parâmetros) a\
-        #qual terá seus elementos substituidos pelo resultado da derivada das  função em relação aos\
-        #parâmetros i de acordo o seguinte ''for''.
-
-        matriz_S = ones((self.y.NV*x.shape[0],self.parametros.NV))
-
-        for i in range(self.parametros.NV):
-
-                # Incrementos para as derivadas dos parâmetros, tendo delta_alpha aplicados a qual parâmetro está ocorrendo a alteração\
-                #no vetor de parâmetros que é argumento da FO.
-
-                #--------------------------------------------------------------
-                #OBS.: SE O VALOR DO PARÂMETRO FOR ZERO, APLICA-SE OS VALORES DE ''delta'' para delta_alpha, pois não existe log de zero, causando erro.
-                #--------------------------------------------------------------
-                delta_alpha = (10**(floor(log10(abs(self.parametros.estimativa[i])))))*delta if self.parametros.estimativa[i] != 0 else delta
-
-                #Vetores alterados dos parâmetros para entrada na função do modelo
-                vetor_parametro_delta_i_positivo = vetor_delta(self.parametros.estimativa,i,delta_alpha)
-                vetor_parametro_delta_i_negativo = vetor_delta(self.parametros.estimativa,i,-delta_alpha)
-
-                #Valores para o modelo com os parâmetros acrescidos (matriz na foma de array).
-                ycalculado_delta_positivo       = self.__modelo(vetor_parametro_delta_i_positivo,x,self._args_model)
-
-                #Valores para o modelo com os parâmetros decrescidos (matriz na foma de array).
-                ycalculado_delta_negativo       = self.__modelo(vetor_parametro_delta_i_negativo,x,self._args_model)
-
-                # Fórmula de diferença finita de primeira ordem. Fonte bibliográfica bibliográfia:\
-                #(Gilat, Amos; MATLAB Com Aplicação em Engenharia, 2a ed, Bookman, 2006.) - página (?)
-                matriz_S[:,i:i+1] =  (matriz2vetor(ycalculado_delta_positivo) - matriz2vetor(ycalculado_delta_negativo))/(2*delta_alpha)
-
-        return matriz_S
 
     def __preencherRegiao(self,**kwargs):
         u"""
@@ -2084,7 +1658,7 @@ class EstimacaoNaoLinear:
                     amostra = [triangular(limite_inferior[i], self.parametros.estimativa[i], limite_superior[i], 1)[0]
                                for i in range(self.parametros.NV)]
 
-                FO = self.__FO(amostra, self._args_FO)
+                FO = float(self.__FO(amostra, self.__values)) #self.__FO returns a DM object, it's necessary convert to float object
 
                 self.__hist_Posicoes.append(amostra)
                 self.__hist_Fitness.append(FO)
