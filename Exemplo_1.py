@@ -156,7 +156,6 @@ u"""
  
 """
 
-Estime.incertezaParametros()
 
 # =================================================================================
 # VII - PREDIÇÃO E ANALISE DE RESIDUOS
@@ -184,10 +183,14 @@ u"""
  dos testes estatisticos, função objetivo, matriz de covariância, status da otimização, dentre outros.
 
 """
-
+Estime.relatorio()
 etapas = ['otimizacao', 'grandezas-entrada', 'predicao', 'grandezas-calculadas', 'analiseResiduos', 'regiaoAbrangencia']
 Estime.graficos(etapas)
-Estime.relatorio()
+
+Estime.incertezaParametros()
+Estime.predicao()
+Estime.graficos(etapas)
+
 
 u"""
 

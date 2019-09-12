@@ -215,7 +215,7 @@ class EstimacaoNaoLinear:
         def _predecessora_predicao(self):
             # TODO: adequar para a issue #62
             # Prentende-se: ['otimizacao', 'SETparametro']
-            return ['incertezaParametros']
+            return ['otimizacao','SETparametro']
 
         @property
         def _predecessora_analiseResiduos(self):
@@ -1412,23 +1412,30 @@ class EstimacaoNaoLinear:
         # MATRIZ DE COVARIÃNCIA DE Y
         # Se os dados de validação forem diferentes dos experimentais, será desconsiderado
         # a covariância entre os parâmetros e dados experimentais
-        if self.__flag.info['dadospredicao']:
 
-            Uyycalculado = self.S.dot(self.parametros.matriz_covariancia).dot(self.S.transpose()) + self.y.predicao.matriz_covariancia
+        if not self.__controleFluxo.incertezaParametros:
+
+            Uyycalculado = None
 
         else:
-            # Neste caso, os dados de validação são os dados experimentais e será considerada
-            # a covariância entre os parâmetros e dados experimentais
-            # COVARIÃNCIA ENTRE PARÂMETROS E DADOS EXPERIMENTAIS
-            Covar_param_y_experimental = -invHess.dot(self.Gy).dot(self.y.predicao.matriz_covariancia)
-            # PRIMEIRA PARCELA
-            Uyycalculado_1 = self.S.dot(self.parametros.matriz_covariancia).dot(self.S.transpose())
-            # SEGUNDA PARCELA            
-            Uyycalculado_2 = self.S.dot(Covar_param_y_experimental)
-            # TERCEIRA PARCELA
-            Uyycalculado_3 = Covar_param_y_experimental.transpose().dot(self.S.transpose())
-            # MATRIZ DE COVARIÃNCIA DE Y
-            Uyycalculado   = Uyycalculado_1 + Uyycalculado_2 + Uyycalculado_3 + self.y.estimacao.matriz_covariancia
+
+            if self.__flag.info['dadospredicao']:
+
+                Uyycalculado = self.S.dot(self.parametros.matriz_covariancia).dot(self.S.transpose()) + self.y.predicao.matriz_covariancia
+
+            else:
+                # Neste caso, os dados de validação são os dados experimentais e será considerada
+                # a covariância entre os parâmetros e dados experimentais
+                # COVARIÃNCIA ENTRE PARÂMETROS E DADOS EXPERIMENTAIS
+                Covar_param_y_experimental = -invHess.dot(self.Gy).dot(self.y.predicao.matriz_covariancia)
+                # PRIMEIRA PARCELA
+                Uyycalculado_1 = self.S.dot(self.parametros.matriz_covariancia).dot(self.S.transpose())
+                # SEGUNDA PARCELA
+                Uyycalculado_2 = self.S.dot(Covar_param_y_experimental)
+                # TERCEIRA PARCELA
+                Uyycalculado_3 = Covar_param_y_experimental.transpose().dot(self.S.transpose())
+                # MATRIZ DE COVARIÃNCIA DE Y
+                Uyycalculado   = Uyycalculado_1 + Uyycalculado_2 + Uyycalculado_3 + self.y.estimacao.matriz_covariancia
 
         # --------------------------------------------------------------------
         # ATRIBUIÇÃO A GRANDEZAS
@@ -1770,8 +1777,8 @@ class EstimacaoNaoLinear:
                 cov = array([[self.parametros.matriz_covariancia[p1, p1], self.parametros.matriz_covariancia[p1, p2]],
                              [self.parametros.matriz_covariancia[p2, p1], self.parametros.matriz_covariancia[p2, p2]]])
 
-                ellipse, coordenadas_x, coordenadas_y = plot_cov_ellipse(cov, [self.parametros.estimativa[p1], self.parametros.estimativa[p2]],
-                                                                     FOcomparacao)
+                coordenadas_x, coordenadas_y = plot_cov_ellipse(cov, [self.parametros.estimativa[p1], self.parametros.estimativa[p2]],
+                                                                     FOcomparacao,ax=False)
 
                 extremo_elipse_superior[p1] = nanmax(coordenadas_x)
                 extremo_elipse_superior[p2] = nanmax(coordenadas_y)
@@ -2160,15 +2167,16 @@ class EstimacaoNaoLinear:
                         Fig.salvar_e_fechar(base_path+base_dir+'calculado'+'_fl'+str(self.__controleFluxo.FLUXO_ID) + \
                                             '_'+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_sem_incerteza')
                         # Gráficos com a incerteza
-                        Fig.grafico_dispersao_com_incerteza(self.x.calculado.matriz_estimativa[:,ix],
-                                                            self.y.calculado.matriz_estimativa[:,iy],
-                                                            self.x.calculado.matriz_incerteza[:,ix],
-                                                            self.y.calculado.matriz_incerteza[:,iy],
-                                                            label_x=self.x.labelGraficos('calculado')[ix],
-                                                            label_y=self.y.labelGraficos('calculado')[iy],
-                                                            fator_abrangencia_x=2., fator_abrangencia_y=2., fmt='o')
-                        Fig.salvar_e_fechar(base_path+base_dir+'calculado'+'_fl'+str(self.__controleFluxo.FLUXO_ID) + \
-                                            '_'+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_com_incerteza')
+                        if self.y.calculado.matriz_correlacao is not None:
+                            Fig.grafico_dispersao_com_incerteza(self.x.calculado.matriz_estimativa[:,ix],
+                                                                self.y.calculado.matriz_estimativa[:,iy],
+                                                                self.x.calculado.matriz_incerteza[:,ix],
+                                                                self.y.calculado.matriz_incerteza[:,iy],
+                                                                label_x=self.x.labelGraficos('calculado')[ix],
+                                                                label_y=self.y.labelGraficos('calculado')[iy],
+                                                                fator_abrangencia_x=2., fator_abrangencia_y=2., fmt='o')
+                            Fig.salvar_e_fechar(base_path+base_dir+'calculado'+'_fl'+str(self.__controleFluxo.FLUXO_ID) + \
+                                                '_'+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_com_incerteza')
 
                 #incerteza_expandida_Yc=ones((self.y.calculado.NE,self.y.NV))
                 #incerteza_expandida_Ye=ones((self.y.validacao.NE,self.y.NV))
@@ -2211,69 +2219,69 @@ class EstimacaoNaoLinear:
                         )
 
                     # Gráfico comparativo entre valores experimentais e calculados pelo modelo, com variância
+                    if self.y.calculado.matriz_incerteza is not None:
+                        yerr_calculado = self.y.calculado.matriz_incerteza[:,iy]
 
-                    yerr_calculado = self.y.calculado.matriz_incerteza[:,iy]
+                        yerr_validacao = self.y.predicao.matriz_incerteza[:,iy]
 
-                    yerr_validacao = self.y.predicao.matriz_incerteza[:,iy]
+                        # Gráfico comparativo entre valores experimentais (validação) e calculados pelo modelo, com variância
+                        # Em função do número da amostra
+                        Fig.grafico_dispersao_com_incerteza(amostras, y, None, yerr_validacao, fator_abrangencia_y=t_val,
+                                                            fmt="o", color = 'b', config_axes=False, corrigir_limites=False,
+                                                            add_legenda=True)
+                        Fig.grafico_dispersao_com_incerteza(amostras, ym, None, yerr_calculado, fator_abrangencia_y=t_cal,
+                                                            fmt="o", color = 'r', config_axes=False, add_legenda=True)
+                        Fig.set_label('Amostras', self.y.labelGraficos()[iy], fontsize=16)
+                        Fig.set_legenda(['dados para predicao' if self.__flag.info['dadospredicao'] else 'dados para estimacao', 'calculado'],
+                            fontsize=16, loc='best')
+                        Fig.salvar_e_fechar(
+                            base_path + base_dir + ('predicao' if self.__flag.info['dadospredicao'] else 'estimacao') + \
+                            '_fl' + str(self.__controleFluxo.FLUXO_ID) + '_' + str(self.y.simbolos[iy]) + \
+                            '_funcao_amostras_calculado_com_incerteza.png', config_axes=True)
 
-                    # Gráfico comparativo entre valores experimentais (validação) e calculados pelo modelo, com variância
-                    # Em função do número da amostra
-                    Fig.grafico_dispersao_com_incerteza(amostras, y, None, yerr_validacao, fator_abrangencia_y=t_val,
-                                                        fmt="o", color = 'b', config_axes=False, corrigir_limites=False,
-                                                        add_legenda=True)
-                    Fig.grafico_dispersao_com_incerteza(amostras, ym, None, yerr_calculado, fator_abrangencia_y=t_cal,
-                                                        fmt="o", color = 'r', config_axes=False, add_legenda=True)
-                    Fig.set_label('Amostras', self.y.labelGraficos()[iy], fontsize=16)
-                    Fig.set_legenda(['dados para predicao' if self.__flag.info['dadospredicao'] else 'dados para estimacao', 'calculado'],
-                        fontsize=16, loc='best')
-                    Fig.salvar_e_fechar(
-                        base_path + base_dir + ('predicao' if self.__flag.info['dadospredicao'] else 'estimacao') + \
-                        '_fl' + str(self.__controleFluxo.FLUXO_ID) + '_' + str(self.y.simbolos[iy]) + \
-                        '_funcao_amostras_calculado_com_incerteza.png', config_axes=True)
+                        # ycalculado em função de yexperimental
+                        Fig.grafico_dispersao_com_incerteza(y, ym, yerr_validacao, yerr_calculado,
+                                                            fator_abrangencia_x=t_cal, fator_abrangencia_y=t_val,
+                                                            fmt="o", corrigir_limites=True, config_axes=False)
+                        Fig.grafico_dispersao_sem_incerteza(diagonal, diagonal, linestyle='-', color='k', linewidth=2.0,
+                                                             corrigir_limites=False, config_axes=False)
+                        Fig.set_label(self.y.labelGraficos('predicao')[iy] \
+                                      if self.__flag.info['dadospredicao'] else
+                                      self.y.labelGraficos('estimacao')[iy],
+                                      self.y.labelGraficos('calculado')[iy], fontsize=16)
+                        Fig.salvar_e_fechar(base_path + base_dir + ('predicao' if self.__flag.info['dadospredicao'] else 'estimacao' )+ \
+                                            '_fl' + str(self.__controleFluxo.FLUXO_ID) + '_' + str(self.y.simbolos[iy]) + \
+                                            '_funcao_' + str(self.y.simbolos[iy]) + '_calculado_com_incerteza.png',
+                                            config_axes=True,
+                                            reiniciar=(False if not self.__flag.info['dadospredicao'] else True)) # caso não tenha dados
+                                            # de validação é aplicado um teste baseado no teste F que usará este gráfico.
+                        # gráfico comparativo entre os valores experimentais (validação) e calculados pelo modelo, com variância
+                        # em função das amostras
 
-                    # ycalculado em função de yexperimental
-                    Fig.grafico_dispersao_com_incerteza(y, ym, yerr_validacao, yerr_calculado,
-                                                        fator_abrangencia_x=t_cal, fator_abrangencia_y=t_val,
-                                                        fmt="o", corrigir_limites=True, config_axes=False)
-                    Fig.grafico_dispersao_sem_incerteza(diagonal, diagonal, linestyle='-', color='k', linewidth=2.0,
-                                                         corrigir_limites=False, config_axes=False)
-                    Fig.set_label(self.y.labelGraficos('predicao')[iy] \
-                                  if self.__flag.info['dadospredicao'] else
-                                  self.y.labelGraficos('estimacao')[iy],
-                                  self.y.labelGraficos('calculado')[iy], fontsize=16)
-                    Fig.salvar_e_fechar(base_path + base_dir + ('predicao' if self.__flag.info['dadospredicao'] else 'estimacao' )+ \
-                                        '_fl' + str(self.__controleFluxo.FLUXO_ID) + '_' + str(self.y.simbolos[iy]) + \
-                                        '_funcao_' + str(self.y.simbolos[iy]) + '_calculado_com_incerteza.png',
-                                        config_axes=True,
-                                        reiniciar=(False if not self.__flag.info['dadospredicao'] else True)) # caso não tenha dados
-                                        # de validação é aplicado um teste baseado no teste F que usará este gráfico.
-                    # gráfico comparativo entre os valores experimentais (validação) e calculados pelo modelo, com variância
-                    # em função das amostras
+                        # gráficos do teste F
+                        if not self.__flag.info['dadospredicao']:
+                            # Gráfico do Teste F
+                            ycalc_inferior_F = []
+                            ycalc_superior_F = []
+                            for iNE in range(self.y.calculado.NE):
 
-                    # gráficos do teste F
-                    if not self.__flag.info['dadospredicao']:
-                        # Gráfico do Teste F
-                        ycalc_inferior_F = []
-                        ycalc_superior_F = []
-                        for iNE in range(self.y.calculado.NE):
+                                ycalc_inferior_F.append(self.y.calculado.matriz_estimativa[iNE,iy]+\
+                                            t_val\
+                                            *(f.ppf((self.PA+(1-self.PA)/2),self.y.calculado.gL[iy][iNE],\
+                                            self.y.predicao.gL[iy][iNE])*self.y.predicao.matriz_covariancia[iNE,iNE])**0.5)
 
-                            ycalc_inferior_F.append(self.y.calculado.matriz_estimativa[iNE,iy]+\
-                                        t_val\
-                                        *(f.ppf((self.PA+(1-self.PA)/2),self.y.calculado.gL[iy][iNE],\
-                                        self.y.predicao.gL[iy][iNE])*self.y.predicao.matriz_covariancia[iNE,iNE])**0.5)
+                                ycalc_superior_F.append(self.y.calculado.matriz_estimativa[iNE,iy]-t_val\
+                                               *(f.ppf((self.PA+(1-self.PA)/2),self.y.calculado.gL[iy][iNE],\
+                                            self.y.predicao.gL[iy][iNE])*self.y.predicao.matriz_covariancia[iNE,iNE])**0.5)
 
-                            ycalc_superior_F.append(self.y.calculado.matriz_estimativa[iNE,iy]-t_val\
-                                           *(f.ppf((self.PA+(1-self.PA)/2),self.y.calculado.gL[iy][iNE],\
-                                        self.y.predicao.gL[iy][iNE])*self.y.predicao.matriz_covariancia[iNE,iNE])**0.5)
-
-                        Fig.grafico_dispersao_sem_incerteza(y, array(ycalc_inferior_F),
-                                                            color='r', corrigir_limites=False, config_axes=False)
-                        Fig.grafico_dispersao_sem_incerteza(y, array(ycalc_superior_F), color='r',
-                                                            corrigir_limites=True, config_axes=False, add_legenda=True)
-                        Fig.set_legenda(['Limites baseados no teste F'], fontsize = 16, loc='best')
-                        Fig.salvar_e_fechar(base_path + base_dir + 'estimacao_fl' + str(self.__controleFluxo.FLUXO_ID) + \
-                                                '_' + str(self.y.simbolos[iy]) + '_funcao_' + str(self.y.simbolos[iy]) + '_calculado_com_incerteza_testeF.png',
-                                            config_axes=False)
+                            Fig.grafico_dispersao_sem_incerteza(y, array(ycalc_inferior_F),
+                                                                color='r', corrigir_limites=False, config_axes=False)
+                            Fig.grafico_dispersao_sem_incerteza(y, array(ycalc_superior_F), color='r',
+                                                                corrigir_limites=True, config_axes=False, add_legenda=True)
+                            Fig.set_legenda(['Limites baseados no teste F'], fontsize = 16, loc='best')
+                            Fig.salvar_e_fechar(base_path + base_dir + 'estimacao_fl' + str(self.__controleFluxo.FLUXO_ID) + \
+                                                    '_' + str(self.y.simbolos[iy]) + '_funcao_' + str(self.y.simbolos[iy]) + '_calculado_com_incerteza_testeF.png',
+                                                config_axes=False)
 
             else:
                 warn('Os gráficos envolvendo a estimação (predição) não puderam ser criados, pois o método predicao não foi executado.',UserWarning)
