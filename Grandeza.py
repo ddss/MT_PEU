@@ -282,6 +282,7 @@ class Grandeza:
             else:
                 self.matriz_covariancia = None
                 self.matriz_incerteza = None
+                self.matriz_correlacao = None
 
             self._validar() # validação das incertezas
 
@@ -686,7 +687,7 @@ class Grandeza:
             savefig(base_path+base_dir+self.__ID_disponivel[0]+'_fl'+str(fluxo)+'_'+'pcolor_matriz-correlacao')
             close()
 
-        if self.__ID_disponivel[1] in ID: # Gráfico Pcolor para predição
+        if (self.__ID_disponivel[1] in ID) and (self.predicao.matriz_correlacao is not None): # Gráfico Pcolor para predição
             listalabel=[]
             for elemento in self.labelGraficos(printunit=False):
                 for i in range(self.predicao.NE):
@@ -696,7 +697,7 @@ class Grandeza:
             savefig(base_path+base_dir+self.__ID_disponivel[1]+'_fl'+str(fluxo)+'_'+'pcolor_matriz-correlacao')
             close()
 
-        if self.__ID_disponivel[2] in ID: # Gráfico Pcolor para calculado
+        if (self.__ID_disponivel[2] in ID) and (self.calculado.matriz_correlacao is not None): # Gráfico Pcolor para calculado
             listalabel=[]
             for elemento in self.labelGraficos(printunit=False):
                 for i in range(self.calculado.NE):
@@ -706,7 +707,7 @@ class Grandeza:
             savefig(base_path+base_dir+self.__ID_disponivel[2]+'_fl'+str(fluxo)+'_'+'pcolor_matriz-correlacao')
             close()
 
-        if self.__ID_disponivel[3] in ID: # Gráfico Pcolor para parâmetros
+        if (self.__ID_disponivel[3] in ID) and (self.matriz_correlacao is not None): # Gráfico Pcolor para parâmetros
 
             plot_corr(self.matriz_correlacao, xnames=self.labelGraficos(printunit=False), ynames=self.labelGraficos(printunit=False), title=u'Matriz de correlação ' + self.__ID_disponivel[3],normcolor=True, cmap=cm1)
             savefig(base_path+base_dir+self.__ID_disponivel[3]+'_fl'+str(fluxo)+'_'+'pcolor_matriz-correlacao')
