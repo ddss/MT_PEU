@@ -42,8 +42,10 @@ from Grandeza import Grandeza
 from subrotinas import Validacao_Diretorio, plot_cov_ellipse, vetor_delta,\
     matriz2vetor, WLS
 from Graficos import Grafico
-from Relatorio import Relatorio
+from Relatorio import Report
 from Flag import flag
+
+
 
 
 
@@ -433,7 +435,7 @@ class EstimacaoNaoLinear:
         CONFIGURAÇÕES:
 
         * ._configFolder: variável que contém o nome de todas as pastas criadas pelo algoritmo nas etapas de Gráficos e
-         relatórios. Alterando o conteúdo de uma chave, altera-se o nomes das pastas. É permitdio alterar o conteúdo das
+         relatórios. Alterando o conteúdo de uma chave, altera-se o nomes das pastas. É permitido alterar o conteúdo das
          chaves (nomes das pastas), mas alterando as chaves ocasionará erros.
 
         * .__args_user: variável que contém os argumentos extras a serem passados para o modelo. Equivale ao argumento
@@ -570,13 +572,16 @@ class EstimacaoNaoLinear:
                               'graficos-regiaoAbrangencia':'Regiao',
                               'graficos-otimizacao':'Otimizacao',
                               'graficos-analiseResiduos':'Grandezas',
-                              'relatorio':'Relatorios'}
+                              'report':'Reports'}
 
         # variáveis auxiliares para definição de conjunto de dados
         self.__xtemp = None
         self.__uxtemp = None
         self.__ytemp = None
         self.__uytemp = None
+
+        # Report class initialization
+        self._out = Report(str(self.__controleFluxo.FLUXO_ID), self.__base_path, sep + self._configFolder['report'] + sep, **kwargs)
 
     @property
     def __tiposDisponiveisEntrada(self):
@@ -766,6 +771,7 @@ class EstimacaoNaoLinear:
         # FLUXO
         # ---------------------------------------------------------------------
         self.__controleFluxo.SET_ETAPA('setConjunto')
+
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------
@@ -797,6 +803,7 @@ class EstimacaoNaoLinear:
         # dados experimentais
         if tipo == self.__tiposDisponiveisEntrada[0]:
             self.__flag.ToggleActive('dadosestimacao')
+
             # caso o ID do fluxo seja 0, então não há necessidade de reiniciar, caso contrário, reiniciar.
             if self.__controleFluxo.FLUXO_ID != 0:
                 self.__controleFluxo.reiniciar()
@@ -836,7 +843,7 @@ class EstimacaoNaoLinear:
                 raise RuntimeError('Erro na criação do conjunto validação de Y: {}'.format(erro))
 
         if not self.__flag.info['dadospredicao']:
-            # Caso gerarEntradas seja executado somente para os dados experimentais,
+            # Caso setConjunto seja executado somente para os dados experimentais,
             # será assumido que estes são os dados de validação, pois todos os cálculos 
             # de predição são realizados para os dados de validação.
             # ---------------------------------------------------------------------
@@ -851,7 +858,7 @@ class EstimacaoNaoLinear:
             try:
                 self.y._SETdadosvalidacao(estimativa=self.__ytemp,matriz_incerteza=self.__uytemp,gL=gly)
             except Exception as erro:
-                raise RuntimeError('Erro na criação do conjuno validação de Y: {}'.format(erro))
+                raise RuntimeError('Erro na criação do conjunto validação de Y: {}'.format(erro))
 
         # Transformando variáveis temporárias ( xtemp, uxtemp, ytemp, uytemp) em listas vazias
         self.__xtemp = None
@@ -859,75 +866,99 @@ class EstimacaoNaoLinear:
         self.__ytemp = None
         self.__uytemp = None
 
+        # initialization of casadi's variables
+        self._CCV()
+
+    def _CCV(self): # construction of the casadi variables
+        u"""
+
+        When MT_PEU is working with estimation data the symbolics variables should be created with this data.
+        But if the data is for validation, so validation data should be used for to create the symbolic variables.
+        This is necessary because the data size is considered in the symbolic variables creation.
+
+        """
         # --------------------------------------------------------------------------------
         # CREATION OF CASADI'S VARIABLES THAT WILL BE USED TO BUILD THE CASADI'S MODEL
         # --------------------------------------------------------------------- ----------
 
-        self.__pcas = []
-        self.__xcas = []
-        self.__ycas = []
-        self.__uycas = []
+        if not self.__flag.info['dadospredicao']:
+            # if no prediction data were entered, then estimation is being performed and
+            # estimation data should be used
+            self.__pcas = []; self.__xcas = []; self.__ycas = []; uycas = []; yFO = []; uyFO = []; xFO = []
 
-        # Creation of decision variables in casadi's format
-        for i in range(len(self.parametros.simbolos)):
-            self.__pcas.append(MX.sym(self.parametros.simbolos[i]))
+            self.__symParameters = []
+            self.__symVariables  = []
+            self._values        = []
 
-        # Creation of independent variables in casadi's format
-        for i in range(0, len(self.x.simbolos), 1):
-            self.__xcas.append(MX.sym(self.x.simbolos[i], len(self.x.estimacao.matriz_estimativa[:, i:i + 1])))
+            # Creation of decision variables in casadi's format
+            for i in range(self.parametros.NV):
+                self.__pcas.append(MX.sym(self.parametros.simbolos[i]))
+                self.__symParameters = vertcat(self.__symParameters,self.__pcas[i])
 
-        # Creation of dependent variables in casadi's format
-        for i in range(0, len(self.y.simbolos), 1):
-            self.__ycas.append(MX.sym(self.y.simbolos[i], len(self.y.estimacao.matriz_estimativa[:, i:i + 1])))
+            # Creation of dependent variables in casadi's format
+            for i in range(self.y.NV):
+                self.__ycas.append(MX.sym(self.y.simbolos[i], self.y.estimacao.NE))
+                yFO = vertcat(yFO, self.__ycas[i])
+                self.__symVariables = vertcat(self.__symVariables, self.__ycas[i])
+                self._values = vertcat(self._values, self.y.estimacao.matriz_estimativa[:, i:i + 1])
 
-        # Creation of uncertainties of dependent variables in casadi's format
-        for i in range(0, len(self.y.simbolos), 1):
-            self.__uycas.append(MX.sym('ui'[i], len(self.y.estimacao.matriz_incerteza[:, i:i + 1])))
+            # Creation of independent variables in casadi's format
+            for i in range(self.x.NV):
+                self.__xcas.append(MX.sym(self.x.simbolos[i], self.x.estimacao.NE))
+                xFO = vertcat(xFO, self.__xcas[i])
+                self.__symVariables = vertcat(self.__symVariables, self.__xcas[i])
+                self._values    = vertcat(self._values,self.x.estimacao.matriz_estimativa[:, i:i + 1])
 
-        # --------------------------------------------------------------------------------
-        # PUTTING THE VARIABLES IN THE FORMAT THE OPTIMIZER ASKS
-        # --------------------------------------------------------------------- ----------
-        self.__param = []
-        self.__variables = []
-        self.__values = []
-        self.__y_obj = []
-        self.__uy_obj = []
+            # Creation of uncertainties of dependent variables in casadi's format
+            for i in range(self.y.NV):
+                uycas.append(MX.sym('u', self.y.estimacao.NE))
+                uyFO = vertcat(uyFO,uycas[i])
+                self.__symVariables = vertcat(self.__symVariables, uycas[i])
+                self._values = vertcat(self._values, self.y.estimacao.matriz_incerteza[:, i:i + 1])
 
-        # Decision Variables
-        for i in range(len(self.__pcas)):
-            self.__param = vertcat(self.__param, self.__pcas[i])
+            # Model definition
+            self.__symModel = self.__modelo(self.__pcas, self.__xcas,self.y.estimacao.NE)  # Symbolic
+            self.__excModel = Function('Model', [self.__symParameters, self.__symVariables],[self.__symModel])  # Executable
 
-        types = ['dependent', 'uncertainty', 'independent']  # variables types
+            # Objective function definition
+            self.__symFO = sum1(((yFO - (self.__symModel)) ** 2) / (uyFO ** 2))  # Symbolic
+            self._excFO = Function('Objective_Function', [self.__symParameters, self.__symVariables], [self.__symFO])  # Executable
 
-        # dependent variables, independent variables and uncertainty
-        for j in types:
-            if j == 'dependent':
-                for i in range(len(self.y.simbolos)):
-                    self.__variables = vertcat(self.__variables, self.__ycas[i])
-                    self.__y_obj = vertcat(self.__y_obj, self.__ycas[i])  # This is necessary because if you use ycas direct in FO it is entered as a list
-                                                                          # must be a MX object
-                    self.__values = vertcat(self.__values, self.y.estimacao.matriz_estimativa[:, i:i + 1])
-            elif j == 'uncertainty':
-                for i in range(len(self.y.simbolos)):
-                    self.__variables = vertcat(self.__variables, self.__uycas[i])  # For each y symbol there will be an uncertainty matrix
-                    self.__uy_obj = vertcat(self.__uy_obj, self.__uycas[i])
-                    self.__values = vertcat(self.__values, self.y.estimacao.matriz_incerteza[:, i:i + 1])
-            elif j == 'independent':
-                for i in range(len(self.x.simbolos)):
-                    self.__variables = vertcat(self.__variables, self.__xcas[i])
-                    self.__values = vertcat(self.__values, self.x.estimacao.matriz_estimativa[:, i:i + 1])
+        else:
+            # if prediction data were entered them should be used
+            self.__ycas = []; self.__xcas = []; uycas = [];
 
-        # Model definition
-        self.__cas_model = self.__modelo(self.__pcas, self.__xcas)  # Symbolic
-        self.__modelo_exc = Function('Modelo_executavel', [self.__param, self.__variables], [self.__cas_model])  # Executable
+            self.__symVariables = []
+            self._values       = []
 
-        # Objective function definition
-        self.__FO_cas = sum1(((self.__y_obj - (self.__cas_model)) ** 2) / (self.__uy_obj ** 2))  # Symbolic
-        self.__FO = Function('FO_executavel', [self.__param, self.__variables], [self.__FO_cas])  # Executable
+            # Creation of dependent variables in casadi's format
+            for i in range(self.y.NV):
+                self.__ycas.append(MX.sym(self.y.simbolos[i], self.y.predicao.NE))
+                self.__symVariables = vertcat(self.__symVariables, self.__ycas[i])
+                self._values = vertcat(self._values, self.y.predicao.matriz_estimativa[:, i:i + 1])
+
+            # Creation of independent variables in casadi's format
+            for i in range(self.x.NV):
+                self.__xcas.append(MX.sym('a', self.x.predicao.NE))
+                self.__symVariables = vertcat(self.__symVariables, self.__xcas[i])
+                self._values = vertcat(self._values, self.x.predicao.matriz_estimativa[:, i:i + 1])
+
+            # Creation of uncertainties of dependent variables in casadi's format
+            for i in range(self.y.NV):
+                uycas.append(MX.sym('u', self.y.predicao.NE))
+                self.__symVariables = vertcat(self.__symVariables, uycas[i])
+                self._values = vertcat(self._values, self.y.predicao.matriz_incerteza[:, i:i + 1])
+
+            # Model definition
+            # it's necessary to define a new model because the
+            # prediction data size could be different of the estimation data size
+            self.__symModel = self.__modelo(self.__pcas, self.__xcas)  # Symbolic
+            self.__excModel = Function('Model', [self.__symParameters, self.__symVariables], [self.__symModel])  # Executable
+
 
     def _armazenarDicionario(self):
         u"""
-        Método opcional para armazenar as Grandezas (x,y e parãmetros) na
+        Método opcional para armazenar as Grandezas (x,y e parâmetros) na
         forma de um dicionário, cujas chaves são os símbolos.
 
         ======
@@ -1014,7 +1045,7 @@ class EstimacaoNaoLinear:
 
         return grandeza
 
-    def optimize(self,Initial_estimative, Lower_bound=-inf,Upper_bound=inf, algoritmo ='ipopt', args=None):
+    def optimize(self,Initial_estimative, Lower_bound=-inf ,Upper_bound=inf, algoritmo ='ipopt', optimizationReport = True, parametersReport = False, args=None):
         u"""
         Método para realização da otimização
 
@@ -1098,8 +1129,6 @@ class EstimacaoNaoLinear:
         # indica que esta algoritmo possui relatório de desempenho
         self.__flag.ToggleActive('relatoriootimizacao')
 
-        # kwargs['NP'] = self.parametros.NV
-
         # ---------------------------------------------------------------------
         # VALIDAÇÃO DO MODELO
         # ---------------------------------------------------------------------
@@ -1107,11 +1136,11 @@ class EstimacaoNaoLinear:
         # Verificação se o modelo é executável nos limites de busca
         try:  # validar se foi passado os limites superior e inferior. Obrigatorio estimativa inicial
             if Upper_bound is not None:
-                aux = self.__modelo_exc(Upper_bound, self.__values)
+                aux = self.__excModel(Upper_bound, self._values)
             if Lower_bound is not None:
-                aux = self.__modelo_exc(Lower_bound, self.__values)
+                aux = self.__excModel(Lower_bound, self._values)
             if Initial_estimative is None:
-                aux = self.__modelo_exc(Initial_estimative, self.__values)
+                aux = self.__excModel(Initial_estimative, self._values)
 
         except Exception as erro:
             raise SyntaxError(
@@ -1121,13 +1150,27 @@ class EstimacaoNaoLinear:
         # EXECUÇÃO OTIMIZAÇÃO
         # ---------------------------------------------------------------------
         #definição o problema de otimização
-        nlp = {'x': self.__param, 'p': self.__variables, 'f': self.__FO_cas}
-        options = {'print_time': False, 'ipopt':{'print_level': 0, 'file_print_level':5, 'output_file': self.__base_path+'Optimization_relatory'}}
+        nlp = {'x': self.__symParameters, 'p': self.__symVariables, 'f': self.__symFO}
+
+        if optimizationReport is True:
+            # with optimization report
+            if algoritmo == 'ipopt':
+                options = {'print_time': False, 'ipopt' :{'print_level': 0, 'file_print_level': 5,
+                                                          'output_file': self._out.optimization()+  'Optimization_report.txt'}}
+            elif algoritmo == 'bonmin':
+                options = {'print_time': False, 'bonmin':{'file_print_level': 5,
+                                                          'output_file': self._out.optimization() + 'Optimization_report.txt'}}
+        else:
+            # without optimization report
+            if algoritmo == 'ipopt':
+                options = {'print_time': False, 'ipopt': {'print_level': 0}}
+            elif algoritmo == 'bonmin':
+                options = {'print_time': False, 'bonmin': {}}
+
         #montagem do problema de otimização
         S = nlpsol('S', algoritmo, nlp, options)
         #passagem dos argumentos
-        self.Otimizacao = S(x0=Initial_estimative, p=self.__values, lbx=Lower_bound, ubx=Upper_bound)
-        #setattr(self.Otimizacao, 'method', algoritmo)
+        self.Otimizacao = S(x0=Initial_estimative, p=self._values, lbx=Lower_bound, ubx=Upper_bound)
 
         # ATRIBUIÇÃO A GRANDEZAS
 
@@ -1135,67 +1178,84 @@ class EstimacaoNaoLinear:
         # OBTENÇÃO DO PONTO ÓTIMO DA FUNÇÃO OBJETIVO
         # ---------------------------------------------------------------------
         self.FOotimo = float(self.Otimizacao['f'])
-        #open(self.__base_path + "Optimization_relatory", "r")
         # ---------------------------------------------------------------------
         # OBTENÇÃO DO VALOR ÓTIMO DOS PARÂMETROS
         # ---------------------------------------------------------------------
         self.__opt_param = []
-        for i in range(len(self.parametros.simbolos)):
+        for i in range(self.parametros.NV):
             self.__opt_param.append(float(self.Otimizacao['x'][i])) # converter o objeto DM para float, para que assim ele possa ser encaixado numa lista
-                                                                    # e ser utilizado no setparametro
+                                                                    # e ser utilizado no _SETparametro
 
         # Toda vez que a otimização é executada toda informação anterior sobre parâmetros é perdida
-        self.parametros._SETparametro(self.__opt_param, None, None, limite_superior=Lower_bound,
-                                      limite_inferior=Lower_bound)
+        self.parametros._SETparametro(self.__opt_param, None, None, limite_superior=Upper_bound,limite_inferior=Lower_bound)
+
+        # parameters report creation
+        if parametersReport is True:
+            self._out.Parametros(self.parametros,self.FOotimo)
+
+    def __DMtoFloat(self,DM_array,nrows,ncolunms,name):
+        u'''
+       Method for converting DM type Array to float type array
+
+        =======================
+        Inputs (required)
+        =======================
+        *  DM_array (DM): Matrix that will be convert.
+        *    nrows (int): Number of rows of the DM_array
+        * nColumns (int): Number of columns of the DM_array
+        '''
+
+        position = 0
+        if name == 'Hessiana' or name == 'S' or name =='y_evaluated':
+            aux = [[[] for j in range(ncolunms)] for i in range(nrows)]
+            for j in range(ncolunms):
+                for i in range(nrows):
+                    aux[i][j] = (float(DM_array[position]))
+                    position = position + 1
+        elif name == 'Gy':
+            aux = [[[] for j in range(ncolunms)] for i in range(nrows)]
+            for j in range(ncolunms):
+                for i in range(nrows):
+                    aux[j][i] = (float(DM_array[position]))
+                    position = position + 1
+        return array(aux)
 
     def __Hessiana_FO_Param(self):
 
         Hessiana_cas = []
-        for i in range(len(self.__pcas)):
+        for i in range(self.parametros.NV):
             row = []
-            for j in range(len(self.__pcas)):
-                row = horzcat(row, jacobian(jacobian(self.__FO_cas, self.__pcas[i]),self.__pcas[j]))  # montagem de cada linha da Hessiana
+            for j in range(self.parametros.NV):
+                row = horzcat(row, jacobian(jacobian(self.__symFO, self.__pcas[i]),self.__pcas[j]))  # montagem de cada linha da Hessiana
             Hessiana_cas = vertcat(Hessiana_cas, row)  # as linhas montadas são então encaixadas na matriz Hessiana
 
-        Hessiana_fun = Function('Hessiana', [self.__param, self.__variables], [Hessiana_cas])
-        Hessiana_DM = Hessiana_fun(self.__opt_param, self.__values)  # aqui é obtido o valor númerico da Hessiana
+        Hessiana_fun = Function('Hessiana', [self.__symParameters, self.__symVariables], [Hessiana_cas])
+        Hessiana_DM  = Hessiana_fun(self.parametros.estimativa, self._values)  # aqui é obtido o valor númerico da Hessiana
 
-        # ---------------------------------------------------------------------
+        # ------------------------- --------------------------------------------
         # CONVERTING THE MATRIX ELEMENTS TO THE FLOAT TYPE
         # ---------------------------------------------------------------------
-        aux = self.__new_matrix(len(self.__pcas), len(self.__pcas))
-        position = 0
-        for j in range(len(self.__pcas)):
-            for i in range(len(self.__pcas)):
-                aux[i][j] = (float(Hessiana_DM[position]))
-                position = position + 1
-        self.Hessiana = array(aux)
+        self.Hessiana = self.__DMtoFloat(Hessiana_DM,self.parametros.NV,self.parametros.NV,'Hessiana')
 
         return self.Hessiana
 
     def __Matriz_Gy(self):
 
         Gy_cas = []
-        for i in range(len(self.__pcas)):
+        for i in range(self.parametros.NV):
             row = []
-            for j in range(len(self.__ycas)):
-                row = horzcat(row, jacobian(jacobian(self.__FO_cas, self.__pcas[i]), self.__ycas[j]))
+            for j in range(self.y.NV):
+                row = horzcat(row, jacobian(jacobian(self.__symFO, self.__pcas[i]), self.__ycas[j]))
             Gy_cas = vertcat(Gy_cas, row)
 
-        Gy_fun = Function('Gy', [self.__param, self.__variables], [Gy_cas])
-        Gy_DM = Gy_fun(self.__opt_param, self.__values)
+        Gy_fun = Function('Gy', [self.__symParameters, self.__symVariables], [Gy_cas])
+        Gy_DM = Gy_fun(self.parametros.estimativa, self._values)
 
         # ---------------------------------------------------------------------
         # CONVERTING THE MATRIX ELEMENTS TO THE FLOAT TYPE
         # ---------------------------------------------------------------------
-        aux = self.__new_matrix(len(self.__pcas),len(self.y.estimacao.vetor_estimativa))
-        position = 0
-        for i in range(len(self.y.estimacao.vetor_estimativa)):
-            for j in range(len(self.__pcas)):
-                aux[j][i] = (float(Gy_DM[position]))
-                position = position + 1
-        self.Gy = array(aux)
-        a=1
+        self.Gy = self.__DMtoFloat(Gy_DM, self.parametros.NV, self.y.NV * self.y.estimacao.NE, 'S')
+
         return self.Gy
 
     def __Matriz_S(self):
@@ -1203,38 +1263,30 @@ class EstimacaoNaoLinear:
                Method for calvulate the array S(first derivatives of the model function in relation to the parameters)."""
 
         S_cas = []
-        for i in range(len(self.__pcas)):
-            S_cas = horzcat(S_cas,jacobian(self.__cas_model,self.__pcas[i]))
-
-        S_fun = Function('Sensibilidade', [self.__param, self.__variables],[S_cas])
-        S_DM = S_fun(self.__opt_param, self.__values) # this array have a DM type
-
         # ---------------------------------------------------------------------
         # CONVERTING THE MATRIX ELEMENTS TO THE FLOAT TYPE
         # ---------------------------------------------------------------------
-        aux = self.__new_matrix(len(self.y.estimacao.vetor_estimativa),len(self.__pcas))
-        position = 0
-        for j in range(len(self.__pcas)):
-            for i in range(len(self.y.estimacao.vetor_estimativa)):
-                aux[i][j] = (float(S_DM[position]))
-                position = position + 1
-        self.S = array(aux)
+        if not self.__flag.info['dadospredicao']:
+
+            for i in range(self.parametros.NV):
+                S_cas = horzcat(S_cas, jacobian(self.__symModel, self.__pcas[i]))
+
+            S_fun  =         Function('Sensibilidade', [self.__symParameters, self.__symVariables], [S_cas])
+            S_DM   =            S_fun(self.parametros.estimativa, self._values)  # this array have a DM type
+            self.S = self.__DMtoFloat(S_DM, self.y.NV * self.y.estimacao.NE, self.parametros.NV, 'S')
+
+        else:
+
+            for i in range(self.parametros.NV):
+                S_cas = horzcat(S_cas, jacobian(self.__symModel, self.__pcas[i]))
+
+            S_fun  =         Function('Sensibilidade', [self.__symParameters, self.__symVariables], [S_cas])
+            S_DM   =            S_fun(self.parametros.estimativa, self._values)  # this array have a DM type
+            self.S = self.__DMtoFloat(S_DM, self.y.NV * self.y.predicao.NE, self.parametros.NV, 'S')
 
         return self.S
 
-    def __new_matrix(self, rows, colunms):
-        u"""
-               Method for creating empty arrays"""
-
-        self.__matrix = []
-        for i in range(rows):
-            self.__matrix.append([])
-            for j in range(colunms):
-                self.__matrix[i].append([])
-
-        return self.__matrix
-
-    def SETparametro(self,estimativa,variancia=None,regiao=None,**kwargs):
+    def SETparametro(self,estimativa,variancia=None,regiao=None,parametersReport=True,**kwargs):
         u"""
         Método para atribuir uma estimativa aos parâmetros e, opcionamente, sua matriz de covarância e região de abrangência.
         Substitui o métodos otimiza e, opcionalmente, incertezaParametros.
@@ -1296,14 +1348,14 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # Atribuindo o valores para a estimativa dos parâmetros e sua matriz de 
         # covariância
-        self.parametros._SETparametro(estimativa, variancia, regiao,**kwargs)
+        self.parametros._SETparametro(estimativa, variancia, regiao, self.__controleFluxo, **kwargs)
 
         # ---------------------------------------------------------------------
         # AVALIAÇÃO DO MODELO
         # ---------------------------------------------------------------------
         # Avaliação do modelo no ponto ótimo informado
         try:
-            aux = self.__modelo_exc(self.parametros.estimativa,self.__values)
+            aux = self.__excModel(self.parametros.estimativa,self._values)
         except Exception as erro:
             raise SyntaxError(u'Erro no modelo quando avaliado na estimativa dos parâmetros informada. Erro identificado: "{}"'.format(erro))
 
@@ -1311,7 +1363,7 @@ class EstimacaoNaoLinear:
         # OBTENÇÃO DO PONTO ÓTIMO
         # ---------------------------------------------------------------------
 
-        self.FOotimo = self.__FO(self.parametros.estimativa, self.__values)
+        self.FOotimo = float(self._excFO(self.parametros.estimativa, self._values))
 
         # ---------------------------------------------------------------------
         # VARIÁVEIS INTERNAS
@@ -1327,7 +1379,12 @@ class EstimacaoNaoLinear:
         if regiao is not None:
             self.__controleFluxo.SET_ETAPA('regiaoAbrangencia', ignoreValidacao=True)
 
-    def incertezaParametros(self,metodoIncerteza='2InvHessiana',preencherregiao=True,**kwargs):
+        # parameters report creation
+        if parametersReport is True:
+            self._out.Parametros(self.parametros, self.FOotimo)
+
+
+    def incertezaParametros(self,metodoIncerteza='2InvHessiana',parametersReport = True, preencherregiao=True,**kwargs):
         u"""
 
         Método para avaliação da matriz de covariãncia dos parâmetros e região de abrangência.
@@ -1433,12 +1490,27 @@ class EstimacaoNaoLinear:
             # ATRIBUIÇÃO A GRANDEZA
             self.parametros._updateParametro(regiao_abrangencia=regiao)
 
-    def predicao(self,**kwargs):
+        # parameters report creation
+        if parametersReport is True:
+            self._out.Parametros(self.parametros,self.FOotimo)
+
+    def predicao(self,predictionReport = True,**kwargs):
         u"""
-        Método para realizar a predição.
+        Method for prediction.
+
+        ======
+        Input
+        ======
+        * predictionReport: when is true the prediction report is created but without statistical tests. The statistical tests could be included in \
+        the 'analiseResiduos' method.
+
+        ========
+        Keywords
+        ========
+        * See documentation of Relatorio.Predicao
 
         ====================
-        Método predecessores
+        Predecessor Methods
         ====================
 
         É necessário executar a otimização (seguida de incertezaParametros) ou incluir o valor para a estimativa dos parâmetros e sua incerteza, pelo \
@@ -1479,15 +1551,9 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # PREDIÇÃO
         # ---------------------------------------------------------------------
-        aux_DM = self.__modelo_exc(self.parametros.estimativa,self.__values) # DM object
-
-        position = 0
-        aux = self.__new_matrix(len(self.y.estimacao.matriz_estimativa), len(self.y.simbolos))
-        for j in range(len(self.y.simbolos)):
-            for i in range(len(self.y.estimacao.matriz_estimativa)):
-                aux[i][j] = (float(aux_DM[position]))
-                position = position + 1
-        aux = array(aux) # float object
+        aux_DM = self.__excModel(self.parametros.estimativa,self._values) # DM object
+        aux    = self.__DMtoFloat(self.__excModel(self.parametros.estimativa,self._values),self.y.predicao.NE,
+                               self.y.NV,'y_evaluated')
 
         # ---------------------------------------------------------------------
         # AVALIAÇÃO DA PREDIÇÃO (Y CALCULADO PELO MODELO)
@@ -1522,6 +1588,11 @@ class EstimacaoNaoLinear:
         self.x._SETcalculado(estimativa=self.x.predicao.matriz_estimativa,matriz_covariancia=self.x.predicao.matriz_covariancia,
                              gL=[[self.x.estimacao.NE*self.x.NV-self.parametros.NV]*self.x.predicao.NE]*self.x.NV,
                              NE=self.x.predicao.NE)
+
+        # prediction report creation
+        if predictionReport is True:
+            self._out.Predicao(self.x, self.y, None, **kwargs)
+
 
     def __Matriz_Sx(self,delta=1e-5):
         u"""
@@ -1658,7 +1729,7 @@ class EstimacaoNaoLinear:
                     amostra = [triangular(limite_inferior[i], self.parametros.estimativa[i], limite_superior[i], 1)[0]
                                for i in range(self.parametros.NV)]
 
-                FO = float(self.__FO(amostra, self.__values)) #self.__FO returns a DM object, it's necessary convert to float object
+                FO = float(self._excFO(amostra, self._values)) #self._excFO returns a DM object, it's necessary convert to float object
 
                 self.__hist_Posicoes.append(amostra)
                 self.__hist_Fitness.append(FO)
@@ -1712,10 +1783,15 @@ class EstimacaoNaoLinear:
 
         return regiao
 
-    def analiseResiduos(self):
+    def analiseResiduos(self, report=True, **kwargs):
         u"""
         Método para realização da análise de resíduos.
         A análise da sempre preferência aos dados de validação.
+
+        ======
+        Input
+        ======
+        * When report is true the prediction report includes statistical tests
 
         ======
         Saídas
@@ -1731,6 +1807,12 @@ class EstimacaoNaoLinear:
               o que pode indicar que há super parametrização do modelo ou que os erros esperimentais estão superestimados:
               * FO > chi2max: o modelo não é capaz de explicar os erros experimentais
               ou pode haver subestimação dos erros esperimentais
+
+        ========
+        Keywords
+        ========
+        * See documentation of Relatorio.Predicao
+
         """
         # ---------------------------------------------------------------------
         # FLUXO
@@ -1802,6 +1884,10 @@ class EstimacaoNaoLinear:
         chi2min = chi2.ppf((1-self.PA)/2,gL)
 
         self.estatisticas['FuncaoObjetivo'] = {'chi2max':chi2max, 'chi2min':chi2min, 'FO':self.FOotimo}
+
+        # prediction report creation
+        if report is True:
+            self._out.Predicao(self.x, self.y, self.estatisticas, **kwargs)
 
     def graficos(self,tipos):
         u"""
@@ -2212,14 +2298,14 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # DEFINIÇÃO DA CLASSE
         # ---------------------------------------------------------------------
-        saida = Relatorio(str(self.__controleFluxo.FLUXO_ID),self.__base_path,sep +self._configFolder['relatorio']+ sep, **kwargs)
+        #out = Report(str(self.__controleFluxo.FLUXO_ID),self.__base_path,sep + self._configFolder['report']+ sep, **kwargs)
 
         # ---------------------------------------------------------------------
         # RELATÓRIO DOS PARÂMETROS
         # ---------------------------------------------------------------------
         # Caso a otimização ou SETParametros tenha sido executado, pode-se fazer um relatório sobre os parâmetros
         if self.__controleFluxo.otimizacao or self.__controleFluxo.SETparametro:
-            saida.Parametros(self.parametros,self.FOotimo)
+            self._out.Parametros(self.parametros,self.FOotimo)
         else:
             warn('O relatório sobre os parâmetros não foi criado, pois o método otimizacao ou SETparametro não foi executado')
         # ---------------------------------------------------------------------
@@ -2229,15 +2315,10 @@ class EstimacaoNaoLinear:
         if self.__controleFluxo.predicao:
             # Caso a Análise de resíduos tenha sido executada, pode-se fazer um relatório completo
             if self.__controleFluxo.analiseResiduos:
-                saida.Predicao(self.x,self.y,self.estatisticas,**kwargs)
+                self._out.Predicao(self.x,self.y,self.estatisticas,**kwargs)
             else:
-                saida.Predicao(self.x,self.y,None,**kwargs)
+                self._out.Predicao(self.x,self.y,None,**kwargs)
                 warn('O relatório sobre a análise de resíduos não foi criado, pois o método analiseResiduos não foi executado. Entretanto, ainda é possível exportar a predição')
         else:
             warn('O relatório sobre a predição e análise de resíduos não foi criado, pois o método predicao não foi executado')
 
-        # ---------------------------------------------------------------------
-        # RELATÓRIO DA PREDIÇÃO E ANÁLISE DE RESÍDUOS
-        # ---------------------------------------------------------------------
-        if self.__flag.info['relatoriootimizacao']:
-            saida.Otimizacao(self.Otimizacao)

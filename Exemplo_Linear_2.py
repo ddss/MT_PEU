@@ -84,7 +84,7 @@ u"""
 
 """
 ER.incertezaParametros(metodoPreenchimento='MonteCarlo')
-ER.predicao(delta=1e-6)
+ER.predicao()
 ER.analiseResiduos()
 
 # =================================================================================
@@ -98,7 +98,7 @@ u"""
 """
 
 ER.graficos(['analiseResiduos','regiaoAbrangencia', 'grandezas-entrada', 'predicao','grandezas-calculadas','otimizacao'])
-ER.relatorio()
+#ER.relatorio()
 
 
 

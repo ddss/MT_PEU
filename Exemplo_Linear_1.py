@@ -72,7 +72,7 @@ Método para obtenção da estimativa dos parâmetros e sua matriz de covariânc
 
 """
 
-ER.otimiza()
+ER.otimiza(parametersReport=False)
 
 # =================================================================================
 # V - INCERTEZA E ANALISE DE RESIDUOS
@@ -86,9 +86,9 @@ u"""
 
 """
 
-ER.incertezaParametros(metodoPreenchimento='MonteCarlo')
-ER.predicao(delta=1e-6)
-ER.analiseResiduos()
+ER.incertezaParametros(metodoPreenchimento='MonteCarlo',parametersReport=False)
+ER.predicao(predictionReport=False)
+ER.analiseResiduos(report=False)
 
 # =================================================================================
 # VI - GERAÇÃO DE GRAFICOS E RELATÓRIOS
@@ -101,7 +101,7 @@ u"""
 """
 
 ER.graficos(['analiseResiduos','regiaoAbrangencia', 'grandezas-entrada', 'predicao','grandezas-calculadas','otimizacao'])
-ER.relatorio()
+#ER.relatorio()
 
 
 

@@ -3,7 +3,7 @@ use('Agg')
 from MT_PEU import EstimacaoNaoLinear
 from casadi import vertcat
 
-def Modelo(param,x):
+def Modelo(param,x,*args):
 
     a1, b1, a2, b2 = param[0], param[1], param[2], param[3]
     x1, x2 = x[0], x[1]
@@ -30,3 +30,6 @@ Estime.setConjunto(tipo='estimacao')
 Estime.optimize(Initial_estimative=[3,0.1,5,0.4])
 Estime.incertezaParametros(metodoIncerteza='2InvHessiana')
 Estime.predicao()
+Estime.analiseResiduos()
+etapas = ['grandezas-entrada', 'predicao', 'grandezas-calculadas', 'analiseResiduos', 'regiaoAbrangencia']
+Estime.graficos(etapas)

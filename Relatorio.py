@@ -11,11 +11,12 @@ Classe auxiliar para escrita de Relatórios
 # ---------------------------------------------------------------------
 from os import getcwd, sep
 from subrotinas import Validacao_Diretorio
+from numpy import inf
 
 # ---------------------------------------------------------------------
 # CLASSES
 # ---------------------------------------------------------------------
-class Relatorio:
+class Report:
 
     def __init__(self,fluxo,base_path=None,base_dir=None,**kwargs):
         '''
@@ -35,7 +36,7 @@ class Relatorio:
             base_path = getcwd()
 
         if base_dir is None:
-            base_dir = sep + 'Relatorio' + sep
+            base_dir = sep + 'Report' + sep
 
         if base_path is not None:
             Validacao_Diretorio(base_path,base_dir)
@@ -43,6 +44,7 @@ class Relatorio:
         self.__base_path = base_path + base_dir
 
         self.__fluxo = fluxo
+
 
     def Parametros(self,parametros,pontoOtimo):
         '''
@@ -60,7 +62,7 @@ class Relatorio:
         [1] https://docs.python.org/2/tutorial/inputoutput.html
         [2] https://docs.python.org/2/library/string.html#formatstrings
         '''
-        with open(self.__base_path+'relatorio-parametros.txt','wt') as f:
+        with open(self.__base_path+'parameters-report.txt','wt') as f:
             # Criação do título: o tamanho dele será o máximo entre 65 e 18*NP (Apenas por estética)
             f.write(('{:#^'+str(max([70,parametros.NV*18]))+'}'+self.__quebra).format('PARÂMETROS'))
 
@@ -93,11 +95,11 @@ class Relatorio:
             f.write(self.__quebra)
             f.write(('{:-^'+str(max([70,parametros.NV*18]))+'}'+self.__quebra).format('RESTRIÇÕES'))
             f.write(('Simbolos        : '+ '{:^10} '*parametros.NV).format(*parametros.simbolos) + self.__quebra)
-            if parametros.limite_superior is not None:
+            if parametros.limite_superior != inf and parametros.limite_superior is not None:
                 f.write(('Limite superior : '+ '{:^10.3e} '*parametros.NV).format(*parametros.limite_superior) + self.__quebra)
             else:
                 f.write(('Limite superior : '+ '{:^10} '*parametros.NV).format(*['N/A']*parametros.NV) + self.__quebra)
-            if parametros.limite_inferior is not None:
+            if parametros.limite_inferior != -inf and parametros.limite_inferior is not None:
                 f.write(('Limite inferior : '+ '{:^10.3e} '*parametros.NV).format(*parametros.limite_inferior) + self.__quebra)
             else:
                 f.write(('Limite inferior : '+ '{:^10} '*parametros.NV).format(*['N/A']*parametros.NV) + self.__quebra)
@@ -151,7 +153,7 @@ class Relatorio:
         # ESCRITA DE ARQUIVO DE RELATÓRIO
         # ---------------------------------------------------------------------
         if estatisticas is not None:
-            with open(self.__base_path+'relatorio-predicao_fl'+self.__fluxo+'.txt','wt') as f:
+            with open(self.__base_path+'prediction-report_fl'+self.__fluxo+'.txt','wt') as f:
                 # TÍTULO:
                 f.write(('{:#^'+str(max([70,y.NV*18]))+'}'+self.__quebra).format(' PREDIÇÃO '))
                 f.write(('{:=^'+str(max([70,y.NV*18]))+'}'+self.__quebra).format(' GRANDEZAS DEPENDENTES '))
@@ -337,17 +339,5 @@ class Relatorio:
                     f.write(self.__quebra)
             f.close()
 
-    def Otimizacao(self,Otimizacao):
-        with open(self.__base_path + 'relatorio-otimizacao.txt', 'wt') as f:
-            f.write(('{:#^' + str(max([70, Otimizacao.x.size*18])) + '}' + self.__quebra).format(' RESUMO OTIMIZAÇÃO '))
-            f.write(('{:-^' + str(max([70, Otimizacao.x.size * 18])) + '}' + self.__quebra).format(' MÉTODO'))
-            f.write(('Algoritmo  : ' + '{:^10} ').format(Otimizacao.method) + self.__quebra)
-            f.write(self.__quebra)
-            f.write(('{:-^' + str(max([70, Otimizacao.x.size * 18])) + '}' + self.__quebra).format('RESULTADOS'))
-            f.write(('Valor da função Objetivo : ' + '{:^10} ').format(Otimizacao.fun) + self.__quebra)
-            f.write(('Ponto ótimo  : ' + '{:^10.3e} '*Otimizacao.x.size).format(*list(Otimizacao.x)) + self.__quebra)
-            f.write(('Numero de Avaliações   : ' + '{:^10} ').format(Otimizacao.nfev) + self.__quebra)
-            f.write(('Status   : ' + '{:^10} ').format(Otimizacao.message) + self.__quebra)
-
-            f.close()
-
+    def optimization(self):
+        return self.__base_path
