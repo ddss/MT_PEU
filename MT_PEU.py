@@ -738,8 +738,8 @@ class EstimacaoNaoLinear:
 
         if tipo == 0:
 
-            X  = transpose(array([data[i][0] for i in range(len(data))], ndmin=2))
-            uX = transpose(array([data[i][1] for i in range(len(data))], ndmin=2))
+            X  = transpose(array([data[i][0] for i in range(len(data))], ndmin=2, dtype=float))
+            uX = transpose(array([data[i][1] for i in range(len(data))], ndmin=2, dtype=float))
 
             self.__validacaoDadosEntrada(X, uX, self.x.NV)
 
@@ -748,8 +748,8 @@ class EstimacaoNaoLinear:
 
         else:
 
-            Y  = transpose(array([data[i][0] for i in range(len(data))], ndmin=2))
-            uY = transpose(array([data[i][1] for i in range(len(data))], ndmin=2))
+            Y  = transpose(array([data[i][0] for i in range(len(data))], ndmin=2, dtype=float))
+            uY = transpose(array([data[i][1] for i in range(len(data))], ndmin=2, dtype=float))
 
             self.__validacaoDadosEntrada(Y, uY, self.y.NV)
 
