@@ -165,7 +165,7 @@ class Grandeza:
 
     class Dados:
 
-        def __init__(self,estimativa,NV,matriz_incerteza=None,matriz_covariancia=None,gL=[],NE=None,**kwargs):
+        def __init__(self,estimativa,NV,matriz_incerteza=None,matriz_covariancia=None,symbols=None,gL=[],NE=None,**kwargs):
             """
             Classe interna para organizar os dados das estimativas e suas respectivas incertezas, disponibilizando-os na forma de matriz, vetores e listas.
             ========
@@ -256,6 +256,7 @@ class Grandeza:
                     raise ValueError(u'O tamanho do vetor estimativa deve ser igual ao número de variáves vezes número de dados')
             else:
                 raise ValueError(u'A estimativa foi fornecida na forma de um vetor. NE deve ser especificado.')
+
             # ---------------------------------------------------------------------
             # Número de pontos experimentais
             # ---------------------------------------------------------------------
@@ -328,9 +329,10 @@ class Grandeza:
         self.__ID.append(self.__ID_disponivel[0]) #estimacao
 
         self.estimacao = self.Dados(estimativa,self.NV,
-                                       matriz_incerteza=matriz_incerteza,matriz_covariancia=matriz_covariancia,
+                                       matriz_incerteza=matriz_incerteza,matriz_covariancia=matriz_covariancia,symbols=self.simbolos,
                                        gL=gL,NE=NE,**kwargs)
 
+        
     def _SETdadosvalidacao(self,estimativa,matriz_incerteza=None,matriz_covariancia=None,gL=[],NE=None,**kwargs):
 
         if hasattr(self, self.__ID_disponivel[0]):#estimacao
@@ -339,8 +341,9 @@ class Grandeza:
         self.__ID.append(self.__ID_disponivel[1])
         # self.validacao = Organizador(estimativa,variancia,gL,tipo)
         self.predicao = self.Dados(estimativa,self.NV,
-                                    matriz_incerteza=matriz_incerteza,matriz_covariancia=matriz_covariancia,
+                                    matriz_incerteza=matriz_incerteza,matriz_covariancia=matriz_covariancia, symbols=self.simbolos,
                                     gL=gL,NE=NE,**kwargs)
+
 
     def _SETcalculado(self,estimativa,matriz_incerteza=None,matriz_covariancia=None,gL=[],NE=None,**kwargs):
 
@@ -364,13 +367,12 @@ class Grandeza:
                                    matriz_incerteza=matriz_incerteza,matriz_covariancia=matriz_covariancia,
                                    gL=gL,NE=NE,**kwargs)
 
-    def _SETparametro(self, estimativa, variancia, regiao,limite_inferior=None,limite_superior=None):
+    def _SETparametro(self, estimativa, variancia, regiao, limite_inferior=None, limite_superior=None, **kwargs):
 
         # --------------------------------------
         # VALIDAÇÃO
         # --------------------------------------
-
-        # estimativa
+        # estimative
         if not isinstance(estimativa,list):
             raise TypeError(u'A estimativa para os parâmetros precisa ser uma lista')
 
@@ -379,7 +381,7 @@ class Grandeza:
                 raise TypeError(u'A estimativa precisa ser uma lista de floats.')
 
         if len(estimativa) != self.NV:
-            raise ValueError(u'Devem ser fornecidas estimativas para todos os parãmetros definidos em símbolos')
+            raise ValueError(u'Devem ser fornecidas estimativas para todos os parâmetros definidos em símbolos')
 
         # variância
         if variancia is not None:
@@ -408,7 +410,6 @@ class Grandeza:
         # --------------------------------------
         # EXECUÇÃO
         # --------------------------------------
-
         self.__ID.append(self.__ID_disponivel[3])
         self.estimativa         = estimativa
         self.matriz_covariancia = variancia

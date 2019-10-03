@@ -187,7 +187,7 @@ Estime.relatorio()
 etapas = ['otimizacao', 'grandezas-entrada', 'predicao', 'grandezas-calculadas', 'analiseResiduos', 'regiaoAbrangencia']
 Estime.graficos(etapas)
 
-Estime.incertezaParametros()
+#Estime.incertezaParametros()
 Estime.predicao()
 Estime.graficos(etapas)
 

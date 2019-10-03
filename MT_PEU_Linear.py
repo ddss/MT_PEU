@@ -14,6 +14,8 @@ from scipy.stats import t
 from threading import Thread
 from sys import exc_info
 
+from casadi import mtimes, vertcat, horzcat, MX
+
 from numpy.linalg import inv
 
 # Exception Handling
@@ -24,13 +26,25 @@ from MT_PEU import EstimacaoNaoLinear
 
 # Fim da importação
 
-def Modelo (param,x,args):
+def Model (param,x,*args):
 
-        param  = array(param,ndmin=2).transpose()
-        x      = x.dot(param)
-        args  = args
+    p = []
+    for i in range(len(param)):
+        p = vertcat(p, param[i])
 
-        return x
+    var = []
+
+    if len(x) < len(param): # exist independent term
+        rows = args[0]
+        for i in range(len(x)):
+            var = horzcat(var, x[i])
+        var = horzcat(var,MX.ones(rows,1)) # column of the independent term
+    else:
+        for i in range(len(x)):
+            var = horzcat(var, x[i])
+
+    return mtimes(var,p)
+
 
 class EstimacaoLinear(EstimacaoNaoLinear):
     
@@ -143,7 +157,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # INICIANDO A CLASSE INIT
         # ---------------------------------------------------------------------
 
-        EstimacaoNaoLinear.__init__(self,Modelo,simbolos_y,simbolos_x,simbolos_param,PA,projeto,**kwargs)
+        EstimacaoNaoLinear.__init__(self,Model,simbolos_y,simbolos_x,simbolos_param,PA,projeto,**kwargs)
 
         self._EstimacaoNaoLinear__flag.setCaracteristica(['calc_termo_independente'])
 
@@ -163,13 +177,14 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         if (self.parametros.NV == self.x.NV+1):
             self._EstimacaoNaoLinear__flag.ToggleActive('calc_termo_independente')
 
+
     def setConjunto(self,glx=[],gly=[],tipo='estimacao',uxy=None):
         u'''
         Método para incluir os dados de entrada da estimação
         
         =======================
         Entradas (Obrigatórias)
-        =======================        
+        =======================
         
         * xe        : array com os dados experimentais das variáveis independentes na forma de colunas
         * ux        : array com as incertezas das variáveis independentes na forma de colunas
@@ -272,7 +287,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         self._EstimacaoNaoLinear__uytemp = None
 
 
-    def otimiza(self):
+    def otimiza(self,parametersReport = False):
         u'''
         Método para obtenção da estimativa dos parâmetros e sua matriz de covariância.
         '''
@@ -307,11 +322,16 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # ---------------------------------------------------------------------
         # FUNÇÃO OBJETIVO NO PONTO ÓTIMO
         # ---------------------------------------------------------------------
+        # initialization of the method that create the symbolic's variables
+        EstimacaoNaoLinear._CCV(self)
 
-        self._EstimacaoNaoLinear__GETFOotimo()
+        self.FOotimo = float(self._excFO(self.parametros.estimativa,self._values))
 
+        # parameters report creation
+        if parametersReport is True:
+            self._out.Parametros(self.parametros, self.FOotimo)
 
-    def incertezaParametros(self,preencherregiao=True,**kwargs):
+    def incertezaParametros(self,preencherregiao=True,parametersReport = True,**kwargs):
         u'''
         Método para avaliar a região de abrangência dos parâmetros.
 
@@ -353,3 +373,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             regiao = self.regiaoAbrangencia()
             # ATRIBUIÇÃO A GRANDEZA
             self.parametros._updateParametro(regiao_abrangencia=regiao)
+
+        # parameters report creation
+        if parametersReport is True:
+            self._out.Parametros(self.parametros, self.FOotimo)
