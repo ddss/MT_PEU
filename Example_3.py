@@ -37,7 +37,7 @@ Estime.setDados(0, (tempo, uxtempo), (temperatura, uxtemperatura))
 Estime.setDados(1, (y, uy1))
 
 Estime.setConjunto(tipo='estimacao')
-Estime.optimize(Initial_estimative=[0.005, 20000.000])
+Estime.optimize(initial_estimative=[0.005, 20000.000])
 Estime.incertezaParametros(metodoIncerteza='SensibilidadeModelo', preencherregiao=False)
 
 Estime.predicao()

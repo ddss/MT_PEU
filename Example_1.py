@@ -33,7 +33,7 @@ uy = [1]*41; uxtempo = [1]*41; uxtemperatura = [1]*41
 Estime.setDados(0,(tempo,uxtempo),(temperatura,uxtemperatura))
 Estime.setDados(1,(y,uy))
 Estime.setConjunto(tipo='estimacao')
-Estime.optimize(Initial_estimative=[0.5,25000], Lower_bound=[0.4,20000], Upper_bound=[0.9,28000], algoritmo='bonmin')
+Estime.optimize(initial_estimative=[0.5,25000], lower_bound=[0.4,20000], upper_bound=[0.9,28000], algoritmo='bonmin')
 #Estime.SETparametro(estimativa=[0.86232429,27642.66233])
 Estime.incertezaParametros()
 Estime.predicao()

@@ -323,7 +323,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # FUNÇÃO OBJETIVO NO PONTO ÓTIMO
         # ---------------------------------------------------------------------
         # initialization of the method that create the symbolic's variables
-        EstimacaoNaoLinear._CCV(self)
+        EstimacaoNaoLinear._constructionCasadiVariables(self)
 
         self.FOotimo = float(self._excFO(self.parametros.estimativa,self._values))
 

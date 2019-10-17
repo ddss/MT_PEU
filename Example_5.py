@@ -28,7 +28,7 @@ Estimation.setDados(1,(P,uP))
 
 Estimation.setConjunto(tipo='estimacao')
 
-Estimation.optimize(Initial_estimative = [200, -70000])
+Estimation.optimize(initial_estimative = [200, -70000])
 
 Estimation.incertezaParametros(metodoIncerteza='SensibilidadeModelo')
 

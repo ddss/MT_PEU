@@ -86,9 +86,9 @@ u"""
 
 """
 
-ER.incertezaParametros(metodoPreenchimento='MonteCarlo',parametersReport=False)
-ER.predicao(predictionReport=False)
-ER.analiseResiduos(report=False)
+ER.incertezaParametros(metodoPreenchimento='MonteCarlo')
+ER.predicao()
+ER.analiseResiduos()
 
 # =================================================================================
 # VI - GERAÇÃO DE GRAFICOS E RELATÓRIOS

@@ -38,7 +38,7 @@ Estime.setDados(1,(y,uy))
 
 Estime.setConjunto()
 
-Estime.optimize(Initial_estimative=[18, 20000.000])
+Estime.optimize(initial_estimative=[18, 20000.000])
 
 Estime.incertezaParametros(metodoIncerteza='2InvHessiana',preencherregiao=True)
 

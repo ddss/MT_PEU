@@ -27,7 +27,7 @@ uy2 = [1]*10
 Estime.setDados(0,(x1,ux1),(x2,ux2))
 Estime.setDados(1, (y1, uy1), (y2, uy2))
 Estime.setConjunto(tipo='estimacao')
-Estime.optimize(Initial_estimative=[3,0.1,5,0.4])
+Estime.optimize(initial_estimative=[3,0.1,5,0.4])
 Estime.incertezaParametros(metodoIncerteza='2InvHessiana')
 Estime.predicao()
 Estime.analiseResiduos()

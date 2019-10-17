@@ -860,9 +860,9 @@ class EstimacaoNaoLinear:
         self.__uytemp = None
 
         # initialization of casadi's variables
-        self._CCV()
+        self._constructionCasadiVariables()
 
-    def _CCV(self): # construction of the casadi variables
+    def _constructionCasadiVariables(self): # construction of the casadi variables
         u"""
 
         When MT_PEU is working with estimation data the symbolics variables should be created with this data.
@@ -1038,7 +1038,7 @@ class EstimacaoNaoLinear:
 
         return grandeza
 
-    def optimize(self,Initial_estimative, Lower_bound=-inf ,Upper_bound=inf, algoritmo ='ipopt', optimizationReport = True, parametersReport = False, args=None):
+    def optimize(self,initial_estimative, lower_bound=-inf ,upper_bound=inf, algoritmo ='ipopt', optimizationReport = True, parametersReport = False, args=None):
         u"""
         Método para realização da otimização
 
@@ -1058,8 +1058,8 @@ class EstimacaoNaoLinear:
         Entradas (opcionais)
         ====================
 
-        * Lower_bound (list): lista com os limites inferior para os parâmetros.
-        * Upper_bound (list): lista com os limites superior para os parâmetros.
+        * lower_bound (list): lista com os limites inferior para os parâmetros.
+        * upper_bound (list): lista com os limites superior para os parâmetros.
         * args: argumentos extras a serem passados para o modelo
         * algoritmo (string): string informando o algoritmo de otimização a ser utilizado. Cada algoritmo tem suas próprias keywords
 
@@ -1101,9 +1101,9 @@ class EstimacaoNaoLinear:
                     self.__AlgoritmosOtimizacao) + '.')
 
         # validação da estimativa inicial:
-        if Initial_estimative is None:
+        if initial_estimative is None:
             raise SyntaxError('Para executar a otimização, faz-se necessário estimativa inicial')
-        if not isinstance(Initial_estimative, list) or len(Initial_estimative) != self.parametros.NV:
+        if not isinstance(initial_estimative, list) or len(initial_estimative) != self.parametros.NV:
             raise TypeError(
                 'A estimativa inicial deve ser uma lista de dimensão do número de parâmetros, definida nos símbolos. Número de parâmetros: {}'.format(
                     self.parametros.NV))
@@ -1128,12 +1128,12 @@ class EstimacaoNaoLinear:
 
         # Verificação se o modelo é executável nos limites de busca
         try:  # validar se foi passado os limites superior e inferior. Obrigatorio estimativa inicial
-            if Upper_bound is not None:
-                aux = self.__excModel(Upper_bound, self._values)
-            if Lower_bound is not None:
-                aux = self.__excModel(Lower_bound, self._values)
-            if Initial_estimative is None:
-                aux = self.__excModel(Initial_estimative, self._values)
+            if upper_bound is not None:
+                aux = self.__excModel(upper_bound, self._values)
+            if lower_bound is not None:
+                aux = self.__excModel(lower_bound, self._values)
+            if initial_estimative is None:
+                aux = self.__excModel(initial_estimative, self._values)
 
         except Exception as erro:
             raise SyntaxError(
@@ -1163,7 +1163,7 @@ class EstimacaoNaoLinear:
         #montagem do problema de otimização
         S = nlpsol('S', algoritmo, nlp, options)
         #passagem dos argumentos
-        self.Otimizacao = S(x0=Initial_estimative, p=self._values, lbx=Lower_bound, ubx=Upper_bound)
+        self.Otimizacao = S(x0=initial_estimative, p=self._values, lbx=lower_bound, ubx=upper_bound)
 
         # ATRIBUIÇÃO A GRANDEZAS
 
@@ -1180,7 +1180,7 @@ class EstimacaoNaoLinear:
                                                                     # e ser utilizado no _SETparametro
 
         # Toda vez que a otimização é executada toda informação anterior sobre parâmetros é perdida
-        self.parametros._SETparametro(self.__opt_param, None, None, limite_superior=Upper_bound,limite_inferior=Lower_bound)
+        self.parametros._SETparametro(self.__opt_param, None, None, limite_superior=upper_bound,limite_inferior=lower_bound)
 
         # parameters report creation
         if parametersReport is True:
