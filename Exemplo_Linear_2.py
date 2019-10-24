@@ -71,7 +71,7 @@ Método para obtenção da estimativa dos parâmetros e sua matriz de covariânc
 
 """
 
-ER.otimiza()
+ER.optimize()
 
 # =================================================================================
 # V - INCERTEZA E ANALISE DE RESIDUOS

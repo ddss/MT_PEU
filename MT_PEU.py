@@ -910,7 +910,7 @@ class EstimacaoNaoLinear:
                 self._values = vertcat(self._values, self.y.estimacao.matriz_incerteza[:, i:i + 1])
 
             # Model definition
-            self.__symModel = self.__modelo(self.__pcas, self.__xcas,self.y.estimacao.NE)  # Symbolic
+            self.__symModel = self.__modelo(self.__pcas, self.__xcas, self.y.estimacao.NE)  # Symbolic
             self.__excModel = Function('Model', [self.__symParameters, self.__symVariables],[self.__symModel])  # Executable
 
             # Objective function definition
@@ -919,7 +919,7 @@ class EstimacaoNaoLinear:
 
         else:
             # if prediction data were entered them should be used
-            self.__ycas = []; self.__xcas = []; uycas = [];
+            self.__ycas = []; self.__xcas = []; uycas = []
 
             self.__symVariables = []
             self._values       = []
@@ -1038,7 +1038,7 @@ class EstimacaoNaoLinear:
 
         return grandeza
 
-    def optimize(self,initial_estimative, lower_bound=-inf ,upper_bound=inf, algoritmo ='ipopt', optimizationReport = True, parametersReport = False, args=None):
+    def optimize(self, initial_estimative, lower_bound=-inf, upper_bound=inf, algoritmo ='ipopt', optimizationReport = True, parametersReport = False, args=None):
         u"""
         Método para realização da otimização
 

@@ -157,7 +157,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # INICIANDO A CLASSE INIT
         # ---------------------------------------------------------------------
 
-        EstimacaoNaoLinear.__init__(self,Model,simbolos_y,simbolos_x,simbolos_param,PA,projeto,**kwargs)
+        EstimacaoNaoLinear.__init__(self, Model, simbolos_y, simbolos_x, simbolos_param, PA, projeto, **kwargs)
 
         self._EstimacaoNaoLinear__flag.setCaracteristica(['calc_termo_independente'])
 
@@ -216,7 +216,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # ---------------------------------------------------------------------
         # MODIFICAÇÕES DAS MATRIZES DE DADOS
         # ---------------------------------------------------------------------
-        # Adiciona uma coluna de zeros nos dados experimentais para possibilitar
+        # Adiciona uma coluna de uns nos dados experimentais para possibilitar
         # o cálculo do termo independente
         coluna_dumb = False
         if self._EstimacaoNaoLinear__flag.info['calc_termo_independente']:
@@ -281,13 +281,13 @@ class EstimacaoLinear(EstimacaoNaoLinear):
                 raise RuntimeError('Erro na criação do conjunto validação de Y: {}'.format(erro))
 
         # Transformando variáveis temporárias ( xtemp, uxtemp, ytemp, uytemp) em listas vazias
-        self._EstimacaoNaoLinear__xtemp = None
-        self._EstimacaoNaoLinear__uxtemp = None
-        self._EstimacaoNaoLinear__ytemp = None
-        self._EstimacaoNaoLinear__uytemp = None
+        self.EstimacaoNaoLinear__xtemp = None
+        self.EstimacaoNaoLinear__uxtemp = None
+        self.EstimacaoNaoLinear__ytemp = None
+        self.EstimacaoNaoLinear__uytemp = None
 
 
-    def otimiza(self,parametersReport = False):
+    def optimize(self, parametersReport = True):
         u'''
         Método para obtenção da estimativa dos parâmetros e sua matriz de covariância.
         '''
@@ -328,10 +328,10 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         self.FOotimo = float(self._excFO(self.parametros.estimativa,self._values))
 
         # parameters report creation
-        if parametersReport is True:
+        if parametersReport:
             self._out.Parametros(self.parametros, self.FOotimo)
 
-    def incertezaParametros(self,preencherregiao=True,parametersReport = True,**kwargs):
+    def incertezaParametros(self, preencherregiao=True, parametersReport = True, **kwargs):
         u'''
         Método para avaliar a região de abrangência dos parâmetros.
 
@@ -375,5 +375,5 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             self.parametros._updateParametro(regiao_abrangencia=regiao)
 
         # parameters report creation
-        if parametersReport is True:
+        if parametersReport:
             self._out.Parametros(self.parametros, self.FOotimo)
