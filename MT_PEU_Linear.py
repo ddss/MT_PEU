@@ -26,25 +26,30 @@ from MT_PEU import EstimacaoNaoLinear
 
 # Fim da importação
 
-def Model (param,x,*args):
+def Model_1 (param,x, *args):
 
-    p = []
+    # This model is used when there is no independent term calculation
+
+    p = [] ; var = []
     for i in range(len(param)):
         p = vertcat(p, param[i])
-
-    var = []
-
-    if len(x) < len(param): # exist independent term
-        rows = args[0]
-        for i in range(len(x)):
-            var = horzcat(var, x[i])
-        var = horzcat(var,MX.ones(rows,1)) # column of the independent term
-    else:
-        for i in range(len(x)):
-            var = horzcat(var, x[i])
+    for i in range(len(x)):
+        var = horzcat(var, x[i])
 
     return mtimes(var,p)
 
+def Model_2 (param,x, *args):
+
+    # This model is used when the independent term is calculated
+    p = [] ; var = []
+    for i in range(len(param)):
+        p = vertcat(p, param[i])
+    for i in range(len(x)):
+        rows = args[0] # This argument corresponds to the amount of input data
+        var = horzcat(var, x[i])
+    var = horzcat(var, MX.ones(rows, 1))
+
+    return mtimes(var, p)
 
 class EstimacaoLinear(EstimacaoNaoLinear):
     
@@ -156,8 +161,14 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # ---------------------------------------------------------------------
         # INICIANDO A CLASSE INIT
         # ---------------------------------------------------------------------
+        # For to start the class it's necessary to check wich is the most suitable model
 
-        EstimacaoNaoLinear.__init__(self, Model, simbolos_y, simbolos_x, simbolos_param, PA, projeto, **kwargs)
+        if (len(simbolos_param) == len(simbolos_x) + 1):
+            # The the independent term will be calculated and Model_2 should be used
+            EstimacaoNaoLinear.__init__(self, Model_2, simbolos_y, simbolos_x, simbolos_param, PA, projeto, **kwargs)
+        else:
+            # The the independent term won't be calculated and Model_1 should be used
+            EstimacaoNaoLinear.__init__(self, Model_1, simbolos_y, simbolos_x, simbolos_param, PA, projeto, **kwargs)
 
         self._EstimacaoNaoLinear__flag.setCaracteristica(['calc_termo_independente'])
 
@@ -171,11 +182,13 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             raise ValueError(u'O número de parâmetros deve ser: igual ao de grandezas independentes (não é efetuado cálculo do coeficiente linear)'+\
             'OU igual ao número de grandezas independentes + 1 (é calculado o coeficiente linear).')
 
+        self.__coluna_dumb = False # this variable indicates that a column of ones has been added to independent quantities
         # ---------------------------------------------------------------------
         # Definindo se o b será calculado
         # ---------------------------------------------------------------------
         if (self.parametros.NV == self.x.NV+1):
             self._EstimacaoNaoLinear__flag.ToggleActive('calc_termo_independente')
+            self.__coluna_dumb = True
 
 
     def setConjunto(self,glx=[],gly=[],tipo='estimacao',uxy=None):
@@ -216,13 +229,6 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # ---------------------------------------------------------------------
         # MODIFICAÇÕES DAS MATRIZES DE DADOS
         # ---------------------------------------------------------------------
-        # Adiciona uma coluna de uns nos dados experimentais para possibilitar
-        # o cálculo do termo independente
-        coluna_dumb = False
-        if self._EstimacaoNaoLinear__flag.info['calc_termo_independente']:
-            self._EstimacaoNaoLinear__xtemp  = hstack((self._EstimacaoNaoLinear__xtemp,ones((shape(self._EstimacaoNaoLinear__xtemp)[0],1))))
-            self._EstimacaoNaoLinear__uxtemp = hstack((self._EstimacaoNaoLinear__uxtemp,ones((shape(self._EstimacaoNaoLinear__uxtemp)[0],1))))
-            coluna_dumb = True
 
         if tipo == 'estimacao':
             self._EstimacaoNaoLinear__flag.ToggleActive('dadosestimacao')
@@ -235,7 +241,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             # ---------------------------------------------------------------------
             # Salvando os dados experimentais nas variáveis.
             try:
-                self.x._SETdadosestimacao(estimativa=self._EstimacaoNaoLinear__xtemp,matriz_incerteza=self._EstimacaoNaoLinear__uxtemp,gL=glx,coluna_dumb=coluna_dumb)
+                self.x._SETdadosestimacao(estimativa=self._EstimacaoNaoLinear__xtemp,matriz_incerteza=self._EstimacaoNaoLinear__uxtemp,gL=glx,coluna_dumb=self.__coluna_dumb)
             except Exception as erro:
                 raise RuntimeError('Erro na criação do conjunto de estimação da grandeza X: {}'.format(erro))
 
@@ -271,7 +277,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             # ---------------------------------------------------------------------
             # Salvando os dados de validação.
             try:
-                self.x._SETdadosvalidacao(estimativa=self._EstimacaoNaoLinear__xtemp,matriz_incerteza=self._EstimacaoNaoLinear__uxtemp,gL=glx,coluna_dumb=coluna_dumb)
+                self.x._SETdadosvalidacao(estimativa=self._EstimacaoNaoLinear__xtemp,matriz_incerteza=self._EstimacaoNaoLinear__uxtemp,gL=glx,coluna_dumb=self.__coluna_dumb)
             except Exception as erro:
                 raise RuntimeError('Erro na criação do conjunto validação de X: {}'.format(erro))
 
