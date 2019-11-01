@@ -7,7 +7,7 @@ Principais classes do motor de cálculo do PEU
 @LinhadePesquisa: GI-UFBA
 """
 
-# ---------------------------------------------------------------------
+# --------------------------------------------------------------------
 # IMPORTAÇÃO DE PACOTES DE TERCEIROS
 # ---------------------------------------------------------------------
 # Cálculos científicos
@@ -241,7 +241,7 @@ class EstimacaoNaoLinear:
         def _sucessoresValidacao(self):
             return ['predicao', 'analiseResiduos', 'armazenarDicionario', 'Gy', 'S']
 
-    def __init__(self, Modelo, simbolos_y, simbolos_x, simbolos_param, PA=0.95, projeto='Projeto', **kwargs):
+    def __init__(self, Modelo, simbolos_y, simbolos_x, simbolos_param, PA=0.95, Folder='Projeto', **kwargs):
         u"""
         Classe para executar a estimação de parâmetros de modelos não lineares.
 
@@ -489,12 +489,12 @@ class EstimacaoNaoLinear:
             raise ValueError('A probabilidade de abrangência deve estar entre 0 e 1.')
 
         # Verificação se o nome do projeto é um string
-        if not isinstance(projeto, str):
-            raise TypeError('O nome do projeto deve ser um string.')
+        if not isinstance(Folder, str):
+            raise TypeError('O nome do Folder deve ser um string.')
 
         # Verificação se o nome do projeto possui caracteres especiais
-        if not projeto.isalnum():
-            raise NameError('O nome do projeto não pode conter caracteres especiais')
+        if not Folder.isalnum():
+            raise NameError('O nome do Folder não pode conter caracteres especiais')
 
         # Verificação se o base_path é uma string
         if kwargs.get(self.__keywordsEntrada[9]) is not None and not isinstance(kwargs.get(self.__keywordsEntrada[9]),
@@ -540,7 +540,7 @@ class EstimacaoNaoLinear:
         self.__hist_Fitness = []
         # Caminho base para os arquivos, caso seja definido a keyword base_path ela será utilizada.
         if kwargs.get(self.__keywordsEntrada[9]) is None:
-            self.__base_path = getcwd()+ sep +str(projeto)+sep
+            self.__base_path = getcwd()+ sep +str(Folder)+sep
         else:
             self.__base_path = kwargs.get(self.__keywordsEntrada[9])
 
