@@ -603,7 +603,7 @@ class EstimacaoNaoLinear:
 
     @property
     def __tipoPreenchimento(self):
-        # tipos de algoritmos de preenchimento de região de abrangência disponíveis
+        # types of objective function mapping algorithms available
         return ('MonteCarlo',)
 
     @property
@@ -1391,9 +1391,9 @@ class EstimacaoNaoLinear:
         Entradas (opcionais)
         =======================
 
-        * metodoIncerteza (string) : método para cálculo da matriz de covariãncia dos
-        parâmetros. Métodos disponíveis: 2InvHessiana, Geral, SensibilidadeModelo
-        * preencherregiao (bool): identifica se será executado algoritmo para preenchimento da região de abrangência.
+        * uncertainty method (string): method for calculating the covariance matrix
+        of the parameters. Available methods: 2InvHessian, General, SensitivityModel
+        * fillregion (bool): Identifies if an algorithm for mapping the objective function will be executed.
 
         ======
         Saídas
@@ -1470,7 +1470,7 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # REGIÃO DE ABRANGÊNCIA
         # ---------------------------------------------------------------------
-        # PREENCHIMENTO DE REGIÃO:
+        # MAPPING OF OBJECTIVE FUNCTION:
         if preencherregiao and self.parametros.NV != 1:
             self.__preencherRegiao(**kwargs)
             self.__flag.ToggleActive('preenchimentoRegiao')
@@ -1615,12 +1615,12 @@ class EstimacaoNaoLinear:
 
     def __preencherRegiao(self,**kwargs):
         u"""
-        Método utilizado para preenchimento da região de abrangência
+         Method used for objective function mapping
 
         =================
         Keyword arguments
         =================
-            * metodoPreenchimento ('string'): define qual o método utilizado no preenchimento da região de abrangência. Disponível: MonteCarlo
+            * metodoPreenchimento ('string'): defines which method is used in objective function mapping. Available: MonteCarlo
         """
         # ---------------------------------------------------------------------
         # FLUXO
@@ -1635,7 +1635,7 @@ class EstimacaoNaoLinear:
 
         # avaliando se o tipo de preenchimento está disponível
         if tipo not in self.__tipoPreenchimento:
-            raise NameError('O método solicitado para preenchimento da região de abrangência {}'.format(
+            raise NameError('O método solicitado para mapeamento da função objetivo {}'.format(
                 tipo) + ' não está disponível. Métodos disponíveis ' + ', '.join(self.__tipoPreenchimento) + '.')
 
         # caso seja MonteCarlo:
