@@ -1886,6 +1886,7 @@ class EstimacaoNaoLinear:
 
         # prediction report creation
         if report is True:
+            kwargs['PA'] = self.PA
             self._out.Predicao(self.x, self.y, self.estatisticas, **kwargs)
 
     def graficos(self,tipos):
@@ -2314,6 +2315,7 @@ class EstimacaoNaoLinear:
         # Caso a Predição tenha sido executada, pode-se fazer um relatório sobre a predição
         if self.__controleFluxo.predicao:
             # Caso a Análise de resíduos tenha sido executada, pode-se fazer um relatório completo
+            kwargs['PA'] = self.PA
             if self.__controleFluxo.analiseResiduos:
                 self._out.Predicao(self.x,self.y,self.estatisticas,**kwargs)
             else:
