@@ -1631,7 +1631,11 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------
-        tipo = kwargs.get('metodoPreenchimento') if kwargs.get('metodoPreenchimento') is not None else 'MonteCarlo'
+
+        if kwargs.get('metodoPreenchimento') is not None:
+            tipo = kwargs.pop('metodoPreenchimento')
+        else:
+            tipo = 'MonteCarlo'
 
         # avaliando se o tipo de preenchimento está disponível
         if tipo not in self.__tipoPreenchimento:
@@ -1640,8 +1644,7 @@ class EstimacaoNaoLinear:
 
         # caso seja MonteCarlo:
         if tipo == self.__tipoPreenchimento[0]:
-            kwargsdisponiveis = ('iteracoes', 'limite_superior', 'limite_inferior', 'metodoPreenchimento',
-                                 'fatorlimitebusca','distribuicao')
+            kwargsdisponiveis = ('iteracoes', 'limite_superior', 'limite_inferior', 'fatorlimitebusca', 'distribuicao')
 
             # avaliando se as keywords estão disponíveis
             if not set(kwargs.keys()).issubset(kwargsdisponiveis):
