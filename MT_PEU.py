@@ -82,7 +82,6 @@ class EstimacaoNaoLinear:
             self.GETFOotimo = 0
             self.incertezaParametros = 0
             self.regiaoAbrangencia = 0
-            self.preencherRegiao = 0
             self.predicao = 0
             self.analiseResiduos = 0
             self.armazenarDicionario = 0
@@ -204,13 +203,7 @@ class EstimacaoNaoLinear:
             return ['mapeamentoFO']
 
         @property
-        def _predecessora_preencherRegiao(self):
-            return ['incertezaParametros']
-
-        @property
         def _predecessora_predicao(self):
-            # TODO: adequar para a issue #62
-            # Prentende-se: ['otimizacao', 'SETparametro']
             return ['otimizacao','SETparametro']
 
         @property
@@ -223,7 +216,7 @@ class EstimacaoNaoLinear:
 
         @property
         def _predecessora_mapeamentoFO(self):
-            return ['otimizacao','preencherRegiao']
+            return ['incertezaParametros']
 
         @property
         def _predecessora_Hessiana(self):
@@ -547,7 +540,7 @@ class EstimacaoNaoLinear:
         # Flags para controle de informações
         self.__flag = flag()
         self.__flag.setCaracteristica(['dadosestimacao','dadospredicao',
-                                       'reconciliacao','preenchimentoRegiao',
+                                       'reconciliacao','mapeamentoFO',
                                        'graficootimizacao','relatoriootimizacao'])
         # uso das caracterśiticas:
         # dadosestimacao: indicar se dadosestimacao foram inseridos
@@ -1376,7 +1369,7 @@ class EstimacaoNaoLinear:
         if parametersReport is True:
             self._out.Parametros(self.parametros, self.FOotimo)
 
-    def incertezaParametros(self,metodoIncerteza='2InvHessiana',parametersReport = True, preencherregiao=True,**kwargs):
+    def incertezaParametros(self,metodoIncerteza='2InvHessiana',parametersReport = True, objectiveFunctionMapping=True,**kwargs):
         u"""
 
         Método para avaliação da matriz de covariãncia dos parâmetros e região de abrangência.
@@ -1418,8 +1411,8 @@ class EstimacaoNaoLinear:
             raise NameError('O método solicitado para cálculo da incerteza dos parâmetros {}'.format(metodoIncerteza)
                             + ' não está disponível. Métodos disponíveis ' + ', '.join(self.__metodosIncerteza) + '.')
 
-        if not isinstance(preencherregiao, bool):
-            raise TypeError('O argumento preencherregião deve ser booleano (True ou False).')
+        if not isinstance(objectiveFunctionMapping, bool):
+            raise TypeError('O argumento objectiveFunctionMapping deve ser booleano (True ou False).')
 
         # ---------------------------------------------------------------------
         # MATRIZ DE COVARIÂNCIA DOS PARÂMETROS
@@ -1471,9 +1464,9 @@ class EstimacaoNaoLinear:
         # REGIÃO DE ABRANGÊNCIA
         # ---------------------------------------------------------------------
         # MAPPING OF OBJECTIVE FUNCTION:
-        if preencherregiao and self.parametros.NV != 1:
-            self.__preencherRegiao(**kwargs)
-            self.__flag.ToggleActive('preenchimentoRegiao')
+        if objectiveFunctionMapping and self.parametros.NV != 1:
+            self.__objectiveFunctionMapping(**kwargs)
+            self.__flag.ToggleActive('mapeamentoFO')
 
         # A região de abrangência só é executada caso haja histórico de posicoes e fitness
         if self.__controleFluxo.mapeamentoFO and self.parametros.NV != 1:
@@ -1613,7 +1606,7 @@ class EstimacaoNaoLinear:
         """
         pass
 
-    def __preencherRegiao(self,**kwargs):
+    def __objectiveFunctionMapping(self,**kwargs):
         u"""
          Method used for objective function mapping
 
@@ -1625,7 +1618,6 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # FLUXO
         # ---------------------------------------------------------------------
-        self.__controleFluxo.SET_ETAPA('preencherRegiao')
         self.__controleFluxo.SET_ETAPA('mapeamentoFO')
 
         # ---------------------------------------------------------------------
