@@ -1647,12 +1647,12 @@ class EstimacaoNaoLinear:
                 if kwargs.get(kwargsdisponiveis[0]) < 1:
                     raise ValueError('O número de iterações deve ser inteiro e positivo.')
             # avaliando o fatorlimite -> deve ser positivo
-            if kwargs.get(kwargsdisponiveis[4]) is not None:
-                if kwargs.get(kwargsdisponiveis[4]) < 0:
+            if kwargs.get(kwargsdisponiveis[3]) is not None:
+                if kwargs.get(kwargsdisponiveis[3]) < 0:
                     raise ValueError('O fator limite busca deve positivo.')
             # avaliando a distribuição
-            if kwargs.get(kwargsdisponiveis[5]) is not None:
-                if kwargs.get(kwargsdisponiveis[5]) not in ['uniforme', 'triangular']:
+            if kwargs.get(kwargsdisponiveis[4]) is not None:
+                if kwargs.get(kwargsdisponiveis[4]) not in ['uniforme', 'triangular']:
                     raise ValueError('As distribuições disponíveis para o Método de MonteCarlo são: {}.'.format(['uniforme', 'triangular']))
 
         # ---------------------------------------------------------------------
