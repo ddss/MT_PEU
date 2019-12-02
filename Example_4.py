@@ -6,12 +6,12 @@ from casadi import vertcat
 def Modelo(param,x,*args):
 
     a1, b1, a2, b2 = param[0], param[1], param[2], param[3]
-    x1, x2 = x[0], x[1]
+    x1, x2 = x[:,0], x[:,1]
 
     return vertcat(a1*x1/(1+b1*x1), a2*(x2**b2))
 
 Estime = EstimacaoNaoLinear(Modelo,simbolos_x=['x1','x2'],simbolos_y=['y1','y2'],simbolos_param=['alpha1','alpha2', 'beta1', 'beta2'],
-                          label_latex_param=[r'$\alpha_1$',r'$\alpha_2$',r'$\beta_1$',r'$\beta_2$'],unidades_y=['kg','kg'],projeto='projeto')
+                          label_latex_param=[r'$\alpha_1$',r'$\alpha_2$',r'$\beta_1$',r'$\beta_2$'],unidades_y=['kg','kg'],Folder='Exemplo4')
 
 
 x1 = [1.,2.,3.,5.,10,15.,20.,30.,40.,50.]

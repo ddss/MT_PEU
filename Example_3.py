@@ -4,7 +4,7 @@ from numpy import exp
 
 def Model(param, x, *args):
     ko, E = param[0], param[1]
-    tempo, T = x[0], x[1]
+    tempo, T = x[:,0], x[:,1]
 
     return exp(-ko * tempo * exp(-E * (1 / T - 1. / 630.)))
 
@@ -13,7 +13,7 @@ Estime = EstimacaoNaoLinear(Model, simbolos_x=[r't', 'T'], unidades_x=['s', 'K']
                             simbolos_y=[r'y'], unidades_y=['adm'],
                             simbolos_param=['ko', 'E'], unidades_param=['adm', 'K'],
                             label_latex_param=[r'$k_o$', r'$E$'],
-                            projeto='Teste2')
+                            Folder='Exemplo3')
 
 # Tempo
 tempo = [120.0, 60.0, 120.0, 60.0, 30.0, 15.0, 45.1, 90.0, 150.0, 60.0, 60.0, 30.0, 150.0, 90.4, 120.0, 60.0, 60.0,
@@ -38,7 +38,7 @@ Estime.setDados(1, (y, uy1))
 
 Estime.setConjunto(tipo='estimacao')
 Estime.optimize(initial_estimative=[0.005, 20000.000])
-Estime.incertezaParametros(metodoIncerteza='SensibilidadeModelo', preencherregiao=False)
+Estime.incertezaParametros(metodoIncerteza='Geral')
 
 Estime.predicao()
 Estime.analiseResiduos()

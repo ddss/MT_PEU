@@ -24,7 +24,7 @@ from scipy import transpose, dot, concatenate, matrix
 from scipy.optimize import  minimize, rosen, rosen_der
 # Pacotes do sistema operacional
 from os import getcwd, sep
-from casadi import MX,DM,vertcat,horzcat,nlpsol,sum1,jacobian,mtimes,inv as inv_cas, diag,Function
+from casadi import MX,DM,vertcat,horzcat,nlpsol,sum1,jacobian,hessian,mtimes,inv as inv_cas, diag,Function
 # Exception Handling
 from warnings import warn
 
@@ -870,77 +870,104 @@ class EstimacaoNaoLinear:
         if not self.__flag.info['dadospredicao']:
             # if no prediction data were entered, then estimation is being performed and
             # estimation data should be used
-            self.__pcas = []; self.__xcas = []; self.__ycas = []; uycas = []; yFO = []; uyFO = []; xFO = []
 
-            self.__symParameters = []
+            self.__symXr   = []; self.__symUxo = [] # x
+            self.__symYo    = []; self.__symYest = []; self.__symUyo = []
+            self.__symParam = []
+
             self.__symVariables  = []
-            self._values        = []
+            self._values         = []
 
-            # Creation of decision variables in casadi's format
+            # Creation of parameters in casadi's format
             for i in range(self.parametros.NV):
-                self.__pcas.append(MX.sym(self.parametros.simbolos[i]))
-                self.__symParameters = vertcat(self.__symParameters,self.__pcas[i])
-
-            # Creation of dependent variables in casadi's format
-            for i in range(self.y.NV):
-                self.__ycas.append(MX.sym(self.y.simbolos[i], self.y.estimacao.NE))
-                yFO = vertcat(yFO, self.__ycas[i])
-                self.__symVariables = vertcat(self.__symVariables, self.__ycas[i])
-                self._values = vertcat(self._values, self.y.estimacao.matriz_estimativa[:, i:i + 1])
+                self.__symParam = vertcat(self.__symParam,MX.sym(self.parametros.simbolos[i]))
 
             # Creation of independent variables in casadi's format
-            for i in range(self.x.NV):
-                self.__xcas.append(MX.sym(self.x.simbolos[i], self.x.estimacao.NE))
-                xFO = vertcat(xFO, self.__xcas[i])
-                self.__symVariables = vertcat(self.__symVariables, self.__xcas[i])
-                self._values    = vertcat(self._values,self.x.estimacao.matriz_estimativa[:, i:i + 1])
+            xmodel = []
+            for j in range(self.x.NV):
+                self.__symXo = []
+                for i in range(self.x.estimacao.NE):
+                    self.__symXo = vertcat(self.__symXo, MX.sym('xo' + str(j + 1) + '_' + str(i)))
+                    self.__symXr = vertcat(self.__symXr, MX.sym('xr' + str(j + 1) + '_' + str(i)))
+                xmodel = horzcat(xmodel,self.__symXo)
+                self.__symVariables = vertcat(self.__symVariables, self.__symXo) #
+            self._values = vertcat(self._values, self.x.estimacao.vetor_estimativa)
+
+            # Creation of dependent variables in casadi's format
+            for j in range(self.y.NV):
+                for i in range(self.y.estimacao.NE):
+                    self.__symYo = vertcat(self.__symYo,MX.sym('yo'+str(j+1)+'_'+str(i)))
+                    self.__symYest = vertcat(self.__symYest,MX.sym('y'+str(j+1)+'_'+str(i)))
+            self.__symVariables = vertcat(self.__symVariables, self.__symYo)
+            self._values = vertcat(self._values, self.y.estimacao.vetor_estimativa)
 
             # Creation of uncertainties of dependent variables in casadi's format
-            for i in range(self.y.NV):
-                uycas.append(MX.sym('u', self.y.estimacao.NE))
-                uyFO = vertcat(uyFO,uycas[i])
-                self.__symVariables = vertcat(self.__symVariables, uycas[i])
-                self._values = vertcat(self._values, self.y.estimacao.matriz_incerteza[:, i:i + 1])
+            for j in range(self.y.NV):
+                for i in range(self.y.estimacao.NE):
+                    self.__symUyo = vertcat(self.__symUyo, MX.sym('Uyo'+str(j+1)+'_'+str(i)))
+            self.__symVariables = vertcat(self.__symVariables, self.__symUyo)
+            self._values = vertcat(self._values,
+                                   self.y.estimacao.matriz_incerteza.reshape(self.y.estimacao.NE*self.y.NV,1))
+
+            #for i in range(self.x.estimacao.NE):
+             #   self.__symUxo = vertcat(self.__symUxo, MX.sym('Uxo' + str(i)))
+             #   self.__symVariables = vertcat(self.__symVariables, self.__symUxo[i])
+              #  self._values = vertcat(self._values, self.y.estimacao.matriz_incerteza[:, i:i + 1])
 
             # Model definition
-            self.__symModel = self.__modelo(self.__pcas, self.__xcas, self.y.estimacao.NE)  # Symbolic
-            self.__excModel = Function('Model', [self.__symParameters, self.__symVariables],[self.__symModel])  # Executable
+
+            self.__symModel = self.__modelo(self.__symParam, xmodel, self.y.estimacao.NE)  # Symbolic
+            self.__excModel = Function('Model', [self.__symParam, self.__symVariables],[self.__symModel])  # Executable
 
             # Objective function definition
-            self.__symFO = sum1(((yFO - (self.__symModel)) ** 2) / (uyFO ** 2))  # Symbolic
-            self._excFO = Function('Objective_Function', [self.__symParameters, self.__symVariables], [self.__symFO])  # Executable
+            self.__symObjectiveFunction = sum1(((self.__symYo - (self.__symModel)) ** 2) / (self.__symUyo ** 2))  # Symbolic
+            self._excObjectiveFunction = Function('Objective_Function', [self.__symParam, self.__symVariables],
+                                                  [self.__symObjectiveFunction])  # Executable
 
         else:
-            # if prediction data were entered them should be used
-            self.__ycas = []; self.__xcas = []; uycas = []
+            self.__symXr = []; self.__symUxo = []  # x
+            self.__symYo = []; self.__symYest = []; self.__symUyo = []
 
             self.__symVariables = []
-            self._values       = []
-
-            # Creation of dependent variables in casadi's format
-            for i in range(self.y.NV):
-                self.__ycas.append(MX.sym(self.y.simbolos[i], self.y.predicao.NE))
-                self.__symVariables = vertcat(self.__symVariables, self.__ycas[i])
-                self._values = vertcat(self._values, self.y.predicao.matriz_estimativa[:, i:i + 1])
+            self._values = []
 
             # Creation of independent variables in casadi's format
-            for i in range(self.x.NV):
-                self.__xcas.append(MX.sym('a', self.x.predicao.NE))
-                self.__symVariables = vertcat(self.__symVariables, self.__xcas[i])
-                self._values = vertcat(self._values, self.x.predicao.matriz_estimativa[:, i:i + 1])
+            xmodel = []
+            for j in range(self.x.NV):
+                self.__symXo = []
+                for i in range(self.x.predicao.NE):
+                    self.__symXo = vertcat(self.__symXo, MX.sym('xo' + str(j + 1) + '_' + str(i)))
+                    self.__symXr = vertcat(self.__symXr, MX.sym('xr' + str(j + 1) + '_' + str(i)))
+                xmodel = horzcat(xmodel, self.__symXo)
+                self.__symVariables = vertcat(self.__symVariables, self.__symXo)  #
+            self._values = vertcat(self._values, self.x.predicao.vetor_estimativa)
+
+            # Creation of dependent variables in casadi's format
+            for j in range(self.y.NV):
+                for i in range(self.y.predicao.NE):
+                    self.__symYo = vertcat(self.__symYo, MX.sym('yo' + str(j + 1) + '_' + str(i)))
+                    self.__symYest = vertcat(self.__symYest, MX.sym('y' + str(j + 1) + '_' + str(i)))
+            self.__symVariables = vertcat(self.__symVariables, self.__symYo)
+            self._values = vertcat(self._values, self.y.predicao.vetor_estimativa)
 
             # Creation of uncertainties of dependent variables in casadi's format
-            for i in range(self.y.NV):
-                uycas.append(MX.sym('u', self.y.predicao.NE))
-                self.__symVariables = vertcat(self.__symVariables, uycas[i])
-                self._values = vertcat(self._values, self.y.predicao.matriz_incerteza[:, i:i + 1])
+            for j in range(self.y.NV):
+                for i in range(self.y.predicao.NE):
+                    self.__symUyo = vertcat(self.__symUyo, MX.sym('Uyo' + str(j + 1) + '_' + str(i)))
+            self.__symVariables = vertcat(self.__symVariables, self.__symUyo)
+            self._values = vertcat(self._values,
+                                   self.y.predicao.matriz_incerteza.reshape(self.y.predicao.NE * self.y.NV, 1))
+
+            # for i in range(self.x.estimacao.NE):
+            #   self.__symUxo = vertcat(self.__symUxo, MX.sym('Uxo' + str(i)))
+            #   self.__symVariables = vertcat(self.__symVariables, self.__symUxo[i])
+            #  self._values = vertcat(self._values, self.y.estimacao.matriz_incerteza[:, i:i + 1])
 
             # Model definition
             # it's necessary to define a new model because the
             # prediction data size could be different of the estimation data size
-            self.__symModel = self.__modelo(self.__pcas, self.__xcas)  # Symbolic
-            self.__excModel = Function('Model', [self.__symParameters, self.__symVariables], [self.__symModel])  # Executable
-
+            self.__symModel = self.__modelo(self.__symParam, xmodel, self.y.predicao.NE)  # Symbolic
+            self.__excModel = Function('Model', [self.__symParam, self.__symVariables], [self.__symModel])  # Executable
 
     def _armazenarDicionario(self):
         u"""
@@ -1136,7 +1163,7 @@ class EstimacaoNaoLinear:
         # EXECUÇÃO OTIMIZAÇÃO
         # ---------------------------------------------------------------------
         #definição o problema de otimização
-        nlp = {'x': self.__symParameters, 'p': self.__symVariables, 'f': self.__symFO}
+        nlp = {'x': self.__symParam, 'p': self.__symVariables, 'f': self.__symObjectiveFunction}
 
         if optimizationReport is True:
             # with optimization report
@@ -1208,39 +1235,19 @@ class EstimacaoNaoLinear:
 
     def __Hessiana_FO_Param(self):
 
-        Hessiana_cas = []
-        for i in range(self.parametros.NV):
-            row = []
-            for j in range(self.parametros.NV):
-                row = horzcat(row, jacobian(jacobian(self.__symFO, self.__pcas[i]),self.__pcas[j]))  # montagem de cada linha da Hessiana
-            Hessiana_cas = vertcat(Hessiana_cas, row)  # as linhas montadas são então encaixadas na matriz Hessiana
+        aux = Function('Hessiana', [self.__symParam, self.__symVariables],
+                                 [hessian(self.__symObjectiveFunction,self.__symParam)[0]]) #function
 
-        Hessiana_fun = Function('Hessiana', [self.__symParameters, self.__symVariables], [Hessiana_cas])
-        Hessiana_DM  = Hessiana_fun(self.parametros.estimativa, self._values)  # aqui é obtido o valor númerico da Hessiana
-
-        # ------------------------- --------------------------------------------
-        # CONVERTING THE MATRIX ELEMENTS TO THE FLOAT TYPE
-        # ---------------------------------------------------------------------
-        self.Hessiana = self.__DMtoFloat(Hessiana_DM,self.parametros.NV,self.parametros.NV,'Hessiana')
+        self.Hessiana = array(aux(self.parametros.estimativa, self._values)) #numeric
 
         return self.Hessiana
 
     def __Matriz_Gy(self):
 
-        Gy_cas = []
-        for i in range(self.parametros.NV):
-            row = []
-            for j in range(self.y.NV):
-                row = horzcat(row, jacobian(jacobian(self.__symFO, self.__pcas[i]), self.__ycas[j]))
-            Gy_cas = vertcat(Gy_cas, row)
+        aux = Function('Gy', [self.__symParam, self.__symVariables],
+                       [jacobian(jacobian(self.__symObjectiveFunction, self.__symParam), self.__symYo)]) # function
 
-        Gy_fun = Function('Gy', [self.__symParameters, self.__symVariables], [Gy_cas])
-        Gy_DM = Gy_fun(self.parametros.estimativa, self._values)
-
-        # ---------------------------------------------------------------------
-        # CONVERTING THE MATRIX ELEMENTS TO THE FLOAT TYPE
-        # ---------------------------------------------------------------------
-        self.Gy = self.__DMtoFloat(Gy_DM, self.parametros.NV, self.y.NV * self.y.estimacao.NE, 'S')
+        self.Gy = array(aux(self.parametros.estimativa, self._values))
 
         return self.Gy
 
@@ -1248,29 +1255,14 @@ class EstimacaoNaoLinear:
         u"""
                Method for calvulate the array S(first derivatives of the model function in relation to the parameters)."""
 
-        S_cas = []
-        # ---------------------------------------------------------------------
-        # CONVERTING THE MATRIX ELEMENTS TO THE FLOAT TYPE
-        # ---------------------------------------------------------------------
-        if not self.__flag.info['dadospredicao']:
+        aux = Function('S', [self.__symParam, self.__symVariables], [jacobian(self.__symModel,self.__symParam)])
 
-            for i in range(self.parametros.NV):
-                S_cas = horzcat(S_cas, jacobian(self.__symModel, self.__pcas[i]))
+        #if not self.__flag.info['dadospredicao']:
 
-            S_fun  =         Function('Sensibilidade', [self.__symParameters, self.__symVariables], [S_cas])
-            S_DM   =            S_fun(self.parametros.estimativa, self._values)  # this array have a DM type
-            self.S = self.__DMtoFloat(S_DM, self.y.NV * self.y.estimacao.NE, self.parametros.NV, 'S')
-
-        else:
-
-            for i in range(self.parametros.NV):
-                S_cas = horzcat(S_cas, jacobian(self.__symModel, self.__pcas[i]))
-
-            S_fun  =         Function('Sensibilidade', [self.__symParameters, self.__symVariables], [S_cas])
-            S_DM   =            S_fun(self.parametros.estimativa, self._values)  # this array have a DM type
-            self.S = self.__DMtoFloat(S_DM, self.y.NV * self.y.predicao.NE, self.parametros.NV, 'S')
+        self.S = array(aux(self.parametros.estimativa, self._values))
 
         return self.S
+
 
     def SETparametro(self,estimativa,variancia=None,regiao=None,parametersReport=True,**kwargs):
         u"""
@@ -1723,7 +1715,7 @@ class EstimacaoNaoLinear:
                     amostra = [triangular(limite_inferior[i], self.parametros.estimativa[i], limite_superior[i], 1)[0]
                                for i in range(self.parametros.NV)]
 
-                FO = float(self._excFO(amostra, self._values)) #self._excFO returns a DM object, it's necessary convert to float object
+                FO = float(self._excObjectiveFunction(amostra, self._values)) #self._excFO returns a DM object, it's necessary convert to float object
 
                 self.__hist_Posicoes.append(amostra)
                 self.__hist_Fitness.append(FO)

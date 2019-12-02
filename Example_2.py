@@ -4,13 +4,13 @@ from numpy import exp
 def Model (param,x, *args):
 
     ko, E = param[0], param[1]
-    tempo, T = x[0], x[1]
+    tempo, T = x[:,0], x[:,1]
 
     return exp(-tempo*exp(ko-E/T))
 
 Estime = EstimacaoNaoLinear(Model, simbolos_x=['t','T'], unidades_x=['s','K'],
                             simbolos_y=[r'y'], unidades_y=['adm'],
-                            simbolos_param=['ko','E'], unidades_param=['adm','K'], projeto='Teste1')
+                            simbolos_param=['ko','E'], unidades_param=['adm','K'], Folder='Exemplo2')
 
 #Tempo
 tempo = [120.0,60.0,60.0,120.0,120.0,60.0,60.0,30.0,15.0,60.0,
@@ -38,9 +38,9 @@ Estime.setDados(1,(y,uy))
 
 Estime.setConjunto()
 
-Estime.optimize(initial_estimative=[18, 20000.000])
+Estime.optimize(initial_estimative=[35, 25000.000])#, lower_bound=[37,27600], upper_bound=[40,28000])
 
-Estime.incertezaParametros(metodoIncerteza='2InvHessiana',preencherregiao=True)
+Estime.incertezaParametros(metodoIncerteza='2InvHessiana')
 
 Estime.predicao()
 Estime.analiseResiduos()
