@@ -891,7 +891,10 @@ class EstimacaoNaoLinear:
                     self.__symXr = vertcat(self.__symXr, MX.sym('xr' + str(j + 1) + '_' + str(i)))
                 xmodel = horzcat(xmodel,self.__symXo)
                 self.__symVariables = vertcat(self.__symVariables, self.__symXo) #
-            self._values = vertcat(self._values, self.x.estimacao.vetor_estimativa)
+            if self._EstimacaoLinear__coluna_dumb == False: # if is a Linear Model with independent term
+                self._values = vertcat(self._values, self.x.estimacao.vetor_estimativa)
+            else: # if is a Linear Model with independent term
+                self._values = vertcat(self._values, self.x.estimacao.vetor_estimativa[:self.x.estimacao.NE]) # para não trazer a coluna de '1' como dado de entrada
 
             # Creation of dependent variables in casadi's format
             for j in range(self.y.NV):
@@ -940,7 +943,11 @@ class EstimacaoNaoLinear:
                     self.__symXr = vertcat(self.__symXr, MX.sym('xr' + str(j + 1) + '_' + str(i)))
                 xmodel = horzcat(xmodel, self.__symXo)
                 self.__symVariables = vertcat(self.__symVariables, self.__symXo)  #
-            self._values = vertcat(self._values, self.x.predicao.vetor_estimativa)
+            if self._EstimacaoLinear__coluna_dumb == False:  # if is a Linear Model with independent term
+                self._values = vertcat(self._values, self.x.predicao.vetor_estimativa)
+            else:  # if is a Linear Model with independent term
+                self._values = vertcat(self._values, self.x.predicao.vetor_estimativa[
+                                                     :self.x.predicao.NE])  # para não trazer a coluna de '1' como dado de entrada
 
             # Creation of dependent variables in casadi's format
             for j in range(self.y.NV):

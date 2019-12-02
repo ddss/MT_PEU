@@ -31,24 +31,25 @@ def Model_1 (param,x, *args):
     # This model is used when there is no independent term calculation
 
     p = [] ; var = []
-    for i in range(len(param)):
+    for i in range(param.rows()):
         p = vertcat(p, param[i])
-    for i in range(len(x)):
-        var = horzcat(var, x[i])
+
+    var = horzcat(var, x)
+    a = 1
 
     return mtimes(var,p)
 
-def Model_2 (param,x, *args):
+def Model_2 (param,x,*args):
 
     # This model is used when the independent term is calculated
     p = [] ; var = []
-    for i in range(len(param)):
+    for i in range(param.rows()):
         p = vertcat(p, param[i])
-    for i in range(len(x)):
-        rows = args[0] # This argument corresponds to the amount of input data
-        var = horzcat(var, x[i])
+    #for i in range(len(x)):
+    rows = args[0] # This argument corresponds to the amount of input data
+    var = horzcat(var,x)
     var = horzcat(var, MX.ones(rows, 1))
-
+    a=1
     return mtimes(var, p)
 
 class EstimacaoLinear(EstimacaoNaoLinear):
@@ -229,6 +230,11 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # ---------------------------------------------------------------------
         # MODIFICAÇÕES DAS MATRIZES DE DADOS
         # ---------------------------------------------------------------------
+        coluna_dumb = False
+        if self._EstimacaoNaoLinear__flag.info['calc_termo_independente']:
+            self._EstimacaoNaoLinear__xtemp = hstack((self._EstimacaoNaoLinear__xtemp, ones((shape(self._EstimacaoNaoLinear__xtemp)[0], 1))))
+            self._EstimacaoNaoLinear__uxtemp = hstack((self._EstimacaoNaoLinear__uxtemp, ones((shape(self._EstimacaoNaoLinear__uxtemp)[0], 1))))
+            coluna_dumb = True
 
         if tipo == 'estimacao':
             self._EstimacaoNaoLinear__flag.ToggleActive('dadosestimacao')
@@ -331,7 +337,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # initialization of the method that create the symbolic's variables
         EstimacaoNaoLinear._constructionCasadiVariables(self)
 
-        self.FOotimo = float(self._excFO(self.parametros.estimativa,self._values))
+        self.FOotimo = float(self._excObjectiveFunction(self.parametros.estimativa,self._values))
 
         # parameters report creation
         if parametersReport:
@@ -370,8 +376,8 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # ---------------------------------------------------------------------
         # A região de abrangência só é calculada caso não esteja definida
         if preencherregiao and self.parametros.NV != 1:
-            self._EstimacaoNaoLinear__preencherRegiao(**kwargs)
-            self._EstimacaoNaoLinear__flag.ToggleActive('preenchimentoRegiao')
+            self._EstimacaoNaoLinear__objectiveFunctionMapping(**kwargs)
+            self._EstimacaoNaoLinear__flag.ToggleActive('mapeamentoFO')
 
         # A região de abrangência só é executada caso haja histórico de posicoes e fitness
         if self._EstimacaoNaoLinear__controleFluxo.mapeamentoFO and self.parametros.NV != 1:
