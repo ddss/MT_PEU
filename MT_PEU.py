@@ -1520,9 +1520,7 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # PREDIÇÃO
         # ---------------------------------------------------------------------
-        aux_DM = self.__excModel(self.parametros.estimativa,self._values) # DM object
-        aux    = self.__DMtoFloat(self.__excModel(self.parametros.estimativa,self._values),self.y.predicao.NE,
-                               self.y.NV,'y_evaluated')
+        aux = array(self.__excModel(self.parametros.estimativa,self._values))
 
         # ---------------------------------------------------------------------
         # AVALIAÇÃO DA PREDIÇÃO (Y CALCULADO PELO MODELO)
