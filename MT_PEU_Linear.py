@@ -35,7 +35,7 @@ def Model_1 (param,x, *args):
         p = vertcat(p, param[i])
 
     var = horzcat(var, x)
-    a = 1
+
 
     return mtimes(var,p)
 
@@ -49,7 +49,7 @@ def Model_2 (param,x,*args):
     rows = args[0] # This argument corresponds to the amount of input data
     var = horzcat(var,x)
     var = horzcat(var, MX.ones(rows, 1))
-    a=1
+
     return mtimes(var, p)
 
 class EstimacaoLinear(EstimacaoNaoLinear):
@@ -335,7 +335,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # FUNÇÃO OBJETIVO NO PONTO ÓTIMO
         # ---------------------------------------------------------------------
         # initialization of the method that create the symbolic's variables
-        EstimacaoNaoLinear._constructionCasadiVariables(self)
+        EstimacaoNaoLinear._constructionCasadiVariables(self, Linear='Linear')
 
         self.FOotimo = float(self._excObjectiveFunction(self.parametros.estimativa,self._values))
 
