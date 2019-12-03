@@ -541,7 +541,7 @@ class EstimacaoNaoLinear:
         self.__flag = flag()
         self.__flag.setCaracteristica(['dadosestimacao','dadospredicao',
                                        'reconciliacao','mapeamentoFO',
-                                       'graficootimizacao','relatoriootimizacao'])
+                                       'graficootimizacao','relatoriootimizacao','Linear'])
         # uso das caracterśiticas:
         # dadosestimacao: indicar se dadosestimacao foram inseridos
         # dadospredicao: indicar se dadospredicao foram inseridos
@@ -578,7 +578,7 @@ class EstimacaoNaoLinear:
     @property
     def __AlgoritmosOtimizacao(self):
         # Availabe optimization algorithm
-        return ('ipopt', 'bonmin')
+        return ('ipopt', 'bonmin', 'sqpmethod')
 
     @property
     def __tipoGraficos(self):
@@ -855,7 +855,7 @@ class EstimacaoNaoLinear:
         # initialization of casadi's variables
         self._constructionCasadiVariables()
 
-    def _constructionCasadiVariables(self, Linear=None): # construction of the casadi variables
+    def _constructionCasadiVariables(self): # construction of the casadi variables
         u"""
 
         When MT_PEU is working with estimation data the symbolics variables should be created with this data.
@@ -891,7 +891,7 @@ class EstimacaoNaoLinear:
                     self.__symXr = vertcat(self.__symXr, MX.sym('xr' + str(j + 1) + '_' + str(i)))
                 xmodel = horzcat(xmodel,self.__symXo)
                 self.__symVariables = vertcat(self.__symVariables, self.__symXo)
-            if Linear == 'Linear':
+            if self._EstimacaoNaoLinear__flag.info['Linear']:
                 if self._EstimacaoNaoLinear__flag.info['calc_termo_independente']: # Testing if it's a linear case with independent term calculation
                     self._values = vertcat(self._values, self.x.estimacao.vetor_estimativa[
                                                          :self.x.estimacao.NE])  # para não trazer a coluna de '1' como dado de entrada
@@ -947,9 +947,8 @@ class EstimacaoNaoLinear:
                     self.__symXr = vertcat(self.__symXr, MX.sym('xr' + str(j + 1) + '_' + str(i)))
                 xmodel = horzcat(xmodel, self.__symXo)
                 self.__symVariables = vertcat(self.__symVariables, self.__symXo)  #
-            if Linear == 'Linear':
-                if self._EstimacaoNaoLinear__flag.info[
-                    'calc_termo_independente']:  # Testing if it's a linear case with independent term calculation
+            if self._EstimacaoNaoLinear__flag.info['Linear']:
+                if self._EstimacaoNaoLinear__flag.info['calc_termo_independente']:  # Testing if it's a linear case with independent term calculation
                     self._values = vertcat(self._values, self.x.predicao.vetor_estimativa[
                                                          :self.x.predicao.NE])  # para não trazer a coluna de '1' como dado de entrada
                 else:
@@ -1102,7 +1101,7 @@ class EstimacaoNaoLinear:
         Keywords (argumentos opcionais)
         ===============================
 
-        algoritmos disponíveis = ipotp, bnomin
+        algoritmos disponíveis = ipotp, bnomin, sqpmethod
 
         ==========
         Observação
@@ -1188,12 +1187,17 @@ class EstimacaoNaoLinear:
             elif algoritmo == 'bonmin':
                 options = {'print_time': False, 'bonmin':{'file_print_level': 5,
                                                           'output_file': self._out.optimization() + 'Optimization_report.txt'}}
+            elif algoritmo =='sqpmethod':
+                options = {'print_iteration': False, 'qpsol_options':{'printLevel': 'none'}}
+
         else:
             # without optimization report
             if algoritmo == 'ipopt':
                 options = {'print_time': False, 'ipopt': {'print_level': 0}}
             elif algoritmo == 'bonmin':
                 options = {'print_time': False, 'bonmin': {}}
+            elif algoritmo == 'sqpmethod':
+                options = {'print_iteration': False, 'qpsol_options': {'printLevel': 'none'}}
 
         #montagem do problema de otimização
         S = nlpsol('S', algoritmo, nlp, options)
@@ -1220,33 +1224,6 @@ class EstimacaoNaoLinear:
         # parameters report creation
         if parametersReport is True:
             self._out.Parametros(self.parametros,self.FOotimo)
-
-    def __DMtoFloat(self,DM_array,nrows,ncolunms,name):
-        u'''
-       Method for converting DM type Array to float type array
-
-        =======================
-        Inputs (required)
-        =======================
-        *  DM_array (DM): Matrix that will be convert.
-        *    nrows (int): Number of rows of the DM_array
-        * nColumns (int): Number of columns of the DM_array
-        '''
-
-        position = 0
-        if name == 'Hessiana' or name == 'S' or name =='y_evaluated':
-            aux = [[[] for j in range(ncolunms)] for i in range(nrows)]
-            for j in range(ncolunms):
-                for i in range(nrows):
-                    aux[i][j] = (float(DM_array[position]))
-                    position = position + 1
-        elif name == 'Gy':
-            aux = [[[] for j in range(ncolunms)] for i in range(nrows)]
-            for j in range(ncolunms):
-                for i in range(nrows):
-                    aux[j][i] = (float(DM_array[position]))
-                    position = position + 1
-        return array(aux)
 
     def __Hessiana_FO_Param(self):
 

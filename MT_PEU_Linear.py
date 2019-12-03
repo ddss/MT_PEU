@@ -171,6 +171,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             # The the independent term won't be calculated and Model_1 should be used
             EstimacaoNaoLinear.__init__(self, Model_1, simbolos_y, simbolos_x, simbolos_param, PA, projeto, **kwargs)
 
+        self._EstimacaoNaoLinear__flag.ToggleActive('Linear') # Enable linear flag to correctly create 'self .__ values' when independent term calculation
         self._EstimacaoNaoLinear__flag.setCaracteristica(['calc_termo_independente'])
 
         # ---------------------------------------------------------------------
@@ -335,7 +336,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # FUNÇÃO OBJETIVO NO PONTO ÓTIMO
         # ---------------------------------------------------------------------
         # initialization of the method that create the symbolic's variables
-        EstimacaoNaoLinear._constructionCasadiVariables(self, Linear='Linear')
+        EstimacaoNaoLinear._constructionCasadiVariables(self)
 
         self.FOotimo = float(self._excObjectiveFunction(self.parametros.estimativa,self._values))
 
