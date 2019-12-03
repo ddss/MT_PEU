@@ -149,6 +149,8 @@ class Report:
             export_cov_y = False
         else:
             export_cov_y = kwargs.get('export_cov_y')
+
+        PA = kwargs.get('PA')
         # ---------------------------------------------------------------------
         # ESCRITA DE ARQUIVO DE RELATÓRIO
         # ---------------------------------------------------------------------
@@ -235,7 +237,17 @@ class Report:
                              f.write(self.__quebra)
                
                      if not isinstance(y._Grandeza__nomesTestes['residuo-Media'][teste],dict):
-                        f.write('| Ho: {}'.format(y._Grandeza__TestesInfo['residuo-Media'][teste]['H0']))
+                        f.write(' | Ho: {}'.format(y._Grandeza__TestesInfo['residuo-Media'][teste]['H0']))
+                        f.write(self.__quebra)
+
+                     f.write('             ')
+                     for symb in y.simbolos:
+                        if isinstance(y.estatisticas[symb]['residuo-Media'][teste], float):
+                            f.write('Aceita H0' if y.estatisticas[symb]['residuo-Media'][teste] >= 1-PA else 'Rejeita H0')
+                        else:
+                            f.write('N/A')
+                            f.write(self.__quebra)
+
                      if break_line:
                         f.write(self.__quebra)
                  

@@ -7,11 +7,11 @@ from numpy import exp, log
 def Model(param, x,*args):
 
     a, b = param[0], param[1]
-    T    = x[:,0]
+    T    = x[0]
 
     return exp(a / 8.31446 + b / (8.31446 * T) - (65.6 / 8.31446) * log( T / 298.15))
 
-Estimation = EstimacaoNaoLinear(Model, simbolos_x=['T'], simbolos_y=['P'], simbolos_param=['a','b'], Folder='Exemplo5' )
+Estimation = EstimacaoNaoLinear(Model, simbolos_x=['T'], simbolos_y=['P'], simbolos_param=['a','b'], Folder='Formamide' )
 
 '''Data definiton'''
 P = [75.1, 96.1, 117.3, 167.7, 169, 211, 248.2, 326.5, 464.6, 627.4, 709.4,
@@ -30,7 +30,7 @@ Estimation.setConjunto(tipo='estimacao')
 
 Estimation.optimize(initial_estimative = [200, -70000])
 
-Estimation.incertezaParametros(metodoIncerteza='SensibilidadeModelo',objectiveFunctionMapping=True)
+Estimation.incertezaParametros(metodoIncerteza='Geral')
 
 Estimation.predicao()
 
