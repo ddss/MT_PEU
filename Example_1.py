@@ -34,8 +34,7 @@ Estime.setDados(1,(y,uy))
 Estime.setConjunto(tipo='estimacao')
 Estime.optimize(initial_estimative=[0.5,25000], algoritmo='ipopt')
 
-Estime.incertezaParametros(metodoIncerteza='Geral'
-                                           '')
+Estime.incertezaParametros(metodoIncerteza='Geral')
 Estime.predicao()
 Estime.analiseResiduos()
 etapas = ['grandezas-entrada', 'predicao', 'grandezas-calculadas', 'analiseResiduos', 'regiaoAbrangencia']

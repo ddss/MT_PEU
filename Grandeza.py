@@ -243,14 +243,14 @@ class Grandeza:
             if estimativa.shape[1] == NV: # Foi informado a matriz estimativa (NE , NV)
                 self.matriz_estimativa = estimativa
                 self.vetor_estimativa = self.matriz_estimativa.reshape(
-                    (self.matriz_estimativa.shape[0] * self.matriz_estimativa.shape[1], 1),
+                    (int(self.matriz_estimativa.shape[0] * self.matriz_estimativa.shape[1]), 1),
                     order='F')  # conversão de matriz para vetor
 
             elif NE is not None:
 
                 if estimativa.shape[0] == NV*NE: # Foi informado o vetor estimativa (NExNV,1)
                     self.vetor_estimativa = estimativa
-                    self.matriz_estimativa = self.vetor_estimativa.reshape((NE, self.vetor_estimativa.shape[0] / NE),
+                    self.matriz_estimativa = self.vetor_estimativa.reshape((NE, int(self.vetor_estimativa.shape[0] / NE)),
                                                                            order='F')  # Conversão de vetor para uma matriz
                 else:
                     raise ValueError(u'O tamanho do vetor estimativa deve ser igual ao número de variáves vezes número de dados')
