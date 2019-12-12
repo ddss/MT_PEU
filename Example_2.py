@@ -4,7 +4,7 @@ from numpy import exp
 def Model (param,x, *args):
 
     ko, E = param[0], param[1]
-    tempo, T = x[0], x[1]
+    tempo, T = x[:,0], x[:,1]
 
     return exp(-tempo*exp(ko-E/T))
 
@@ -40,7 +40,7 @@ Estime.setConjunto()
 
 Estime.optimize(initial_estimative=[18, 20000.000])
 
-Estime.incertezaParametros(metodoIncerteza='2InvHessiana',preencherregiao=True)
+Estime.incertezaParametros(metodoIncerteza='2InvHessiana',objectiveFunctionMapping=True)
 
 Estime.predicao()
 Estime.analiseResiduos()

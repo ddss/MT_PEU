@@ -6,7 +6,7 @@ from casadi import vertcat
 def Modelo(param,x,*args):
 
     a1, b1, a2, b2 = param[0], param[1], param[2], param[3]
-    x1, x2 = x[0], x[1]
+    x1, x2 = x[:,0], x[:,1]
 
     return vertcat(a1*x1/(1+b1*x1), a2*(x2**b2))
 

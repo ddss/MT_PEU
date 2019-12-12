@@ -7,7 +7,7 @@ from numpy import exp, log
 def Model(param, x,*args):
 
     a, b = param[0], param[1]
-    T    = x[0]
+    T    = x[,:0]
 
     return exp(a / 8.31446 + b / (8.31446 * T) - (65.6 / 8.31446) * log( T / 298.15))
 
