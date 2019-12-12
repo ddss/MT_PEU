@@ -525,12 +525,10 @@ class EstimacaoNaoLinear:
         self.__modelo    = Modelo
         # Argumentos extras a serem passados para o modelo definidos pelo usuário.
         self.__args_user = None # Aqui iniciado para que possa existir na herança
-        # Histórico das posições (parâmetros) do algoritmo de otimização (usado em otimiza e/ou preencher
-        #  regiao e/ou regiaoAbrangencia)
-        self.__hist_Posicoes = []
-        # Histórico do fitness (valor funcao objetivo) do algoritmo de otimização (usado em otimiza e/ou preencher
-        #  regiao e/ou regiaoAbrangencia)
-        self.__hist_Fitness = []
+        # Optimization algorithm position history (parameters) (used in optimizes and / or objective function mapping
+        self.__decisonVariablesMapped = []
+        # Fitness history (objective function value) of the optimization algorithm (used in optimizing and / or objective function mapping)
+        self.__OFMapped = []
         # Caminho base para os arquivos, caso seja definido a keyword base_path ela será utilizada.
         if kwargs.get(self.__keywordsEntrada[9]) is None:
             self.__base_path = getcwd()+ sep +str(Folder)+sep
@@ -595,7 +593,7 @@ class EstimacaoNaoLinear:
         return ('deltaHess', 'deltaGy', 'deltaS', 'delta')
 
     @property
-    def __tipoPreenchimento(self):
+    def __tipoObjectiveFunctionMapping(self):
         # types of objective function mapping algorithms available
         return ('MonteCarlo',)
 
@@ -1274,10 +1272,10 @@ class EstimacaoNaoLinear:
         ===
         USO
         ===
-        * Inclusão da estimativa dos parâmetros: irá substituir o método de otimização. Será necessário executar o método incertezaParametros
-        * Inclusão da estimativa dos parâmetros e variancia:  irá substituir o método de otimização e uma parte do método de incertezaParametros.
-        Para preencher a região pelo método da verossimilhança, o método incertezaParametros deve ser executado (irá substituir a incerteza inseirda).
-        * Inclusão da estimativa dos parâmetros, variancia e regiao:  irá substituir o método de otimização e incertezaParametros
+        * Inclusion of parameter estimation: will replace the optimization method. You will need to execute the uncertaintyParameter method.
+        * Inclusion of parameter estimation and variance: will replace the optimization method and a part of the uncertainty method.
+        For objective Function Mapping the region by the likelihood method, the uncertaintyParameter method must be performed (will override the uncertainty inseparated).
+        * Inclusion of parameter estimation, variance and region: will replace optimization and uncertaintyParameter method.
 
         =================
         Keyword Arguments
@@ -1595,7 +1593,7 @@ class EstimacaoNaoLinear:
         =================
         Keyword arguments
         =================
-            * metodoPreenchimento ('string'): defines which method is used in objective function mapping. Available: MonteCarlo
+            * MethodObjectivefunctionmapping  ('string'): defines which method is used in objective function mapping. Available: MonteCarlo
         """
         # ---------------------------------------------------------------------
         # FLUXO
@@ -1606,18 +1604,18 @@ class EstimacaoNaoLinear:
         # VALIDAÇÃO
         # ---------------------------------------------------------------------
 
-        if kwargs.get('metodoPreenchimento') is not None:
-            tipo = kwargs.pop('metodoPreenchimento')
+        if kwargs.get('MethodObjectivefunctionmapping') is not None:
+            tipo = kwargs.pop('MethodObjectivefunctionmapping')
         else:
             tipo = 'MonteCarlo'
 
-        # avaliando se o tipo de preenchimento está disponível
-        if tipo not in self.__tipoPreenchimento:
+        # evaluating whether the objective function mapping type is available
+        if tipo not in self.__tipoObjectiveFunctionMapping:
             raise NameError('O método solicitado para mapeamento da função objetivo {}'.format(
-                tipo) + ' não está disponível. Métodos disponíveis ' + ', '.join(self.__tipoPreenchimento) + '.')
+                tipo) + ' não está disponível. Métodos disponíveis ' + ', '.join(self.__tipoObjectiveFunctionMapping) + '.')
 
         # caso seja MonteCarlo:
-        if tipo == self.__tipoPreenchimento[0]:
+        if tipo == self.__tipoObjectiveFunctionMapping[0]:
             kwargsdisponiveis = ('iteracoes', 'limite_superior', 'limite_inferior', 'fatorlimitebusca', 'distribuicao')
 
             # avaliando se as keywords estão disponíveis
@@ -1688,7 +1686,7 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # MÉTODO MONTE CARLO
         # ---------------------------------------------------------------------
-        if tipo == self.__tipoPreenchimento[0]:
+        if tipo == self.__tipoObjectiveFunctionMapping[0]:
             iteracoes = int(kwargs.get('iteracoes') if kwargs.get('iteracoes') is not None else 10000)
             distribuicao = kwargs.get('distribuicao')
             if distribuicao is None:
@@ -1707,8 +1705,8 @@ class EstimacaoNaoLinear:
 
                 FO = float(self._excObjectiveFunction(amostra, self._values)) #self._excFO returns a DM object, it's necessary convert to float object
 
-                self.__hist_Posicoes.append(amostra)
-                self.__hist_Fitness.append(FO)
+                self.__decisonVariablesMapped.append(amostra)
+                self.__OFMapped.append(FO)
 
     def __criteriosAbrangencia(self):
         u"""
@@ -1747,9 +1745,9 @@ class EstimacaoNaoLinear:
         # Comparação dos valores da função objetivo avaliados na etapa de otimização com FOcomparacao, caso
         # sejam menores, os respectivos parâmetros estarão contidos da região de abrangência.
         regiao = []
-        for pos,fitness in enumerate(self.__hist_Fitness):
-            if fitness <= ellipseComparacao+self.FOotimo:
-                regiao.append(self.__hist_Posicoes[pos])
+        for pos,OFMapped in enumerate(self.__OFMapped):
+            if OFMapped <= ellipseComparacao+self.FOotimo:
+                regiao.append(self.__decisonVariablesMapped[pos])
 
         # ---------------------------------------------------------------------
         # AVALIAÇÃO SE A REGIÃO DE ABRANGÊNCIA NÃO ESTÁ VAZIA (Warning)
