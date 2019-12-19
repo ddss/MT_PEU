@@ -37,7 +37,7 @@ from warnings import warn
 # IMPORTAÇÃO DE SUBROTINAS PRÓPRIAS E ADAPTAÇÕES (DESENVOLVIDAS PELO GI-UFBA)
 # ---------------------------------------------------------------------------
 from Grandeza import Grandeza
-from subrotinas import Validacao_Diretorio, plot_cov_ellipse, vetor_delta,\
+from subrotinas import Validacao_Diretorio, eval_cov_ellipse, vetor_delta,\
     matriz2vetor, WLS
 from Graficos import Grafico
 from Relatorio import Report
@@ -1664,8 +1664,9 @@ class EstimacaoNaoLinear:
                 cov = array([[self.parametros.matriz_covariancia[p1, p1], self.parametros.matriz_covariancia[p1, p2]],
                              [self.parametros.matriz_covariancia[p2, p1], self.parametros.matriz_covariancia[p2, p2]]])
 
-                coordenadas_x, coordenadas_y = plot_cov_ellipse(cov, [self.parametros.estimativa[p1], self.parametros.estimativa[p2]],
-                                                                     FOcomparacao,ax=False)
+                coordenadas_x, coordenadas_y, width, height, theta = eval_cov_ellipse(cov, [self.parametros.estimativa[p1],
+                                                                      self.parametros.estimativa[p2]],
+                                                                FOcomparacao, ax=False)
 
                 extremo_elipse_superior[p1] = nanmax(coordenadas_x)
                 extremo_elipse_superior[p2] = nanmax(coordenadas_y)
@@ -2031,8 +2032,7 @@ class EstimacaoNaoLinear:
                         cov = array([[self.parametros.matriz_covariancia[p1,p1], self.parametros.matriz_covariancia[p1,p2]],
                                      [self.parametros.matriz_covariancia[p2,p1], self.parametros.matriz_covariancia[p2,p2]]])
 
-                        Fig.elipse_covariancia(cov, [self.parametros.estimativa[p1],self.parametros.estimativa[p2]],
-                                               ellipseComparacao)
+                        Fig.elipse_covariancia(cov,[self.parametros.estimativa[p1],self.parametros.estimativa[p2]],ellipseComparacao)
 
                         if self.__controleFluxo.regiaoAbrangencia and self.parametros.regiao_abrangencia != []:
                             Fig.set_legenda([u'Verossimilhança','Elipse'], loc='best', fontsize=15)

@@ -18,6 +18,8 @@ from matplotlib.patches import Ellipse
 
 from scipy.stats import probplot
 
+from subrotinas import eval_cov_ellipse
+
 # Definição da classe
 
 class Grafico:
@@ -348,7 +350,7 @@ class Grafico:
         if config_axes:
             self.config_axes()
 
-    def elipse_covariancia(self, cov, pos, c2=2, add_legenda=True):#, **kwargs):
+    def elipse_covariancia(self,cov,pos,ellipseComparacao,add_legenda=True):
         """
         Plots an `nstd` sigma error ellipse based on the specified covariance
         matrix (`cov`). Additional keyword arguments are passed on to the
@@ -359,6 +361,7 @@ class Grafico:
             cov : The 2x2 covariance matrix to base the ellipse on
             pos : The location of the center of the ellipse. Expects a 2-element
                 sequence of [x0, y0].
+            ellipseComparacao : objective function limit value used in the comparison to select the pairs that will be part of the region
             nstd : The radius of the ellipse in numbers of standard deviations.
                 Defaults to 2 standard deviations.
             ax : The axis that the ellipse will be plotted on. Defaults to the
@@ -370,42 +373,15 @@ class Grafico:
             A matplotlib ellipse artist
             # Código é adaptado e obtigo de terceiros: https://github.com/joferkington/oost_paper_code/blob/master/error_ellipse.py
         """
-        def eigsorted(cov):
-            vals, vecs = eigh(cov)
-            order = vals.argsort()[::-1]
-            return vals[order], vecs[:,order]
 
-        vals, vecs = eigsorted(cov)
-        theta = degrees(arctan2(*vecs[:,0][::-1]))
-        # Width and height are "full" widths, not radius
-        width, height = 2 * sqrt(c2*vals)
-        # ellip = Ellipse(xy=pos, width=width, height=height, angle=theta, **kwargs)
+        coordenadas_x, coordenadas_y, width, height, theta = eval_cov_ellipse(cov,pos,ellipseComparacao)
+
         ellip = Ellipse(xy=pos, width=width, height=height, angle=theta, fill=False, color='r', linewidth=2.0, zorder=2)
 
         self.axes.add_artist(ellip)
 
         # PLOT do centro
         self.axes.plot(pos[0],pos[1],'r*',markersize=10.0,zorder=2)
-
-        # CÁLCULO DOS PONTOS PERTENCENTES AOS EIXOS DA ELIPSE:
-        invcov = inv(cov)
-        alpha  = [vecs[1,0]/vecs[0,0],vecs[1,1]/vecs[0,1]]
-        lamb   = [sqrt(c2/(invcov[0,0]+2*alpha_i*invcov[0,1] + alpha_i**2*invcov[1,1])) for alpha_i in alpha]
-
-        coordenadas_x = [pos[0]+lamb[0],pos[0]-lamb[0],pos[0]+lamb[1],pos[0]-lamb[1]]
-        coordenadas_y = [pos[1]+alpha[0]*lamb[0],pos[1]-alpha[0]*lamb[0],pos[1]+alpha[1]*lamb[1],pos[1]-alpha[1]*lamb[1]]
-
-        # CÁLCULO DOS PONTOS EXTREMOS
-        k = invcov[0,0]/(invcov[0,1] + 1e-100) # 1e-100 evita NaN quando invcov[0,1] é igual a zero.
-        delta = sqrt(c2/(k**2*invcov[1,1]-2*k*invcov[0,1]+invcov[0,0]))
-        coordenadas_x.extend([pos[0]+delta,pos[0]-delta])
-        coordenadas_y.extend([pos[1]-delta*k,pos[1]+delta*k])
-
-        k = invcov[1,1]/(invcov[0,1] + 1e-100) # 1e-100 evita NaN quando invcov[0,1] é igual a zero.
-
-        delta = sqrt(c2/(k**2*invcov[0,0]-2*k*invcov[0,1]+invcov[1,1]))
-        coordenadas_y.extend([pos[1]+delta,pos[1]-delta])
-        coordenadas_x.extend([pos[0]-delta*k,pos[0]+delta*k])
 
         #PLOT dos pontos extremos da elipse (correção da escala)
         self.axes.plot(coordenadas_x, coordenadas_y, '.r', markersize=0.01)

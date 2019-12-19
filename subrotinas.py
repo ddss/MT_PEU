@@ -15,8 +15,6 @@ from matplotlib.pyplot import figure, axes, axis, plot, errorbar, subplot, xlabe
 
 from matplotlib.patches import Ellipse
 
-from Graficos import Grafico
-
 def WLS (parametros,*argumentos):
     u"""
     Subrotina para ......
@@ -133,7 +131,7 @@ def Validacao_Diretorio(base_path,diretorio=None):
         if not path.exists(directory):
             makedirs(directory)
 
-def plot_cov_ellipse(cov, pos, c2=2, ax=None, **kwargs):
+def eval_cov_ellipse(cov, pos, c2=2, **kwargs):
     """
     Plots an `nstd` sigma error ellipse based on the specified covariance
     matrix (`cov`). Additional keyword arguments are passed on to the
@@ -146,13 +144,12 @@ def plot_cov_ellipse(cov, pos, c2=2, ax=None, **kwargs):
             sequence of [x0, y0].
         nstd : The radius of the ellipse in numbers of standard deviations.
             Defaults to 2 standard deviations.
-        ax : The axis that the ellipse will be plotted on. Defaults to the
-            current axis.
+
         Additional keyword arguments are pass on to the ellipse patch.
 
     Returns
     -------
-        A matplotlib ellipse artist
+        Information used in ellipse construction
         # Código é adaptado e obtigo de terceiros: https://github.com/joferkington/oost_paper_code/blob/master/error_ellipse.py
     """
     def eigsorted(cov):
@@ -160,17 +157,11 @@ def plot_cov_ellipse(cov, pos, c2=2, ax=None, **kwargs):
         order = vals.argsort()[::-1]
         return vals[order], vecs[:,order]
 
-    if ax is None:
-        ax = gca()
 
     vals, vecs = eigsorted(cov)
     theta = degrees(arctan2(*vecs[:,0][::-1]))
     # Width and height are "full" widths, not radius
     width, height = 2 * sqrt(c2*vals)
-    ellip = Ellipse(xy=pos, width=width, height=height, angle=theta, **kwargs)
-
-    if ax != 0:
-        ax.add_artist(ellip)
 
     # CÁLCULO DOS PONTOS PERTENCENTES AOS EIXOS DA ELIPSE:
     invcov = inv(cov)
@@ -193,10 +184,7 @@ def plot_cov_ellipse(cov, pos, c2=2, ax=None, **kwargs):
     coordenadas_y.extend([pos[1]+delta,pos[1]-delta])
     coordenadas_x.extend([pos[0]-delta*k,pos[0]+delta*k])
 
-    if ax:
-        return ellip, coordenadas_x, coordenadas_y
-    else:
-        return coordenadas_x, coordenadas_y
+    return coordenadas_x, coordenadas_y, width, height, theta
 
 def vetor_delta(entrada_vetor,posicao,delta):
     u"""
