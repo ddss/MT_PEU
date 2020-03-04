@@ -28,6 +28,7 @@ from subrotinas import Validacao_Diretorio, matrizcorrelacao
 
 from Graficos import Grafico
 
+
 class Grandeza:
 
     def __init__(self,simbolos,nomes=None,unidades=None,label_latex=None):
@@ -667,6 +668,8 @@ class Grandeza:
 
         base_dir  = sep + 'Grandezas' + sep if base_dir is None else sep + base_dir + sep
         Validacao_Diretorio(base_path,base_dir)
+
+
         
         #Gráfico Pcolor para auto correlação
 
@@ -676,16 +679,23 @@ class Grandeza:
         if not setcmap.issubset(cores):
             raise TypeError('As cores devem pertencer à lista: {}'.format(cores))
            
-        cm1 = LinearSegmentedColormap.from_list("Correlacao-cmap",cmap)   
+        cm1 = LinearSegmentedColormap.from_list("Correlacao-cmap",cmap)
 
         if self.__ID_disponivel[0] in ID: # Gráfico Pcolor para estimação
+
+            # -----------------------------------------------------------------------------------
+            # Pasta para os gráficos de estimação em Grandezas
+            vaw = sep + 'Grandezas'+ sep+'Estimacao'  + sep if base_dir is None else sep + base_dir + sep + 'Estimacao' + sep
+            Validacao_Diretorio(base_path, vaw)
+            # ------------------------------------------------------------------------------------
+
             listalabel=[]
             for elemento in self.labelGraficos(printunit=False):
                 for i in range(self.estimacao.NE):
                     listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
 
             plot_corr(self.estimacao.matriz_correlacao, xnames=listalabel,  ynames=listalabel, title=u'Matriz de correlação ' + self.__ID_disponivel[0],normcolor=True, cmap=cm1)
-            savefig(base_path+base_dir+self.__ID_disponivel[0]+'_fl'+str(fluxo)+'_'+'pcolor_matriz-correlacao')
+            savefig(base_path+vaw+ 'Fluxo ' +'('+str(fluxo)+')' +': pcolor Matriz de correlacao')
             close()
 
         if (self.__ID_disponivel[1] in ID) and (self.predicao.matriz_correlacao is not None): # Gráfico Pcolor para predição
