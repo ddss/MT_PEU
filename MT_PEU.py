@@ -601,6 +601,10 @@ class EstimacaoNaoLinear:
         return ('MonteCarlo',)
 
     @property
+    def __graph_flux_association(self):
+        return {'setConjunto':self.__tipoGraficos[1],'analiseResiduos':self.__tipoGraficos[5]}
+
+    @property
     def _args_model(self):
         """
         Método que retorna argumentos extras a serem passados para o modelo
@@ -1868,7 +1872,7 @@ class EstimacaoNaoLinear:
             kwargs['PA'] = self.PA
             self._out.Predicao(self.x, self.y, self.estatisticas, **kwargs)
 
-    def graficos(self,tipos):
+    def graficos(self,**kwargs):
         u"""
         Métodos para gerar e salvar os gráficos
 
@@ -1883,13 +1887,19 @@ class EstimacaoNaoLinear:
             * 'otimizacao': gráficos referentes à otimização (depende do algoritmo utilizado)
             * 'analiseResiduos': gráficos referentes à análise de resíduos.
         """
+        if kwargs.get('tipos') is None:
+            tipos = []
+            for fl_key in self.__graph_flux_association.keys():
+                if getattr(self.__controleFluxo, fl_key):
+                    tipos.append(self.__graph_flux_association[fl_key])
+
         # Início da Figura que conterá os gráficos -> objeto
         Fig = Grafico(dpi=300)
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------         
         # validando se os tipos de gráficos
-        if not isinstance(tipos, list):
+        if not isinstance(tipos, list) and not isinstance(tipos, tuple):
             raise TypeError('Os tipos de gráficos devem ser definidos em uma lista.')
         # validando se os tipos de gráficos foram corretamente definidos
         if not set(tipos).issubset(self.__tipoGraficos):
