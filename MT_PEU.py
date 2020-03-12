@@ -602,7 +602,8 @@ class EstimacaoNaoLinear:
 
     @property
     def __graph_flux_association(self):
-        return {'setConjunto':self.__tipoGraficos[1],'analiseResiduos':self.__tipoGraficos[5]}
+        return {'setConjunto':[self.__tipoGraficos[1]],'incertezaParametros':[self.__tipoGraficos[3]],
+                'predicao':[self.__tipoGraficos[2],self.__tipoGraficos[3]],'analiseResiduos':[self.__tipoGraficos[5]]}
 
     @property
     def _args_model(self):
@@ -1891,7 +1892,7 @@ class EstimacaoNaoLinear:
             tipos = []
             for fl_key in self.__graph_flux_association.keys():
                 if getattr(self.__controleFluxo, fl_key):
-                    tipos.append(self.__graph_flux_association[fl_key])
+                    tipos.extend(self.__graph_flux_association[fl_key])
 
         # Início da Figura que conterá os gráficos -> objeto
         Fig = Grafico(dpi=300)
@@ -1919,7 +1920,7 @@ class EstimacaoNaoLinear:
         # grandezas-entrada
         if (self.__tipoGraficos[1] in tipos):
             # se setConjunto foi executado alguma vez:
-            if self.__controleFluxo.setDados:
+            if self.__controleFluxo.setConjunto:
                 base_dir = sep + self._configFolder['graficos-grandezas-entrada-estimacao'] + sep
                 Validacao_Diretorio(base_path,base_dir)
 

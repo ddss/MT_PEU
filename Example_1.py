@@ -8,7 +8,7 @@ def Modelo(param,x,*args):
 
     return exp(-(ko*10**17)*tempo*exp(-E/T))
 
-Estime = EstimacaoNaoLinear(Modelo, simbolos_x=['t','T'], simbolos_y=['y'], simbolos_param=['ko','E'], Folder='Exemplo1')
+Estime = EstimacaoNaoLinear(Modelo, simbolos_x=['t','Tao'], simbolos_y=['y'], simbolos_param=['ko','E'], Folder='Exemplo1')
 
 y = [0.9,0.949,0.886,0.785,0.791,0.890,0.787,0.877,0.938,
 0.782,0.827,0.696,0.582,0.795,0.800,0.790,0.883,0.712,0.576,0.715,0.673,
