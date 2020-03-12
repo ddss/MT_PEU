@@ -43,7 +43,7 @@ Estime.incertezaParametros(metodoIncerteza='Geral')
 Estime.predicao()
 Estime.analiseResiduos()
 etapas = ['grandezas-entrada', 'predicao', 'grandezas-calculadas', 'analiseResiduos', 'regiaoAbrangencia']
-Estime.graficos(etapas)
+Estime.graficos()
 
 
 # =================================================================================
@@ -69,13 +69,14 @@ uy1 = [0.2]*12
 
 Estime.setDados(0,(tempo,uxtempo),(temperatura,uxtemperatura))
 Estime.setDados(1,(y,uy1))
+Estime.graficos()
 
 Estime.setConjunto(tipo='predicao')
 
 Estime.predicao()
 Estime.analiseResiduos()
 
-etapas = ['grandezas-entrada', 'predicao','grandezas-calculadas','analiseResiduos', 'regiaoAbrangencia']
-Estime.graficos(etapas)
+#etapas = ['grandezas-entrada', 'predicao','grandezas-calculadas','analiseResiduos', 'regiaoAbrangencia']
+#Estime.graficos(tipos=etapas)
 
 

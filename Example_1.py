@@ -31,14 +31,16 @@ uy = [1]*41; uxtempo = [1]*41; uxtemperatura = [1]*41
 
 Estime.setDados(0,(tempo,uxtempo),(temperatura,uxtemperatura))
 Estime.setDados(1,(y,uy))
+
 Estime.setConjunto(tipo='estimacao')
+Estime.graficos()
+
 Estime.optimize(initial_estimative=[0.5,25000], algoritmo='ipopt')
 
 Estime.incertezaParametros(metodoIncerteza='Geral')
 Estime.predicao()
 Estime.analiseResiduos()
-etapas = ['grandezas-entrada', 'predicao', 'grandezas-calculadas', 'analiseResiduos', 'regiaoAbrangencia']
-Estime.graficos(etapas)
+#etapas = ['grandezas-entrada', 'predicao', 'grandezas-calculadas', 'analiseResiduos', 'regiaoAbrangencia']
 
 
 
