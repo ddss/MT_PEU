@@ -1943,8 +1943,8 @@ class EstimacaoNaoLinear:
                                                                 self.y.estimacao.matriz_estimativa[:,iy],
                                                                 label_x=self.x.labelGraficos('estimacao')[ix],
                                                                 label_y=self.y.labelGraficos('estimacao')[iy],
-                                                                marker='o', linestyle=None)
-                            Fig.salvar_e_fechar(base_path+estimaPas+'Fluxo ' + '('+str(0)+'):  '+self.y.simbolos[iy]+'  em funcao de  '+self.x.simbolos[ix]+'  sem incerteza')
+                                                                marker='o', linestyle='None')
+                            Fig.salvar_e_fechar(base_path+estimaPas+'Fluxo_'+str(0)+'_'+self.y.simbolos[iy]+'_em_funcao_de'+self.x.simbolos[ix]+'sem_incerteza')
                             # Gráficos com a incerteza
                             Fig.grafico_dispersao_com_incerteza(self.x.estimacao.matriz_estimativa[:,ix],
                                                                 self.y.estimacao.matriz_estimativa[:,iy],
@@ -1953,7 +1953,7 @@ class EstimacaoNaoLinear:
                                                                 label_x=self.x.labelGraficos('estimacao')[ix],
                                                                 label_y=self.y.labelGraficos('estimacao')[iy],
                                                                 fator_abrangencia_x=2., fator_abrangencia_y=2., fmt='o')
-                            Fig.salvar_e_fechar(base_path+estimaPas+'Fluxo ' + '('+str(0)+'):  '+self.y.simbolos[iy]+'  em funcao de  '+' '+self.x.simbolos[ix]+'  com incerteza')
+                            Fig.salvar_e_fechar(base_path+estimaPas+'Fluxo_'+str(0)+self.y.simbolos[iy]+'  em funcao de  '+' '+self.x.simbolos[ix]+'  com incerteza')
                 # gráficos gerados para os dados de validação, apenas se estes forem diferentes dos experimentais,
                 # apesar dos atributos de validação sempre existirem
                 if self.__flag.info['dadospredicao'] == True:
