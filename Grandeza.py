@@ -683,8 +683,8 @@ class Grandeza:
 
             # -----------------------------------------------------------------------------------
             # Pasta para os gráficos de estimação em Grandezas
-            vaw = sep + 'Grandezas'+ sep+'Estimacao'  + sep if base_dir is None else sep + base_dir + sep + 'Estimacao' + sep
-            Validacao_Diretorio(base_path, vaw)
+            estimaPas = sep + 'Grandezas'+ sep+'Graficos_com_dados_estimacao' + sep if base_dir is None else sep + base_dir + sep + 'Graficos_com_dados_estimacao' + sep
+            Validacao_Diretorio(base_path, estimaPas)
             # ------------------------------------------------------------------------------------
             listalabel=[]
             for elemento in self.labelGraficos(printunit=False):
@@ -692,7 +692,7 @@ class Grandeza:
                     listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
 
             plot_corr(self.estimacao.matriz_correlacao, xnames=listalabel,  ynames=listalabel, title=u'Matriz de correlação ' + self.__ID_disponivel[0],normcolor=True, cmap=cm1)
-            savefig(base_path+vaw+'_'.join(self.simbolos)+'_fluxo_' +str(fluxo)+'_pcolor_Matriz_de_correlacao')
+            savefig(base_path+estimaPas+'_'.join(self.simbolos)+'_fluxo_' +str(fluxo)+'_pcolor_Matriz_de_correlacao')
             close()
 
         if (self.__ID_disponivel[1] in ID) and (self.predicao.matriz_correlacao is not None): # Gráfico Pcolor para predição
