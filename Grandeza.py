@@ -98,6 +98,7 @@ class Grandeza:
         * ``.matriz_correlcao``   (array): array representando a matriz dos coeficientes de correlação. 
         * ``.regiao_abrangencia`` (list): lista representando os pontos pertencentes à região de abrangência.
         '''
+
         # ------------------------------------------------------------------------------------
         # VALIDAÇÂO
         # -------------------------------------------------------------------------------------
@@ -126,6 +127,8 @@ class Grandeza:
         # ---------------------------------------------------------------------   
         self.__ID = [] # ID`s que a grandeza possui
         self.__ID_disponivel = ['estimacao','predicao','calculado','parametro','residuo'] # Todos os ID's disponíveis
+
+
 
     def __validacaoEntrada(self,simbolos,nomes,unidades,label_latex):
         u'''
@@ -207,6 +210,7 @@ class Grandeza:
                 * coluna_dumb (bool): possibilita lidar com uma coluna adicional no FINAL do conjunto de dados, que não faz parte
                 dos dados experimentais. Exemplo: estimação de parâmetros linear -> coluna de 1
             """
+
             # ---------------------------------------------------------------------
             # VALIDAÇÃO INICIAL DAS ENTRADAS
             # ---------------------------------------------------------------------
@@ -645,6 +649,11 @@ class Grandeza:
         *BOXPLOT    : O boxplot (gráfico de caixa) é um gráfico utilizado para avaliar a distribuição empírica do dados. 
                       O boxplot é formado pelo primeiro e terceiro quartil e pela mediana.
         '''
+        self._configFolder = {'subpas': 'Graficos_com_dados_estimacao',
+                              'Dados-Estimacao': 'Dados Estimacao',
+                              'Dados-validacao': 'Dados Validacao',
+                              'matriz-correlacao': 'Matriz Correlacao',
+                              'grandeza-tendencia': 'Tendencia'}
         # ---------------------------------------------------------------------
         # VALIDAÇÃO DAS ENTRADAS
         # ---------------------------------------------------------------------
@@ -682,43 +691,85 @@ class Grandeza:
         if self.__ID_disponivel[0] in ID: # Gráfico Pcolor para estimação
 
             # -----------------------------------------------------------------------------------
-            # Pasta para os gráficos de estimação em Grandezas
-            estimaPas = sep + 'Grandezas'+ sep+'Graficos_com_dados_estimacao' + sep if base_dir is None else sep + base_dir + sep + 'Graficos_com_dados_estimacao' + sep
-            Validacao_Diretorio(base_path, estimaPas)
+            #dEstimacao = sep + 'Grandezas' + sep + self._configFolder['Dados-Estimacao'] + sep if base_dir is None else sep + base_dir + sep + self._configFolder['Dados-Estimacao'] + sep
+            #Validacao_Diretorio(base_path,dEstimacao)
+            #------------------------------------------------------------------------------------
+            #dValidacao = sep + 'Grandezas' + sep + self._configFolder['Dados-validacao'] + sep if base_dir is None else sep + base_dir + sep + self._configFolder['Dados-validacao'] + sep
+            #Validacao_Diretorio(base_path, dValidacao)
             # ------------------------------------------------------------------------------------
+            # ------------------------------------------------------------------------------------
+            #mCorrelacao = sep + 'Grandezas' + sep + self._configFolder['matriz-correlacao'] + sep if base_dir is None else sep + base_dir + sep + self._configFolder['matriz-correlacao'] + sep
+            #Validacao_Diretorio(base_path, mCorrelacao)
+            # --------------------------------------------------------------------------------------
+            # ------------------------------------------------------------------------------------
+            if fluxo == 0:
+                mCorrelacao = sep + 'Grandezas' + sep + self._configFolder['Dados-Estimacao'] + sep + self._configFolder['matriz-correlacao'] + sep if base_dir is None else sep + base_dir + sep + self._configFolder['Dados-Estimacao'] + sep + self._configFolder['matriz-correlacao'] + sep
+                Validacao_Diretorio(base_path, mCorrelacao)
+            else:
+                mCorrelacao = sep + 'Grandezas' + sep + self._configFolder['Dados-validacao']+' '+str(fluxo)+ sep + self._configFolder['matriz-correlacao'] + sep if base_dir is None else sep + base_dir + sep + self._configFolder['Dados-validacao']+' '+str(fluxo) + sep + self._configFolder['matriz-correlacao'] + sep
+                Validacao_Diretorio(base_path, mCorrelacao)
+            # --------------------------------------------------------------------------------------
             listalabel=[]
             for elemento in self.labelGraficos(printunit=False):
                 for i in range(self.estimacao.NE):
                     listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
 
             plot_corr(self.estimacao.matriz_correlacao, xnames=listalabel,  ynames=listalabel, title=u'Matriz de correlação ' + self.__ID_disponivel[0],normcolor=True, cmap=cm1)
-            savefig(base_path+estimaPas+'_'.join(self.simbolos)+'_fluxo_' +str(fluxo)+'_pcolor_Matriz_de_correlacao')
+            savefig(base_path+mCorrelacao+'_'.join(self.simbolos)+'_fluxo_' +str(fluxo)+'_pcolor_Matriz_de_correlacao')
             close()
 
         if (self.__ID_disponivel[1] in ID) and (self.predicao.matriz_correlacao is not None): # Gráfico Pcolor para predição
             listalabel=[]
+            # ------------------------------------------------------------------------------------
+            #mCorrelacao = sep + 'Grandezas' + sep + self._configFolder['matriz-correlacao'] + sep if base_dir is None else sep + base_dir + sep + self._configFolder['matriz-correlacao'] + sep
+            #Validacao_Diretorio(base_path, mCorrelacao)
+            #--------------------------------------------------------------------------------------
+            # ------------------------------------------------------------------------------------
+            if fluxo == 0:
+                mCorrelacao = sep + 'Grandezas' + sep + self._configFolder['Dados-Estimacao'] + sep + self._configFolder['matriz-correlacao'] + sep if base_dir is None else sep + base_dir + sep + self._configFolder['Dados-Estimacao'] + sep + self._configFolder['matriz-correlacao'] + sep
+                Validacao_Diretorio(base_path, mCorrelacao)
+            else:
+                mCorrelacao = sep + 'Grandezas' + sep + self._configFolder['Dados-validacao']+' '+str(fluxo)+ sep + self._configFolder['matriz-correlacao'] + sep if base_dir is None else sep + base_dir + sep + self._configFolder['Dados-validacao']+' '+str(fluxo)+ sep + self._configFolder['matriz-correlacao'] + sep
+                Validacao_Diretorio(base_path, mCorrelacao)
+            # --------------------------------------------------------------------------------------
             for elemento in self.labelGraficos(printunit=False):
                 for i in range(self.predicao.NE):
                     listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
 
             plot_corr(self.predicao.matriz_correlacao, xnames=listalabel, ynames=listalabel, title=u'Matriz de correlação ' + self.__ID_disponivel[1],normcolor=True,cmap=cm1)
-            savefig(base_path+base_dir+self.__ID_disponivel[1]+'_fl'+str(fluxo)+'_'+'pcolor_matriz-correlacao')
+            savefig(base_path+mCorrelacao+self.__ID_disponivel[1]+'_fl'+str(fluxo)+'_'+'pcolor_matriz-correlacao')
             close()
 
         if (self.__ID_disponivel[2] in ID) and (self.calculado.matriz_correlacao is not None): # Gráfico Pcolor para calculado
             listalabel=[]
+            # ------------------------------------------------------------------------------------
+            if fluxo ==0:
+                mCorrelacao = sep + 'Grandezas' + sep+ self._configFolder['Dados-Estimacao']+sep+ self._configFolder['matriz-correlacao'] + sep if base_dir is None else sep + base_dir + sep + self._configFolder['Dados-Estimacao']+ sep+ self._configFolder['matriz-correlacao'] + sep
+                Validacao_Diretorio(base_path, mCorrelacao)
+            else:
+                mCorrelacao = sep + 'Grandezas' + sep+ self._configFolder['Dados-validacao']+' '+str(fluxo)+sep+ self._configFolder['matriz-correlacao'] + sep if base_dir is None else sep + base_dir + sep + self._configFolder['Dados-validacao']+' '+str(fluxo)+ sep+ self._configFolder['matriz-correlacao'] + sep
+                Validacao_Diretorio(base_path, mCorrelacao)
+            # --------------------------------------------------------------------------------------
             for elemento in self.labelGraficos(printunit=False):
                 for i in range(self.calculado.NE):
                     listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
 
             plot_corr(self.calculado.matriz_correlacao, xnames=listalabel, ynames=listalabel, title=u'Matriz de correlação ' + self.__ID_disponivel[2],normcolor=True,cmap=cm1)
-            savefig(base_path+base_dir+self.__ID_disponivel[2]+'_fl'+str(fluxo)+'_'+'pcolor_matriz-correlacao')
+            savefig(base_path+mCorrelacao+self.__ID_disponivel[2]+'_fl'+str(fluxo)+'_'+'pcolor_matriz-correlacao')
             close()
 
         if (self.__ID_disponivel[3] in ID) and (self.matriz_correlacao is not None): # Gráfico Pcolor para parâmetros
 
+            # ------------------------------------------------------------------------------------
+            if fluxo == 0:
+                mCorrelacao = sep + 'Grandezas' + sep + self._configFolder['Dados-Estimacao'] + sep + self._configFolder['matriz-correlacao'] + sep if base_dir is None else sep + base_dir + sep + self._configFolder['Dados-Estimacao'] + sep + self._configFolder['matriz-correlacao'] + sep
+                Validacao_Diretorio(base_path, mCorrelacao)
+            else:
+                mCorrelacao = sep + 'Grandezas' + sep + self._configFolder['Dados-validacao']+' '+str(fluxo) + sep + self._configFolder['matriz-correlacao'] + sep if base_dir is None else sep + base_dir + sep + self._configFolder['Dados-validacao']+' '+str(fluxo) + sep + self._configFolder['matriz-correlacao'] + sep
+                Validacao_Diretorio(base_path, mCorrelacao)
+            # --------------------------------------------------------------------------------------
             plot_corr(self.matriz_correlacao, xnames=self.labelGraficos(printunit=False), ynames=self.labelGraficos(printunit=False), title=u'Matriz de correlação ' + self.__ID_disponivel[3],normcolor=True, cmap=cm1)
-            savefig(base_path+base_dir+self.__ID_disponivel[3]+'_fl'+str(fluxo)+'_'+'pcolor_matriz-correlacao')
+            savefig(base_path+mCorrelacao+self.__ID_disponivel[3]+'_fl'+str(fluxo)+'_'+'testepcolor_matriz-correlacao')
             close()
 
         if self.__ID_disponivel[4] in ID:
@@ -730,8 +781,15 @@ class Grandeza:
             base_path = base_path + base_dir
             for i,nome in enumerate(self.simbolos):
                 # Gráficos da estimação
-                base_dir = sep + self.simbolos[i] + sep
-                Validacao_Diretorio(base_path,base_dir)
+                #base_dir = sep + self.simbolos[i] + sep
+                #Validacao_Diretorio(base_path,base_dir)
+                if fluxo == 0:
+                    mCorrelacao = sep + self._configFolder['Dados-Estimacao'] + sep + self.simbolos[i] + sep
+                    Validacao_Diretorio(base_path, mCorrelacao)
+                else:
+                    mCorrelacao = sep + self._configFolder['Dados-validacao']+' '+str(fluxo) + sep + self.simbolos[i] + sep
+                    Validacao_Diretorio(base_path, mCorrelacao)
+
                 dados = self.residuos.matriz_estimativa[:,i]
                 x = arange(1, dados.shape[0]+1, 1)
     
@@ -745,27 +803,27 @@ class Grandeza:
                                                     marker='o', linestyle=None)
                 Fig.axes.axhline(0, color='black', lw=1, zorder=1)
                 Fig.set_legenda(['Média dos resíduos'], loc = 'best')
-                Fig.salvar_e_fechar(base_path+base_dir+'residuo_fl'+str(fluxo)+'_tendencia.png')
+                Fig.salvar_e_fechar(base_path+mCorrelacao+'residuo_fl'+str(fluxo)+'_tendencia.png')
 
                 # AUTO CORRELAÇÃO
                 #Gera um gráfico de barras que verifica a autocorrelação
                 Fig.autocorr(dados, label_x='Lag', label_y=u'Autocorrelação resíduos {}'.format(self.labelGraficos(printunit=False)[i]),
                              normed=True, maxlags=None)
-                Fig.salvar_e_fechar(base_path+base_dir+'residuo_fl'+str(fluxo)+'_autocorrelacao.png')
+                Fig.salvar_e_fechar(base_path+mCorrelacao+'residuo_fl'+str(fluxo)+'_autocorrelacao.png')
 
-                # HISTOGRAMA                
+                # HISTOGRAMA
                 #Gera um gráfico de histograma, importante na verificação da pdf
                 Fig.histograma(dados, label_x=u'Resíduos {}'.format(self.labelGraficos()[i]), label_y=u'Densidade de probabilidade',
                                density=True,bins=int(sqrt(dados.shape[0])))
-                Fig.salvar_e_fechar(base_path+base_dir+'residuo_fl'+str(fluxo)+'_histograma.png')
+                Fig.salvar_e_fechar(base_path+mCorrelacao+'residuo_fl'+str(fluxo)+'_histograma.png')
 
                 # NORMALIDADE 
                 #Verifica se os dados são oriundos de uma pdf normal, o indicativo disto é a obtenção de uma reta 
                 Fig.probplot(dados, label_y=u'Valores ordenados resíduos {}'.format(self.labelGraficos(printunit=False)[i]))
-                Fig.salvar_e_fechar(base_path+base_dir+'residuo_fl'+str(fluxo)+'_probplot.png')
+                Fig.salvar_e_fechar(base_path+mCorrelacao+'residuo_fl'+str(fluxo)+'_probplot.png')
 
         if (self.__ID_disponivel[0] in ID or self.__ID_disponivel[1] in ID or self.__ID_disponivel[2] in ID):
-                
+
             if self.__ID_disponivel[4] in ID:  # remover de ID o resíduo, pois foi tratado separadamente
                 ID.remove(self.__ID_disponivel[4])
 
@@ -776,23 +834,40 @@ class Grandeza:
 
                 for i, symb in enumerate(self.simbolos):
                     # Gráficos da estimação
-                    base_dir = sep + symb + sep
-                    Validacao_Diretorio(base_path,base_dir)
+                    #base_dir = sep + symb + sep
+                    #Validacao_Diretorio(base_path,base_dir)
+                    #-----------------------------------------------------------------------
+                    if fluxo == 0:
+                        mCorrelacao = sep + self._configFolder['Dados-Estimacao'] + sep  + symb + sep
+                        Validacao_Diretorio(base_path, mCorrelacao)
+                    else:
+                        mCorrelacao = sep + self._configFolder['Dados-validacao']+' '+str(fluxo) + sep + symb + sep
+                        Validacao_Diretorio(base_path, mCorrelacao)
+
+                    #-----------------------------------------------------------------------
                     dados = y[:,i]
                     x   = linspace(1,NE,num=NE)
                     #Gráfico em função do numero de observações
                     Fig.grafico_dispersao_sem_incerteza(x, dados, label_x='Amostra',
                                                         label_y=self.labelGraficos(atributo)[i],
                                                         marker='o', linestyle=None)
-                    Fig.salvar_e_fechar(base_path + base_dir + atributo + '_fl' + str(fluxo) + '_tendencia.png')
+                    Fig.salvar_e_fechar(base_path + mCorrelacao + atributo + '_fl' + str(fluxo) + '_tendencia.png')
 
             if self.__ID_disponivel[0] in ID:
 
                 for i,nome in enumerate(self.simbolos):
                     # Gráficos da estimação
 
-                    base_dir = sep + self.simbolos[i] + sep
-                    Validacao_Diretorio(base_path, base_dir)
+                    #base_dir = sep + self.simbolos[i] + sep
+                    #Validacao_Diretorio(base_path, base_dir)
+
+                    if fluxo == 0:
+                        mCorrelacao = sep + self._configFolder['Dados-Estimacao'] + sep + self.simbolos[i] + sep
+                        Validacao_Diretorio(base_path, mCorrelacao)
+                    else:
+                        mCorrelacao = sep + self._configFolder['Dados-validacao']+' '+str(fluxo) + sep + self.simbolos[i] + sep
+                        Validacao_Diretorio(base_path, mCorrelacao)
+
                     dados = self.estimacao.matriz_estimativa[:,i]
 
                     # AUTO CORRELAÇÃO
@@ -800,14 +875,21 @@ class Grandeza:
                     Fig.autocorr(dados, label_x='Lag',
                                  label_y=u'Autocorrelação de {}'.format(self.labelGraficos(printunit=False)[i]),
                                  normed=True, maxlags=None)
-                    Fig.salvar_e_fechar(base_path + base_dir + 'estimacao_fl' + str(fluxo) + '_autocorrelacao.png')
+                    Fig.salvar_e_fechar(base_path + mCorrelacao + 'estimacao_fl' + str(fluxo) + '_autocorrelacao.png')
 
             if self.__ID_disponivel[1] in ID:
 
                 for i, nome in enumerate(self.simbolos):
                     # Gráficos da estimação
-                    base_dir = sep + self.simbolos[i] + sep
-                    Validacao_Diretorio(base_path,base_dir)
+                    #base_dir = sep + self.simbolos[i] + sep
+                    #Validacao_Diretorio(base_path,base_dir)
+
+                    if fluxo == 0:
+                        mCorrelacao = sep + self._configFolder['Dados-Estimacao'] + sep + self.simbolos[i] + sep
+                        Validacao_Diretorio(base_path, mCorrelacao)
+                    else:
+                        mCorrelacao = sep + self._configFolder['Dados-validacao']+' '+str(fluxo) + sep + self.simbolos[i] + sep
+                        Validacao_Diretorio(base_path, mCorrelacao)
 
                     dados = self.predicao.matriz_estimativa[:,i]
 
@@ -816,4 +898,4 @@ class Grandeza:
                     Fig.autocorr(dados, label_x='Lag',
                                  label_y=u'Autocorrelação de {}'.format(self.labelGraficos(printunit=False)[i]),
                                  normed=True, maxlags=None)
-                    Fig.salvar_e_fechar(base_path + base_dir + 'predicao_fl' + str(fluxo) + '_autocorrelacao.png')
+                    Fig.salvar_e_fechar(base_path + mCorrelacao + 'predicao_fl' + str(fluxo) + '_autocorrelacao.png')
