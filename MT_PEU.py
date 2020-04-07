@@ -563,9 +563,6 @@ class EstimacaoNaoLinear:
                               'Dados-validacao':'Dados Validacao',
                               'matriz-correlacao':'Matriz Correlacao',
                               'grandeza-tendencia':'Tendencia'}
-
-
-
         # variáveis auxiliares para definição de conjunto de dados
         self.__xtemp = None
         self.__uxtemp = None
@@ -1927,14 +1924,10 @@ class EstimacaoNaoLinear:
             if self.__controleFluxo.setConjunto:
                 base_dir = sep + self._configFolder['graficos-grandezas-entrada-estimacao'] + sep
                 Validacao_Diretorio(base_path,base_dir)
-
-                # -----------------------------------------------------------------------------------
-                #
-                estimGrandeza = sep + self._configFolder['graficos-grandezas-entrada-estimacao'] + sep + self._configFolder['Dados-Estimacao']+ sep + self._configFolder['grandeza-tendencia']+sep
-                Validacao_Diretorio(base_path, estimGrandeza)
-                # -----------------------------------------------------------------------------------
-                #valiGrandeza = sep + self._configFolder['graficos-grandezas-entrada-estimacao'] + sep + self._configFolder['Dados-validacao'] + sep
-                #Validacao_Diretorio(base_path,valiGrandeza)
+                # Pastas internas
+                # ------------------------------------------------------------------------------------
+                folder = sep + self._configFolder['graficos-grandezas-entrada-estimacao'] + sep + self._configFolder['Dados-Estimacao']+ sep + self._configFolder['grandeza-tendencia']+sep
+                Validacao_Diretorio(base_path, folder)
                 # -----------------------------------------------------------------------------------
                 # gráficos gerados para os dados experimentais
                 if self.__flag.info['dadosestimacao'] == True:
@@ -1950,7 +1943,7 @@ class EstimacaoNaoLinear:
                                                                 label_x=self.x.labelGraficos('estimacao')[ix],
                                                                 label_y=self.y.labelGraficos('estimacao')[iy],
                                                                 marker='o', linestyle='None')
-                            Fig.salvar_e_fechar(base_path+estimGrandeza+'Fluxo_'+str(0)+'_'+self.y.simbolos[iy]+'_em_funcao_de'+self.x.simbolos[ix]+'sem_incerteza')
+                            Fig.salvar_e_fechar(base_path+folder+'Fluxo_'+str(0)+'_'+self.y.simbolos[iy]+'_em_funcao_de'+self.x.simbolos[ix]+'sem_incerteza')
                             # Gráficos com a incerteza
                             Fig.grafico_dispersao_com_incerteza(self.x.estimacao.matriz_estimativa[:,ix],
                                                                 self.y.estimacao.matriz_estimativa[:,iy],
@@ -1959,12 +1952,21 @@ class EstimacaoNaoLinear:
                                                                 label_x=self.x.labelGraficos('estimacao')[ix],
                                                                 label_y=self.y.labelGraficos('estimacao')[iy],
                                                                 fator_abrangencia_x=2., fator_abrangencia_y=2., fmt='o')
-                            Fig.salvar_e_fechar(base_path+estimGrandeza+'Fluxo_'+str(0)+self.y.simbolos[iy]+'  em funcao de  '+' '+self.x.simbolos[ix]+'  com incerteza')
+                            Fig.salvar_e_fechar(base_path+folder+'Fluxo_'+str(0)+self.y.simbolos[iy]+'  em funcao de  '+' '+self.x.simbolos[ix]+'  com incerteza')
                 # gráficos gerados para os dados de validação, apenas se estes forem diferentes dos experimentais,
                 # apesar dos atributos de validação sempre existirem
                 if self.__flag.info['dadospredicao'] == True:
-                    base_dir = sep + self._configFolder['graficos-grandezas-entrada-predicao'] + sep
-                    Validacao_Diretorio(base_path, base_dir)
+                    #base_dir = sep + self._configFolder['graficos-grandezas-entrada-predicao'] + sep
+                    #Validacao_Diretorio(base_path, base_dir)
+                    # Pastas internas
+                    # ------------------------------------------------------------------------------------
+                    if self.__controleFluxo.FLUXO_ID == 0:
+                        folder = self._configFolder['graficos-analiseResiduos'] +  sep +self._configFolder['Dados-Estimacao']+ sep
+                        Validacao_Diretorio(base_path, folder)
+                    else:
+                        folder = self._configFolder['graficos-analiseResiduos'] + sep + self._configFolder['Dados-validacao']+' '+str(self.__controleFluxo.FLUXO_ID)+ sep
+                        Validacao_Diretorio(base_path, folder)
+                    # ------------------------------------------------------------------------------------
                     self.x.Graficos(base_path, base_dir, ID=['predicao'], fluxo=self.__controleFluxo.FLUXO_ID, Fig=Fig)
                     self.y.Graficos(base_path, base_dir, ID=['predicao'], fluxo=self.__controleFluxo.FLUXO_ID, Fig=Fig)
 
@@ -1977,7 +1979,7 @@ class EstimacaoNaoLinear:
                                                                 label_x=self.x.labelGraficos('predição')[ix],
                                                                 label_y=self.y.labelGraficos('predição')[iy],
                                                                 marker='o', linestyle='None')
-                            Fig.salvar_e_fechar(base_path+base_dir+'predicao'+'_fl'+str(self.__controleFluxo.FLUXO_ID)+'_'+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_sem_incerteza')
+                            Fig.salvar_e_fechar(base_path+folder+'predicao'+'_fl'+str(self.__controleFluxo.FLUXO_ID)+'_'+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_sem_incerteza')
                             # Gráficos com a incerteza
                             Fig.grafico_dispersao_com_incerteza(self.x.predicao.matriz_estimativa[:,ix],
                                                                 self.y.predicao.matriz_estimativa[:,iy],
@@ -1986,7 +1988,7 @@ class EstimacaoNaoLinear:
                                                                 label_x=self.x.labelGraficos('predicao')[ix],
                                                                 label_y=self.y.labelGraficos('predicao')[iy],
                                                                 fator_abrangencia_x=2., fator_abrangencia_y=2., fmt= 'o')
-                            Fig.salvar_e_fechar(base_path+base_dir+'predicao'+'_fl'+str(self.__controleFluxo.FLUXO_ID)+'_'+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_com_incerteza')
+                            Fig.salvar_e_fechar(base_path+folder+'predicao'+'_fl'+str(self.__controleFluxo.FLUXO_ID)+'_'+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_com_incerteza')
             else:
                 warn('Os gráficos de entrada não puderam ser criados, pois o método setConjunto não foi executado.',UserWarning)
 
@@ -2027,7 +2029,7 @@ class EstimacaoNaoLinear:
             # dos parâmetros existir.
             if self.__controleFluxo.incertezaParametros:
                 # Gráficos da estimação
-                base_dir = sep + self._configFolder['graficos-regiaoAbrangencia'] + sep
+                base_dir = sep + self._configFolder['graficos-regiaoAbrangencia'] + sep + self._configFolder['Dados-Estimacao']+ sep
                 Validacao_Diretorio(base_path, base_dir)
                 # os gráficos só podem ser executado se o número de parâmetros for
                 # maior do que 1
@@ -2094,8 +2096,17 @@ class EstimacaoNaoLinear:
 
             # Predição deve ter sido executada neste fluxo
             if self.__controleFluxo.predicao:
-                base_dir = sep + self._configFolder['graficos-predicao'] + sep
-                Validacao_Diretorio(base_path,base_dir)
+                #base_dir = sep + self._configFolder['graficos-predicao'] + sep
+                #Validacao_Diretorio(base_path,base_dir)
+                # Pastas internas
+                # ------------------------------------------------------------------------------------
+                if self.__controleFluxo.FLUXO_ID == 0:
+                    folder = self._configFolder['graficos-predicao'] + sep + self._configFolder['Dados-Estimacao'] + sep
+                    Validacao_Diretorio(base_path, folder)
+                else:
+                    folder = self._configFolder['graficos-predicao'] + sep + self._configFolder['Dados-validacao'] + ' ' + str(self.__controleFluxo.FLUXO_ID) + sep
+                    Validacao_Diretorio(base_path, folder)
+                # ------------------------------------------------------------------------------------
                 #gráficos de y em função de y
                 for iy in range(self.y.NV):
                     for ix in range(self.x.NV):
@@ -2105,7 +2116,7 @@ class EstimacaoNaoLinear:
                                                             label_x=self.x.labelGraficos('calculado')[ix],
                                                             label_y=self.y.labelGraficos('calculado')[iy],
                                                             marker='o', linestyle='None', config_axes=True)
-                        Fig.salvar_e_fechar(base_path+base_dir+'calculado'+'_fl'+str(self.__controleFluxo.FLUXO_ID) + \
+                        Fig.salvar_e_fechar(base_path+folder+'calculado'+'_fl'+str(self.__controleFluxo.FLUXO_ID) + \
                                             '_'+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_sem_incerteza')
                         # Gráficos com a incerteza
                         if self.y.calculado.matriz_correlacao is not None:
@@ -2116,7 +2127,7 @@ class EstimacaoNaoLinear:
                                                                 label_x=self.x.labelGraficos('calculado')[ix],
                                                                 label_y=self.y.labelGraficos('calculado')[iy],
                                                                 fator_abrangencia_x=2., fator_abrangencia_y=2., fmt='o')
-                            Fig.salvar_e_fechar(base_path+base_dir+'calculado'+'_fl'+str(self.__controleFluxo.FLUXO_ID) + \
+                            Fig.salvar_e_fechar(base_path+folder+'calculado'+'_fl'+str(self.__controleFluxo.FLUXO_ID) + \
                                                 '_'+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_com_incerteza')
 
                 #incerteza_expandida_Yc=ones((self.y.calculado.NE,self.y.NV))
@@ -2140,7 +2151,7 @@ class EstimacaoNaoLinear:
                     Fig.set_label(self.y.labelGraficos('predicao')[iy] \
                                   if self.__flag.info['dadospredicao'] else self.y.labelGraficos('estimacao')[iy],
                                   self.y.labelGraficos('calculado')[iy], fontsize = 16)
-                    Fig.salvar_e_fechar((base_path+base_dir+'predicao' if self.__flag.info['dadospredicao'] else base_path+base_dir+'estimacao')+\
+                    Fig.salvar_e_fechar((base_path+folder+'predicao' if self.__flag.info['dadospredicao'] else base_path+folder+'estimacao')+\
                                         '_fl'+str(self.__controleFluxo.FLUXO_ID) + '_' + str(self.y.simbolos[iy])+ \
                                         '_funcao_'+str(self.y.simbolos[iy])+'_calculado_sem_incerteza.png',
                                         config_axes=True)
@@ -2153,7 +2164,7 @@ class EstimacaoNaoLinear:
                     Fig.set_legenda(['dados para predicao' if self.__flag.info['dadospredicao'] else 'dados para estimacao','calculado'],
                                     fontsize=16, loc='best')
                     Fig.salvar_e_fechar(
-                        (base_path + base_dir +'predicao' if self.__flag.info['dadospredicao'] else base_path+base_dir+'estimacao') + \
+                        (base_path + folder +'predicao' if self.__flag.info['dadospredicao'] else base_path+folder+'estimacao') + \
                         '_fl' + str(self.__controleFluxo.FLUXO_ID) + '_' + str(self.y.simbolos[iy]) + \
                         '_funcao_amostras_calculado_sem_incerteza.png',
                         config_axes=True
@@ -2175,7 +2186,7 @@ class EstimacaoNaoLinear:
                         Fig.set_label('Amostras', self.y.labelGraficos()[iy], fontsize=16)
                         Fig.set_legenda(['dados para predicao' if self.__flag.info['dadospredicao'] else 'dados para estimacao', 'calculado'],
                             fontsize=16, loc='best')
-                        Fig.salvar_e_fechar((base_path+base_dir+'predicao' if self.__flag.info['dadospredicao'] else base_path + base_dir+'estimacao') + \
+                        Fig.salvar_e_fechar((base_path+folder+'predicao' if self.__flag.info['dadospredicao'] else base_path + folder+'estimacao') + \
                             '_fl' + str(self.__controleFluxo.FLUXO_ID) + '_' + str(self.y.simbolos[iy]) + \
                             '_funcao_amostras_calculado_com_incerteza.png', config_axes=True)
 
@@ -2189,7 +2200,7 @@ class EstimacaoNaoLinear:
                                       if self.__flag.info['dadospredicao'] else
                                       self.y.labelGraficos('estimacao')[iy],
                                       self.y.labelGraficos('calculado')[iy], fontsize=16)
-                        Fig.salvar_e_fechar((base_path+base_dir+'predicao' if self.__flag.info['dadospredicao'] else base_path+base_dir+'estimacao' )+ \
+                        Fig.salvar_e_fechar((base_path+folder+'predicao' if self.__flag.info['dadospredicao'] else base_path+folder+'estimacao' )+ \
                                             '_fl' + str(self.__controleFluxo.FLUXO_ID) + '_' + str(self.y.simbolos[iy]) + \
                                             '_funcao_' + str(self.y.simbolos[iy]) + '_calculado_com_incerteza.png',
                                             config_axes=True,
@@ -2219,8 +2230,8 @@ class EstimacaoNaoLinear:
                             Fig.grafico_dispersao_sem_incerteza(y, array(ycalc_superior_F), color='r',
                                                                 corrigir_limites=True, config_axes=False, add_legenda=True)
                             Fig.set_legenda(['Limites baseados no teste F'], fontsize = 16, loc='best')
-                            Fig.salvar_e_fechar(base_path + base_dir + 'estimacao_fl' + str(self.__controleFluxo.FLUXO_ID) + \
-                                                    '_' + str(self.y.simbolos[iy]) + '_funcao_' + str(self.y.simbolos[iy]) + '_calculado_com_incerteza_testeF.png',
+                            Fig.salvar_e_fechar(base_path + folder + 'estimacao_fl' + str(self.__controleFluxo.FLUXO_ID) + \
+                                                    '_' + str(self.y.simbolos[iy]) + '_funcao_' + str(self.y.simbolos[iy]) + '_calculado_com_incerteza.png',
                                                 config_axes=False)
 
             else:
@@ -2244,14 +2255,15 @@ class EstimacaoNaoLinear:
                 for i,simb in enumerate(self.y.simbolos):
                     #base_dir = sep + self._configFolder['graficos-analiseResiduos'] + sep + self.y.simbolos[i] + sep
                     #Validacao_Diretorio(base_path,base_dir)
-
+                    # Pastas internas
+                    # ------------------------------------------------------------------------------------
                     if self.__controleFluxo.FLUXO_ID == 0:
-                        mCorrelacao = self._configFolder['graficos-analiseResiduos'] +  sep +self._configFolder['Dados-Estimacao']+ sep + self.y.simbolos[i] + sep
-                        Validacao_Diretorio(base_path, mCorrelacao)
+                        folder = self._configFolder['graficos-analiseResiduos'] +  sep +self._configFolder['Dados-Estimacao']+ sep + self.y.simbolos[i] + sep
+                        Validacao_Diretorio(base_path, folder)
                     else:
-                        mCorrelacao = self._configFolder['graficos-analiseResiduos'] + sep + self._configFolder['Dados-validacao']+' '+str(self.__controleFluxo.FLUXO_ID)+ sep + self.y.simbolos[i] + sep
-                        Validacao_Diretorio(base_path, mCorrelacao)
-
+                        folder = self._configFolder['graficos-analiseResiduos'] + sep + self._configFolder['Dados-validacao']+' '+str(self.__controleFluxo.FLUXO_ID)+ sep + self.y.simbolos[i] + sep
+                        Validacao_Diretorio(base_path, folder)
+                    # ------------------------------------------------------------------------------------
                     # Resíduos vs ycalculado
                     Fig.grafico_dispersao_sem_incerteza(array([min(self.y.calculado.matriz_estimativa[:, i]), max(self.y.calculado.matriz_estimativa[:, i])]),
                                                         array([mean(self.y.residuos.matriz_estimativa[:, i])] * 2),
@@ -2263,7 +2275,7 @@ class EstimacaoNaoLinear:
                                                         label_y=u'Resíduos '+self.y.labelGraficos()[i])
                     Fig.set_legenda([u'Média resíduos ' + self.y.simbolos[i]], fontsize=16, loc='best')
                     Fig.axes.axhline(0, color='black', lw=1, zorder=1)
-                    Fig.salvar_e_fechar(base_path+mCorrelacao+'residuos_fl'+str(self.__controleFluxo.FLUXO_ID)+'_funcao_'\
+                    Fig.salvar_e_fechar(base_path+folder+'residuos_fl'+str(self.__controleFluxo.FLUXO_ID)+'_funcao_'\
                                         +self.y.simbolos[i]+'_calculado.png')
 
                     # Resíduos vs yvalidacao
@@ -2280,7 +2292,7 @@ class EstimacaoNaoLinear:
                     Fig.set_legenda([u'Média resíduos ' + self.y.simbolos[i]], fontsize=16, loc='best')
                     Fig.axes.axhline(0, color='black', lw=1, zorder=1)
                     Fig.salvar_e_fechar(
-                        base_path + base_dir + 'residuos_fl' + str(self.__controleFluxo.FLUXO_ID) + '_funcao_' +
+                        base_path + folder + 'residuos_fl' + str(self.__controleFluxo.FLUXO_ID) + '_funcao_' +
                         self.y.simbolos[i] + '_' + ('predicao' if self.__flag.info['dadospredicao'] else 'estimacao')+'.png')
 
                     for j, simbol in enumerate(self.x.simbolos):
@@ -2300,7 +2312,7 @@ class EstimacaoNaoLinear:
                                   label_y=u'Resíduos ' + self.y.labelGraficos()[i])
                         Fig.set_legenda([u'Média resíduos ' + self.y.simbolos[i]], fontsize=16, loc='best')
                         Fig.axes.axhline(0, color='black', lw=1, zorder=1)
-                        Fig.salvar_e_fechar(base_path+base_dir+'residuos_fl'+str(self.__controleFluxo.FLUXO_ID) + '_funcao_' \
+                        Fig.salvar_e_fechar(base_path+folder+'residuos_fl'+str(self.__controleFluxo.FLUXO_ID) + '_funcao_' \
                                             +self.x.simbolos[j]+'_'+ \
                                             ('predicao' if self.__flag.info['dadospredicao'] else 'estimacao')+'.png')
 
