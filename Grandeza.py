@@ -652,7 +652,7 @@ class Grandeza:
         self._configFolder = {'subpas': 'Graficos_com_dados_estimacao',
                               'Dados-Estimacao': 'Dados Estimacao',
                               'Dados-validacao': 'Dados Validacao',
-                              'matriz-correlacao': 'Matriz Correlacao',
+                              'matriz-correlacao': 'Matrizes Correlacao',
                               'grandeza-tendencia': 'Tendencia'}
         # ---------------------------------------------------------------------
         # VALIDAÇÃO DAS ENTRADAS
@@ -689,18 +689,6 @@ class Grandeza:
         cm1 = LinearSegmentedColormap.from_list("Correlacao-cmap",cmap)
 
         if self.__ID_disponivel[0] in ID: # Gráfico Pcolor para estimação
-
-            # -----------------------------------------------------------------------------------
-            #dEstimacao = sep + 'Grandezas' + sep + self._configFolder['Dados-Estimacao'] + sep if base_dir is None else sep + base_dir + sep + self._configFolder['Dados-Estimacao'] + sep
-            #Validacao_Diretorio(base_path,dEstimacao)
-            #------------------------------------------------------------------------------------
-            #dValidacao = sep + 'Grandezas' + sep + self._configFolder['Dados-validacao'] + sep if base_dir is None else sep + base_dir + sep + self._configFolder['Dados-validacao'] + sep
-            #Validacao_Diretorio(base_path, dValidacao)
-            # ------------------------------------------------------------------------------------
-            # ------------------------------------------------------------------------------------
-            #mCorrelacao = sep + 'Grandezas' + sep + self._configFolder['matriz-correlacao'] + sep if base_dir is None else sep + base_dir + sep + self._configFolder['matriz-correlacao'] + sep
-            #Validacao_Diretorio(base_path, mCorrelacao)
-            # --------------------------------------------------------------------------------------
             #Pastas internas
             # ------------------------------------------------------------------------------------
             if fluxo == 0:
@@ -721,10 +709,6 @@ class Grandeza:
 
         if (self.__ID_disponivel[1] in ID) and (self.predicao.matriz_correlacao is not None): # Gráfico Pcolor para predição
             listalabel=[]
-            # ------------------------------------------------------------------------------------
-            #mCorrelacao = sep + 'Grandezas' + sep + self._configFolder['matriz-correlacao'] + sep if base_dir is None else sep + base_dir + sep + self._configFolder['matriz-correlacao'] + sep
-            #Validacao_Diretorio(base_path, mCorrelacao)
-            #--------------------------------------------------------------------------------------
             # Pastas internas
             # ------------------------------------------------------------------------------------
             if fluxo == 0:
@@ -793,8 +777,6 @@ class Grandeza:
             base_path = base_path + base_dir
             for i,nome in enumerate(self.simbolos):
                 # Gráficos da estimação
-                #base_dir = sep + self.simbolos[i] + sep
-                #Validacao_Diretorio(base_path,base_dir)
                 # Pastas internas
                 # ------------------------------------------------------------------------------------
                 if fluxo == 0:
@@ -848,8 +830,6 @@ class Grandeza:
 
                 for i, symb in enumerate(self.simbolos):
                     # Gráficos da estimação
-                    #base_dir = sep + symb + sep
-                    #Validacao_Diretorio(base_path,base_dir)
                     # Pastas internas
                     # ------------------------------------------------------------------------------------
                     if fluxo == 0:
@@ -871,9 +851,6 @@ class Grandeza:
 
                 for i,nome in enumerate(self.simbolos):
                     # Gráficos da estimação
-
-                    #base_dir = sep + self.simbolos[i] + sep
-                    #Validacao_Diretorio(base_path, base_dir)
                     # Pastas internas
                     # ------------------------------------------------------------------------------------
                     if fluxo == 0:
@@ -896,8 +873,6 @@ class Grandeza:
 
                 for i, nome in enumerate(self.simbolos):
                     # Gráficos da estimação
-                    #base_dir = sep + self.simbolos[i] + sep
-                    #Validacao_Diretorio(base_path,base_dir)
                     # Pastas internas
                     # ------------------------------------------------------------------------------------
                     if fluxo == 0:

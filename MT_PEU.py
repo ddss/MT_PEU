@@ -561,7 +561,7 @@ class EstimacaoNaoLinear:
                               'subpas':'Graficos_com_dados_estimacao',
                               'Dados-Estimacao':'Dados Estimacao',
                               'Dados-validacao':'Dados Validacao',
-                              'matriz-correlacao':'Matriz Correlacao',
+                              'matriz-correlacao':'Matrizes Correlacao',
                               'grandeza-tendencia':'Tendencia'}
         # variáveis auxiliares para definição de conjunto de dados
         self.__xtemp = None
@@ -1916,9 +1916,7 @@ class EstimacaoNaoLinear:
 
         # ---------------------------------------------------------------------
         # GRÁFICOS
-        # --------------------------------------------------------------------- 
-        # Gráficos referentes aos dados de entrada (experimentais)
-        # grandezas-entrada
+        # ---------------------------------------------------------------------
         if (self.__tipoGraficos[1] in tipos):
             # se setConjunto foi executado alguma vez:
             if self.__controleFluxo.setConjunto:
@@ -1956,8 +1954,6 @@ class EstimacaoNaoLinear:
                 # gráficos gerados para os dados de validação, apenas se estes forem diferentes dos experimentais,
                 # apesar dos atributos de validação sempre existirem
                 if self.__flag.info['dadospredicao'] == True:
-                    #base_dir = sep + self._configFolder['graficos-grandezas-entrada-predicao'] + sep
-                    #Validacao_Diretorio(base_path, base_dir)
                     # Pastas internas
                     # ------------------------------------------------------------------------------------
                     if self.__controleFluxo.FLUXO_ID == 0:
@@ -2083,21 +2079,8 @@ class EstimacaoNaoLinear:
                 warn('Os gráficos de regiao de abrangência não puderam ser criados, pois o método incertezaParametros não foi executado OU no método SETparametros não foi definida a variância dos parâmetros',UserWarning)
         # predição
         if self.__tipoGraficos[2] in tipos:
-
-            # -----------------------------------------------------------------------------------
-            #
-            #dEstimacao = sep + self._configFolder['graficos-predicao'] + sep + self._configFolder['Dados-Estimacao'] + sep
-            #Validacao_Diretorio(base_path, dEstimacao)
-            # -----------------------------------------------------------------------------------
-            # Pasta para os gráficos de estimação em Grandezas
-            #dValidacao = sep + self._configFolder['graficos-predicao'] + sep + self._configFolder['Dados-validacao'] + sep
-            #Validacao_Diretorio(base_path, dValidacao)
-            # -----------------------------------------------------------------------------------
-
             # Predição deve ter sido executada neste fluxo
             if self.__controleFluxo.predicao:
-                #base_dir = sep + self._configFolder['graficos-predicao'] + sep
-                #Validacao_Diretorio(base_path,base_dir)
                 # Pastas internas
                 # ------------------------------------------------------------------------------------
                 if self.__controleFluxo.FLUXO_ID == 0:
@@ -2253,8 +2236,6 @@ class EstimacaoNaoLinear:
 
                 # Grafico dos resíduos em função dos dados de validação (ou experimentais) e calculados
                 for i,simb in enumerate(self.y.simbolos):
-                    #base_dir = sep + self._configFolder['graficos-analiseResiduos'] + sep + self.y.simbolos[i] + sep
-                    #Validacao_Diretorio(base_path,base_dir)
                     # Pastas internas
                     # ------------------------------------------------------------------------------------
                     if self.__controleFluxo.FLUXO_ID == 0:
