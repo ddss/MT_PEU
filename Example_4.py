@@ -32,4 +32,4 @@ Estime.incertezaParametros(metodoIncerteza='2InvHessiana')
 Estime.predicao()
 Estime.analiseResiduos()
 etapas = ['grandezas-entrada', 'predicao', 'grandezas-calculadas', 'analiseResiduos', 'regiaoAbrangencia']
-Estime.graficos(etapas)
+Estime.graficos()

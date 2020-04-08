@@ -796,7 +796,7 @@ class Grandeza:
                                                     linestyle='-.', color='r', linewidth=2,
                                                     add_legenda=True, corrigir_limites=False, config_axes=False)
                 Fig.grafico_dispersao_sem_incerteza(x, dados, label_x='Amostra', label_y=u'Resíduos {}'.format(self.labelGraficos()[i]),
-                                                    marker='o', linestyle=None)
+                                                    marker='o', linestyle='None')
                 Fig.axes.axhline(0, color='black', lw=1, zorder=1)
                 Fig.set_legenda(['Média dos resíduos'], loc = 'best')
                 Fig.salvar_e_fechar(base_path+folder+'residuo_fl'+str(fluxo)+'_tendencia.png')
@@ -844,7 +844,7 @@ class Grandeza:
                     #Gráfico em função do numero de observações
                     Fig.grafico_dispersao_sem_incerteza(x, dados, label_x='Amostra',
                                                         label_y=self.labelGraficos(atributo)[i],
-                                                        marker='o', linestyle=None)
+                                                        marker='o', linestyle=' ')
                     Fig.salvar_e_fechar(base_path + folder + atributo + '_fl' + str(fluxo) + '_tendencia.png')
 
             if self.__ID_disponivel[0] in ID:
