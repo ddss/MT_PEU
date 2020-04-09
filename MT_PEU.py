@@ -1941,7 +1941,7 @@ class EstimacaoNaoLinear:
                                                                 label_x=self.x.labelGraficos('estimacao')[ix],
                                                                 label_y=self.y.labelGraficos('estimacao')[iy],
                                                                 marker='o', linestyle='None')
-                            Fig.salvar_e_fechar(base_path+folder+self.y.simbolos[iy]+'_em_funcao_de_'+self.x.simbolos[ix]+'sem_incerteza')
+                            Fig.salvar_e_fechar(base_path+folder+self.y.simbolos[iy]+'_em_funcao_de_'+self.x.simbolos[ix]+'_sem_incerteza')
                             # Gráficos com a incerteza
                             Fig.grafico_dispersao_com_incerteza(self.x.estimacao.matriz_estimativa[:,ix],
                                                                 self.y.estimacao.matriz_estimativa[:,iy],
