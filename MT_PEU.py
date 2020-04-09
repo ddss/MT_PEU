@@ -1941,7 +1941,7 @@ class EstimacaoNaoLinear:
                                                                 label_x=self.x.labelGraficos('estimacao')[ix],
                                                                 label_y=self.y.labelGraficos('estimacao')[iy],
                                                                 marker='o', linestyle='None')
-                            Fig.salvar_e_fechar(base_path+folder+'Fluxo_'+str(0)+'_'+self.y.simbolos[iy]+'_em_funcao_de'+self.x.simbolos[ix]+'sem_incerteza')
+                            Fig.salvar_e_fechar(base_path+folder+self.y.simbolos[iy]+'_em_funcao_de_'+self.x.simbolos[ix]+'sem_incerteza')
                             # Gráficos com a incerteza
                             Fig.grafico_dispersao_com_incerteza(self.x.estimacao.matriz_estimativa[:,ix],
                                                                 self.y.estimacao.matriz_estimativa[:,iy],
@@ -1950,7 +1950,7 @@ class EstimacaoNaoLinear:
                                                                 label_x=self.x.labelGraficos('estimacao')[ix],
                                                                 label_y=self.y.labelGraficos('estimacao')[iy],
                                                                 fator_abrangencia_x=2., fator_abrangencia_y=2., fmt='o')
-                            Fig.salvar_e_fechar(base_path+folder+'Fluxo_'+str(0)+self.y.simbolos[iy]+'  em funcao de  '+' '+self.x.simbolos[ix]+'  com incerteza')
+                            Fig.salvar_e_fechar(base_path+folder+self.y.simbolos[iy]+'_em_funcao_de_'+' '+self.x.simbolos[ix]+'_com_incerteza')
                 # gráficos gerados para os dados de validação, apenas se estes forem diferentes dos experimentais,
                 # apesar dos atributos de validação sempre existirem
                 if self.__flag.info['dadospredicao'] == True:
@@ -1975,7 +1975,7 @@ class EstimacaoNaoLinear:
                                                                 label_x=self.x.labelGraficos('predição')[ix],
                                                                 label_y=self.y.labelGraficos('predição')[iy],
                                                                 marker='o', linestyle='None')
-                            Fig.salvar_e_fechar(base_path+folder+'predicao'+'_fl'+str(self.__controleFluxo.FLUXO_ID)+'_'+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_sem_incerteza')
+                            Fig.salvar_e_fechar(base_path+folder+'predicao'+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_sem_incerteza')
                             # Gráficos com a incerteza
                             Fig.grafico_dispersao_com_incerteza(self.x.predicao.matriz_estimativa[:,ix],
                                                                 self.y.predicao.matriz_estimativa[:,iy],
@@ -1984,7 +1984,7 @@ class EstimacaoNaoLinear:
                                                                 label_x=self.x.labelGraficos('predicao')[ix],
                                                                 label_y=self.y.labelGraficos('predicao')[iy],
                                                                 fator_abrangencia_x=2., fator_abrangencia_y=2., fmt= 'o')
-                            Fig.salvar_e_fechar(base_path+folder+'predicao'+'_fl'+str(self.__controleFluxo.FLUXO_ID)+'_'+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_com_incerteza')
+                            Fig.salvar_e_fechar(base_path+folder+'predicao'+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_com_incerteza')
             else:
                 warn('Os gráficos de entrada não puderam ser criados, pois o método setConjunto não foi executado.',UserWarning)
 
@@ -2099,7 +2099,7 @@ class EstimacaoNaoLinear:
                                                             label_x=self.x.labelGraficos('calculado')[ix],
                                                             label_y=self.y.labelGraficos('calculado')[iy],
                                                             marker='o', linestyle='None', config_axes=True)
-                        Fig.salvar_e_fechar(base_path+folder+'calculado'+'_fl'+str(self.__controleFluxo.FLUXO_ID) + \
+                        Fig.salvar_e_fechar(base_path+folder+'calculado' + \
                                             '_'+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_sem_incerteza')
                         # Gráficos com a incerteza
                         if self.y.calculado.matriz_correlacao is not None:
@@ -2110,7 +2110,7 @@ class EstimacaoNaoLinear:
                                                                 label_x=self.x.labelGraficos('calculado')[ix],
                                                                 label_y=self.y.labelGraficos('calculado')[iy],
                                                                 fator_abrangencia_x=2., fator_abrangencia_y=2., fmt='o')
-                            Fig.salvar_e_fechar(base_path+folder+'calculado'+'_fl'+str(self.__controleFluxo.FLUXO_ID) + \
+                            Fig.salvar_e_fechar(base_path+folder+'calculado' + \
                                                 '_'+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_com_incerteza')
 
                 #incerteza_expandida_Yc=ones((self.y.calculado.NE,self.y.NV))
@@ -2135,8 +2135,8 @@ class EstimacaoNaoLinear:
                                   if self.__flag.info['dadospredicao'] else self.y.labelGraficos('estimacao')[iy],
                                   self.y.labelGraficos('calculado')[iy], fontsize = 16)
                     Fig.salvar_e_fechar((base_path+folder+'predicao' if self.__flag.info['dadospredicao'] else base_path+folder+'estimacao')+\
-                                        '_fl'+str(self.__controleFluxo.FLUXO_ID) + '_' + str(self.y.simbolos[iy])+ \
-                                        '_funcao_'+str(self.y.simbolos[iy])+'_calculado_sem_incerteza.png',
+                                          '_' + str(self.y.simbolos[iy])+ \
+                                        '_funcao_'+'_calculado_sem_incerteza.png',
                                         config_axes=True)
                     # Gráfico comparativo entre valores experimentais e calculados pelo modelo, sem variância em função
                     # das amostras
@@ -2148,7 +2148,7 @@ class EstimacaoNaoLinear:
                                     fontsize=16, loc='best')
                     Fig.salvar_e_fechar(
                         (base_path + folder +'predicao' if self.__flag.info['dadospredicao'] else base_path+folder+'estimacao') + \
-                        '_fl' + str(self.__controleFluxo.FLUXO_ID) + '_' + str(self.y.simbolos[iy]) + \
+                         '_' + str(self.y.simbolos[iy]) + \
                         '_funcao_amostras_calculado_sem_incerteza.png',
                         config_axes=True
                         )
@@ -2170,7 +2170,7 @@ class EstimacaoNaoLinear:
                         Fig.set_legenda(['dados para predicao' if self.__flag.info['dadospredicao'] else 'dados para estimacao', 'calculado'],
                             fontsize=16, loc='best')
                         Fig.salvar_e_fechar((base_path+folder+'predicao' if self.__flag.info['dadospredicao'] else base_path + folder+'estimacao') + \
-                            '_fl' + str(self.__controleFluxo.FLUXO_ID) + '_' + str(self.y.simbolos[iy]) + \
+                             '_' + str(self.y.simbolos[iy]) + \
                             '_funcao_amostras_calculado_com_incerteza.png', config_axes=True)
 
                         # ycalculado em função de yexperimental
@@ -2184,7 +2184,7 @@ class EstimacaoNaoLinear:
                                       self.y.labelGraficos('estimacao')[iy],
                                       self.y.labelGraficos('calculado')[iy], fontsize=16)
                         Fig.salvar_e_fechar((base_path+folder+'predicao' if self.__flag.info['dadospredicao'] else base_path+folder+'estimacao' )+ \
-                                            '_fl' + str(self.__controleFluxo.FLUXO_ID) + '_' + str(self.y.simbolos[iy]) + \
+                                              '_' + str(self.y.simbolos[iy]) + \
                                             '_funcao_' + str(self.y.simbolos[iy]) + '_calculado_com_incerteza.png',
                                             config_axes=True,
                                             reiniciar=(False if not self.__flag.info['dadospredicao'] else True)) # caso não tenha dados
@@ -2213,7 +2213,7 @@ class EstimacaoNaoLinear:
                             Fig.grafico_dispersao_sem_incerteza(y, array(ycalc_superior_F), color='r',
                                                                 corrigir_limites=True, config_axes=False, add_legenda=True)
                             Fig.set_legenda(['Limites baseados no teste F'], fontsize = 16, loc='best')
-                            Fig.salvar_e_fechar(base_path + folder + 'estimacao_fl' + str(self.__controleFluxo.FLUXO_ID) + \
+                            Fig.salvar_e_fechar(base_path + folder + 'estimacao' + \
                                                     '_' + str(self.y.simbolos[iy]) + '_funcao_' + str(self.y.simbolos[iy]) + '_calculado_com_incerteza.png',
                                                 config_axes=False)
 
@@ -2256,7 +2256,7 @@ class EstimacaoNaoLinear:
                                                         label_y=u'Resíduos '+self.y.labelGraficos()[i])
                     Fig.set_legenda([u'Média resíduos ' + self.y.simbolos[i]], fontsize=16, loc='best')
                     Fig.axes.axhline(0, color='black', lw=1, zorder=1)
-                    Fig.salvar_e_fechar(base_path+folder+'residuos_fl'+str(self.__controleFluxo.FLUXO_ID)+'_funcao_'\
+                    Fig.salvar_e_fechar(base_path+folder+'residuos'+'_funcao_'\
                                         +self.y.simbolos[i]+'_calculado.png')
 
                     # Resíduos vs yvalidacao
@@ -2273,7 +2273,7 @@ class EstimacaoNaoLinear:
                     Fig.set_legenda([u'Média resíduos ' + self.y.simbolos[i]], fontsize=16, loc='best')
                     Fig.axes.axhline(0, color='black', lw=1, zorder=1)
                     Fig.salvar_e_fechar(
-                        base_path + folder + 'residuos_fl' + str(self.__controleFluxo.FLUXO_ID) + '_funcao_' +
+                        base_path + folder + 'residuos_' + '_funcao_' +
                         self.y.simbolos[i] + '_' + ('predicao' if self.__flag.info['dadospredicao'] else 'estimacao')+'.png')
 
                     for j, simbol in enumerate(self.x.simbolos):
@@ -2293,7 +2293,7 @@ class EstimacaoNaoLinear:
                                   label_y=u'Resíduos ' + self.y.labelGraficos()[i])
                         Fig.set_legenda([u'Média resíduos ' + self.y.simbolos[i]], fontsize=16, loc='best')
                         Fig.axes.axhline(0, color='black', lw=1, zorder=1)
-                        Fig.salvar_e_fechar(base_path+folder+'residuos_fl'+str(self.__controleFluxo.FLUXO_ID) + '_funcao_' \
+                        Fig.salvar_e_fechar(base_path+folder+'residuos'+ '_funcao_' \
                                             +self.x.simbolos[j]+'_'+ \
                                             ('predicao' if self.__flag.info['dadospredicao'] else 'estimacao')+'.png')
 
