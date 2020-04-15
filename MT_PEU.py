@@ -2108,8 +2108,9 @@ class EstimacaoNaoLinear:
                                                             label_x=self.x.labelGraficos('calculado')[ix],
                                                             label_y=self.y.labelGraficos('calculado')[iy],
                                                             marker='o', linestyle='None', config_axes=True)
-                        Fig.salvar_e_fechar(base_path+folderone+'calculado' + \
-                                            '_'+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_sem_incerteza')
+                        Fig.salvar_e_fechar(base_path+folderone+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_sem_incerteza')
+                        #Fig.salvar_e_fechar(base_path+folderone+'calculado' +'_'+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_sem_incerteza')
+
                         # Gráficos com a incerteza
                         if self.y.calculado.matriz_correlacao is not None:
                             Fig.grafico_dispersao_com_incerteza(self.x.calculado.matriz_estimativa[:,ix],
@@ -2119,8 +2120,9 @@ class EstimacaoNaoLinear:
                                                                 label_x=self.x.labelGraficos('calculado')[ix],
                                                                 label_y=self.y.labelGraficos('calculado')[iy],
                                                                 fator_abrangencia_x=2., fator_abrangencia_y=2., fmt='o')
-                            Fig.salvar_e_fechar(base_path+folderone+'calculado' + \
-                                                '_'+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_com_incerteza')
+                            Fig.salvar_e_fechar(base_path+folderone+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_com_incerteza')
+                            #Fig.salvar_e_fechar(base_path+folderone+'calculado' +'_'+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_com_incerteza')
+
 
                 #incerteza_expandida_Yc=ones((self.y.calculado.NE,self.y.NV))
                 #incerteza_expandida_Ye=ones((self.y.validacao.NE,self.y.NV))
@@ -2142,10 +2144,11 @@ class EstimacaoNaoLinear:
                     Fig.set_label(self.y.labelGraficos('predicao')[iy] \
                                   if self.__flag.info['dadospredicao'] else self.y.labelGraficos('estimacao')[iy],
                                   self.y.labelGraficos('calculado')[iy], fontsize = 16)
-                    Fig.salvar_e_fechar((base_path+foldertwo+'predicao' if self.__flag.info['dadospredicao'] else base_path+foldertwo+'estimacao')+\
-                                          '_' + str(self.y.simbolos[iy])+ \
-                                        '_funcao_'+'_calculado_sem_incerteza.png',
-                                        config_axes=True)
+
+
+                    Fig.salvar_e_fechar((base_path+foldertwo+'predicao' if self.__flag.info['dadospredicao'] else base_path+foldertwo+'estimacao')+'_' + str(self.y.simbolos[iy])+'_funcao_'+str(self.y.simbolos[iy])+'_calculado_sem_incerteza.png',config_axes=True)
+
+
                     # Gráfico comparativo entre valores experimentais e calculados pelo modelo, sem variância em função
                     # das amostras
                     Fig.grafico_dispersao_sem_incerteza(amostras, y, marker='o', linestyle='None', color='b', add_legenda=True)
