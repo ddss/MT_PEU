@@ -563,6 +563,7 @@ class EstimacaoNaoLinear:
                               'Dados-validacao':'Dados Validacao',
                               'matriz-correlacao':'Matrizes Correlacao',
                               'grandeza-tendencia':'Tendencia observada'}
+
         # variáveis auxiliares para definição de conjunto de dados
         self.__xtemp = None
         self.__uxtemp = None

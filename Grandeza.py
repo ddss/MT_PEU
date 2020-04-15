@@ -290,7 +290,7 @@ class Grandeza:
                 self.matriz_incerteza = None
                 self.matriz_correlacao = None
 
-            self._validar() # validação das incertezas
+            self._validar() #validação das incertezas
 
             # ---------------------------------------------------------------------
             # Graus de liberdade
