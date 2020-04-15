@@ -603,7 +603,7 @@ class EstimacaoNaoLinear:
 
     @property
     def __graph_flux_association(self):
-        return {'setConjunto':[self.__tipoGraficos[1]],'incertezaParametros':[self.__tipoGraficos[3]],
+        return {'setConjunto':[self.__tipoGraficos[1]],'incertezaParametros':[self.__tipoGraficos[0],self.__tipoGraficos[3]],
                 'predicao':[self.__tipoGraficos[2],self.__tipoGraficos[3]],'analiseResiduos':[self.__tipoGraficos[5]]}
 
     @property
