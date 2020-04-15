@@ -653,7 +653,7 @@ class Grandeza:
                               'Dados-Estimacao': 'Dados Estimacao',
                               'Dados-validacao': 'Dados Validacao',
                               'matriz-correlacao': 'Matrizes Correlacao',
-                              'grandeza-tendencia': 'Tendencia'}
+                              'grandeza-tendencia': 'Tendencia observada'}
         # ---------------------------------------------------------------------
         # VALIDAÇÃO DAS ENTRADAS
         # ---------------------------------------------------------------------
@@ -704,7 +704,7 @@ class Grandeza:
                     listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
 
             plot_corr(self.estimacao.matriz_correlacao, xnames=listalabel,  ynames=listalabel, title=u'Matriz de correlação ' + self.__ID_disponivel[0],normcolor=True, cmap=cm1)
-            savefig(base_path+folder+'_'.join(self.simbolos)+'_pcolor')#_Matriz_de_correlacao')
+            savefig(base_path+folder+'_'.join(self.simbolos))#+'_pcolor')_Matriz_de_correlacao')
             close()
 
         if (self.__ID_disponivel[1] in ID) and (self.predicao.matriz_correlacao is not None): # Gráfico Pcolor para predição
@@ -723,7 +723,7 @@ class Grandeza:
                     listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
 
             plot_corr(self.predicao.matriz_correlacao, xnames=listalabel, ynames=listalabel, title=u'Matriz de correlação ' + self.__ID_disponivel[1],normcolor=True,cmap=cm1)
-            savefig(base_path+folder+self.__ID_disponivel[1]+'_'+'pcolor')#_matriz-correlacao')
+            savefig(base_path+folder+self.__ID_disponivel[1])#+'_'+'pcolor')_matriz-correlacao')
             close()
 
         if (self.__ID_disponivel[2] in ID) and (self.calculado.matriz_correlacao is not None): # Gráfico Pcolor para calculado
@@ -742,7 +742,7 @@ class Grandeza:
                     listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
 
             plot_corr(self.calculado.matriz_correlacao, xnames=listalabel, ynames=listalabel, title=u'Matriz de correlação ' + self.__ID_disponivel[2],normcolor=True,cmap=cm1)
-            savefig(base_path+folder+self.__ID_disponivel[2]+'_'+'pcolor')#_matriz-correlacao')
+            savefig(base_path+folder+self.__ID_disponivel[2])#+'_'+'pcolor')#_matriz-correlacao')
             close()
 
         if (self.__ID_disponivel[3] in ID) and (self.matriz_correlacao is not None): # Gráfico Pcolor para parâmetros
@@ -756,7 +756,7 @@ class Grandeza:
                 Validacao_Diretorio(base_path, folder)
             # --------------------------------------------------------------------------------------
             plot_corr(self.matriz_correlacao, xnames=self.labelGraficos(printunit=False), ynames=self.labelGraficos(printunit=False), title=u'Matriz de correlação ' + self.__ID_disponivel[3],normcolor=True, cmap=cm1)
-            savefig(base_path+folder+self.__ID_disponivel[3]+'_'+'pcolor')#_matriz-correlacao')
+            savefig(base_path+folder+self.__ID_disponivel[3])#+'_'+'pcolor')#_matriz-correlacao')
             close()
 
         if self.__ID_disponivel[4] in ID:
@@ -845,7 +845,7 @@ class Grandeza:
                     Fig.grafico_dispersao_sem_incerteza(x, dados, label_x='Amostra',
                                                         label_y=self.labelGraficos(atributo)[i],
                                                         marker='o', linestyle=' ')
-                    Fig.salvar_e_fechar(base_path + folder + atributo + '_' + '_tendencia.png')
+                    Fig.salvar_e_fechar(base_path + folder + 'tendencia' + '_' + atributo+'.png')
 
             if self.__ID_disponivel[0] in ID:
 

@@ -18,6 +18,7 @@ tempo = [120.0,60.0,60.0,120.0,120.0,60.0,60.0,30.0,15.0,60.0,
 60.0,60.0,60.0,60.0,60.0,60.0,30.0,45.1,30.0,30.0,45.0,15.0,30.0,90.0,25.0,
 60.1,60.0,30.0,30.0,60.0]
 
+
 #Temperatura
 temperatura = [600.0,600.0,612.0,612.0,612.0,612.0,620.0,620.0,620.0,
 620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,
@@ -46,4 +47,4 @@ Estime.predicao()
 Estime.analiseResiduos()
 
 etapas = ['grandezas-entrada', 'predicao','grandezas-calculadas','analiseResiduos', 'regiaoAbrangencia']
-Estime.graficos(etapas)
+Estime.graficos()
