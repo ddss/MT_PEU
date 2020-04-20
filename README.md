@@ -1,42 +1,55 @@
-# Parameter Estimator with Uncertainty - MT_PEU
+# Calculation Engine for a Parameter Estimator with Uncertainty - MT-PEU
 
 <p align="justify">
-O MT_PEU é um motor de cálculo escrito em linguagem Python, desenvolvido para aplicações no campo da estimação de parâmetros de modelos lineares e não lineares em estado estacionário com avaliação da incerteza.
+O MT-PEU é um motor de cálculo open-source e gratuito voltado para a estimação de parâmetros de modelos (lineares e não-lineares), em estado estacionário, na presença de incertezas dos dados observados, fornecendo ferramentas necessárias para realizar avaliações estatíticas sobre a qualidade do modelo (região de abrangência dos parâmetros, teste de hipóteses sobre os resíduos). 
+	
+Seu uso envolve duas principais classes, EstimacaoNaoLinear e EstimacaoLinear, cujos métodos permitem: (i) <em>otimização</em> (estimação dos parâmetros), (ii) <em>avaliação da incerteza dos parâmetros</em> (incluindo sua região de abrangência de verossimilhança), (iii) <em>avaliação da incerteza da predição do modelo</em>, e (iv) <em>análise de resíduos</em> (métricas úteis para avaliação da qualidade do modelo). 
 </p>
 
 # Funcionalidades
 
-O motor de cálculo foi construído numa estrutura de classes cujas principais funcionalidades são:
+O motor de cálculo está baseado na linguagem Python (bibliotecas: Numpy, Scipy, Statsmodel, casadi, matplotlib), construído numa estrutura de classes cujas principais funcionalidades são:
+
+* **Conjunto de dados**
+  <p align="justify"> Permite a inclusão de conjuntos de dados experimentais tanto para as etapas de estimação de parâmetros, quando para validação.</p>
 
 * **Estimação de parâmetros de um modelo**   
   <p align="justify">
-    <text> Para modelos não lineares, os parâmetros são obtidos por meio da minimização da função objetivo de mínimos quadrados ponderada pela incerteza ao quadrado (Equação 1). As rotinas de otimização foram desenvolvidas utilizando computação simbólica por meio do pacote <em>Casadi</em>. Dentre os algoritmos de otimização disponíveis, tem-se: (i) <em>ipopt</em>, baseado no método primal-dual do ponto interior e indicado para problemas não lineares de dimensão elevada; e (ii) <em>sqpmethod</em>, o qual utiliza programação quadrática sequencial. Para modelos lineares a solução é obtida analiticamente.</text>
-  </p>
-
+    <text> Os parâmetros são obtidos por meio da minimização da função objetivo de mínimos quadrados ponderada pelo inverso da variância: </text>  </p>
   <p align="center">
   <img src = "./Imagens/ObjectiveFunction.png">
   </p>
+  <p align="justify">
+   As rotinas de otimização foram desenvolvidas utilizando computação simbólica por meio do pacote <em>Casadi</em>. Dentre os algoritmos de otimização disponíveis, tem-se: (i) <em>ipopt</em>, baseado no método primal-dual do ponto interior e indicado para problemas não lineares de dimensão elevada; e (ii) <em>sqpmethod</em>, o qual utiliza programação quadrática sequencial. Para modelos lineares a solução é obtida analiticamente.
+</p>
   
-* **Cálculo de incerteza dos parâmetros** 
-  <p align="justify">Três métodos de cálculo estão disponíveis: (i) 2InvHessiana, Equação (2); (ii) Geral, Equação (3); e (iii) SensibilidadeModelo, Equação (4). 
+* **Avaliação de incerteza dos parâmetros** 
+  <p align="justify"> A avaliação da incerteza dos parâmetros, após a otimização, pode ser realizada através de três métodos:
    </p>
+   
+  * Geral, baseado na sensibilidade da função objetivo à pequenas variações do parâmetro no ponto ótimo:
+  
+  <p align="center">
+  <img src = "./Imagens/Geral.png"> 
+  </p>
+  
+  * 2InvHessiana, baseado em uma aproximação de (1):
   
   <p align="center">
   <img src = "./Imagens/2invHessian.png">
   </p> 
   
-  <p align="center">
-  <img src = "./Imagens/Geral.png">
-  </p> 
-  
+  * SensibilidadeModelo, baseado em uma aproximação de (1):
   <p align="center">
   <img src = "./Imagens/Sensibilidade.png">
   </p> 
   
-* **Cálculo de incerteza das grandezas de saída estimadas**
+  Recomenda-se comparar as matrizes de covariância dos parâmetros obtidas, pelos métodos, de forma a garantir consistência do resultado.
+  
+* **Avaliação da incerteza das grandezas de saída estimadas**
 
   <p align="justify">
-		<text>É realizado através da Equação (5). </text>
+		<text>Com base nos parâmetros estimados e no conjunto de dados informado, é avaliado a predição do modelo bem como a incerteza associada: </text>
   </p>
   
   <p align="center">
@@ -45,35 +58,34 @@ O motor de cálculo foi construído numa estrutura de classes cujas principais f
 
 * **Análise de resíduos**
   <p align="justify">
-    <text>Utilizada para avaliar os resíduos (diferença entre os valores observados e preditos) obtidos após a estimação dos parâmetros de modo a investigar a significância estatística dos resultados. Os resíduos são avaliados por meio de uma série de testes estatísticos relacionados às seguintes características: (i) normalidade; (ii) média; (iii) autocorrelação; (iv) e homocedasticidade. Além disso, também é avaliado estatisticamente o valor da função objetivo.</text>
+    <text>Utilizada para avaliar os resíduos (diferença entre os valores observados e preditos) obtidos após a estimação dos parâmetros de modo a investigar a significância estatística dos resultados (validação das hipóteses). Os resíduos são avaliados por meio de uma série de testes estatísticos relacionados às seguintes características: (i) normalidade, (ii) média, (iii) autocorrelação, e (iv) homocedasticidade. Além disso, também é avaliado estatisticamente o valor da função objetivo.</text>
   </p>
 
 * **Exportação de gráficos e relatórios**
 
   <p align="justify">
-	De modo a proporcionar ao usuário uma melhor visualização dos resultados obtidos, o MT_PEU oferece a exportação de gráficos e relatórios, os quais podem ser solicitados em qualquer região do script de código.
+	De modo a proporcionar ao usuário uma melhor visualização dos resultados obtidos, o MT-PEU oferece a exportação de gráficos e relatórios, os quais podem ser solicitados em qualquer parte do código.
   </p>
-  <p align="justify">
-  - São três tipos de <strong>relatórios</strong> disponíveis: (i) otimização, o qual descreve o procedimento de otimização realizado para encontrar a solução ótima; (ii) parâmetros, o qual informa valores, variâncias e incertezas obtidas para os parâmetros estimados; e (iii) predição, o qual apresenta os resultados dos testes estatísticos realizados para os resíduos. 
-  </p>
-  <p align="justify">
-  - Há uma variedade de <strong>gráficos</strong> disponíveis para as grandezas envolvidas no problema, dentre eles: (i) tendência; (ii) boxplot; (iii) autocorrelação; e (iv) matriz de correlação; para os parâmetros há o gráfico de região de abrangência dos parâmetros
-  </p>
-
+  
+  * São três tipos de **relatórios** disponíveis: (i) *otimização*, o qual descreve o procedimento de otimização realizado para encontrar a solução ótima; (ii) *parâmetros*, o qual informa valores, variâncias e incertezas obtidas para os parâmetros estimados; e (iii) *predição*, o qual apresenta os resultados dos testes estatísticos realizados para os resíduos. 
+  
+  * Há uma variedade de **gráficos** disponíveis para as grandezas envolvidas no problema, dentre eles: (i) *tendência*, (ii) *boxplot*, (iii) *autocorrelação*, e (iv) *matriz de correlação*. Para os parâmetros, é gerado o gráfico da região de abrangência (elipsoidal e de verossimilhança).
+  
 # Instalação
 
 <p align="justify">
-A instalação do MT_PEU é realizada por meio do download dos arquivos através do link (https://github.com/ddss/MT_PEU). Para o correto funcionamento do motor de cálculo, é necessário que os seguintes pacotes estejam instalados: 
+A instalação do MT-PEU é realizada por meio do download dos arquivos através do link (https://github.com/ddss/MT_PEU/Teste). Para o correto funcionamento do motor de cálculo, é necessário que os seguintes pacotes estejam instalados: 
 </p>
 
 * numpy
 * scipy
 * matplotlib
 * casadi
+* statsmodels
 
-Com exceção do casadi, todos vem disponíveis na distribuição anaconda.
+Com exceção do casadi, todos os pacotes estão disponíveis na distribuição Anaconda.
 
-# Exemplo prático
+# Exemplo
 ```python
 
 # packages imports
