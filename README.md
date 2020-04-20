@@ -147,3 +147,9 @@ Estime.analiseResiduos()
 
 # plotting graphs with residuals analysis and predicted data
 Estime.graficos()
+```
+# Referências
+Este projeto basea-se nos trabalhos de:
+
+* BARD, Y. Nonlinear parameter estimation. New York: Academic Press, 1974
+* SCHWAAB, M. M.; PINTO, J. C. Análise de Dados Experimentais I: Fundamentos da Estatística e Estimação de Parâmetros. Rio de Janeiro: e-papers, 2007.
