@@ -1958,10 +1958,10 @@ class EstimacaoNaoLinear:
                     # Pastas internas
                     # ------------------------------------------------------------------------------------
                     if self.__controleFluxo.FLUXO_ID == 0:
-                        folder = self._configFolder['graficos-analiseResiduos'] +  sep +self._configFolder['Dados-Estimacao']+ sep
+                        folder = self._configFolder['graficos-analiseResiduos'] +  sep +self._configFolder['Dados-Estimacao']+ sep+ self._configFolder['grandeza-tendencia']+sep
                         Validacao_Diretorio(base_path, folder)
                     else:
-                        folder = self._configFolder['graficos-analiseResiduos'] + sep + self._configFolder['Dados-validacao']+' '+str(self.__controleFluxo.FLUXO_ID)+ sep
+                        folder = self._configFolder['graficos-analiseResiduos'] + sep + self._configFolder['Dados-validacao']+' '+str(self.__controleFluxo.FLUXO_ID)+ sep+ self._configFolder['grandeza-tendencia']+sep
                         Validacao_Diretorio(base_path, folder)
                     # ------------------------------------------------------------------------------------
                     self.x.Graficos(base_path, base_dir, ID=['predicao'], fluxo=self.__controleFluxo.FLUXO_ID, Fig=Fig)
@@ -1976,7 +1976,8 @@ class EstimacaoNaoLinear:
                                                                 label_x=self.x.labelGraficos('predição')[ix],
                                                                 label_y=self.y.labelGraficos('predição')[iy],
                                                                 marker='o', linestyle='None')
-                            Fig.salvar_e_fechar(base_path+folder+'predicao'+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_sem_incerteza')
+                            Fig.salvar_e_fechar(base_path+folder+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_sem_incerteza')
+                            #Fig.salvar_e_fechar(base_path + folder + 'predicao_' + self.y.simbolos[iy] + '_funcao_' + self.x.simbolos[ix] + '_sem_incerteza') Excluir depois
                             # Gráficos com a incerteza
                             Fig.grafico_dispersao_com_incerteza(self.x.predicao.matriz_estimativa[:,ix],
                                                                 self.y.predicao.matriz_estimativa[:,iy],
@@ -1985,7 +1986,8 @@ class EstimacaoNaoLinear:
                                                                 label_x=self.x.labelGraficos('predicao')[ix],
                                                                 label_y=self.y.labelGraficos('predicao')[iy],
                                                                 fator_abrangencia_x=2., fator_abrangencia_y=2., fmt= 'o')
-                            Fig.salvar_e_fechar(base_path+folder+'predicao'+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_com_incerteza')
+                            Fig.salvar_e_fechar(base_path+folder+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_com_incerteza')
+                            #Fig.salvar_e_fechar(base_path + folder + 'predicao_' + self.y.simbolos[iy] + '_funcao_' + self.x.simbolos[ix] + '_com_incerteza') Excluir depois
             else:
                 warn('Os gráficos de entrada não puderam ser criados, pois o método setConjunto não foi executado.',UserWarning)
 
@@ -2026,7 +2028,7 @@ class EstimacaoNaoLinear:
             # dos parâmetros existir.
             if self.__controleFluxo.incertezaParametros:
                 # Gráficos da estimação
-                base_dir = sep + self._configFolder['graficos-regiaoAbrangencia'] + sep + self._configFolder['Dados-Estimacao']+ sep
+                base_dir = sep + self._configFolder['graficos-regiaoAbrangencia'] + sep
                 Validacao_Diretorio(base_path, base_dir)
                 # os gráficos só podem ser executado se o número de parâmetros for
                 # maior do que 1
@@ -2069,7 +2071,7 @@ class EstimacaoNaoLinear:
                                       fontsize=16)
 
                         # SALVA O GRÁFICO
-                        Fig.salvar_e_fechar(base_path+base_dir+'regiao_verossimilhanca_fl'+str(0)+'_'+
+                        Fig.salvar_e_fechar(base_path+base_dir+'regiao_verossimilhanca'+'_'+
                                     str(self.parametros.simbolos[p1])+'_'+str(self.parametros.simbolos[p2])+'.png',
                                             config_axes=True)
                         p2+=1

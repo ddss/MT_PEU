@@ -661,7 +661,7 @@ class Grandeza:
             ID = self.__ID
         
         if False in [ele in self.__ID_disponivel for ele in ID]:
-            raise NameError(u'Foi inserido uma ID indiponível. IDs disponíveis: '+','.join(self.__ID_disponivel)+'.')
+            raise NameError(u'Foi inserido uma ID indisponível. IDs disponíveis: '+','.join(self.__ID_disponivel)+'.')
 
         if base_path is None:
             base_path = getcwd()
@@ -867,7 +867,7 @@ class Grandeza:
                     Fig.autocorr(dados, label_x='Lag',
                                  label_y=u'Autocorrelação de {}'.format(self.labelGraficos(printunit=False)[i]),
                                  normed=True, maxlags=None)
-                    Fig.salvar_e_fechar(base_path + folder + 'estimacao_' + '_autocorrelacao.png')
+                    Fig.salvar_e_fechar(base_path + folder + 'autocorrelacao_' + '_observada.png')
 
             if self.__ID_disponivel[1] in ID:
 
