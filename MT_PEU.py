@@ -2194,7 +2194,7 @@ class EstimacaoNaoLinear:
                                                             fmt="o", color = 'r', config_axes=False, add_legenda=True)
                         Fig.set_label('Amostras', self.y.labelGraficos()[iy], fontsize=16)
                         Fig.set_legenda(['dados para predicao' if self.__flag.info['dadospredicao'] else 'dados para estimacao', 'calculado'],fontsize=16, loc='best')
-                        Fig.salvar_e_fechar((base_path+foldertwo+'predicao' if self.__flag.info['dadospredicao'] else base_path + foldertwo+'observado') + '_' + str(self.y.simbolos[iy]) +'_TES2funcao_amostras_calculado_com_incerteza.png', config_axes=True)
+                        Fig.salvar_e_fechar((base_path+foldertwo+'predicao' if self.__flag.info['dadospredicao'] else base_path + foldertwo+'observado') + '_' + str(self.y.simbolos[iy]) +'_funcao_amostras_calculado_com_incerteza.png', config_axes=True)
 
                         # ycalculado em função de yexperimental
                         Fig.grafico_dispersao_com_incerteza(y, ym, yerr_validacao, yerr_calculado,
