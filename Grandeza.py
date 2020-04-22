@@ -772,7 +772,7 @@ class Grandeza:
             # --------------------------------------------------------------------------------------
             # checa a variabilidade dos dados, assim como a existência de possíveis outliers
             Fig.boxplot(self.residuos.matriz_estimativa,label_x=self.labelGraficos(printunit=False), label_y='Resíduos')
-            Fig.salvar_e_fechar(base_path+folder+'residuo_'+'_boxplot.png')
+            Fig.salvar_e_fechar(base_path+folder+'boxplot_'+'residuo.png')
 
             base_path = base_path + base_dir
             for i,nome in enumerate(self.simbolos):
@@ -799,24 +799,24 @@ class Grandeza:
                                                     marker='o', linestyle='None')
                 Fig.axes.axhline(0, color='black', lw=1, zorder=1)
                 Fig.set_legenda(['Média dos resíduos'], loc = 'best')
-                Fig.salvar_e_fechar(base_path+folder+'residuo_'+'_tendencia.png')
+                Fig.salvar_e_fechar(base_path+folder+'tendencia_'+'residuo.png')
 
                 # AUTO CORRELAÇÃO
                 #Gera um gráfico de barras que verifica a autocorrelação
                 Fig.autocorr(dados, label_x='Lag', label_y=u'Autocorrelação resíduos {}'.format(self.labelGraficos(printunit=False)[i]),
                              normed=True, maxlags=None)
-                Fig.salvar_e_fechar(base_path+folder+'residuo_'+'_autocorrelacao.png')
+                Fig.salvar_e_fechar(base_path+folder+'autocorrelacao_'+'residuo.png')
 
                 # HISTOGRAMA
                 #Gera um gráfico de histograma, importante na verificação da pdf
                 Fig.histograma(dados, label_x=u'Resíduos {}'.format(self.labelGraficos()[i]), label_y=u'Densidade de probabilidade',
                                density=True,bins=int(sqrt(dados.shape[0])))
-                Fig.salvar_e_fechar(base_path+folder+'residuo_'+'_histograma.png')
+                Fig.salvar_e_fechar(base_path+folder+'histograma'+'_residuo.png')
 
                 # NORMALIDADE 
                 #Verifica se os dados são oriundos de uma pdf normal, o indicativo disto é a obtenção de uma reta 
                 Fig.probplot(dados, label_y=u'Valores ordenados resíduos {}'.format(self.labelGraficos(printunit=False)[i]))
-                Fig.salvar_e_fechar(base_path+folder+'residuo_'+'_probplot.png')
+                Fig.salvar_e_fechar(base_path+folder+'probplot'+'_residuo.png')
 
         if (self.__ID_disponivel[0] in ID or self.__ID_disponivel[1] in ID or self.__ID_disponivel[2] in ID):
 
@@ -843,9 +843,9 @@ class Grandeza:
                     x   = linspace(1,NE,num=NE)
                     #Gráfico em função do numero de observações
                     Fig.grafico_dispersao_sem_incerteza(x, dados, label_x='Amostra',
-                                                        label_y=self.labelGraficos(atributo)[i],
+                                                        label_y=self.labelGraficos('observado' if  atributo == 'estimacao' else atributo)[i],
                                                         marker='o', linestyle=' ')
-                    Fig.salvar_e_fechar(base_path + folder + 'tendencia' + '_' + atributo+'.png')
+                    Fig.salvar_e_fechar(base_path + folder + 'tendencia' + '_' + 'observado'+'.png' if atributo == 'estimacao' else base_path + folder + 'tendencia' + '_' + atributo +'.png')
 
             if self.__ID_disponivel[0] in ID:
 
@@ -889,4 +889,4 @@ class Grandeza:
                     Fig.autocorr(dados, label_x='Lag',
                                  label_y=u'Autocorrelação de {}'.format(self.labelGraficos(printunit=False)[i]),
                                  normed=True, maxlags=None)
-                    Fig.salvar_e_fechar(base_path + folder + 'predicao_' + '_autocorrelacao.png')
+                    Fig.salvar_e_fechar(base_path + folder + 'autocorrelacao_' + 'predicao.png')
