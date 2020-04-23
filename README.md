@@ -1,91 +1,107 @@
-# Calculation Engine for a Parameter Estimator with Uncertainty - MT-PEU
+# Calculation Engine for Parameter Estimator with Uncertainty - MT_PEU
 
 <p align="justify">
-O MT-PEU é um motor de cálculo open-source e gratuito voltado para a estimação de parâmetros de modelos (lineares e não-lineares), em estado estacionário, na presença de incertezas dos dados observados, fornecendo ferramentas necessárias para realizar avaliações estatíticas sobre a qualidade do modelo (região de abrangência dos parâmetros, teste de hipóteses sobre os resíduos). 
-	
-Seu uso envolve duas principais classes, EstimacaoNaoLinear e EstimacaoLinear, cujos métodos permitem: (i) <em>otimização</em> (estimação dos parâmetros), (ii) <em>avaliação da incerteza dos parâmetros</em> (incluindo sua região de abrangência de verossimilhança), (iii) <em>avaliação da incerteza da predição do modelo</em>, e (iv) <em>análise de resíduos</em> (métricas úteis para avaliação da qualidade do modelo). 
+The MT_PEU is an open-source calculation engine developed for steady-state model parameter estimation applications (linear and nonlinear cases) in the presence of uncertainty for observed data. In addition, the MT_PEU perform statistical evaluations about in relation to the model quality(região de abrangência dos parâmetros and hypothesis test on residues).</p>
+
+<p align="justify">
+Two main class are present in MT_PEU (EstimacaoNaoLinear and EstimacaoLinear) whose methods allows: (i) <i>optimization</i> (parameter estimation); (ii) <i>parameter uncertainty evaluation</i> (includ the likelihood region); (iii) <i>uncertainty evaluation for prediction model estimatives</i>; and (iv) <i>residual analysis</i> (important to evaluate the model quality).
 </p>
 
-# Funcionalidades
+# Functionalities
 
-O motor de cálculo está baseado na linguagem Python (bibliotecas: Numpy, Scipy, Statsmodel, casadi, matplotlib), construído numa estrutura de classes cujas principais funcionalidades são:
+<p align="justify">
+The calculation engine is based on python language (packages: Numpy, Scipy, Statsmodel, casadi, matplotlib) and constructed on class structure whose main functionalities are:
+</p>
 
-* **Conjunto de dados**
-  <p align="justify"> Permite a inclusão de conjuntos de dados experimentais tanto para as etapas de estimação de parâmetros, quando para validação.</p>
+* **Dataset**
+  <p align="justify"> Allows to insert experimental datasets both for parameter estimation steps and validation.
 
-* **Estimação de parâmetros de um modelo**   
+* **Model parameter estimation**
   <p align="justify">
-    <text> Os parâmetros são obtidos por meio da minimização da função objetivo de mínimos quadrados ponderada pelo inverso da variância: </text>  </p>
+    <text> The parameters are obtained through weighted least squares objective function minimization. </text>  </p>
   <p align="center">
   <img src = "./Imagens/ObjectiveFunction.png">
   </p>
-  <p align="justify">
-   As rotinas de otimização foram desenvolvidas utilizando computação simbólica por meio do pacote <em>Casadi</em>. Dentre os algoritmos de otimização disponíveis, tem-se: (i) <em>ipopt</em>, baseado no método primal-dual do ponto interior e indicado para problemas não lineares de dimensão elevada; e (ii) <em>sqpmethod</em>, o qual utiliza programação quadrática sequencial. Para modelos lineares a solução é obtida analiticamente.
-</p>
-  
-* **Avaliação de incerteza dos parâmetros** 
-  <p align="justify"> A avaliação da incerteza dos parâmetros, após a otimização, pode ser realizada através de três métodos:
-   </p>
-   
-  * Geral, baseado na sensibilidade da função objetivo à pequenas variações do parâmetro no ponto ótimo:
-  
+  <p align="justify">The optimization routines were developed by symbolic computation using <i>casadi</i> package. The follow algorithms are available: (i) <i>ipopt</i>, based on interior point primal-dual method and indicated for large dimension nonlinear problems; and (ii) <i>sqpmethod</i>, that uses sequential quadratic programming. For linear models the solution is analytic.</p>
+
+* **Parameter uncertainty evaluation**
+  <p align="justify"> The parameter uncertainty evaluation, after the optimization step, can be performed through three methods.</p>
+
+  * Geral, based on objective function sensibility to little variations in the parameters at optimal point.
+
   <p align="center">
-  <img src = "./Imagens/Geral.png"> 
+  <img src = "./Imagens/Geral.png">
   </p>
-  
-  * 2InvHessiana, baseado em uma aproximação de (1):
-  
+
+  * 2InvHessiana, based on an approximation of (1):
+
   <p align="center">
   <img src = "./Imagens/2invHessian.png">
-  </p> 
-  
-  * SensibilidadeModelo, baseado em uma aproximação de (1):
+  </p>
+
+  * SensibilidadeModelo, based on an approximation of (1):
   <p align="center">
   <img src = "./Imagens/Sensibilidade.png">
-  </p> 
-  
-  Recomenda-se comparar as matrizes de covariância dos parâmetros obtidas, pelos métodos, de forma a garantir consistência do resultado.
-  
-* **Avaliação da incerteza das grandezas de saída estimadas**
+  </p>
+
+    <p align="justify">It's recommended to compare the parameter covariance matrix obtained by each method, in order to ensure that the results are consistent.</p>
+
+* **Uncertainty evaluation for out quantities estimated**
 
   <p align="justify">
-		<text>Com base nos parâmetros estimados e no conjunto de dados informado, é avaliado a predição do modelo bem como a incerteza associada: </text>
-  </p>
-  
+		<text>The model prediction as well as the associated uncertainty is evaluated based on estimated parameters and experimental dataset: </text>
+	</p>
+
   <p align="center">
   <img src = "./Imagens/Uyy.png">
-  </p> 
-
-* **Análise de resíduos**
-  <p align="justify">
-    <text>Utilizada para avaliar os resíduos (diferença entre os valores observados e preditos) obtidos após a estimação dos parâmetros de modo a investigar a significância estatística dos resultados (validação das hipóteses). Os resíduos são avaliados por meio de uma série de testes estatísticos relacionados às seguintes características: (i) normalidade, (ii) média, (iii) autocorrelação, e (iv) homocedasticidade. Além disso, também é avaliado estatisticamente o valor da função objetivo.</text>
   </p>
 
-* **Exportação de gráficos e relatórios**
-
+* **Residual analysis**
   <p align="justify">
-	De modo a proporcionar ao usuário uma melhor visualização dos resultados obtidos, o MT-PEU oferece a exportação de gráficos e relatórios, os quais podem ser solicitados em qualquer parte do código.
+    <text> Is used to evaluate the residues (difference between observed and predicted values) obtained after the parameters estimation in order to check the statistical significance for the results (hypothesis validation). The residues are evaluated by statistical tests according to to the follow features: (i) normality, (ii) mean, (iii) autocorrelation, and (iv) homoscedasticity. In addition it's also statistically evaluated the objective function value.</text>
   </p>
-  
-  * São três tipos de **relatórios** disponíveis: (i) *otimização*, o qual descreve o procedimento de otimização realizado para encontrar a solução ótima; (ii) *parâmetros*, o qual informa valores, variâncias e incertezas obtidas para os parâmetros estimados; e (iii) *predição*, o qual apresenta os resultados dos testes estatísticos realizados para os resíduos. 
-  
-  * Há uma variedade de **gráficos** disponíveis para as grandezas envolvidas no problema, dentre eles: (i) *tendência*, (ii) *boxplot*, (iii) *autocorrelação*, e (iv) *matriz de correlação*. Para os parâmetros, é gerado o gráfico da região de abrangência (elipsoidal e de verossimilhança).
-  
-# Instalação
 
-<p align="justify">
-A instalação do MT-PEU é realizada por meio do download dos arquivos através do link (https://github.com/ddss/MT_PEU/Teste). Para o correto funcionamento do motor de cálculo, é necessário que os seguintes pacotes estejam instalados: 
+* **Graphs and reports export**
+
+  <p align="justify"> In order to provide a better view of the obtained results the MT_PEU offer a graphs and reports export which can be requested anywhere in the code.</p>
+
+  * <p align="justify">There are three <b>report</b> types available: (i) <i>optimization</i>, that describes the optimization procedure; (ii) <i>parameters</i>, that contains the values, variances and uncertainties obtained for the estimated parameters; and (iii) <i>prediction</i>, which presents the results of statistical tests applied for residues.</p>
+
+  * <p align="justify">There are many graphs available in MT_PEU, for example: (i) <i>tendecy</i>, (ii) <i>boxplot</i>, (iii) <i>autocorrelation</i>, (iv) <i>correlation matrix</i> and (iv) <i>Região de abrangência dos parâmetros</i>(elipsoidal e de verossimilhança).</p>
+
+    <p align="justify"> Figure 1 shows some graphs produced by MT_PEU .</p>
+
+<p align="center">
+    <img src = "./Imagens/Region.png" width="500" />
+    <img src = "./Imagens/CorrelationMatrix.png" width="500" />
+
+                                           Fig 1a. Região de abrangência                                     Fig 1b. Correlation Matrix
 </p>
 
-* numpy
-* scipy
-* matplotlib
-* casadi
-* statsmodels
+<p align="center">
+    <img src = "./Imagens/autocorrelation.png" width="500" />
+    <img src = "./Imagens/Tendencia.png" width="500" />
 
-Com exceção do casadi, todos os pacotes estão disponíveis na distribuição Anaconda.
+                                              Fig 1c. Autocorrelation                                                Fig 1d. Tendecy graph
 
-# Exemplo
+</p>
+
+# How to install
+
+<p align="justify"> To install MT_PEU it's necessary download the archives through the link (https://github.com/ddss/MT_PEU/Teste). In addition, it's necessary to install the follow packages:</p>
+
+* numpy - version 1.16.2 (available in **anaconda** distribution)
+* scipy - version 1.2.0 (available in **anaconda** distribution)
+* matplotlib - version 3.1.1 (available in **anaconda** distribution)
+* casadi - version 3.4.5 (may be installed by pip: **pip install casadi**)
+* statsmodels - version 0.9.0 (available in **anaconda** distribution)
+
+*link for download anaconda distribution*: https://www.anaconda.com/distribution/
+
+# Getting Started
+
+Let's start with an pratical example using the python's interface.
+
 ```python
 
 # packages imports
@@ -148,8 +164,9 @@ Estime.analiseResiduos()
 # plotting graphs with residuals analysis and predicted data
 Estime.graficos()
 ```
-# Referências
-Este projeto basea-se nos trabalhos de:
+* <p align="justify">This and other examples can be found in <i>Jupyter Notebook</i> plataform</p>
+# References
+This project is based in:
 
 * BARD, Y. Nonlinear parameter estimation. New York: Academic Press, 1974
 * SCHWAAB, M. M.; PINTO, J. C. Análise de Dados Experimentais I: Fundamentos da Estatística e Estimação de Parâmetros. Rio de Janeiro: e-papers, 2007.
