@@ -72,18 +72,13 @@ The calculation engine is based on python language (packages: Numpy, Scipy, Stat
     <p align="justify"> Figure 1 shows some graphs produced by MT_PEU .</p>
 
 <p align="center">
-    <img src = "./Imagens/Region.png" width="500" />
-    <img src = "./Imagens/CorrelationMatrix.png" width="500" />
-
-                                           Fig 1a. Região de abrangência                                     Fig 1b. Correlation Matrix
+    <img src = "./Imagens/Region.png" width="400" />
+    <img src = "./Imagens/CorrelationMatrix.png" width="400" />
 </p>
 
 <p align="center">
-    <img src = "./Imagens/autocorrelation.png" width="500" />
-    <img src = "./Imagens/Tendencia.png" width="500" />
-
-                                              Fig 1c. Autocorrelation                                                Fig 1d. Tendecy graph
-
+    <img src = "./Imagens/autocorrelation.png" width="400" />
+    <img src = "./Imagens/Tendencia.png" width="400" />
 </p>
 
 # How to install
