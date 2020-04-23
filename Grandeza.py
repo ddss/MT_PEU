@@ -126,9 +126,17 @@ class Grandeza:
         # VARIÁVEIS INTERNAS
         # ---------------------------------------------------------------------   
         self.__ID = [] # ID`s que a grandeza possui
-        self.__ID_disponivel = ['estimacao','predicao','calculado','parametro','residuo'] # Todos os ID's disponíveis
 
+    @property
+    def __ID_disponivel(self):
+        # Todos os ID's disponíveis
+        return ['estimacao','predicao','calculado','parametro','residuo']
 
+    @property
+    def __configLabel(self):
+        # Label para gráficos:
+        #       estimacao                           predicao                            calculado
+        return {self.__ID_disponivel[0]:'observado',self.__ID_disponivel[1]:'observado',self.__ID_disponivel[2]:'calculado'}
 
     def __validacaoEntrada(self,simbolos,nomes,unidades,label_latex):
         u'''
@@ -506,8 +514,9 @@ class Grandeza:
                 label[z] = label[z] +' '+ add
 
             # Caso seja definido uma unidade, esta será incluída no label
-            if self.unidades[z] is not None:
-                label[z] = label[z] + " / " + self.unidades[z]
+            if printunit:
+                if self.unidades[z] is not None:
+                    label[z] = label[z] + " / " + self.unidades[z]
 
         return label
 
@@ -843,7 +852,7 @@ class Grandeza:
                     x   = linspace(1,NE,num=NE)
                     #Gráfico em função do numero de observações
                     Fig.grafico_dispersao_sem_incerteza(x, dados, label_x='Amostra',
-                                                        label_y=self.labelGraficos('observado' if  atributo == 'estimacao' else atributo)[i],
+                                                        label_y=self.labelGraficos(self.__configLabel[atributo])[i],
                                                         marker='o', linestyle=' ')
                     Fig.salvar_e_fechar(base_path + folder + 'tendencia' + '_' + 'observado'+'.png' if atributo == 'estimacao' else base_path + folder + 'tendencia' + '_' + atributo +'.png')
 
