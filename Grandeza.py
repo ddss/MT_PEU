@@ -42,7 +42,7 @@ class Grandeza:
         **OBRIGATÓRIO**:
         
         * ``simbolos`` (list)   : deve ser uma lista contendo os símbolos, na ordem de entrada de cada variável   
-        
+
         **OPCIONAL**:
         
         * ``nomes``       (list) : deve ser uma lisra contendo o nome das variáveis
@@ -854,7 +854,7 @@ class Grandeza:
                     Fig.grafico_dispersao_sem_incerteza(x, dados, label_x='Amostra',
                                                         label_y=self.labelGraficos(self.__configLabel[atributo])[i],
                                                         marker='o', linestyle=' ')
-                    Fig.salvar_e_fechar(base_path + folder + 'tendencia' + '_' + 'observado'+'.png' if atributo == 'estimacao' else base_path + folder + 'tendencia' + '_' + atributo +'.png')
+                    Fig.salvar_e_fechar(base_path + folder + 'tendencia' + '_' + self.__configLabel[atributo] +'.png')
 
             if self.__ID_disponivel[0] in ID:
 
