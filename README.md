@@ -1,28 +1,28 @@
 # Calculation Engine for Parameter Estimator with Uncertainty - MT_PEU
 
 <p align="justify">
-The MT_PEU is an open-source calculation engine developed for steady-state model parameter estimation applications (linear and nonlinear cases) in the presence of uncertainty for observed data. In addition, the MT_PEU perform statistical evaluations about in relation to the model quality(região de abrangência dos parâmetros and hypothesis test on residues).</p>
+The MT_PEU is an open-source calculation engine developed for parameter estimation of linear and non-linear steady-state models in the presence of uncertainty on the observed data. Additionally, the MT_PEU performs statistical evaluations regarding the quality of the estimation, i.e. how well the model describes the observed data, using: (i) coverage region of parameters, (ii) hypothesis testing on residues.</p>
 
 <p align="justify">
-Two main class are present in MT_PEU (EstimacaoNaoLinear and EstimacaoLinear) whose methods allows: (i) <i>optimization</i> (parameter estimation); (ii) <i>parameter uncertainty evaluation</i> (includ the likelihood region); (iii) <i>uncertainty evaluation for prediction model estimatives</i>; and (iv) <i>residual analysis</i> (important to evaluate the model quality).
+MT_PEU builts on two main classes (EstimacaoNaoLinear and EstimacaoLinear), whose methods allow: (i) <i>optimization</i> (parameter estimation); (ii) <i>evaluation of parameter uncertainty</i> (including the coverage region); (iii) <i>evaluation of  prediction model estimates and its uncertainty</i>; and (iv) <i>residual analysis</i> (important to evaluate the model quality).
 </p>
 
 # Functionalities
 
 <p align="justify">
-The calculation engine is based on python language (packages: Numpy, Scipy, Statsmodel, casadi, matplotlib) and constructed on class structure whose main functionalities are:
+This calculation engine is based on Python programming language (packages: Numpy, Scipy, Statsmodel, casadi, and matplotlib) and builts on a class structure, which main functionalities are, namely:
 </p>
 
-* **Dataset**
-  <p align="justify"> Allows to insert experimental datasets both for parameter estimation steps and validation.
+* **Inclusion of different datasets**
+  <p align="justify"> Allows to insert observed datasets, obtained experimentally, both for parameter estimation and validation purposes. </p>
 
 * **Model parameter estimation**
   <p align="justify">
-    <text> The parameters are obtained through weighted least squares objective function minimization. </text>  </p>
+    <text> The parameters are obtained through the solution of an optimization problem, which cost function is a weighted least squares: </text>  </p>
   <p align="center">
   <img src = "./Imagens/ObjectiveFunction.png">
   </p>
-  <p align="justify">The optimization routines were developed by symbolic computation using <i>casadi</i> package. The follow algorithms are available: (i) <i>ipopt</i>, based on interior point primal-dual method and indicated for large dimension nonlinear problems; and (ii) <i>sqpmethod</i>, that uses sequential quadratic programming. For linear models the solution is analytic.</p>
+  <p align="justify">The optimization routines were developed by symbolic computation using the <i>casadi</i> package. The following algorithms are available: (i) <i>ipopt</i>, based on interior point primal-dual method and indicated for large dimension nonlinear problems; and (ii) <i>sqpmethod</i>, that uses sequential quadratic programming. Regarding linear models on the parameters, the solution is obtained analytically.</p>
 
 * **Parameter uncertainty evaluation**
   <p align="justify"> The parameter uncertainty evaluation, after the optimization step, can be performed through three methods.</p>
