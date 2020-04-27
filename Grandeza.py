@@ -732,7 +732,7 @@ class Grandeza:
                     listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
 
             plot_corr(self.predicao.matriz_correlacao, xnames=listalabel, ynames=listalabel, title=u'Matriz de correlação ' + self.__ID_disponivel[1],normcolor=True,cmap=cm1)
-            savefig(base_path+folder+self.__ID_disponivel[1])#+'_'+'pcolor')_matriz-correlacao')
+            savefig(base_path+folder+'observado.png') # +'_'+'pcolor')_matriz-correlacao')
             close()
 
         if (self.__ID_disponivel[2] in ID) and (self.calculado.matriz_correlacao is not None): # Gráfico Pcolor para calculado
@@ -898,4 +898,4 @@ class Grandeza:
                     Fig.autocorr(dados, label_x='Lag',
                                  label_y=u'Autocorrelação de {}'.format(self.labelGraficos(printunit=False)[i]),
                                  normed=True, maxlags=None)
-                    Fig.salvar_e_fechar(base_path + folder + 'autocorrelacao_' + 'predicao.png')
+                    Fig.salvar_e_fechar(base_path + folder + 'autocorrelacao_' + 'observado.png')
