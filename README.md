@@ -10,7 +10,7 @@ MT_PEU builts on two main classes (EstimacaoNaoLinear and EstimacaoLinear), whos
 # Functionalities
 
 <p align="justify">
-This calculation engine is based on Python programming language (packages: Numpy, Scipy, Statsmodel, casadi, and matplotlib) and builts on a class structure, which main functionalities are, namely:
+This calculation engine is based on Python programming language and builts on a class structure, which main functionalities are, namely:
 </p>
 
 * **Inclusion of different datasets**

@@ -106,7 +106,7 @@ class Grafico:
         self.axes.set_xlim(min(xlim_original[0], x_lim[0]), max(xlim_original[1], x_lim[1]))
         self.axes.set_ylim(min(ylim_original[0], y_lim[0]), max(ylim_original[1], y_lim[1]))
 
-    def set_label(self, label_x=None, label_y=None, **kwargs):
+    def set_label(self, label_x=None, label_y=None,fontsize=14,**kwargs):
         u"""
         Método para adição de label aos eixos
 
@@ -115,11 +115,11 @@ class Grafico:
         :param kwargs: keywords a serem passadas para matplotlib.pyplot.xlabel e ylabel
         """
         if label_x is not None:
-            self.axes.set_xlabel(label_x, **kwargs)
+            self.axes.set_xlabel(label_x,fontsize=fontsize,**kwargs)
         if label_y is not None:
-            self.axes.set_ylabel(label_y, **kwargs)
+            self.axes.set_ylabel(label_y,fontsize=fontsize,**kwargs)
 
-    def set_legenda(self, legenda, **kwargs):
+    def set_legenda(self,legenda,fontsize=12,loc='best',frameon=True,fancybox=True,**kwargs):
         u"""
         Método para adição de legenda
 
@@ -134,7 +134,7 @@ class Grafico:
             raise ValueError(
                 'A legenda deve ser uma lista do mesmo tamanho dos gráficos incluídos: {}'.format(len(self.lista_graficos)))
 
-        self.axes.legend(self.lista_graficos, legenda, **kwargs)
+        self.axes.legend(self.lista_graficos, legenda,fontsize=fontsize,loc=loc,frameon=frameon,fancybox=fancybox, **kwargs)
 
     def grafico_dispersao_sem_incerteza(self, x, y, label_x = None, label_y = None,
                                         add_legenda = False, corrigir_limites = True, config_axes = True,

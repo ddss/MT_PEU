@@ -9,7 +9,7 @@ def Model(param, x, *args):
     return exp(-ko * tempo * exp(-E * (1 / T - 1. / 630.)))
 
 
-Estime = EstimacaoNaoLinear(Model, simbolos_x=[r't', 'T'], unidades_x=['s', 'K'], label_latex_x=[r'$t$', '$T$'],
+Estime = EstimacaoNaoLinear(Model, simbolos_x=[r't', 'Tau'], unidades_x=['s', 'K'], label_latex_x=[r'$t$', '$T$'],
                             simbolos_y=[r'y'], unidades_y=['adm'],
                             simbolos_param=['ko', 'E'], unidades_param=['adm', 'K'],
                             label_latex_param=[r'$k_o$', r'$E$'],
@@ -42,9 +42,7 @@ Estime.incertezaParametros(metodoIncerteza='Geral')
 
 Estime.predicao()
 Estime.analiseResiduos()
-etapas = ['grandezas-entrada', 'predicao', 'grandezas-calculadas', 'analiseResiduos', 'regiaoAbrangencia']
-Estime.graficos()
-
+#Estime.graficos()
 
 # =================================================================================
 # IX - OPCIONAL: PREDIÇÃO
@@ -75,8 +73,5 @@ Estime.setConjunto(tipo='predicao')
 
 Estime.predicao()
 Estime.analiseResiduos()
-
-#etapas = ['grandezas-entrada', 'predicao','grandezas-calculadas','analiseResiduos', 'regiaoAbrangencia']
-#Estime.graficos(tipos=etapas)
-
+Estime.graficos()
 
