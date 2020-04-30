@@ -38,5 +38,5 @@ Estimation.analiseResiduos()
 
 etapas = ['predicao', 'grandezas-calculadas', 'analiseResiduos', 'regiaoAbrangencia']
 
-Estimation.graficos(etapas)
+Estimation.graficos()
 

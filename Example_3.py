@@ -9,7 +9,7 @@ def Model(param, x, *args):
     return exp(-ko * tempo * exp(-E * (1 / T - 1. / 630.)))
 
 
-Estime = EstimacaoNaoLinear(Model, simbolos_x=[r't', 'Tau'], unidades_x=['s', 'K'], label_latex_x=[r'$t$', '$T$'],
+Estime = EstimacaoNaoLinear(Model, simbolos_x=[r't', 'Tao'], unidades_x=['s', 'K'], label_latex_x=[r'$t$', '$T$'],
                             simbolos_y=[r'y'], unidades_y=['adm'],
                             simbolos_param=['ko', 'E'], unidades_param=['adm', 'K'],
                             label_latex_param=[r'$k_o$', r'$E$'],
@@ -42,7 +42,9 @@ Estime.incertezaParametros(metodoIncerteza='Geral')
 
 Estime.predicao()
 Estime.analiseResiduos()
-#Estime.graficos()
+#tapas = ['grandezas-entrada', 'predicao', 'grandezas-calculadas', 'analiseResiduos', 'regiaoAbrangencia']
+Estime.graficos()
+
 
 # =================================================================================
 # IX - OPCIONAL: PREDIÇÃO
@@ -67,11 +69,15 @@ uy1 = [0.2]*12
 
 Estime.setDados(0,(tempo,uxtempo),(temperatura,uxtemperatura))
 Estime.setDados(1,(y,uy1))
-Estime.graficos()
+#Estime.graficos()
 
 Estime.setConjunto(tipo='predicao')
 
 Estime.predicao()
 Estime.analiseResiduos()
 Estime.graficos()
+
+#etapas = ['grandezas-entrada', 'predicao','grandezas-calculadas','analiseResiduos', 'regiaoAbrangencia']
+#Estime.graficos(tipos=etapas)
+
 
