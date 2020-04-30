@@ -11,7 +11,7 @@ def Model(param, x, *args):
 
 Estime = EstimacaoNaoLinear(Model, simbolos_x=[r't', 'Tao'], unidades_x=['s', 'K'], label_latex_x=[r'$t$', '$T$'],
                             simbolos_y=[r'y'], unidades_y=['adm'],
-                            simbolos_param=['ko', 'E'], unidades_param=['adm', 'K'],
+                            simbolos_param=['ko', 'E'], unidades_param=['adm','K'],
                             label_latex_param=[r'$k_o$', r'$E$'],
                             Folder='Exemplo3')
 
