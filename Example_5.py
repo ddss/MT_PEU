@@ -11,7 +11,7 @@ def Model(param, x,*args):
 
     return exp(a / 8.31446 + b / (8.31446 * T) - (65.6 / 8.31446) * log( T / 298.15))
 
-Estimation = EstimacaoNaoLinear(Model, simbolos_x=['T'], simbolos_y=['P'], simbolos_param=['a','b'], Folder='Formamide' )
+Estimation = EstimacaoNaoLinear(Model, simbolos_x=['T'], simbolos_y=['P'], simbolos_param=['a','b'], Folder = 'Formamide' )
 
 '''Data definiton'''
 P = [75.1, 96.1, 117.3, 167.7, 169, 211, 248.2, 326.5, 464.6, 627.4, 709.4,
