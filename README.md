@@ -83,7 +83,7 @@ This calculation engine is based on Python programming language and builts on a 
 
 # How to install
 
-<p align="justify"> To install MT-PEU it's necessary to have <b>Python 3</b> installed with the following packages:
+<p align="justify"> To use MT-PEU it's necessary to have <b>Python 3</b> installed with the following packages:
 
 * numpy - version 1.16.2 (available in **anaconda** distribution)
 * scipy - version 1.2.0 (available in **anaconda** distribution)
@@ -91,16 +91,15 @@ This calculation engine is based on Python programming language and builts on a 
 * statsmodels - version 0.9.0 (available in **anaconda** distribution)
 * casadi - version 3.4.5 (may be installed by pip: **pip install casadi**)
 
-*The easiest way to install the Python 3 and the packages is through the anaconda distribution*: https://www.anaconda.com/distribution/
+*The easiest way to install the Python 3 and the referred packages is through the anaconda distribution*: https://www.anaconda.com/distribution/
 *After installing the Anaconda distribution, one can use the Anaconda Prompt and install casadi through the command: **pip install casadi**.*
 
-Finally, one can dowload the MT-PEU files at https://github.com/ddss/MT_PEU/archive/Teste.zip and use a code Editor, like PyCharm, to use it. A
-simplest way to use MT-PEU is using the Jupyter Notebook - just start the Jupyter at Navigator and using the interface lookfor ".ipynb" files in the MT-PEU folder.
-
+Finally, one can download the MT-PEU files at https://github.com/ddss/MT_PEU/archive/Teste.zip and, through a code Editor, like PyCharm, use the engine. A
+simplest way to use MT-PEU is through the Jupyter Notebook - just start the Jupyter at Anaconda Navigator and using the interface lookfor ".ipynb" files in the MT-PEU folder.
 
 # Getting Started
 
-We offered examples to help users in using the MT-PEU. The most *detailed examples are
+We have included examples to help users in using the MT-PEU. The most *detailed examples are
 presented using the Jupyter framework*, so just start the jupyter (actually a jupyter server) at 
 Anaconda Navigator, and through the interface (it will open in your browser) open one of the files Exemplo_1.ipynb to Exemplo_5.ipynb.
 
