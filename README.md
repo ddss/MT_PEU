@@ -14,7 +14,7 @@ This calculation engine is based on Python programming language and builts on a 
 </p>
 
 * **Inclusion of different datasets**
-  <p align="justify"> Allows to insert observed datasets, obtained experimentally, both for parameter estimation and validation purposes. </p>
+  <p align="justify"> It allows to insert observed datasets, obtained experimentally, both for parameter estimation and validation purposes. </p>
 
 * **Model parameter estimation**
   <p align="justify">
@@ -22,12 +22,12 @@ This calculation engine is based on Python programming language and builts on a 
   <p align="center">
   <img src = "./Imagens/ObjectiveFunction.png">
   </p>
-  <p align="justify">The optimization routines were developed by symbolic computation using the <i>casadi</i> package. The following algorithms are available: (i) <i>ipopt</i>, based on interior point primal-dual method and indicated for large dimension nonlinear problems; and (ii) <i>sqpmethod</i>, that uses sequential quadratic programming. Regarding linear models on the parameters, the solution is obtained analytically.</p>
+  <p align="justify">The optimization routines were developed by symbolic computation using the <i>casadi</i> package. The following algorithms are available: (i) <i>ipopt</i>, based on interior point primal-dual method and indicated for large dimension nonlinear problems; and (ii) <i>sqpmethod</i>, which uses sequential quadratic programming. Regarding linear models on the parameters, the solution is obtained analytically.</p>
 
 * **Parameter uncertainty evaluation**
-  <p align="justify"> The parameter uncertainty evaluation, after the optimization step, can be performed through three methods.</p>
+  <p align="justify"> The evaluation of parameter uncertainty is carried out after the optimization step and can be performed through three methods:</p>
 
-  * Geral, based on objective function sensibility to little variations in the parameters at optimal point.
+  * Geral, based on the sensibility of the objective function to small variations in the parameters at the optimal point.
 
   <p align="center">
   <img src = "./Imagens/Geral.png">
@@ -46,11 +46,9 @@ This calculation engine is based on Python programming language and builts on a 
 
     <p align="justify">It's recommended to compare the parameter covariance matrix obtained by each method, in order to ensure that the results are consistent.</p>
 
-* **Uncertainty evaluation for out quantities estimated**
+* **Uncertainty evaluation for the estimated outputs**
 
-  <p align="justify">
-		<text>The model prediction as well as the associated uncertainty is evaluated based on estimated parameters and experimental dataset: </text>
-	</p>
+  <p align="justify"> The model prediction as well as the associated uncertainty is evaluated based on estimated parameters and experimental dataset:	</p>
 
   <p align="center">
   <img src = "./Imagens/Uyy.png">
@@ -58,18 +56,20 @@ This calculation engine is based on Python programming language and builts on a 
 
 * **Residual analysis**
   <p align="justify">
-    <text> Is used to evaluate the residues (difference between observed and predicted values) obtained after the parameters estimation in order to check the statistical significance for the results (hypothesis validation). The residues are evaluated by statistical tests according to to the follow features: (i) normality, (ii) mean, (iii) autocorrelation, and (iv) homoscedasticity. In addition it's also statistically evaluated the objective function value.</text>
+    <text> It is used to evaluate the residues (the difference between observed and predicted values) in order to check the statistical significance for the results (hypothesis validation). 
+          The residues are evaluated by statistical testing according to its desired behavior, i.e. hypotheses imposed to obtain the objective function: (i) normality, (ii) zero mean, (iii) autocorrelation, and (iv) homoscedasticity. 
+          Additionally, it is also evaluated if the optimum objective function remains inside the statistical interval, following the chi-square distribution.</text>
   </p>
 
 * **Graphs and reports export**
 
-  <p align="justify"> In order to provide a better view of the obtained results the MT_PEU offer a graphs and reports export which can be requested anywhere in the code.</p>
+  <p align="justify"> In order to provide a better view of the obtained results the MT-PEU offers charts and reports, which can be requested anywhere in the code.</p>
 
-  * <p align="justify">There are three <b>report</b> types available: (i) <i>optimization</i>, that describes the optimization procedure; (ii) <i>parameters</i>, that contains the values, variances and uncertainties obtained for the estimated parameters; and (iii) <i>prediction</i>, which presents the results of statistical tests applied for residues.</p>
+  * <p align="justify">There are three type of  <b>reports</b> available: (i) <i>optimization</i>, that describes the optimization procedure; (ii) <i>parameters</i>, that contains the values, covariance matrix and uncertainties obtained for the estimated parameters; and (iii) <i>prediction</i>, which presents the results of residual analysis.</p>
 
-  * <p align="justify">There are many graphs available in MT_PEU, for example: (i) <i>tendecy</i>, (ii) <i>boxplot</i>, (iii) <i>autocorrelation</i>, (iv) <i>correlation matrix</i> and (iv) <i>Região de abrangência dos parâmetros</i>(elipsoidal e de verossimilhança).</p>
+  * <p align="justify">There are many graphs and charts available in MT-PEU, for example: (i) <i>tendency</i>, (ii) <i>boxplot</i>, (iii) <i>autocorrelation</i>, (iv) <i>correlation matrix</i> and (iv) <i>coverage region of parameters</i>(likelihood and the one assuming that parameters follow a normal distribution).</p>
 
-    <p align="justify"> Figure 1 shows some graphs produced by MT_PEU .</p>
+    <p align="justify"> Figure 1 shows some examples of graphs produced by MT-PEU .</p>
 
 <p align="center">
     <img src = "./Imagens/Region.png" width="400" />
@@ -83,20 +83,30 @@ This calculation engine is based on Python programming language and builts on a 
 
 # How to install
 
-<p align="justify"> To install MT_PEU it's necessary download the archives through the link (https://github.com/ddss/MT_PEU/Teste). In addition, it's necessary to install the follow packages:</p>
+<p align="justify"> To install MT-PEU it's necessary to have <b>Python 3</b> installed with the following packages:
 
 * numpy - version 1.16.2 (available in **anaconda** distribution)
 * scipy - version 1.2.0 (available in **anaconda** distribution)
 * matplotlib - version 3.1.1 (available in **anaconda** distribution)
-* casadi - version 3.4.5 (may be installed by pip: **pip install casadi**)
 * statsmodels - version 0.9.0 (available in **anaconda** distribution)
+* casadi - version 3.4.5 (may be installed by pip: **pip install casadi**)
 
-*link for download anaconda distribution*: https://www.anaconda.com/distribution/
+*The easiest way to install the Python 3 and the packages is through the anaconda distribution*: https://www.anaconda.com/distribution/
+*After installing the Anaconda distribution, one can use the Anaconda Prompt and install casadi through the command: **pip install casadi**.*
+
+Finally, one can dowload the MT-PEU files at https://github.com/ddss/MT_PEU/archive/Teste.zip and use a code Editor, like PyCharm, to use it. A
+simplest way to use MT-PEU is using the Jupyter Notebook - just start the Jupyter at Navigator and using the interface lookfor ".ipynb" files in the MT-PEU folder.
+
 
 # Getting Started
 
-Let's start with an pratical example using the python's interface.
+We offered examples to help users in using the MT-PEU. The most *detailed examples are
+presented using the Jupyter framework*, so just start the jupyter (actually a jupyter server) at 
+Anaconda Navigator, and through the interface (it will open in your browser) open one of the files Exemplo_1.ipynb to Exemplo_5.ipynb.
 
+The same examples are presented in simple .py files to be used in code editors.
+
+To exemplify the usage of MT-PEU, let's reproduce the Example_1.py file:
 ```python
 
 # packages imports
@@ -159,7 +169,7 @@ Estime.analiseResiduos()
 # plotting graphs with residuals analysis and predicted data
 Estime.graficos()
 ```
-* <p align="justify">This and other examples can be found in <i>Jupyter Notebook</i> plataform</p>
+
 # References
 This project is based in:
 
