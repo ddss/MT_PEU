@@ -113,7 +113,7 @@ class EstimacaoNaoLinear:
                 teste = teste if teste != [] else [True]
                 # Caso nenhuma predecessora tenha sido executada, retorna um erro
                 if not any(teste):
-                    raise SyntaxError('Para executar o método {} deve executar antes {}.'.format(etapa, ' ou '.join(
+                    raise SyntaxError('To run the {} method you must first run {}.'.format(etapa, ' or '.join(
                         getattr(self, '_predecessora_' + etapa))))
             # atribuindo o valor 1 (executado) ao atributo referente à etapa, atualmente em execução
             setattr(self, etapa, 1)
@@ -234,7 +234,7 @@ class EstimacaoNaoLinear:
         def _sucessoresValidacao(self):
             return ['predicao', 'analiseResiduos', 'armazenarDicionario', 'Gy', 'S']
 
-    def __init__(self, Modelo, simbolos_y, simbolos_x, simbolos_param, PA=0.95, Folder='Projeto', **kwargs):
+    def __init__(self, Model, symbols_y, symbols_x, symbols_param, PA=0.95, Folder='Projeto', **kwargs):
         u"""
         Classe para executar a estimação de parâmetros de modelos não lineares.
 
@@ -262,10 +262,10 @@ class EstimacaoNaoLinear:
         =======================
         Entradas (obrigatórias)
         =======================
-        * ``Modelo`` (Thread)       : objeto modelo. O modelo deve retornar um array com número de colunas igual ao número de grandezas dependentes.
-        * ``simbolos_y`` (list)     : lista com os simbolos das grandezas dependentes (Não podem haver caracteres especiais)
-        * ``simbolos_x`` (list)     : lista com os simbolos das grandezas independentes (Não podem haver caracteres especiais)
-        * ``simbolos_param`` (list) : lista com o simbolos dos parâmetros  (Não podem haver caracteres especiais)
+        * ``Model`` (Thread)       : objeto modelo. O modelo deve retornar um array com número de colunas igual ao número de grandezas dependentes.
+        * ``symbols_y`` (list)     : lista com os simbolos das grandezas dependentes (Não podem haver caracteres especiais)
+        * ``symbols_x`` (list)     : lista com os simbolos das grandezas independentes (Não podem haver caracteres especiais)
+        * ``symbols_param`` (list) : lista com o simbolos dos parâmetros  (Não podem haver caracteres especiais)
 
         ====================
         Entradas (opcionais)
@@ -277,16 +277,16 @@ class EstimacaoNaoLinear:
         Keywords (Entradas opcionais):
         ==============================
 
-        * ``nomes_x``        (list): lista com os nomes para x
-        * ``unidades_x``     (list): lista com as unidades para x (inclusive em formato LATEX)
+        * ``names_x``        (list): lista com os nomes para x
+        * ``units_x``        (list): lista com as unidades para x (inclusive em formato LATEX)
         * ``label_latex_x``  (list): lista com os símbolos das variáveis em formato LATEX
 
-        * ``nomes_y``        (list): lista com os nomes para y
-        * ``unidades_y``     (list): lista com as unidades para y (inclusive em formato LATEX)
+        * ``names_y``        (list): lista com os nomes para y
+        * ``units_y``        (list): lista com as unidades para y (inclusive em formato LATEX)
         * ``label_latex_y``  (list): lista com os símbolos das variáveis em formato LATEX
 
-        * ``nomes_param``       (list): lista com os nomes para os parâmetros (inclusive em formato LATEX)
-        * ``unidades_param``    (list): lista com as unidades para os parâmetros (inclusive em formato LATEX)
+        * ``names_param``       (list): lista com os nomes para os parâmetros (inclusive em formato LATEX)
+        * ``units_param``       (list): lista com as unidades para os parâmetros (inclusive em formato LATEX)
         * ``label_latex_param`` (list): lista com os símbolos das variáveis em formato LATEX
 
         * ``base_path`` (string): String que define o diretório pai que serão criados/salvos os arquivos gerados pelo motor de cálculo
@@ -304,14 +304,14 @@ class EstimacaoNaoLinear:
         para as grandezas independentes. (Vide documentação do método)
         * ``setConjunto``        : método para definir se os dados experimentais incluídos serão usados para estimação de parâmetros ou para
         validação. (Vide documentação do método)
-        * ``otimiza``              : método para realizar a otimização, com base no conjunto de dados definido em setConjunto. (Vide documentação do método)
-        * ``incertezaParametros``  : método que avalia a incerteza dos parâmetros (Vide documentação do método)
+        * ``optimize``              : método para realizar a otimização, com base no conjunto de dados definido em setConjunto. (Vide documentação do método)
+        * ``parametersUncertainty``  : método que avalia a incerteza dos parâmetros (Vide documentação do método)
         * ``setDados'': (é opcional para inclusão de dados de validação)
         * ``setConjunto``        : (é opcional para inclusão de dados de validação)
-        * ``Predicao``             : método que avalia a predição do modelo e sua incerteza ou utilizando os dados de validação. Caso estes \
+        * ``Prediction``             : método que avalia a predição do modelo e sua incerteza ou utilizando os dados de validação. Caso estes \
         não estejam disponíveis, será utilizado os mesmos dados de estimação (Vide documentação do método)
-        * ``analiseResiduos``      : método para executar a análise de resíduos (Vide documentação do método)
-        * ``graficos``             : método para criação dos gráficos (Vide documentação do método)
+        * ``residualAnalysis``      : método para executar a análise de resíduos (Vide documentação do método)
+        * ``plots``             : método para criação dos gráficos (Vide documentação do método)
         * ``_armazenarDicionario`` : método que retorna as grandezas sob a forma de um dicionário (Vide documentação do método)
 
         **PREDIÇÃO**
@@ -321,20 +321,20 @@ class EstimacaoNaoLinear:
         * ``SETparametro``         : método adicionar manualmente valores das estimativas dos parâmetros e sua matriz covarãncia. É assumido \
         que os parâmetros foram estimados para o conjunto de dados fornecidos para estimação.
         * ``setConjunto``        : (é opcional para inclusão de dados de validação)
-        * incertezaParametros      : (é opcional para avaliação da incerteza, caso não incluído em SETparametro). Entretanto, este estará limitado a \
+        * parametersUncertainty      : (é opcional para avaliação da incerteza, caso não incluído em SETparametro). Entretanto, este estará limitado a \
         calcular a matriz de covariância dos parâmetros. Não será avaliada a região de abrangẽncia (esta deve ser incluída via SETparametro)
-        * ``Predicao``             : método que avalia a predição do modelo e sua incerteza ou utilizando os dados de validação. Caso estes \
+        * ``Prediction``             : método que avalia a predição do modelo e sua incerteza ou utilizando os dados de validação. Caso estes \
         não estejam disponíveis, será utilizado os mesmos dados de estimação (Vide documentação do método)
-        * ``analiseResiduos``      : método para executar a análise de resíduos (Vide documentação do método)
-        * ``graficos``             : método para criação dos gráficos (Vide documentação do método)
+        * ``residualAnalysis``      : método para executar a análise de resíduos (Vide documentação do método)
+        * ``plots``             : método para criação dos gráficos (Vide documentação do método)
         * ``_armazenarDicionario`` : método que retorna as grandezas sob a forma de um dicionário (Vide documentação do método)
 
 
         **OBSERVAÇÃO**: A ordem de execução dos métodos é importante. Esta classe só permite a execução de métodos, caso as etapas predescessoras tenham sido
         executadas. Entretanto, alguns métodos possuem flexibilidade. Segue abaixo algumas exemplos:
-        * setConjunto para definir os dados de estimação deve ser sempre executado antes de otimiza
+        * setConjunto para definir os dados de estimação deve ser sempre executado antes de optimize
         * setConjunto para definir os dados de validação deve ser sempre executado antes de predicao
-        * graficos é um método que pode ser executado em diferentes momentos:
+        * plots é um método que pode ser executado em diferentes momentos:
             * se for solicitado os gráficos das grandezas-entrada, o método pode ser executado logo após setDados
             * se for solicitado os gráficos da otimização, o método pode ser executado logo após otimização
 
@@ -351,8 +351,8 @@ class EstimacaoNaoLinear:
 
         **Observação 2**: Se forem adicionados novos dados para estimacao, todo o histórico de fluxos é apagado e reniciado.
 
-        Esta característica permite a avaliação de diferentes dados de valiação consecutivamente (uso dos métodos de Predição, análiseResiduos, graficos),
-        após a estimação dos parâmetros (otimiza, incertezaParametros)
+        Esta característica permite a avaliação de diferentes dados de valiação consecutivamente (uso dos métodos Prediction, residualAnalysis, plots),
+        após a estimação dos parâmetros (optimize, parametersUncertainty)
 
         ======
         Saídas
@@ -467,8 +467,8 @@ class EstimacaoNaoLinear:
         # VALIDAÇÕES GERAIS DE KEYWORDS
         # ---------------------------------------------------------------------
         # Keywords disponíveis para o método de entrada
-        self.__keywordsEntrada = ('nomes_x', 'unidades_x', 'label_latex_x', 'nomes_y', 'unidades_y', 'label_latex_y',
-                                  'nomes_param','unidades_param', 'label_latex_param', 'base_path')
+        self.__keywordsEntrada = ('names_x', 'units_x', 'label_latex_x', 'names_y', 'units_y', 'label_latex_y',
+                                  'names_param','units_param', 'label_latex_param', 'base_path')
 
         # Validação se houve keywords digitadas incorretamente:
         keyincorreta = [key for key in kwargs.keys() if not key in self.__keywordsEntrada]
@@ -479,33 +479,33 @@ class EstimacaoNaoLinear:
 
         # Verificação de PA está entre 0 e 1
         if not 0 < PA < 1:
-            raise ValueError('A probabilidade de abrangência deve estar entre 0 e 1.')
+            raise ValueError('The coverage probability must be between 0 and 1.')
 
         # Verificação se o nome do projeto é um string
         if not isinstance(Folder, str):
-            raise TypeError('O nome do Folder deve ser um string.')
+            raise TypeError('The Folder name must be a string.')
 
         # Verificação se o nome do projeto possui caracteres especiais
         if not Folder.isalnum():
-            raise NameError('O nome do Folder não pode conter caracteres especiais')
+            raise NameError('The folder name must not contain special characters')
 
         # Verificação se o base_path é uma string
         if kwargs.get(self.__keywordsEntrada[9]) is not None and not isinstance(kwargs.get(self.__keywordsEntrada[9]),
                                                                                   str):
-            raise TypeError('A keyword {} deve ser um string.'.format(self.__keywordsEntrada[9]))
+            raise TypeError('The keyword {} must be a string.'.format(self.__keywordsEntrada[9]))
 
         # ---------------------------------------------------------------------
         # INICIALIZAÇÃO DAS GRANDEZAS
         # ---------------------------------------------------------------------
         # Variável      = Grandeza(simbolos      ,nomes                                ,unidades                             ,label_latex                          )
-        self.x          = Grandeza(simbolos_x    ,kwargs.get(self.__keywordsEntrada[0]),kwargs.get(self.__keywordsEntrada[1]),kwargs.get(self.__keywordsEntrada[2]))
-        self.y          = Grandeza(simbolos_y    ,kwargs.get(self.__keywordsEntrada[3]),kwargs.get(self.__keywordsEntrada[4]),kwargs.get(self.__keywordsEntrada[5]))
-        self.parametros = Grandeza(simbolos_param,kwargs.get(self.__keywordsEntrada[6]),kwargs.get(self.__keywordsEntrada[7]),kwargs.get(self.__keywordsEntrada[8]))
+        self.x          = Grandeza(symbols_x    ,kwargs.get(self.__keywordsEntrada[0]),kwargs.get(self.__keywordsEntrada[1]),kwargs.get(self.__keywordsEntrada[2]))
+        self.y          = Grandeza(symbols_y    ,kwargs.get(self.__keywordsEntrada[3]),kwargs.get(self.__keywordsEntrada[4]),kwargs.get(self.__keywordsEntrada[5]))
+        self.parametros = Grandeza(symbols_param,kwargs.get(self.__keywordsEntrada[6]),kwargs.get(self.__keywordsEntrada[7]),kwargs.get(self.__keywordsEntrada[8]))
 
         # Verificação se os símbolos são distintos
         # set: conjunto de elementos distintos não ordenados (trabalha com teoria de conjuntos)
         if len(set(self.y.simbolos).intersection(self.x.simbolos)) != 0 or len(set(self.y.simbolos).intersection(self.parametros.simbolos)) != 0 or len(set(self.x.simbolos).intersection(self.parametros.simbolos)) != 0:
-            raise NameError('Os símbolos das grandezas devem ser diferentes.')
+            raise NameError('The symbols of the quantities must be different.')
 
         # ---------------------------------------------------------------------
         # OUTRAS VARIÁVEIS
@@ -522,7 +522,7 @@ class EstimacaoNaoLinear:
         # CRIAÇÃO DAS VARIÁVEIS INTERNAS
         # ---------------------------------------------------------------------
         # Modelo
-        self.__modelo    = Modelo
+        self.__modelo    = Model
         # Argumentos extras a serem passados para o modelo definidos pelo usuário.
         self.__args_user = None # Aqui iniciado para que possa existir na herança
         # Optimization algorithm position history (parameters) (used in optimizes and / or objective function mapping
@@ -629,18 +629,18 @@ class EstimacaoNaoLinear:
         * verificar se os graus de liberdade são suficientes para realizar a estimação
         """
         if dados.shape[1] != NV:
-            raise ValueError('O número de variáveis definidas foi {:d}, mas foram inseridos dados para {:d} variáveis.'.format(NV,dados.shape[1]))
+            raise ValueError('The number of variables defined was {:d}, but data was entered for {:d} variables.'.format(NV,dados.shape[1]))
 
         if udados.shape[1] != NV:
-            raise ValueError('O número de variáveis definidas foi {:d}, mas foram inseridas incertezas para {:d}.'.format(NV,udados.shape[1]))
+            raise ValueError('The number of variables defined was {:d}, but uncertainties were inserted for {:d}.'.format(NV,udados.shape[1]))
 
         if dados.shape[0] != udados.shape[0]:
-            raise ValueError('Os vetores de dados e suas incertezas devem ter o mesmo número de pontos.')
+            raise ValueError('Data vectors and their uncertainties must have the same number of points.')
 
         if udados.shape[0]*self.y.NV-float(self.parametros.NV) <= 0: # Verificar se há graus de liberdade suficiente
-            warn('Graus de liberdade insuficientes. O seu conjunto de dados experimentais não é suficiente para estimar os parâmetros!',UserWarning)
+            warn('Insufficient degrees of freedom. Your experimental data set is not enough to estimate the parameters!',UserWarning)
 
-    def setDados(self, tipo, *data):
+    def setDados(self, type, *data):
         u"""
         Método para tratar os dados de entrada de grandezas dependentes e independentes e organizá-los em formato adequado.
         Este método deve ser executado para cada grupo de grandezas envolvidas na estimação: (i) grandezas independentes e (ii) grandezas
@@ -652,7 +652,7 @@ class EstimacaoNaoLinear:
         Entradas (Obrigatórias)
         =======================
 
-        tipo (bool): 0 (grandeza independente) ou 1 (grandeza dependente)
+        type (bool): 0 (grandeza independente) ou 1 (grandeza dependente)
         *dados: tuplas contém os dados experimentais e incertezas das grandezas. Cada tupla deve
         conter duas listas: (i) uma com os dados experimentais de uma grandeza e (ii) outra lista contendo as incertezas
         associada à cada dado. Formato: ([dados grandeza],[incertezas grandeza]). Podem ser inseridas uma tupla para cada grandeza.
@@ -702,7 +702,6 @@ class EstimacaoNaoLinear:
         if len(data) == 0:
             raise TypeError('It is necessary to include at least data for one quantity: ([data],[uncertainty])')
 
-
         for ele in data:
             if not (isinstance(ele, list) or isinstance(ele, tuple)):
                 raise TypeError('Each quantity pair (data and uncertainty) must be a tuple or list: ([data],[uncertainty]).')
@@ -718,7 +717,7 @@ class EstimacaoNaoLinear:
 
         self.__controleFluxo.SET_ETAPA('setDados')
 
-        if tipo == 0:
+        if type == 0:
 
             X  = transpose(array([data[i][0] for i in range(len(data))], ndmin=2, dtype=float))
             uX = transpose(array([data[i][1] for i in range(len(data))], ndmin=2, dtype=float))
@@ -744,7 +743,7 @@ class EstimacaoNaoLinear:
         # graus de liberdade devem ser passados por aqui
 
 
-    def setConjunto(self,glx=[],gly=[],tipo=None,uxy=None):
+    def setConjunto(self,glx=[],gly=[],type=None,uxy=None):
         u"""
         Método para incluir os dados de entrada da estimação, deve ser executado após a setDados
 
@@ -754,11 +753,11 @@ class EstimacaoNaoLinear:
 
         * glx       : graus de liberdade para as grandezas de entrada
         * gly       : graus de liberdada para as grandezas de saída
-        * tipo      : string que define o objetivo do conjunto de dados inserido em setDados: 'estimacao' ou 'predicao'
+        * type      : string que define o objetivo do conjunto de dados inserido em setDados: 'estimacao' ou 'predicao'
         * uxy       : não está em uso
 
         **Aviso**:
-        * Caso não definido o tipo, setConjunto o define automaticamente, como estimacao ou predicao.
+        * Caso não definido o type, setConjunto o define automaticamente, como estimacao ou predicao.
         * Caso não definidos dados de predição, será assumido os valores experimentais (de estimação).
         * Caso não definido graus de liberdade para as grandezas, será assumido o valor constante de 100
         """
@@ -770,39 +769,39 @@ class EstimacaoNaoLinear:
         # VALIDAÇÃO
         # ---------------------------------------------------------------------
         if (self.__xtemp is None) or (self.__ytemp is None) or (self.__uxtemp is None) or (self.__uytemp is None):
-            raise ValueError('É necessário executar o método setDados para definir dados para grandezas dependentes (y) e independentes (x).')
+            raise ValueError('It is necessary to run the setDados method to define data for dependent (y) and independent (x) quantities.')
 
-        # validação do tipo
-        if tipo is not None:
-            if not set([tipo]).issubset(self.__tiposDisponiveisEntrada):
-                raise ValueError('A(s) entrada(s) ' + ','.join(
-                    set([tipo]).difference(self.__tiposDisponiveisEntrada)) + ' não estão disponíveis. Usar: ' + ','.join(
+        # type validation
+        if type is not None:
+            if not set([type]).issubset(self.__tiposDisponiveisEntrada):
+                raise ValueError('The input(s) ' + ','.join(
+                    set([type]).difference(self.__tiposDisponiveisEntrada)) + ' are not available. You should use: ' + ','.join(
                     self.__tiposDisponiveisEntrada) + '.')
 
         # Validação do número de dados experimentais
 
         if self.__xtemp.shape[0] != self.__ytemp.shape[0]:
-            raise ValueError('Foram inseridos {:d} dados para as grandezas dependentes, mas {:d} para as independentes'.format(self.__ytemp.shape[0],self.__xtemp.shape[0]))
+            raise ValueError('{:d} data were entered for dependent quantities, but {:d} for independent quantities'.format(self.__ytemp.shape[0],self.__xtemp.shape[0]))
 
         # ---------------------------------------------------------------------
         # EXECUÇÃO
         # ---------------------------------------------------------------------
 
-        if tipo is None:
+        if type is None:
             if not self.__flag.info['dadosestimacao']:
-                tipo = self.__tiposDisponiveisEntrada[0]
+                type = self.__tiposDisponiveisEntrada[0]
             else:
-                tipo = self.__tiposDisponiveisEntrada[1]
+                type = self.__tiposDisponiveisEntrada[1]
 
         # dados experimentais
-        if tipo == self.__tiposDisponiveisEntrada[0]:
+        if type == self.__tiposDisponiveisEntrada[0]:
             self.__flag.ToggleActive('dadosestimacao')
 
             # caso o ID do fluxo seja 0, então não há necessidade de reiniciar, caso contrário, reiniciar.
             if self.__controleFluxo.FLUXO_ID != 0:
                 self.__controleFluxo.reiniciar()
                 if self.__flag.info['dadospredicao']:
-                    warn('O fluxo foi reiniciado, faz-se necessário incluir novos dados de validação', UserWarning)
+                    warn('The flux was restarted, so new validation data has to be included.', UserWarning)
             # ---------------------------------------------------------------------
             # ATRIBUIÇÃO A GRANDEZAS
             # ---------------------------------------------------------------------
@@ -810,15 +809,15 @@ class EstimacaoNaoLinear:
             try:
                 self.x._SETdadosestimacao(estimativa=self.__xtemp,matriz_incerteza=self.__uxtemp,gL=glx)
             except Exception as erro:
-                raise RuntimeError('Erro na criação do conjunto de estimação da grandeza X: {}'.format(erro))
+                raise RuntimeError('Error in the creation of the estimation set of the quantity X: {}'.format(erro))
 
             try:
                 self.y._SETdadosestimacao(estimativa=self.__ytemp,matriz_incerteza=self.__uytemp,gL=gly)
             except Exception as erro:
-                raise RuntimeError('Erro na criação do conjunto de estimação da grandeza Y: {}'.format(erro))
+                raise RuntimeError('EError in the creation of the estimation set of the quantity Y: {}'.format(erro))
 
         # dados de predição
-        if tipo == self.__tiposDisponiveisEntrada[1]:
+        if type == self.__tiposDisponiveisEntrada[1]:
             self.__flag.ToggleActive('dadospredicao')
 
             self.__controleFluxo.reiniciarParcial()
@@ -829,12 +828,12 @@ class EstimacaoNaoLinear:
             try:
                 self.x._SETdadosvalidacao(estimativa=self.__xtemp,matriz_incerteza=self.__uxtemp,gL=glx)
             except Exception as erro:
-                raise RuntimeError('Erro na criação do conjunto validação de X: {}'.format(erro))
+                raise RuntimeError('Error in the creation of the validation set of the quantity X: {}'.format(erro))
 
             try:
                 self.y._SETdadosvalidacao(estimativa=self.__ytemp,matriz_incerteza=self.__uytemp,gL=gly)
             except Exception as erro:
-                raise RuntimeError('Erro na criação do conjunto validação de Y: {}'.format(erro))
+                raise RuntimeError('Error in the creation of the validation set of the quantity Y: {}'.format(erro))
 
         if not self.__flag.info['dadospredicao']:
             # Caso setConjunto seja executado somente para os dados experimentais,
@@ -847,12 +846,12 @@ class EstimacaoNaoLinear:
             try:
                 self.x._SETdadosvalidacao(estimativa=self.__xtemp,matriz_incerteza=self.__uxtemp,gL=glx)
             except Exception as erro:
-                raise RuntimeError('Erro na criação do conjunto validação de X: {}'.format(erro))
+                raise RuntimeError('Error in the creation of the validation set of the quantity X: {}'.format(erro))
 
             try:
                 self.y._SETdadosvalidacao(estimativa=self.__ytemp,matriz_incerteza=self.__uytemp,gL=gly)
             except Exception as erro:
-                raise RuntimeError('Erro na criação do conjunto validação de Y: {}'.format(erro))
+                raise RuntimeError('Error in the creation of the validation set of the quantity Y: {}'.format(erro))
 
         # Transformando variáveis temporárias ( xtemp, uxtemp, ytemp, uytemp) em listas vazias
         self.__xtemp = None
@@ -871,6 +870,12 @@ class EstimacaoNaoLinear:
         This is necessary because the data size is considered in the symbolic variables creation.
 
         """
+        # ---------------------------------------------------------------------
+        # VALIDATION
+        # ---------------------------------------------------------------------
+
+
+
         # --------------------------------------------------------------------------------
         # CREATION OF CASADI'S VARIABLES THAT WILL BE USED TO BUILD THE CASADI'S MODEL
         # --------------------------------------------------------------------- ----------
@@ -940,11 +945,16 @@ class EstimacaoNaoLinear:
                                                   [self.__symObjectiveFunction])  # Executable
 
         else:
-            self.__symXr = []; self.__symUxo = []  # x
-            self.__symYo = []; self.__symYest = []; self.__symUyo = []
+            self.__symParam = [];
+            self.__symXr    = []; self.__symUxo = []  # x
+            self.__symYo    = []; self.__symYest = []; self.__symUyo = []
 
             self.__symVariables = []
             self._values = []
+
+            # Creation of parameters in casadi's format
+            for i in range(self.parametros.NV):
+                self.__symParam = vertcat(self.__symParam, MX.sym(self.parametros.simbolos[i]))
 
             # Creation of independent variables in casadi's format
             xmodel = []
@@ -979,11 +989,6 @@ class EstimacaoNaoLinear:
             self.__symVariables = vertcat(self.__symVariables, self.__symUyo)
             self._values = vertcat(self._values,
                                    self.y.predicao.matriz_incerteza.reshape(self.y.predicao.NE * self.y.NV, 1))
-
-            # for i in range(self.x.estimacao.NE):
-            #   self.__symUxo = vertcat(self.__symUxo, MX.sym('Uxo' + str(i)))
-            #   self.__symVariables = vertcat(self.__symVariables, self.__symUxo[i])
-            #  self._values = vertcat(self._values, self.y.estimacao.matriz_incerteza[:, i:i + 1])
 
             # Model definition
             # it's necessary to define a new model because the
@@ -1080,7 +1085,7 @@ class EstimacaoNaoLinear:
 
         return grandeza
 
-    def optimize(self, initial_estimative, lower_bound=-inf, upper_bound=inf, algoritmo ='ipopt', optimizationReport = True, parametersReport = False, args=None):
+    def optimize(self, initial_estimative, lower_bound=-inf, upper_bound=inf, algorithm ='ipopt', optimizationReport = True, parametersReport = False, args=None):
         u"""
         Método para realização da otimização
 
@@ -1103,13 +1108,13 @@ class EstimacaoNaoLinear:
         * lower_bound (list): lista com os limites inferior para os parâmetros.
         * upper_bound (list): lista com os limites superior para os parâmetros.
         * args: argumentos extras a serem passados para o modelo
-        * algoritmo (string): string informando o algoritmo de otimização a ser utilizado. Cada algoritmo tem suas próprias keywords
+        * algorithm (string): string informando o algoritmo de otimização a ser utilizado. Cada algoritmo tem suas próprias keywords
 
         ===============================
         Keywords (argumentos opcionais)
         ===============================
 
-        algoritmos disponíveis = ipotp, bnomin, sqpmethod
+        available algorithms = ipotp, bnomin, sqpmethod
 
         ==========
         Observação
@@ -1126,28 +1131,28 @@ class EstimacaoNaoLinear:
 
         # se não houver dados experimentais -> erro
         if not self.__flag.info['dadosestimacao']:
-            raise SyntaxError('Para executar a otimização, faz-se necessário dados para estimação')
+            raise SyntaxError('For execute optimize is necessary to input the estimation data')
 
         # se SETparametro não pode ser executado antes de otimiza.
         if self.__controleFluxo.SETparametro:
-            raise SyntaxError('O método {} não pode ser executado com {}'.format('otimiza', 'SETparametro'))
+            raise SyntaxError('The method {} cannot be executed before {}'.format('optimize', 'SETparametro'))
 
-        # verificação se o algoritmo é um string
-        if not isinstance(algoritmo, str):
-            raise TypeError('O nome do algoritmo deve ser uma string.')
+        # verificaando se algorithm é um string
+        if not isinstance(algorithm, str):
+            raise TypeError('The algorithm name must be a string.')
 
-        # verificação se o algoritmo está disponível
-        if not algoritmo in self.__AlgoritmosOtimizacao:
+        # verificando se algorithm está disponível
+        if not algorithm in self.__AlgoritmosOtimizacao:
             raise NameError(
-                'A opção {} de algoritmo não está correta. Algoritmos disponíveis: '.format(algoritmo) + ', '.join(
+                'The algorithm option {} is not right. Available algorithms: '.format(algorithm) + ', '.join(
                     self.__AlgoritmosOtimizacao) + '.')
 
         # validação da estimativa inicial:
         if initial_estimative is None:
-            raise SyntaxError('Para executar a otimização, faz-se necessário estimativa inicial')
+            raise SyntaxError('To execute the optimize method it is necessary to give an initial estimate')
         if not isinstance(initial_estimative, list) or len(initial_estimative) != self.parametros.NV:
             raise TypeError(
-                'A estimativa inicial deve ser uma lista de dimensão do número de parâmetros, definida nos símbolos. Número de parâmetros: {}'.format(
+                'The initial estimate must be a list with the size of the number of parameters, defined in the symbols. Number of parameters: {}'.format(
                     self.parametros.NV))
 
         # ---------------------------------------------------------------------
@@ -1179,7 +1184,7 @@ class EstimacaoNaoLinear:
 
         except Exception as erro:
             raise SyntaxError(
-                u'Erro no modelo, quando avaliado nos limites de busca definidos. Erro identificado: "{}".'.format(erro))
+                u'Error in the model when evaluated within the defined search limits. Error identified: "{}".'.format(erro))
 
         # ---------------------------------------------------------------------
         # EXECUÇÃO OTIMIZAÇÃO
@@ -1189,26 +1194,26 @@ class EstimacaoNaoLinear:
 
         if optimizationReport is True:
             # with optimization report
-            if algoritmo == 'ipopt':
+            if algorithm == 'ipopt':
                 options = {'print_time': False, 'ipopt' :{'print_level': 0, 'file_print_level': 5,
                                                           'output_file': self._out.optimization()+  'Optimization_report.txt'}}
-            elif algoritmo == 'bonmin':
+            elif algorithm == 'bonmin':
                 options = {'print_time': False, 'bonmin':{'file_print_level': 5,
                                                           'output_file': self._out.optimization() + 'Optimization_report.txt'}}
-            elif algoritmo =='sqpmethod':
+            elif algorithm =='sqpmethod':
                 options = {'print_iteration': False, 'qpsol_options':{'printLevel': 'none'}}
 
         else:
             # without optimization report
-            if algoritmo == 'ipopt':
+            if algorithm == 'ipopt':
                 options = {'print_time': False, 'ipopt': {'print_level': 0}}
-            elif algoritmo == 'bonmin':
+            elif algorithm == 'bonmin':
                 options = {'print_time': False, 'bonmin': {}}
-            elif algoritmo == 'sqpmethod':
+            elif algorithm == 'sqpmethod':
                 options = {'print_iteration': False, 'qpsol_options': {'printLevel': 'none'}}
 
         #montagem do problema de otimização
-        S = nlpsol('S', algoritmo, nlp, options)
+        S = nlpsol('S', algorithm, nlp, options)
         #passagem dos argumentos
         self.Otimizacao = S(x0=initial_estimative, p=self._values, lbx=lower_bound, ubx=upper_bound)
 
@@ -1264,20 +1269,20 @@ class EstimacaoNaoLinear:
         return self.S
 
 
-    def SETparametro(self,estimativa,variancia=None,regiao=None,parametersReport=True,**kwargs):
+    def SETparameter(self,estimative,variance=None,region=None,parametersReport=True,**kwargs):
         u"""
         Método para atribuir uma estimativa aos parâmetros e, opcionamente, sua matriz de covarância e região de abrangência.
-        Substitui o métodos otimiza e, opcionalmente, incertezaParametros.
+        Substitui o métodos otimiza e, opcionalmente, parametersUncertainty.
 
-        Caso seja incluída somente uma estimativa para os parâmetros, o método incertezaParametro deve ser executado.
+        Caso seja incluída somente uma estimativa para os parâmetros, o método parametersUncertainty deve ser executado.
 
         ========
         Entradas
         ========
 
-        * estimativa (list)         : estimativa para os parâmetros
-        * variancia (array,ndmin=2) : matriz de covariância dos parâmetros
-        * regiao (list[list])       : lista contendo listas com os parâmetros que pertencem á região de abrangência
+        * estimative (list)         : estimativa para os parâmetros
+        * variance (array,ndmin=2) : matriz de covariância dos parâmetros
+        * region (list[list])       : lista contendo listas com os parâmetros que pertencem á região de abrangência
 
         ===
         USO
@@ -1308,11 +1313,11 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # Caso não haja dados de estimação -> erro
         if not self.__flag.info['dadosestimacao']:
-            raise SyntaxError('Faz-se necessário adicionar dados estimacao.')
+            raise SyntaxError('It is necessary to add estimation data.')
 
-        # SETparametro não pode ser executado em conjunto com otimiza
+        # SETparameter não pode ser executado em conjunto com optimize
         if self.__controleFluxo.otimizacao:
-            raise SyntaxError('O método SETparametro não pode ser executado com otimizacao.')
+            raise SyntaxError('The SETparameter method cannot be executed with optimize method')
 
         # ---------------------------------------------------------------------
         # ARGUMENTOS EXTRAS A SEREM PASSADOS PARA O MODELO
@@ -1326,7 +1331,7 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # Atribuindo o valores para a estimativa dos parâmetros e sua matriz de 
         # covariância
-        self.parametros._SETparametro(estimativa, variancia, regiao, self.__controleFluxo, **kwargs)
+        self.parametros._SETparametro(estimative, variance, region, **kwargs)
 
         # ---------------------------------------------------------------------
         # AVALIAÇÃO DO MODELO
@@ -1335,33 +1340,33 @@ class EstimacaoNaoLinear:
         try:
             aux = self.__excModel(self.parametros.estimativa,self._values)
         except Exception as erro:
-            raise SyntaxError(u'Erro no modelo quando avaliado na estimativa dos parâmetros informada. Erro identificado: "{}"'.format(erro))
+            raise SyntaxError(u'Error in the model when evaluated in the informed parameters estimative. Error identified: "{}"'.format(erro))
 
         # ---------------------------------------------------------------------
         # OBTENÇÃO DO PONTO ÓTIMO
         # ---------------------------------------------------------------------
 
-        self.FOotimo = float(self._excFO(self.parametros.estimativa, self._values))
+        self.FOotimo = float(self._excObjectiveFunction(self.parametros.estimativa, self._values))
 
         # ---------------------------------------------------------------------
         # VARIÁVEIS INTERNAS
         # ---------------------------------------------------------------------
 
-        # Caso seja definida a variância, é assumido que o método incertezaParametros
+        # Caso seja definida a variância, é assumido que o método parametersUncertainty
         # foi executado, mesmo que a inclusão de abrangência seja opcional.
-        if variancia is not None:
+        if variance is not None:
             self.__controleFluxo.SET_ETAPA('incertezaParametros')
 
         # Caso seja definida a região, é assumido que o método regiaoAbrangencia
         # foi executado.
-        if regiao is not None:
+        if region is not None:
             self.__controleFluxo.SET_ETAPA('regiaoAbrangencia', ignoreValidacao=True)
 
         # parameters report creation
         if parametersReport is True:
             self._out.Parametros(self.parametros, self.FOotimo)
 
-    def incertezaParametros(self,metodoIncerteza='Geral',parametersReport = True, objectiveFunctionMapping=True,**kwargs):
+    def parametersUncertainty(self,uncertaintyMethod ='Geral',parametersReport = True, objectiveFunctionMapping=True,**kwargs):
         u"""
 
         Método para avaliação da matriz de covariãncia dos parâmetros e região de abrangência.
@@ -1377,8 +1382,8 @@ class EstimacaoNaoLinear:
         =======================
 
         * uncertainty method (string): method for calculating the covariance matrix
-        of the parameters. Available methods: 2InvHessian, General, SensitivityModel
-        * fillregion (bool): Identifies if an algorithm for mapping the objective function will be executed.
+        of the parameters. Available methods: 2InvHessian, Geral, SensibilidadeModelo
+        * objectiveFunctionMapping (bool): Identifies if an algorithm for mapping the objective function will be executed.
 
         ======
         Saídas
@@ -1399,12 +1404,12 @@ class EstimacaoNaoLinear:
         # VALIDAÇÃO
         # ---------------------------------------------------------------------         
 
-        if metodoIncerteza not in self.__metodosIncerteza:
-            raise NameError('O método solicitado para cálculo da incerteza dos parâmetros {}'.format(metodoIncerteza)
-                            + ' não está disponível. Métodos disponíveis ' + ', '.join(self.__metodosIncerteza) + '.')
+        if uncertaintyMethod not in self.__metodosIncerteza:
+            raise NameError('The method requested to calculate the uncertainty of the parameters {}'.format(uncertaintyMethod)
+                            + ' is not available. Available methods ' + ', '.join(self.__metodosIncerteza) + '.')
 
         if not isinstance(objectiveFunctionMapping, bool):
-            raise TypeError('O argumento objectiveFunctionMapping deve ser booleano (True ou False).')
+            raise TypeError('The argument objectiveFunctionMapping must be boolean (True ou False).')
 
         # ---------------------------------------------------------------------
         # MATRIZ DE COVARIÂNCIA DOS PARÂMETROS
@@ -1413,7 +1418,7 @@ class EstimacaoNaoLinear:
         # Avaliação de matrizes auxiliares
         # Matriz Hessiana da função objetivo em relação aos parâmetros
         # somente avaliada se o método é 2InvHess ou Geral
-        if metodoIncerteza == self.__metodosIncerteza[0] or metodoIncerteza == self.__metodosIncerteza[1]:
+        if uncertaintyMethod == self.__metodosIncerteza[0] or uncertaintyMethod == self.__metodosIncerteza[1]:
             self.__Hessiana_FO_Param()
 
             # Inversa da matriz hessiana a função objetivo em relação aos parâmetros
@@ -1422,12 +1427,12 @@ class EstimacaoNaoLinear:
         # Gy: derivadas parciais segundas da função objetivo em relação aos parâmetros e
         # dados experimentais
         # Somente avaliada caso o método seja Geral
-        if metodoIncerteza == self.__metodosIncerteza[1]:
+        if uncertaintyMethod == self.__metodosIncerteza[1]:
             self.__Matriz_Gy()
 
         # Matriz de sensibilidade do modelo em relação aos parâmetros
         # Somente avaliada caso o método seja o simplificado
-        if metodoIncerteza == self.__metodosIncerteza[2]:
+        if uncertaintyMethod == self.__metodosIncerteza[2]:
             self.__Matriz_S()
 
         # ---------------------------------------------------------------------
@@ -1436,15 +1441,15 @@ class EstimacaoNaoLinear:
 
         # MATRIZ DE COVARIÂNCIA
         # Método: 2InvHessiana ->  2*inv(Hess)
-        if metodoIncerteza == self.__metodosIncerteza[0]:
+        if uncertaintyMethod == self.__metodosIncerteza[0]:
             matriz_covariancia = 2*invHess
 
         # Método: geral - > inv(H)*Gy*Uyy*GyT*inv(H)
-        elif metodoIncerteza == self.__metodosIncerteza[1]:
+        elif uncertaintyMethod == self.__metodosIncerteza[1]:
             matriz_covariancia  = invHess.dot(self.Gy).dot(self.y.estimacao.matriz_covariancia).dot(self.Gy.transpose()).dot(invHess)
 
         # Método: simplificado -> inv(trans(S)*inv(Uyy)*S)
-        elif metodoIncerteza == self.__metodosIncerteza[2]:
+        elif uncertaintyMethod == self.__metodosIncerteza[2]:
             matriz_covariancia = inv(self.S.transpose().dot(inv(self.y.estimacao.matriz_covariancia)).dot(self.S))
 
         # ---------------------------------------------------------------------
@@ -1471,7 +1476,7 @@ class EstimacaoNaoLinear:
         if parametersReport is True:
             self._out.Parametros(self.parametros,self.FOotimo)
 
-    def predicao(self,predictionReport = True,**kwargs):
+    def prediction(self,predictionReport = True,**kwargs):
         u"""
         Method for prediction.
 
@@ -1479,7 +1484,7 @@ class EstimacaoNaoLinear:
         Input
         ======
         * predictionReport: when is true the prediction report is created but without statistical tests. The statistical tests could be included in \
-        the 'analiseResiduos' method.
+        the 'residualAnalysis' method.
 
         ========
         Keywords
@@ -1490,8 +1495,8 @@ class EstimacaoNaoLinear:
         Predecessor Methods
         ====================
 
-        É necessário executar a otimização (seguida de incertezaParametros) ou incluir o valor para a estimativa dos parâmetros e sua incerteza, pelo \
-        método ``SETparametro`` (caso não defina incerteza, executar em seguida de incertezaParametros).
+        É necessário executar o método optimize (seguido de parametersUncertainty) ou incluir o valor para a estimativa dos parâmetros e sua incerteza, pelo \
+        método ``SETparameter`` (caso não defina incerteza, executar em seguida de parametersUncertainty).
 
         """
         # ---------------------------------------------------------------------
@@ -1764,11 +1769,11 @@ class EstimacaoNaoLinear:
         # AVALIAÇÃO SE A REGIÃO DE ABRANGÊNCIA NÃO ESTÁ VAZIA (Warning)
         # ---------------------------------------------------------------------
         if regiao == []:
-            warn('A região de abrangência avaliada pelo método da verossimilhança não contém pontos. Reveja os parâmetros do algoritmo utilizado.',UserWarning)
+            warn('The coverage region evaluated by the likelihood method contains no points. Review the parameters of the algorithm used..',UserWarning)
 
         return regiao
 
-    def analiseResiduos(self, report=True, **kwargs):
+    def residualAnalysis(self, report=True, **kwargs):
         u"""
         Método para realização da análise de resíduos.
         A análise da sempre preferência aos dados de validação.
@@ -1809,7 +1814,7 @@ class EstimacaoNaoLinear:
 
         # Tamanho dos vetores:
         if self.y.predicao.NE != self.y.calculado.NE:
-            raise TypeError(u'O comprimento dos vetores de validação e calculado não estão consistentes. Avaliar necessidade de executar o método de predição')
+            raise TypeError(u'The length of the validation and calculated vectors are not consistent. Evaluate the need to perform the prediction method.')
         # ---------------------------------------------------------------------
         # CÁLCULO DOS RESÍDUOS
         # ---------------------------------------------------------------------          
@@ -1875,14 +1880,13 @@ class EstimacaoNaoLinear:
             kwargs['PA'] = self.PA
             self._out.Predicao(self.x, self.y, self.estatisticas, **kwargs)
 
-    def graficos(self,**kwargs):
+    def plots(self,**kwargs):
         u"""
         Métodos para gerar e salvar os gráficos
 
         =======================
-        Entradas (obrigatórias)
+        Gráficos diponíveis
         =======================
-        * ``tipos`` (list): lista contendo strings referentes aos tipos de gráficos que se deseja criar
             * 'regiaoAbrangencia': gráficos da região de abrangência dos parâmetros
             * 'grandezas-entrada': gráficos referentes aos dados de entrada e de validação
             * 'predicao': gráficos da predição
@@ -1898,17 +1902,6 @@ class EstimacaoNaoLinear:
 
         # Início da Figura que conterá os gráficos -> objeto
         Fig = Grafico(dpi=300)
-        # ---------------------------------------------------------------------
-        # VALIDAÇÃO
-        # ---------------------------------------------------------------------         
-        # validando se os tipos de gráficos
-        if not isinstance(tipos, list) and not isinstance(tipos, tuple):
-            raise TypeError('Os tipos de gráficos devem ser definidos em uma lista.')
-        # validando se os tipos de gráficos foram corretamente definidos
-        if not set(tipos).issubset(self.__tipoGraficos):
-            raise NameError('O(s) tipo(s) de gráfico(s) selecionado(s) não está(ão) disponível(is): ' + ', '.join(
-                set(tipos).difference(self.__tipoGraficos)) + '. Tipos disponíveis: ' + ', '.join(
-                self.__tipoGraficos) + '.')
 
         # ---------------------------------------------------------------------
         # CAMINHO BASE
@@ -1989,7 +1982,7 @@ class EstimacaoNaoLinear:
                             Fig.salvar_e_fechar(base_path+folder+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_com_incerteza')
                             #Fig.salvar_e_fechar(base_path + folder + 'predicao_' + self.y.simbolos[iy] + '_funcao_' + self.x.simbolos[ix] + '_com_incerteza') Excluir depois
             else:
-                warn('Os gráficos de entrada não puderam ser criados, pois o método setConjunto não foi executado.',UserWarning)
+                warn('The input graphs could not be created because the setConjunto method was not executed.',UserWarning)
 
         # Gráficos referentes aos dados de saída (calculados)
         # grandezas-calculado
@@ -2001,7 +1994,7 @@ class EstimacaoNaoLinear:
             if self.__controleFluxo.incertezaParametros:
                 self.parametros.Graficos(base_path, base_dir, ID=['parametro'], fluxo=self.__controleFluxo.FLUXO_ID)
             else:
-                warn('Os gráficos envolvendo somente as grandezas calculadas (PARÂMETROS) não puderam ser criados, pois o método incertezaParametros não foi executado.',UserWarning)
+                warn('Graphs involving only calculated quantities (PARAMETERS) could not be created because the parametersUncertainty method was not executed.',UserWarning)
 
             # Predição deve ter sido executada no fluxo de trabalho
             if self.__controleFluxo.predicao:
@@ -2009,18 +2002,7 @@ class EstimacaoNaoLinear:
                 self.y.Graficos(base_path, base_dir, ID=['calculado'], fluxo=self.__controleFluxo.FLUXO_ID, Fig=Fig)
 
             else:
-                warn('Os gráficos envolvendo somente as grandezas calculadas (X e Y) não puderam ser criados, pois o método predicao não foi executado.',UserWarning)
-        # otimização
-        if self.__tipoGraficos[4] in tipos:
-            base_dir = sep + self._configFolder['graficos-otimizacao'] + sep
-            Validacao_Diretorio(base_path, base_dir)
-            # otimiza deve ter sido alguma vez no contexto global e o algoritmo de otimização possui gráficos de desempenho
-            if self.__controleFluxo.otimizacao and self.__flag.info['graficootimizacao']:
-                # Gráficos da otimização
-                self.Otimizacao.Graficos(base_path+base_dir, Nome_param=self.parametros.labelGraficos(), FO2a2=True)
-
-            else:
-                warn('Os gráficos de otimizacao não puderam ser criados, o algoritmo de otimização utilizado não possui gráficos de desempenho OU o método otimizacao não foi executado.',UserWarning)
+                warn('The graphs involving only the calculated quantities (X and Y) could not be created, because the prediction method was not executed.',UserWarning)
 
         # regiaoAbrangencia
         if self.__tipoGraficos[0] in tipos:
@@ -2076,10 +2058,10 @@ class EstimacaoNaoLinear:
                                             config_axes=True)
                         p2+=1
                 else:
-                    warn('Os gráficos de regiao de abrangencia não puderam ser criados, pois há apenas um parâmetro.',UserWarning)
+                    warn('The coverage region graphs could not be created, because there is only one parameter.',UserWarning)
 
             else:
-                warn('Os gráficos de regiao de abrangência não puderam ser criados, pois o método incertezaParametros não foi executado OU no método SETparametros não foi definida a variância dos parâmetros',UserWarning)
+                warn('The coverage region graphs could not be created because the uncertaintyParameters method was not run OR in the SETparameter method the parameters variance was not defined',UserWarning)
 
         # predição
         if self.__tipoGraficos[2] in tipos:
@@ -2243,7 +2225,7 @@ class EstimacaoNaoLinear:
                                                 config_axes=False)
 
             else:
-                warn('Os gráficos envolvendo a estimação (predição) não puderam ser criados, pois o método predicao não foi executado.',UserWarning)
+                warn('The graphs involving the estimation (prediction) could not be created because the prediction method was not executed.',UserWarning)
 
         # AnáliseResiduos
         if (self.__tipoGraficos[5] in tipos):
@@ -2323,9 +2305,9 @@ class EstimacaoNaoLinear:
                                             ('observado' if self.__flag.info['dadospredicao'] else 'observado')+'.png')
 
             else:
-                warn('Os gráficos envolvendo a análise de resíduos não puderam ser criados, pois o método analiseResiduos não foi executado.',UserWarning)
+                warn('Graphs involving residue analysis could not be created because the residualAnalysis method was not executed.',UserWarning)
 
-    def relatorio(self,**kwargs):
+    def reports(self,**kwargs):
         u"""
         Método para criação do(s) relatório(s) com os principais resultados.
 
@@ -2346,7 +2328,7 @@ class EstimacaoNaoLinear:
         if self.__controleFluxo.otimizacao or self.__controleFluxo.SETparametro:
             self._out.Parametros(self.parametros,self.FOotimo)
         else:
-            warn('O relatório sobre os parâmetros não foi criado, pois o método otimizacao ou SETparametro não foi executado')
+            warn('The parameter report was not created because the optimize method or SETparameter method was not executed')
         # ---------------------------------------------------------------------
         # RELATÓRIO DA PREDIÇÃO E ANÁLISE DE RESÍDUOS
         # ---------------------------------------------------------------------
@@ -2358,7 +2340,7 @@ class EstimacaoNaoLinear:
                 self._out.Predicao(self.x,self.y,self.estatisticas,**kwargs)
             else:
                 self._out.Predicao(self.x,self.y,None,**kwargs)
-                warn('O relatório sobre a análise de resíduos não foi criado, pois o método analiseResiduos não foi executado. Entretanto, ainda é possível exportar a predição')
+                warn('The residue analysis report has not been created because the residualAnalysis method has not been carried out. However, you can still export the prediction')
         else:
-            warn('O relatório sobre a predição e análise de resíduos não foi criado, pois o método predicao não foi executado')
+            warn('The report on the prediction and residual analysis was not created because the prediction method was not executed')
 

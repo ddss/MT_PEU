@@ -54,7 +54,7 @@ def Model_2 (param,x,*args):
 
 class EstimacaoLinear(EstimacaoNaoLinear):
     
-    def __init__(self,simbolos_y,simbolos_x,simbolos_param,PA=0.95,projeto='Projeto',**kwargs):
+    def __init__(self,symbols_y,symbols_x,symbols_param,PA=0.95,folder='Projeto',**kwargs):
         u'''
         Classe para executar a estimação de parâmetros de modelos MISO lineares nos parâmetros       
 
@@ -70,15 +70,15 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         =======================
         Entradas (obrigatórias)
         =======================
-        * ``simbolos_y`` (list)     : lista com os simbolos das variáveis y (Não podem haver caracteres especiais)
-        * ``simbolos_x`` (list)     : lista com os simbolos das variáveis x (Não podem haver caracteres especiais)
-        * ``simbolos_param`` (list) : lista com o simbolos dos parâmetros (Não podem haver caracteres especiais)
+        * ``symbols_y`` (list)     : lista com os simbolos das variáveis y (Não podem haver caracteres especiais)
+        * ``symbols_x`` (list)     : lista com os simbolos das variáveis x (Não podem haver caracteres especiais)
+        * ``symbols_param`` (list) : lista com o simbolos dos parâmetros (Não podem haver caracteres especiais)
 
         ====================
         Entradas (opcionais)
         ====================
         * ``PA`` (float): probabilidade de abrangência da análise. Deve estar entre 0 e 1. Default: 0.95
-        * ``projeto`` (string): nome do projeto (Náo podem haver caracteres especiais)
+        * ``folder`` (string): nome do projeto (Náo podem haver caracteres especiais)
 
         **AVISO**:
         * Para cálculo do coeficiente linear, basta que o número de parâmetros seja igual ao número de grandezas
@@ -88,16 +88,16 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         Keywords (Entradas opcionais):
         ==============================
         
-        * ``nomes_x``        (list): lista com os nomes para x 
-        * ``unidades_x``     (list): lista com as unidades para x (inclusive em formato LATEX)
+        * ``names_x``        (list): lista com os nomes para x
+        * ``units_x``        (list): lista com as unidades para x (inclusive em formato LATEX)
         * ``label_latex_x``  (list): lista com os símbolos das variáveis em formato LATEX
         
-        * ``nomes_y``        (list): lista com os nomes para y
-        * ``unidades_y``     (list): lista com as unidades para y (inclusive em formato LATEX)
+        * ``names_y``        (list): lista com os nomes para y
+        * ``units_y``        (list): lista com as unidades para y (inclusive em formato LATEX)
         * ``label_latex_y``  (list): lista com os símbolos das variáveis em formato LATEX
         
-        * ``nomes_param``       (list): lista com os nomes para os parâmetros (inclusive em formato LATEX)
-        * ``unidades_param``    (list): lista com as unidades para os parâmetros (inclusive em formato LATEX)
+        * ``names_param``       (list): lista com os nomes para os parâmetros (inclusive em formato LATEX)
+        * ``units_param``       (list): lista com as unidades para os parâmetros (inclusive em formato LATEX)
         * ``label_latex_param`` (list): lista com os símbolos das variáveis em formato LATEX
         
         * ``base_path`` (string): String que define o diretório pai que serão criados/salvos os arquivos gerados pelo motor de cálculo
@@ -113,13 +113,13 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         
         * ``setConjunto``        : método para incluir dados obtidos de experimentos. Neste há a opção de determinar \
         se estes dados serão utilizados como dados para estimar os parâmetros ou para validação. (Vide documentação do método)
-        * ``otimiza``              : método para realizar a otimização, com base nos dados fornecidos em setConjunto.
-        * ``incertezaParametros``  : método que avalia a incerteza dos parâmetros (Vide documentação do método)
+        * ``optimize``              : método para realizar a otimização, com base nos dados fornecidos em setConjunto.
+        * ``parametersUncertainty``  : método que avalia a incerteza dos parâmetros (Vide documentação do método)
         * ``setConjunto``        : (é opcional para inclusão de dados de validação)
-        * ``Predicao``             : método que avalia a predição do modelo e sua incerteza ou utilizando os pontos experimentais ou de \
+        * ``Prediction``             : método que avalia a predição do modelo e sua incerteza ou utilizando os pontos experimentais ou de \
         validação, se disponível (Vide documentação do método) 
-        * ``analiseResiduos``      : método para executar a análise de resíduos (Vide documentação do método)
-        * ``graficos``             : método para criação dos gráficos (Vide documentação do método)
+        * ``residualAnalysis``      : método para executar a análise de resíduos (Vide documentação do método)
+        * ``plots``             : método para criação dos gráficos (Vide documentação do método)
         * ``_armazenarDicionario`` : método que retorna as grandezas sob a forma de um dicionário (Vide documentação do método)
         
         ====================
@@ -164,12 +164,12 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # ---------------------------------------------------------------------
         # For to start the class it's necessary to check wich is the most suitable model
 
-        if (len(simbolos_param) == len(simbolos_x) + 1):
+        if (len(symbols_param) == len(symbols_x) + 1):
             # The the independent term will be calculated and Model_2 should be used
-            EstimacaoNaoLinear.__init__(self, Model_2, simbolos_y, simbolos_x, simbolos_param, PA, projeto, **kwargs)
+            EstimacaoNaoLinear.__init__(self, Model_2, symbols_y, symbols_x, symbols_param, PA, folder, **kwargs)
         else:
             # The the independent term won't be calculated and Model_1 should be used
-            EstimacaoNaoLinear.__init__(self, Model_1, simbolos_y, simbolos_x, simbolos_param, PA, projeto, **kwargs)
+            EstimacaoNaoLinear.__init__(self, Model_1, symbols_y, symbols_x, symbols_param, PA, folder, **kwargs)
 
         self._EstimacaoNaoLinear__flag.ToggleActive('Linear') # Enable linear flag to correctly create 'self .__ values' when independent term calculation
         self._EstimacaoNaoLinear__flag.setCaracteristica(['calc_termo_independente'])
@@ -178,11 +178,11 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # VALIDAÇÃO
         # ---------------------------------------------------------------------
         if self.y.NV != 1:
-            raise ValueError(u'Está apenas implementado estimação de parâmetros de modelos lineares MISO')
+            raise ValueError(u'It is performing the parameter estimation of linear models only for the MISO case.')
 
         if (self.parametros.NV != self.x.NV) and (self.parametros.NV != self.x.NV+1):
-            raise ValueError(u'O número de parâmetros deve ser: igual ao de grandezas independentes (não é efetuado cálculo do coeficiente linear)'+\
-            'OU igual ao número de grandezas independentes + 1 (é calculado o coeficiente linear).')
+            raise ValueError(u'The number of parameters must be equal to the number of independent quantities (the linear coefficient is not calculated).'+\
+            'OR equal to the number of independent quantities + 1 (the linear coefficient is calculated).')
 
         self.__coluna_dumb = False # this variable indicates that a column of ones has been added to independent quantities
         # ---------------------------------------------------------------------
@@ -220,13 +220,13 @@ class EstimacaoLinear(EstimacaoNaoLinear):
 
         # Validação da sintaxe
         if not set([tipo]).issubset(self._EstimacaoNaoLinear__tiposDisponiveisEntrada):
-            raise ValueError('A(s) entrada(s) ' + ','.join(
-                set([tipo]).difference(self._EstimacaoNaoLinear__tiposDisponiveisEntrada)) + ' não estão disponíveis. Usar: ' + ','.join(
+            raise ValueError('The input(s) ' + ','.join(
+                set([tipo]).difference(self._EstimacaoNaoLinear__tiposDisponiveisEntrada)) + ' are not available. You should use: ' + ','.join(
                 self._EstimacaoNaoLinear__tiposDisponiveisEntrada) + '.')
 
         # Validação do número de dados experimentais
         if self._EstimacaoNaoLinear__xtemp.shape[0] != self._EstimacaoNaoLinear__ytemp.shape[0]:
-            raise ValueError('Foram inseridos {:d} dados para as grandezas dependentes, mas {:d} para as independentes'.format(self.__ytemp.shape[0],self.__xtemp.shape[0]))
+            raise ValueError('{:d} data were entered for dependent quantities, but {:d} for independent quantities'.format(self.__ytemp.shape[0],self.__xtemp.shape[0]))
 
         # ---------------------------------------------------------------------
         # MODIFICAÇÕES DAS MATRIZES DE DADOS
@@ -242,7 +242,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             if self._EstimacaoNaoLinear__controleFluxo.FLUXO_ID != 0:
                 self._EstimacaoNaoLinear__controleFluxo.reiniciar()
                 if self.__flag.info['dadospredicao']:
-                    warn('O fluxo foi reiniciado, faz-se necessário incluir novos dados de validação.')
+                    warn('The flux was restarted, so new validation data has to be included')
             # ---------------------------------------------------------------------
             # ATRIBUIÇÃO A GRANDEZAS
             # ---------------------------------------------------------------------
@@ -250,12 +250,12 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             try:
                 self.x._SETdadosestimacao(estimativa=self._EstimacaoNaoLinear__xtemp,matriz_incerteza=self._EstimacaoNaoLinear__uxtemp,gL=glx,coluna_dumb=self.__coluna_dumb)
             except Exception as erro:
-                raise RuntimeError('Erro na criação do conjunto de estimação da grandeza X: {}'.format(erro))
+                raise RuntimeError('Error in the creation of the estimation set of the quantity X: {}'.format(erro))
 
             try:
                 self.y._SETdadosestimacao(estimativa=self._EstimacaoNaoLinear__ytemp,matriz_incerteza=self._EstimacaoNaoLinear__uytemp,gL=gly)
             except Exception as erro:
-                raise RuntimeError('Erro na criação do conjunto de estimação da grandeza Y: {}'.format(erro))
+                raise RuntimeError('Error in the creation of the estimation set of the quantity Y: {}'.format(erro))
 
         if tipo == 'predicao':
             self._EstimacaoNaoLinear__flag.ToggleActive('dadospredicao')
@@ -268,12 +268,12 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             try:
                 self.x._SETdadosvalidacao(estimativa=self._EstimacaoNaoLinear__xtemp,matriz_incerteza=self._EstimacaoNaoLinear__uxtemp,gL=glx,coluna_dumb=coluna_dumb)
             except Exception as erro:
-                raise RuntimeError('Erro na criação do conjunto validação de X: {}'.format(erro))
+                raise RuntimeError('Error in the creation of the validation set of the quantity X: {}'.format(erro))
 
             try:
                 self.y._SETdadosvalidacao(estimativa=self._EstimacaoNaoLinear__ytemp,matriz_incerteza=self._EstimacaoNaoLinear__uytemp,gL=gly)
             except Exception as erro:
-                raise RuntimeError('Erro na criação do conjunto validação de Y: {}'.format(erro))
+                raise RuntimeError('Error in the creation of the validation set of the quantity Y: {}'.format(erro))
 
         if self._EstimacaoNaoLinear__flag.info['dadospredicao'] == False:
             # Caso gerarEntradas seja executado somente para os dados experimentais,
@@ -286,12 +286,12 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             try:
                 self.x._SETdadosvalidacao(estimativa=self._EstimacaoNaoLinear__xtemp,matriz_incerteza=self._EstimacaoNaoLinear__uxtemp,gL=glx,coluna_dumb=self.__coluna_dumb)
             except Exception as erro:
-                raise RuntimeError('Erro na criação do conjunto validação de X: {}'.format(erro))
+                raise RuntimeError('Error in the creation of the validation set of the quantity X: {}'.format(erro))
 
             try:
                 self.y._SETdadosvalidacao(estimativa=self._EstimacaoNaoLinear__ytemp,matriz_incerteza=self._EstimacaoNaoLinear__uytemp,gL=gly)
             except Exception as erro:
-                raise RuntimeError('Erro na criação do conjunto validação de Y: {}'.format(erro))
+                raise RuntimeError('Error in the creation of the validation set of the quantity Y: {}'.format(erro))
 
         # Transformando variáveis temporárias ( xtemp, uxtemp, ytemp, uytemp) em listas vazias
         self.EstimacaoNaoLinear__xtemp = None
@@ -313,10 +313,10 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # VALIDAÇÃO
         # ---------------------------------------------------------------------
         if not self._EstimacaoNaoLinear__flag.info['dadosestimacao']:
-            raise TypeError(u'Para executar a otimização, faz-se necessário dados experimentais.')
+            raise TypeError(u'For execute optimize is necessary to input the estimation data.')
 
         if self._EstimacaoNaoLinear__controleFluxo.SETparametro:
-            raise TypeError(u'O método otimizacao não pode ser executado com SETparametro.')
+            raise TypeError(u'The optimization method cannot be run with SETparameter.')
 
         # ---------------------------------------------------------------------
         # RESOLUÇÃO
@@ -344,7 +344,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         if parametersReport:
             self._out.Parametros(self.parametros, self.FOotimo)
 
-    def incertezaParametros(self, preencherregiao=True, parametersReport = True, **kwargs):
+    def parametersUncertainty(self, objectiveFunctionMapping=True, parametersReport = True, **kwargs):
         u'''
         Método para avaliar a região de abrangência dos parâmetros.
 
@@ -356,7 +356,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         Entradas opcionais
         ==================
 
-        * preencherregiao (bool): identifica se será executado algoritmo para preenchimento da região de abrangência.
+        * objectiveFunctionMapping (bool): identifica se será executado algoritmo para preenchimento da região de abrangência.
         '''
         # ---------------------------------------------------------------------
         # FLUXO
@@ -376,7 +376,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # CÁLCULO DA REGIÃO DE ABRANGÊNCIA
         # ---------------------------------------------------------------------
         # A região de abrangência só é calculada caso não esteja definida
-        if preencherregiao and self.parametros.NV != 1:
+        if objectiveFunctionMapping and self.parametros.NV != 1:
             self._EstimacaoNaoLinear__objectiveFunctionMapping(**kwargs)
             self._EstimacaoNaoLinear__flag.ToggleActive('mapeamentoFO')
 
