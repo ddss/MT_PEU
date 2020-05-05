@@ -1966,8 +1966,8 @@ class EstimacaoNaoLinear:
                             # Gráficos sem a incerteza
                             Fig.grafico_dispersao_sem_incerteza(self.x.predicao.matriz_estimativa[:,ix],
                                                                 self.y.predicao.matriz_estimativa[:,iy],
-                                                                label_x=self.x.labelGraficos('predição')[ix],
-                                                                label_y=self.y.labelGraficos('predição')[iy],
+                                                                label_x=self.x.labelGraficos('observado')[ix],
+                                                                label_y=self.y.labelGraficos('observado')[iy],
                                                                 marker='o', linestyle='None')
                             Fig.salvar_e_fechar(base_path+folder+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_sem_incerteza')
                             #Fig.salvar_e_fechar(base_path + folder + 'predicao_' + self.y.simbolos[iy] + '_funcao_' + self.x.simbolos[ix] + '_sem_incerteza') Excluir depois
@@ -1976,8 +1976,8 @@ class EstimacaoNaoLinear:
                                                                 self.y.predicao.matriz_estimativa[:,iy],
                                                                 self.x.predicao.matriz_incerteza[:,ix],
                                                                 self.y.predicao.matriz_incerteza[:,iy],
-                                                                label_x=self.x.labelGraficos('predicao')[ix],
-                                                                label_y=self.y.labelGraficos('predicao')[iy],
+                                                                label_x=self.x.labelGraficos('observado')[ix],
+                                                                label_y=self.y.labelGraficos('observado')[iy],
                                                                 fator_abrangencia_x=2., fator_abrangencia_y=2., fmt= 'o')
                             Fig.salvar_e_fechar(base_path+folder+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_com_incerteza')
                             #Fig.salvar_e_fechar(base_path + folder + 'predicao_' + self.y.simbolos[iy] + '_funcao_' + self.x.simbolos[ix] + '_com_incerteza') Excluir depois
@@ -2141,7 +2141,7 @@ class EstimacaoNaoLinear:
                                                         corrigir_limites=False, config_axes=False)
                     Fig.grafico_dispersao_sem_incerteza(diagonal, diagonal, linestyle='-', color='k', linewidth = 2.0,
                                                         corrigir_limites=True, config_axes=False)
-                    Fig.set_label(self.y.labelGraficos('predicao')[iy] \
+                    Fig.set_label(self.y.labelGraficos('observado')[iy] \
                                   if self.__flag.info['dadospredicao'] else self.y.labelGraficos('observado')[iy],
                                   self.y.labelGraficos('calculado')[iy], fontsize = 16)
 
@@ -2187,7 +2187,7 @@ class EstimacaoNaoLinear:
                                                             fmt="o", corrigir_limites=True, config_axes=False)
                         Fig.grafico_dispersao_sem_incerteza(diagonal, diagonal, linestyle='-', color='k', linewidth=2.0,
                                                              corrigir_limites=False, config_axes=False)
-                        Fig.set_label(self.y.labelGraficos('predicao')[iy] \
+                        Fig.set_label(self.y.labelGraficos('observado')[iy] \
                                       if self.__flag.info['dadospredicao'] else
                                       self.y.labelGraficos('observado')[iy],
                                       self.y.labelGraficos('calculado')[iy], fontsize=16)
@@ -2259,7 +2259,7 @@ class EstimacaoNaoLinear:
                                                         add_legenda=True, corrigir_limites=False, config_axes=False)
                     Fig.grafico_dispersao_sem_incerteza(self.y.calculado.matriz_estimativa[:,i], self.y.residuos.matriz_estimativa[:,i],
                                                         marker='o', linestyle = 'none',
-                                                        label_x= self.y.labelGraficos()[i] + 'calculado',
+                                                        label_x= self.y.labelGraficos()[i] + ' calculado',
                                                         label_y=u'Resíduos '+self.y.labelGraficos()[i])
                     Fig.set_legenda([u'Média resíduos ' + self.y.simbolos[i]], fontsize=12, loc='best')
                     Fig.axes.axhline(0, color='black', lw=1, zorder=1)
@@ -2275,13 +2275,13 @@ class EstimacaoNaoLinear:
                     Fig.grafico_dispersao_sem_incerteza(self.y.predicao.matriz_estimativa[:, i],
                                                         self.y.residuos.matriz_estimativa[:, i],
                                                         marker='o', linestyle='none')
-                    Fig.set_label(label_x=self.y.labelGraficos()[i]+' '+(u'validação' if self.__flag.info['dadospredicao'] else u'estimacao'),
+                    Fig.set_label(label_x=self.y.labelGraficos()[i]+' '+(u'validação' if self.__flag.info['dadospredicao'] else u'observado'),
                                   label_y=u'Resíduos ' + self.y.labelGraficos()[i])
                     Fig.set_legenda([u'Média resíduos ' + self.y.simbolos[i]], fontsize=12, loc='best')
                     Fig.axes.axhline(0, color='black', lw=1, zorder=1)
                     Fig.salvar_e_fechar(
                         base_path + folder + 'residuos_' + '_funcao_' +
-                        self.y.simbolos[i] + '_' + ('observado' if self.__flag.info['dadospredicao'] else 'estimacao')+'.png')
+                        self.y.simbolos[i] + '_' + ('observado' if self.__flag.info['dadospredicao'] else 'observado')+'.png')
 
                     for j, simbol in enumerate(self.x.simbolos):
                         #Resíduos vs. X estimacao/validacao
@@ -2296,7 +2296,7 @@ class EstimacaoNaoLinear:
                                                             add_legenda=True, corrigir_limites=False, config_axes=False)
                         Fig.grafico_dispersao_sem_incerteza(x, self.y.residuos.matriz_estimativa[:, i],
                                                         marker='o', linestyle='none')
-                        Fig.set_label(label_x= self.x.labelGraficos()[j] +' '+ (u'predição' if self.__flag.info['dadospredicao'] else u'estimacao'),
+                        Fig.set_label(label_x= self.x.labelGraficos()[j] +' '+ (u'observado' if self.__flag.info['dadospredicao'] else u'observado'),
                                   label_y=u'Resíduos ' + self.y.labelGraficos()[i])
                         Fig.set_legenda([u'Média resíduos ' + self.y.simbolos[i]], fontsize=12, loc='best')
                         Fig.axes.axhline(0, color='black', lw=1, zorder=1)

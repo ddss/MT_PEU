@@ -12,7 +12,7 @@ def Model(param,x,*args):
 
 #%% Starting the MT_PEU main object
 Estime = EstimacaoNaoLinear(Model,symbols_x=['x1','x2'],symbols_y=['y1','y2'],symbols_param=['alpha1','alpha2', 'beta1', 'beta2'],
-                          label_latex_param=[r'$\alpha_1$',r'$\alpha_2$',r'$\beta_1$',r'$\beta_2$'],units_y=['kg','kg'],Folder='Example 4')
+                          label_latex_param=[r'$\alpha_1$',r'$\alpha_2$',r'$\beta_1$',r'$\beta_2$'],units_y=['kg','kg'],Folder='Example4')
 
 
 #%% Defining observed data
