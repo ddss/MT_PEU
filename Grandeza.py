@@ -662,7 +662,8 @@ class Grandeza:
                               'Dados-Estimacao': 'Dados Estimacao',
                               'Dados-validacao': 'Dados Validacao',
                               'matriz-correlacao': 'Matrizes Correlacao',
-                              'grandeza-tendencia': 'Tendencia observada'}
+                              'grandeza-tendencia': 'Tendencia observada',
+                              'comparacao-residuo':'Comparacao entre residuos'}
         # ---------------------------------------------------------------------
         # VALIDAÇÃO DAS ENTRADAS
         # ---------------------------------------------------------------------
@@ -773,10 +774,10 @@ class Grandeza:
             # Pastas internas
             # ------------------------------------------------------------------------------------
             if fluxo == 0:
-                folder = sep + 'Grandezas' + sep + self._configFolder['Dados-Estimacao'] + sep + self._configFolder['matriz-correlacao'] + sep if base_dir is None else sep + base_dir + sep + self._configFolder['Dados-Estimacao'] + sep
+                folder = sep + 'Grandezas' + sep + self._configFolder['Dados-Estimacao'] + sep + self._configFolder['matriz-correlacao'] + sep if base_dir is None else sep + base_dir + sep + self._configFolder['Dados-Estimacao'] + sep + self._configFolder['comparacao-residuo'] + sep
                 Validacao_Diretorio(base_path, folder)
             else:
-                folder = sep + 'Grandezas' + sep + self._configFolder['Dados-validacao']+' '+str(fluxo) + sep + self._configFolder['matriz-correlacao'] + sep if base_dir is None else sep + base_dir + sep + self._configFolder['Dados-validacao']+' '+str(fluxo) + sep
+                folder = sep + 'Grandezas' + sep + self._configFolder['Dados-validacao']+' '+str(fluxo) + sep + self._configFolder['matriz-correlacao'] + sep if base_dir is None else sep + base_dir + sep + self._configFolder['Dados-validacao']+' '+str(fluxo) + sep +self._configFolder['comparacao-residuo'] + sep
                 Validacao_Diretorio(base_path, folder)
             # --------------------------------------------------------------------------------------
             # checa a variabilidade dos dados, assim como a existência de possíveis outliers
