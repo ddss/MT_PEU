@@ -2045,12 +2045,11 @@ class EstimacaoNaoLinear:
                         Fig.elipse_covariancia(cov,[self.parametros.estimativa[p1],self.parametros.estimativa[p2]],ellipseComparacao)
 
                         if self.__controleFluxo.regiaoAbrangencia and self.parametros.regiao_abrangencia != []:
-                            Fig.set_legenda([u'Verossimilhança','Elipse'], loc='best', fontsize=15)
+                            Fig.set_legenda([u'Verossimilhança','Elipse'], loc='best')
                         else:
-                            Fig.set_legenda(['Elipse'], loc='best', fontsize=15)
+                            Fig.set_legenda(['Elipse'], loc='best')
 
-                        Fig.set_label(self.parametros.labelGraficos()[p1], self.parametros.labelGraficos()[p2],
-                                      fontsize=16)
+                        Fig.set_label(self.parametros.labelGraficos()[p1], self.parametros.labelGraficos()[p2])
 
                         # SALVA O GRÁFICO
                         Fig.salvar_e_fechar(base_path+base_dir+'regiao_verossimilhanca'+'_'+
@@ -2141,9 +2140,10 @@ class EstimacaoNaoLinear:
                                                         corrigir_limites=False, config_axes=False)
                     Fig.grafico_dispersao_sem_incerteza(diagonal, diagonal, linestyle='-', color='k', linewidth = 2.0,
                                                         corrigir_limites=True, config_axes=False)
+                    # Set_label possui o fontsize (tamanho das fontes nos eixos X x Y) definidos de acordo ao valor estabelecdo em Gráficos.
                     Fig.set_label(self.y.labelGraficos('observado')[iy] \
                                   if self.__flag.info['dadospredicao'] else self.y.labelGraficos('observado')[iy],
-                                  self.y.labelGraficos('calculado')[iy], fontsize = 16)
+                                  self.y.labelGraficos('calculado')[iy])
 
 
                     Fig.salvar_e_fechar((base_path+foldertwo+'observado' if self.__flag.info['dadospredicao'] else base_path+foldertwo+'observado')+'_' + str(self.y.simbolos[iy])+'_funcao_'+str(self.y.simbolos[iy])+'_calculado_sem_incerteza.png',config_axes=True)
@@ -2154,7 +2154,7 @@ class EstimacaoNaoLinear:
                     Fig.grafico_dispersao_sem_incerteza(amostras, y, marker='o', linestyle='None', color='b', add_legenda=True)
                     Fig.grafico_dispersao_sem_incerteza(amostras, ym, marker='o', linestyle='None', color='r',
                                                         corrigir_limites=False, config_axes=False, add_legenda=True)
-                    Fig.set_label('Amostras', self.y.labelGraficos()[iy], fontsize=16)
+                    Fig.set_label('Amostras', self.y.labelGraficos()[iy])
                     Fig.set_legenda(['dados para predicao' if self.__flag.info['dadospredicao'] else 'dados para estimacao','calculado'],
                                     fontsize=12, loc='best')
                     Fig.salvar_e_fechar(
@@ -2177,7 +2177,7 @@ class EstimacaoNaoLinear:
                                                             add_legenda=True)
                         Fig.grafico_dispersao_com_incerteza(amostras, ym, None, yerr_calculado, fator_abrangencia_y=t_cal,
                                                             fmt="o", color = 'r', config_axes=False, add_legenda=True)
-                        Fig.set_label('Amostras', self.y.labelGraficos()[iy], fontsize=16)
+                        Fig.set_label('Amostras', self.y.labelGraficos()[iy])
                         Fig.set_legenda(['dados para predicao' if self.__flag.info['dadospredicao'] else 'dados para estimacao', 'calculado'],fontsize=12, loc='best')
                         Fig.salvar_e_fechar((base_path+foldertwo+'observado' if self.__flag.info['dadospredicao'] else base_path + foldertwo+'observado') + '_' + str(self.y.simbolos[iy]) +'_funcao_amostras_calculado_com_incerteza.png', config_axes=True)
 
@@ -2190,7 +2190,7 @@ class EstimacaoNaoLinear:
                         Fig.set_label(self.y.labelGraficos('observado')[iy] \
                                       if self.__flag.info['dadospredicao'] else
                                       self.y.labelGraficos('observado')[iy],
-                                      self.y.labelGraficos('calculado')[iy], fontsize=16)
+                                      self.y.labelGraficos('calculado')[iy])
                         Fig.salvar_e_fechar((base_path+foldertwo+'observado' if self.__flag.info['dadospredicao'] else base_path+foldertwo+'observado' )+ \
                                               '_' + str(self.y.simbolos[iy]) + \
                                             '_funcao_' + str(self.y.simbolos[iy]) + '_calculado_com_incerteza.png',
