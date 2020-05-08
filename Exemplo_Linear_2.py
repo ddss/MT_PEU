@@ -30,7 +30,6 @@ Abaixo estão representadas as bibliotecas necessárias para a execução:
 
  # Define que o matplotlib não usará recursos de vídeo
 from matplotlib import use
-use('Agg')
 
 from numpy import array
 from MT_PEU_Linear import EstimacaoLinear
@@ -45,7 +44,7 @@ Nessa etapa é inicializada a classe que realiza a estimação.
 Aqui é possível renomear a pasta onde são apresentados os resultados.  
 
 """
-ER = EstimacaoLinear(['q'],['x'],['k'],projeto='LINEAR')
+ER = EstimacaoLinear(['q'],['x'],['k'],folder='LINEAR')
 
 # =================================================================================
 # III - INCLUSÃO DE DADOS
@@ -83,9 +82,9 @@ u"""
  Em analise de residuos é possível vericar possíveis relações de dependencia e/ou tendencia entre as variaveis. 
 
 """
-ER.incertezaParametros(metodoPreenchimento='MonteCarlo')
-ER.predicao()
-ER.analiseResiduos()
+ER.parametersUncertainty(objectiveFunctionMapping='MonteCarlo')
+ER.prediction()
+ER.residualAnalysis()
 
 # =================================================================================
 # VI - GERAÇÃO DE GRAFICOS E RELATÓRIOS
@@ -97,8 +96,8 @@ u"""
 
 """
 
-ER.graficos(['analiseResiduos','regiaoAbrangencia', 'grandezas-entrada', 'predicao','grandezas-calculadas','otimizacao'])
-#ER.relatorio()
+ER.plots()
+ER.reports()
 
 
 

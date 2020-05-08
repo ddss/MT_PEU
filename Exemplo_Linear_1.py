@@ -46,7 +46,7 @@ Também é possível renomear a pasta onde são apresentados os resultados.
 
 # Com o cálculo do termo independente
 
-ER = EstimacaoLinear(['y'],['x'],['p1','p2'],projeto='LINEARcomB1')
+ER = EstimacaoLinear(['y'],['x'],['p1','p2'],folder='LINEARcomB1')
 
 # =================================================================================
 # III - INCLUSÃO DE DADOS
@@ -86,9 +86,9 @@ u"""
 
 """
 
-ER.incertezaParametros()
-ER.predicao()
-ER.analiseResiduos()
+ER.parametersUncertainty()
+ER.prediction()
+ER.residualAnalysis()
 
 # =================================================================================
 # VI - GERAÇÃO DE GRAFICOS E RELATÓRIOS
@@ -100,9 +100,9 @@ u"""
 
 """
 
-ER.graficos(['analiseResiduos','regiaoAbrangencia', 'grandezas-entrada', 'predicao','grandezas-calculadas','otimizacao'])
+ER.plots()
 
-ER.relatorio()
+ER.reports()
 
 
 
