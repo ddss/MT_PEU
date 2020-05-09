@@ -28,9 +28,6 @@ Abaixo estão representadas as bibliotecas necessárias para a execução:
 
 """
 
- # Define que o matplotlib não usará recursos de vídeo
-from matplotlib import use
-
 from numpy import array
 from MT_PEU_Linear import EstimacaoLinear
 
