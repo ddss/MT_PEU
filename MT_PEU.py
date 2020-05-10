@@ -558,7 +558,6 @@ class EstimacaoNaoLinear:
                               'graficos-otimizacao':'Otimizacao',
                               'graficos-analiseResiduos':'Grandezas',
                               'report':'Reports',
-                              'subpas':'Graficos_com_dados_estimacao',
                               'Dados-Estimacao':'Dados Estimacao',
                               'Dados-validacao':'Dados Validacao',
                               'matriz-correlacao':'Matrizes Correlacao',
