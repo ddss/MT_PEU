@@ -10,7 +10,7 @@ def Model(param, x, args):
     return exp(A - (B / (T + C)))  # Pvp calculation - vectorized
 
 #%% Starting the MT_PEU main object
-Estimation = EstimacaoNaoLinear(Model, symbols_x=[r'T'], symbols_y=[r'y'], symbols_param=['A','B','C'],  Folder='Example5' )
+Estimation = EstimacaoNaoLinear(Model, symbols_x=[r'T'], symbols_y=[r'y'], symbols_param=['TAO','tao','C'],  Folder='Example5' )
 
 #%% Defining observed data
 # Input data
