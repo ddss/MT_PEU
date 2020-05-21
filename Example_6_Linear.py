@@ -21,22 +21,22 @@ uP = [0.08,0.09,0.09,0.11,0.17,0.21,0.25,0.35,0.40,0.47,0.48,0.58,
 
 #%%Definition of new variables
 #Input observed data
-X = [1 / float(i) for i in T]
+X = 1./array(T)
 #Output observed data
-Y = log(P) - [(-68.2 / 8.31446)*log(i/298.15) for i in T]
+Y = log(P) - (-68.2 / 8.31446)*log(array(T)/298.15)
 
 #Propagation of uncertainty
 #uncertainty of input observed data
-uX = (((-1/array(T))**2*array(uT)**2)**0.5).tolist()
+uX = ((-1/(array(T)**2))**2*array(uT)**2)**0.5
 
 #uncertainty of output observed data
-uY = (((1/array(P))**2*array(uP)**2 + (-(-68.2/(8.31446*298.15*array(T))))**2*array(uT)**2)**0.5).tolist()
+uY = ((1/array(P))**2*array(uP)**2 + (-1*-68.2/(8.31446*array(T)))**2*array(uT)**2)**0.5
 
 #%% Setting the observed data set
 # inputs
-Estimation.setDados(0,(X,uX))
+Estimation.setDados(0, (X.tolist(), uX.tolist()))
 # outputs
-Estimation.setDados(1,(Y,uY))
+Estimation.setDados(1, (Y.tolist(), uY.tolist()))
 
 # Defining the previous data set to be used to parameter estimation
 Estimation.setConjunto(type='estimacao')
