@@ -103,14 +103,14 @@ class Grandeza:
         # VALIDAÇÂO
         # -------------------------------------------------------------------------------------
         if simbolos is None:
-            raise NameError('Os símbolos das grandezas são obrigatórios')
+            raise NameError('You must insert te symbols of the quantities.')
 
         self.__validacaoEntrada(simbolos,nomes,unidades,label_latex)
 
         # ------------------------------------------------------------------------------------
         # CRIAÇÃO DE ATRIBUTOS
         # -------------------------------------------------------------------------------------
-        # simbolos: usado como referência para a quantdade de variáveis da grandeza
+        # simbolos: usado como referência para a quantidade de variáveis da grandeza
         self.simbolos    = simbolos
 
         # nomes, unidades e label_latex: utilizados para plotagem
@@ -152,28 +152,41 @@ class Grandeza:
         for elemento in [simbolos,nomes,unidades,label_latex]:
             if elemento is not None:
                 if not isinstance(elemento,list):
-                    raise TypeError('A simbologia, nomes, unidades e label_latex de uma grandeza devem ser LISTAS.')
+                    raise TypeError('For a quantity, the symbols, names, units, and label_latex must be informed in the form of a list.')
                 # verificação se os elementos são strings
                 for value in elemento:
                     if value is not None:
                         if not isinstance(value,str) and not isinstance(value,unicode):
-                            raise TypeError('Os elementos de simbolos, nomes, unidades e label_latex devem ser STRINGS.')
+                            raise TypeError('Symbols, names, units and label_latex must be STRINGS.')
 
         # Verificação se os símbolos possuem caracteres especiais
         for simb in simbolos:
             if not simb.isalnum():
-                raise NameError('Os simbolos das grandezas não podem ter caracteres especiais. Simbolo incorreto: '+simb)
+                raise NameError('The symbols of quantities cannot have special characters. Incorrect Symbol: '+simb)
 
         # Verificação se os símbolos são distintos
         # set: conjunto de elementos distintos não ordenados (trabalha com teoria de conjuntos)
         if len(set(simbolos)) != len(simbolos):
-            raise NameError('Os símbolos de cada grandeza devem ser distintos.')
+            raise NameError('The symbols of each quantity must be different.')
+
+        # Verificação se os símbolos apenas diferenciados por maiúsculo ou minúsculo
+        # ord: devolve o código numérico do caractere passado como parÂmetro
+        if len(simbolos) > 1:
+            for i in range(len(simbolos)):
+                for j in range(i + 1, len(simbolos), 1):
+                    soma1 = 0; soma2 = 0; soma3 = 0
+                    for k in range(0, len(simbolos[i]), 1):
+                        soma1 = soma1 + ord(simbolos[i][k])
+                    for k in range(0, len(simbolos[j]), 1):
+                        soma2 = soma2 + ord(simbolos[j][k])
+                    if soma1-soma2 != 0 and abs(soma1 - soma2)%32 == 0:
+                        raise NameError('It is not possible to use the same symbols differentiated by upper or lower case. Please change one of these symbols. '+simbolos[i]+' or '+simbolos[j])
 
        # Verificação se nomes, unidade e label_latex possuem mesmo tamanho
         for elemento in [nomes,unidades,label_latex]:
             if elemento is not None:
                 if len(elemento) != len(simbolos):
-                    raise ValueError('A simbologia, nomes, unidades e label_latex de uma grandeza devem ser listas de MESMO tamanho.')
+                    raise ValueError('Symbols, names, units and label_latex must be lists of the same size.')
 
     class Dados:
 
@@ -224,21 +237,21 @@ class Grandeza:
             # ---------------------------------------------------------------------
 
             if not isinstance(estimativa, ndarray):
-                raise TypeError(u'Os dados de entrada precisam ser arrays.')
+                raise TypeError(u'The input data must be arrays.')
 
             if matriz_covariancia is not None and matriz_incerteza is not None:
-                raise SyntaxError(u'Apenas uma entre a matriz_covariancia e matriz_incerteza deve ser definida')
+                raise SyntaxError(u'It is not possible to define the covariance matrix and the uncertainty matrix together. You have to choose between them.')
 
             if matriz_covariancia is not None:
                 if not isinstance(matriz_covariancia, ndarray):
-                    raise TypeError(u'Os dados de entrada precisam ser arrays.')
+                    raise TypeError(u'The input data must be arrays.')
 
             if matriz_incerteza is not None:
                 if not isinstance(matriz_incerteza, ndarray):
-                    raise TypeError(u'Os dados de entrada precisam ser arrays.')
+                    raise TypeError(u'The input data must be arrays.')
 
             if not isinstance(gL, list):
-                raise TypeError(u'os graus de liberdade precisam ser listas')
+                raise TypeError(u'Freedom degrees must be informed as a list.')
 
             # ---------------------------------------------------------------------------
             # KEYWORD ARGUMENTS
@@ -266,9 +279,9 @@ class Grandeza:
                     self.matriz_estimativa = self.vetor_estimativa.reshape((NE, int(self.vetor_estimativa.shape[0] / NE)),
                                                                            order='F')  # Conversão de vetor para uma matriz
                 else:
-                    raise ValueError(u'O tamanho do vetor estimativa deve ser igual ao número de variáves vezes número de dados')
+                    raise ValueError(u'The size of the array containing the estimates must be equal to the product between the number of variables and the number of data')
             else:
-                raise ValueError(u'A estimativa foi fornecida na forma de um vetor. NE deve ser especificado.')
+                raise ValueError(u'The estimate was informed in the form of an array. NE must be specified.')
 
             # ---------------------------------------------------------------------
             # Número de pontos experimentais
@@ -292,7 +305,7 @@ class Grandeza:
                         (NE, self.matriz_estimativa.shape[1]), order='F')
                     self.matriz_correlacao = matrizcorrelacao(self.matriz_covariancia)
                 else:
-                    raise ValueError(u'É necessário definir o valor de NE.')
+                    raise ValueError(u'It is necessary to define the argument NE .')
             else:
                 self.matriz_covariancia = None
                 self.matriz_incerteza = None
@@ -332,10 +345,10 @@ class Grandeza:
 
                 for elemento in diag(self.matriz_covariancia):
                     if elemento <= 0.:
-                        raise TypeError('A variância de uma grandeza não pode ser zero ou assumir valores negativos.')
+                        raise TypeError('The variance of a quantity must be not equal to zero or negative.')
 
                 if not isfinite(cond(self.matriz_covariancia)):
-                    raise TypeError('A matriz de covariância da grandeza é singular.')
+                    raise TypeError('The covariance matrix of the quantity is singular.')
 
     def _SETdadosestimacao(self,estimativa,matriz_incerteza=None,matriz_covariancia=None,gL=[],NE=None,**kwargs):
 
@@ -387,38 +400,38 @@ class Grandeza:
         # --------------------------------------
         # estimative
         if not isinstance(estimativa,list):
-            raise TypeError(u'A estimativa para os parâmetros precisa ser uma lista')
+            raise TypeError(u'The parameter estimative must be a list')
 
         for elemento in estimativa:
             if not isinstance(elemento,float):
-                raise TypeError(u'A estimativa precisa ser uma lista de floats.')
+                raise TypeError(u'The elements in the list must be the float type.')
 
         if len(estimativa) != self.NV:
-            raise ValueError(u'Devem ser fornecidas estimativas para todos os parâmetros definidos em símbolos')
+            raise ValueError(u'It is necessary to inform estimates for all parameters that were defined.')
 
         # variância
         if variancia is not None:
             if not isinstance(variancia,ndarray):
-                raise TypeError(u'A variância precisa ser um array.')
+                raise TypeError(u'The variance must be an array.')
             if not variancia.ndim == 2:
-                raise TypeError(u'A variância precisa ser um array com duas dimensões.')
+                raise TypeError(u'The variance must be an array with two dimensions.')
 
             if variancia.shape[0] != variancia.shape[1]:
-                raise TypeError(u'A variância precisa ser quadrada.')
+                raise TypeError(u'The variance must be squared.')
 
             if variancia.shape[0] != self.NV:
-                raise ValueError(u'A dimensão da matriz de covariância deve ser coerente com os simbolos dos parâmetros')
+                raise ValueError(u'The size of the covariance matrix must be consistent with the parameter symbols.')
 
             cont = 0
             for linha in variancia.tolist():
                 if linha[cont] <= 0.:
-                    raise TypeError('A variância dos parâmetros não pode ser zero ou assumir valores negativos')
+                    raise TypeError('The variance of the parameters must be not equal to zero or negative.')
                 cont+=1
 
         # regiao
         if regiao is not None:
             if not isinstance(regiao,list):
-                raise TypeError(u'A regiao precisa ser uma lista.')
+                raise TypeError(u'The region must be a list.')
 
         # --------------------------------------
         # EXECUÇÃO
@@ -444,7 +457,7 @@ class Grandeza:
         if variancia is not None:
 
             if not isfinite(cond(self.matriz_covariancia)):
-                raise TypeError('A matriz de covariância dos parâmetros é singular.')
+                raise TypeError('The covariance matrix of the parameters is singular.')
 
     def _updateParametro(self,**kwargs):
         u'''
@@ -496,7 +509,7 @@ class Grandeza:
 
         # VALIDAÇÃO da variável add
         if (add is not None) and (not isinstance(add,str)):
-            raise TypeError(u'A variável add deve ser uma string')
+            raise TypeError(u'The variable add must be a string')
             
         # Definição dos labels: latex ou nomes ou simbolos (nesta ordem)
         label = [None]*len(self.simbolos)
@@ -632,7 +645,7 @@ class Grandeza:
                 pheter = [het_white(dados,insert(Explic, 0, 1, axis=1)),het_breuschpagan(dados,Explic)]
                 pvalor[nome]['residuo-Homocedasticidade'] = {'white test':{'p-valor multiplicador de Lagrange':pheter[0][1], 'p-valor Teste F':pheter[0][3]},'Bresh Pagan':{'p-valor multiplicador de Lagrange':pheter[1][1],'p-valor Teste F':pheter[1][3]}}
         else:
-            raise NameError(u'Os testes estatísticos são válidos apenas para o resíduos')
+            raise NameError(u'Statistical tests should be applied for residues only')
 
         self.estatisticas = pvalor
 
@@ -671,7 +684,7 @@ class Grandeza:
             ID = self.__ID
         
         if False in [ele in self.__ID_disponivel for ele in ID]:
-            raise NameError(u'Foi inserido uma ID indisponível. IDs disponíveis: '+','.join(self.__ID_disponivel)+'.')
+            raise NameError(u'You inserted an unavailable ID. The available IDs are: '+','.join(self.__ID_disponivel)+'.')
 
         if base_path is None:
             base_path = getcwd()
@@ -694,7 +707,7 @@ class Grandeza:
         cores   = set(['b', 'g', 'r', 'c','m', 'y', 'k', 'w', '0.75'])
         setcmap = set(cmap)
         if not setcmap.issubset(cores):
-            raise TypeError('As cores devem pertencer à lista: {}'.format(cores))
+            raise TypeError('The colors must belong to the list: {}'.format(cores))
            
         cm1 = LinearSegmentedColormap.from_list("Correlacao-cmap",cmap)
 
