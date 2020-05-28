@@ -6,7 +6,7 @@ Created on Mon Feb  2 11:05:02 2015
 """
 # Importação de pacotes de terceiros
 from numpy import array, size, diag, linspace, min, max, \
-    mean,  std, ndarray, insert, isfinite, arange, sqrt
+    mean,  std, ndarray, insert, isfinite, arange, sqrt, concatenate
 
 from numpy.linalg import cond
 
@@ -170,17 +170,18 @@ class Grandeza:
             raise NameError('The symbols of each quantity must be different.')
 
         # Verificação se os símbolos apenas diferenciados por maiúsculo ou minúsculo
-        # ord: devolve o código numérico do caractere passado como parÂmetro
-        if len(simbolos) > 1:
-            for i in range(len(simbolos)):
-                for j in range(i + 1, len(simbolos), 1):
-                    soma1 = 0; soma2 = 0; soma3 = 0
-                    for k in range(0, len(simbolos[i]), 1):
-                        soma1 = soma1 + ord(simbolos[i][k])
-                    for k in range(0, len(simbolos[j]), 1):
-                        soma2 = soma2 + ord(simbolos[j][k])
-                    if soma1-soma2 != 0 and abs(soma1 - soma2)%32 == 0:
-                        raise NameError('It is not possible to use the same symbols differentiated by upper or lower case. Please change one of these symbols. '+simbolos[i]+' or '+simbolos[j])
+        # realização do teste
+        test = []
+        for sym in simbolos:
+            test.append([sym == sym2.lower() or sym == sym2.upper() for sym2 in simbolos]) # Cria uma matriz com o resultados dos testes
+        results = []
+        for i in range(len(simbolos)):
+            if sum(test[i][:]) != 1: # Diferente de 1 significa que há maos de um True naquela linha
+                for j in range(len(simbolos)):
+                    if test[i][j] and i!=j: # Verifica se o teste deu TRUE e se não está na diagonal, pois na diagonal sempre é TRUE.
+                        results.append(simbolos[i]) # busca o respectivo símbolo para aquele teste
+        if len(results) > 1: # Maior que 1, pois, quando houver problemas, pelo menos dois símbolos serão identificados: maiúsculo e minúsculo
+            raise NameError('It is not possible to use the same symbols differentiated by upper or lower case. Please change these symbols: ' + str(results))
 
        # Verificação se nomes, unidade e label_latex possuem mesmo tamanho
         for elemento in [nomes,unidades,label_latex]:
