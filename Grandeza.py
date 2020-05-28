@@ -171,16 +171,12 @@ class Grandeza:
 
         # Verificação se os símbolos apenas diferenciados por maiúsculo ou minúsculo
         # realização do teste
-        test = []
-        for sym in simbolos:
-            test.append([sym == sym2.lower() or sym == sym2.upper() for sym2 in simbolos]) # Cria uma matriz com o resultados dos testes
         results = []
-        for i in range(len(simbolos)):
-            if sum(test[i][:]) != 1: # Diferente de 1 significa que há maos de um True naquela linha
-                for j in range(len(simbolos)):
-                    if test[i][j] and i!=j: # Verifica se o teste deu TRUE e se não está na diagonal, pois na diagonal sempre é TRUE.
-                        results.append(simbolos[i]) # busca o respectivo símbolo para aquele teste
-        if len(results) > 1: # Maior que 1, pois, quando houver problemas, pelo menos dois símbolos serão identificados: maiúsculo e minúsculo
+        for sym in simbolos:
+            test = [sym == sym2.lower() or sym == sym2.upper() for sym2 in simbolos] # Cria uma matriz com o resultados dos testes
+            if sum(test) != 1: # Diferente de 1 significa que há mais de um True naquela linha
+                results.append(sym) # busca o respectivo símbolo para aquele teste
+        if len(results) > 0: # Maior que 0, pois, quando houver problemas, pelo menos um símbolo será identificado: maiúsculo e minúsculo
             raise NameError('It is not possible to use the same symbols differentiated by upper or lower case. Please change these symbols: ' + str(results))
 
        # Verificação se nomes, unidade e label_latex possuem mesmo tamanho
