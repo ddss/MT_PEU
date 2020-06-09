@@ -173,7 +173,7 @@ class Grandeza:
         # realização do teste
         results = []
         for sym in simbolos:
-            test = [sym == sym2.lower() or sym == sym2.upper() for sym2 in simbolos] # Cria uma matriz com o resultados dos testes
+            test = [sym.lower() == sym2.lower() or sym.upper() == sym2.upper() for sym2 in simbolos] # Cria uma matriz com o resultados dos testes
             if sum(test) != 1: # Diferente de 1 significa que há mais de um True naquela linha
                 results.append(sym) # busca o respectivo símbolo para aquele teste
         if len(results) > 0: # Maior que 0, pois, quando houver problemas, pelo menos um símbolo será identificado: maiúsculo e minúsculo
