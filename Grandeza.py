@@ -138,6 +138,10 @@ class Grandeza:
         #       estimacao                           predicao                            calculado
         return {self.__ID_disponivel[0]:'observado',self.__ID_disponivel[1]:'observado',self.__ID_disponivel[2]:'calculado'}
 
+    @property
+    def __tipoGraficos(self):
+        return ('regiaoAbrangencia', 'grandezas-entrada', 'predicao', 'grandezas-calculadas', 'otimizacao', 'analiseResiduos')
+
     def __validacaoEntrada(self,simbolos,nomes,unidades,label_latex):
         u'''
         Validação:
@@ -668,12 +672,10 @@ class Grandeza:
         *BOXPLOT    : O boxplot (gráfico de caixa) é um gráfico utilizado para avaliar a distribuição empírica do dados. 
                       O boxplot é formado pelo primeiro e terceiro quartil e pela mediana.
         '''
-        self._configFolder = {'subpas': 'Graficos_com_dados_estimacao',
-                              'Dados-Estimacao': 'Dados Estimacao',
-                              'Dados-validacao': 'Dados Validacao',
-                              'matriz-correlacao': 'Matrizes Correlacao',
-                              'grandeza-tendencia': 'Tendencia observada',
-                              'comparacao-residuo':'Comparacao entre residuos'}
+        self._configFolder = {'graficos-subfolder-DadosEstimacao': 'Dados Estimacao',
+                              'graficos-subfolder-Dadosvalidacao': 'Dados Validacao',
+                              'graficos-subfolder-matrizcorrelacao': 'Matrizes Correlacao',
+                              'graficos-subfolder-comparacaoresiduo':'Comparacao entre residuos'}
         # ---------------------------------------------------------------------
         # VALIDAÇÃO DAS ENTRADAS
         # ---------------------------------------------------------------------
@@ -712,10 +714,10 @@ class Grandeza:
             #Pastas internas
             # ------------------------------------------------------------------------------------
             if fluxo == 0:
-                folder = sep + 'Grandezas' + sep + self._configFolder['Dados-Estimacao'] + sep + self._configFolder['matriz-correlacao'] + sep if base_dir is None else sep + base_dir + sep + self._configFolder['Dados-Estimacao'] + sep + self._configFolder['matriz-correlacao'] + sep
+                folder = sep + 'Grandezas' + sep + self._configFolder['graficos-subfolder-DadosEstimacao'] + sep + self._configFolder['graficos-subfolder-matrizcorrelacao'] + sep if base_dir is None else sep + base_dir + sep + self._configFolder['graficos-subfolder-DadosEstimacao'] + sep + self._configFolder['graficos-subfolder-matrizcorrelacao'] + sep
                 Validacao_Diretorio(base_path, folder)
             else:
-                folder = sep + 'Grandezas' + sep + self._configFolder['Dados-validacao']+' '+str(fluxo)+ sep + self._configFolder['matriz-correlacao'] + sep if base_dir is None else sep + base_dir + sep + self._configFolder['Dados-validacao']+' '+str(fluxo) + sep + self._configFolder['matriz-correlacao'] + sep
+                folder = sep + 'Grandezas' + sep + self._configFolder['graficos-subfolder-Dadosvalidacao']+' '+str(fluxo)+ sep + self._configFolder['graficos-subfolder-matrizcorrelacao'] + sep if base_dir is None else sep + base_dir + sep + self._configFolder['graficos-subfolder-Dadosvalidacao']+' '+str(fluxo) + sep + self._configFolder['graficos-subfolder-matrizcorrelacao'] + sep
                 Validacao_Diretorio(base_path, folder)
             # --------------------------------------------------------------------------------------
             listalabel=[]
@@ -732,10 +734,10 @@ class Grandeza:
             # Pastas internas
             # ------------------------------------------------------------------------------------
             if fluxo == 0:
-                folder = sep + 'Grandezas' + sep + self._configFolder['Dados-Estimacao'] + sep + self._configFolder['matriz-correlacao'] + sep if base_dir is None else sep + base_dir + sep + self._configFolder['Dados-Estimacao'] + sep + self._configFolder['matriz-correlacao'] + sep
+                folder = sep + 'Grandezas' + sep + self._configFolder['graficos-subfolder-DadosEstimacao'] + sep + self._configFolder['graficos-subfolder-matrizcorrelacao'] + sep if base_dir is None else sep + base_dir + sep + self._configFolder['graficos-subfolder-DadosEstimacao'] + sep + self._configFolder['graficos-subfolder-matrizcorrelacao'] + sep
                 Validacao_Diretorio(base_path, folder)
             else:
-                folder = sep + 'Grandezas' + sep + self._configFolder['Dados-validacao']+' '+str(fluxo)+ sep + self._configFolder['matriz-correlacao'] + sep if base_dir is None else sep + base_dir + sep + self._configFolder['Dados-validacao']+' '+str(fluxo)+ sep + self._configFolder['matriz-correlacao'] + sep
+                folder = sep + 'Grandezas' + sep + self._configFolder['graficos-subfolder-Dadosvalidacao']+' '+str(fluxo)+ sep + self._configFolder['graficos-subfolder-matrizcorrelacao'] + sep if base_dir is None else sep + base_dir + sep + self._configFolder['graficos-subfolder-Dadosvalidacao']+' '+str(fluxo)+ sep + self._configFolder['graficos-subfolder-matrizcorrelacao'] + sep
                 Validacao_Diretorio(base_path, folder)
             # --------------------------------------------------------------------------------------
             for elemento in self.labelGraficos(printunit=False):
@@ -751,10 +753,10 @@ class Grandeza:
             # Pastas internas
             # ------------------------------------------------------------------------------------
             if fluxo ==0:
-                folder = sep + 'Grandezas' + sep+ self._configFolder['Dados-Estimacao']+sep+ self._configFolder['matriz-correlacao'] + sep if base_dir is None else sep + base_dir + sep + self._configFolder['Dados-Estimacao']+ sep+ self._configFolder['matriz-correlacao'] + sep
+                folder = sep + 'Grandezas' + sep+ self._configFolder['graficos-subfolder-DadosEstimacao']+sep+ self._configFolder['graficos-subfolder-matrizcorrelacao'] + sep if base_dir is None else sep + base_dir + sep + self._configFolder['graficos-subfolder-DadosEstimacao']+ sep+ self._configFolder['graficos-subfolder-matrizcorrelacao'] + sep
                 Validacao_Diretorio(base_path, folder)
             else:
-                folder = sep + 'Grandezas' + sep+ self._configFolder['Dados-validacao']+' '+str(fluxo)+sep+ self._configFolder['matriz-correlacao'] + sep if base_dir is None else sep + base_dir + sep + self._configFolder['Dados-validacao']+' '+str(fluxo)+ sep+ self._configFolder['matriz-correlacao'] + sep
+                folder = sep + 'Grandezas' + sep+ self._configFolder['graficos-subfolder-Dadosvalidacao']+' '+str(fluxo)+sep+ self._configFolder['graficos-subfolder-matrizcorrelacao'] + sep if base_dir is None else sep + base_dir + sep + self._configFolder['graficos-subfolder-Dadosvalidacao']+' '+str(fluxo)+ sep+ self._configFolder['graficos-subfolder-matrizcorrelacao'] + sep
                 Validacao_Diretorio(base_path, folder)
             # --------------------------------------------------------------------------------------
             for elemento in self.labelGraficos(printunit=False):
@@ -769,10 +771,10 @@ class Grandeza:
             # Pastas internas
             # ------------------------------------------------------------------------------------
             if fluxo == 0:
-                folder = sep + 'Grandezas' + sep + self._configFolder['Dados-Estimacao'] + sep + self._configFolder['matriz-correlacao'] + sep if base_dir is None else sep + base_dir + sep + self._configFolder['Dados-Estimacao'] + sep + self._configFolder['matriz-correlacao'] + sep
+                folder = sep + 'Grandezas' + sep + self._configFolder['graficos-subfolder-DadosEstimacao'] + sep + self._configFolder['graficos-subfolder-matrizcorrelacao'] + sep if base_dir is None else sep + base_dir + sep + self._configFolder['graficos-subfolder-DadosEstimacao'] + sep + self._configFolder['graficos-subfolder-matrizcorrelacao'] + sep
                 Validacao_Diretorio(base_path, folder)
             else:
-                folder = sep + 'Grandezas' + sep + self._configFolder['Dados-validacao']+' '+str(fluxo) + sep + self._configFolder['matriz-correlacao'] + sep if base_dir is None else sep + base_dir + sep + self._configFolder['Dados-validacao']+' '+str(fluxo) + sep + self._configFolder['matriz-correlacao'] + sep
+                folder = sep + 'Grandezas' + sep + self._configFolder['graficos-subfolder-Dadosvalidacao']+' '+str(fluxo) + sep + self._configFolder['graficos-subfolder-matrizcorrelacao'] + sep if base_dir is None else sep + base_dir + sep + self._configFolder['graficos-subfolder-Dadosvalidacao']+' '+str(fluxo) + sep + self._configFolder['graficos-subfolder-matrizcorrelacao'] + sep
                 Validacao_Diretorio(base_path, folder)
             # --------------------------------------------------------------------------------------
             plot_corr(self.matriz_correlacao, xnames=self.labelGraficos(printunit=False), ynames=self.labelGraficos(printunit=False), title=u'Matriz de correlação ' + self.__ID_disponivel[3],normcolor=True, cmap=cm1)
@@ -784,10 +786,10 @@ class Grandeza:
             # Pastas internas
             # ------------------------------------------------------------------------------------
             if fluxo == 0:
-                folder = sep + 'Grandezas' + sep + self._configFolder['Dados-Estimacao'] + sep + self._configFolder['matriz-correlacao'] + sep if base_dir is None else sep + base_dir + sep + self._configFolder['Dados-Estimacao'] + sep + self._configFolder['comparacao-residuo'] + sep
+                folder = sep + 'Grandezas' + sep + self._configFolder['graficos-subfolder-DadosEstimacao'] + sep + self._configFolder['graficos-subfolder-matrizcorrelacao'] + sep if base_dir is None else sep + base_dir + sep + self._configFolder['graficos-subfolder-DadosEstimacao'] + sep + self._configFolder['graficos-subfolder-comparacaoresiduo'] + sep
                 Validacao_Diretorio(base_path, folder)
             else:
-                folder = sep + 'Grandezas' + sep + self._configFolder['Dados-validacao']+' '+str(fluxo) + sep + self._configFolder['matriz-correlacao'] + sep if base_dir is None else sep + base_dir + sep + self._configFolder['Dados-validacao']+' '+str(fluxo) + sep +self._configFolder['comparacao-residuo'] + sep
+                folder = sep + 'Grandezas' + sep + self._configFolder['graficos-subfolder-Dadosvalidacao']+' '+str(fluxo) + sep + self._configFolder['graficos-subfolder-matrizcorrelacao'] + sep if base_dir is None else sep + base_dir + sep + self._configFolder['graficos-subfolder-Dadosvalidacao']+' '+str(fluxo) + sep +self._configFolder['graficos-subfolder-comparacaoresiduo'] + sep
                 Validacao_Diretorio(base_path, folder)
             # --------------------------------------------------------------------------------------
             # checa a variabilidade dos dados, assim como a existência de possíveis outliers
@@ -800,10 +802,10 @@ class Grandeza:
                 # Pastas internas
                 # ------------------------------------------------------------------------------------
                 if fluxo == 0:
-                    folder = sep + self._configFolder['Dados-Estimacao'] + sep + self.simbolos[i] + sep
+                    folder = sep + self._configFolder['graficos-subfolder-DadosEstimacao'] + sep + self.simbolos[i] + sep
                     Validacao_Diretorio(base_path, folder)
                 else:
-                    folder = sep + self._configFolder['Dados-validacao']+' '+str(fluxo) + sep + self.simbolos[i] + sep
+                    folder = sep + self._configFolder['graficos-subfolder-Dadosvalidacao']+' '+str(fluxo) + sep + self.simbolos[i] + sep
                     Validacao_Diretorio(base_path, folder)
                 # ------------------------------------------------------------------------------------
                 dados = self.residuos.matriz_estimativa[:,i]
@@ -853,10 +855,10 @@ class Grandeza:
                     # Pastas internas
                     # ------------------------------------------------------------------------------------
                     if fluxo == 0:
-                        folder = sep + self._configFolder['Dados-Estimacao'] + sep  + symb + sep
+                        folder = sep + self._configFolder['graficos-subfolder-DadosEstimacao'] + sep  + symb + sep
                         Validacao_Diretorio(base_path, folder)
                     else:
-                        folder = sep + self._configFolder['Dados-validacao']+' '+str(fluxo) + sep + symb + sep
+                        folder = sep + self._configFolder['graficos-subfolder-Dadosvalidacao']+' '+str(fluxo) + sep + symb + sep
                         Validacao_Diretorio(base_path, folder)
                     # ------------------------------------------------------------------------------------
                     dados = y[:,i]
@@ -874,10 +876,10 @@ class Grandeza:
                     # Pastas internas
                     # ------------------------------------------------------------------------------------
                     if fluxo == 0:
-                        folder = sep + self._configFolder['Dados-Estimacao'] + sep + self.simbolos[i] + sep
+                        folder = sep + self._configFolder['graficos-subfolder-DadosEstimacao'] + sep + self.simbolos[i] + sep
                         Validacao_Diretorio(base_path, folder)
                     else:
-                        folder = sep + self._configFolder['Dados-validacao']+' '+str(fluxo) + sep + self.simbolos[i] + sep
+                        folder = sep + self._configFolder['graficos-subfolder-Dadosvalidacao']+' '+str(fluxo) + sep + self.simbolos[i] + sep
                         Validacao_Diretorio(base_path, folder)
                     # ------------------------------------------------------------------------------------
                     dados = self.estimacao.matriz_estimativa[:,i]
@@ -896,10 +898,10 @@ class Grandeza:
                     # Pastas internas
                     # ------------------------------------------------------------------------------------
                     if fluxo == 0:
-                        folder = sep + self._configFolder['Dados-Estimacao'] + sep + self.simbolos[i] + sep
+                        folder = sep + self._configFolder['graficos-subfolder-DadosEstimacao'] + sep + self.simbolos[i] + sep
                         Validacao_Diretorio(base_path, folder)
                     else:
-                        folder = sep + self._configFolder['Dados-validacao']+' '+str(fluxo) + sep + self.simbolos[i] + sep
+                        folder = sep + self._configFolder['graficos-subfolder-Dadosvalidacao']+' '+str(fluxo) + sep + self.simbolos[i] + sep
                         Validacao_Diretorio(base_path, folder)
                     # ------------------------------------------------------------------------------------
                     dados = self.predicao.matriz_estimativa[:,i]
