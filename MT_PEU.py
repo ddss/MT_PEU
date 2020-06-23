@@ -2010,8 +2010,9 @@ class EstimacaoNaoLinear:
             # dos parâmetros existir.
             if self.__controleFluxo.incertezaParametros:
                 # Gráficos da estimação
-                base_dir = sep + self._configFolder['graficos-{}'.format(self.__tipoGraficos[0])] + sep
-                Validacao_Diretorio(base_path, base_dir)
+                if self.parametros.NV >1:
+                    base_dir = sep + self._configFolder['graficos-{}'.format(self.__tipoGraficos[0])] + sep
+                    Validacao_Diretorio(base_path, base_dir)
                 # os gráficos só podem ser executado se o número de parâmetros for
                 # maior do que 1
                 if self.parametros.NV != 1:
