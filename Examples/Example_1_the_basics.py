@@ -43,7 +43,7 @@ Estime.setDados(0,(time,uxtime),(temperature,uxtemperature))
 Estime.setDados(1,(y,uy))
 
 # Defining the previous data set to be used to parameter estimation
-Estime.setConjunto(type='estimacao')
+Estime.setConjunto(dataType='estimacao')
 
 #%% Optimization - estimating the parameters
 Estime.optimize(initial_estimative=[0.5,25000], algorithm='ipopt')

@@ -193,7 +193,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             self.__coluna_dumb = True
 
 
-    def setConjunto(self,glx=[],gly=[],type='estimacao',uxy=None):
+    def setConjunto(self,glx=[],gly=[],dataType='estimacao',uxy=None):
         u'''
         Método para incluir os dados de entrada da estimação
         
@@ -219,9 +219,9 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # ---------------------------------------------------------------------
 
         # Validação da sintaxe
-        if not set([type]).issubset(self._EstimacaoNaoLinear__tiposDisponiveisEntrada):
+        if not set([dataType]).issubset(self._EstimacaoNaoLinear__tiposDisponiveisEntrada):
             raise ValueError('The input(s) ' + ','.join(
-                set([type]).difference(self._EstimacaoNaoLinear__tiposDisponiveisEntrada)) + ' are not available. You should use: ' + ','.join(
+                set([dataType]).difference(self._EstimacaoNaoLinear__tiposDisponiveisEntrada)) + ' are not available. You should use: ' + ','.join(
                 self._EstimacaoNaoLinear__tiposDisponiveisEntrada) + '.')
 
         # Validação do número de dados experimentais
@@ -237,7 +237,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             self._EstimacaoNaoLinear__uxtemp = hstack((self._EstimacaoNaoLinear__uxtemp, ones((shape(self._EstimacaoNaoLinear__uxtemp)[0], 1))))
             coluna_dumb = True
 
-        if type == 'estimacao':
+        if dataType == 'estimacao':
             self._EstimacaoNaoLinear__flag.ToggleActive('dadosestimacao')
             if self._EstimacaoNaoLinear__controleFluxo.FLUXO_ID != 0:
                 self._EstimacaoNaoLinear__controleFluxo.reiniciar()
@@ -257,7 +257,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             except Exception as erro:
                 raise RuntimeError('Error in the creation of the estimation set of the quantity Y: {}'.format(erro))
 
-        if type == 'predicao':
+        if dataType == 'predicao':
             self._EstimacaoNaoLinear__flag.ToggleActive('dadospredicao')
             self._EstimacaoNaoLinear__controleFluxo.reiniciarParcial()
 

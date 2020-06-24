@@ -44,7 +44,7 @@ Estime.setDados(0,(x1,ux1),(x2,ux2))
 Estime.setDados(1, (y1, uy1), (y2, uy2))
 
 # Defining the previous data set to be used to parameter estimation
-Estime.setConjunto(type='estimacao')
+Estime.setConjunto(dataType='estimacao')
 
 #%% Optimization - estimating the parameters
 Estime.optimize(initial_estimative=[3,0.1,5,0.4])

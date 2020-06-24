@@ -33,7 +33,7 @@ Estimation.setDados(0,(T,uT))
 Estimation.setDados(1,(P,uP))
 
 # Defining the previous data set to be used to parameter estimation
-Estimation.setConjunto(type='estimacao')
+Estimation.setConjunto(dataType='estimacao')
 
 #%% Optimization - estimating the parameters
 Estimation.optimize(initial_estimative = [200, -80680.1])
@@ -77,7 +77,7 @@ Estimation.setDados(0, (X.tolist(), uX.tolist()))
 Estimation.setDados(1, (Y.tolist(), uY.tolist()))
 
 # Defining the previous data set to be used to parameter estimation
-Estimation.setConjunto(type='estimacao')
+Estimation.setConjunto()
 
 #%% Optimization - estimating the parameters
 Estimation.optimize()

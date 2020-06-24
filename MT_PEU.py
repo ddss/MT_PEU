@@ -507,6 +507,7 @@ class EstimacaoNaoLinear:
         if len(set(self.y.simbolos).intersection(self.x.simbolos)) != 0 or len(set(self.y.simbolos).intersection(self.parametros.simbolos)) != 0 or len(set(self.x.simbolos).intersection(self.parametros.simbolos)) != 0:
             raise NameError('The symbols of the quantities must be different.')
 
+
         # ---------------------------------------------------------------------
         # OUTRAS VARIÁVEIS
         # ---------------------------------------------------------------------
@@ -743,69 +744,82 @@ class EstimacaoNaoLinear:
         # graus de liberdade devem ser passados por aqui
 
 
-    def setConjunto(self,glx=[],gly=[],type=None,uxy=None):
+    def setConjunto(self,glx=[],gly=[],dataType=None,uxy=None):
         u"""
-        Método para incluir os dados de entrada da estimação, deve ser executado após a setDados
+        setConjunto(self,glx=[],gly=[],dataType=None,uxy=None)
 
-        =======================
-        Entradas (Opcionais)
-        =======================
+            Method for including the estimation data. It must be run after the setDados method.
 
-        * glx       : graus de liberdade para as grandezas de entrada
-        * gly       : graus de liberdada para as grandezas de saída
-        * type      : string que define o objetivo do conjunto de dados inserido em setDados: 'estimacao' ou 'predicao'
-        * uxy       : não está em uso
+            Parameters
+            ----------
+            glx : list, optional
+                list with the freedom degrees for the input quantities.
+            gly : list, optional
+                list with the freedom degrees for the output quantities.
+            dataType : string, optionial
+                defines the purpose of the informed data set.
 
-        **Aviso**:
-        * Caso não definido o type, setConjunto o define automaticamente, como estimacao ou predicao.
-        * Caso não definidos dados de predição, será assumido os valores experimentais (de estimação).
-        * Caso não definido graus de liberdade para as grandezas, será assumido o valor constante de 100
+                ============ =================================================================
+                'estimacao'   dataset to perform the parameter estimation
+                ============ =================================================================
+                'predicao'    dataset to perform the prediction of the output model estimates.
+                              In this case, the parameters are already known.
+                ============ =================================================================
+
+            uxy : not in use
+
+            Notes
+            -----
+            If the dataType argument was not defined the method defines automatically as 'estimacao' or 'predicao'.
+            If the prediction data was not defined the method define dataType as 'estimacao'.
+            If the quantities freedom degrees was not defined it will be assumed constant and equal to 100
+
         """
         # ---------------------------------------------------------------------
-        # FLUXO
+        # FLUX
         # ---------------------------------------------------------------------
         self.__controleFluxo.SET_ETAPA('setConjunto')
         # ---------------------------------------------------------------------
-        # VALIDAÇÃO
+        # VALIDATON
         # ---------------------------------------------------------------------
         if (self.__xtemp is None) or (self.__ytemp is None) or (self.__uxtemp is None) or (self.__uytemp is None):
             raise ValueError('It is necessary to run the setDados method to define data for dependent (y) and independent (x) quantities.')
 
-        # type validation
-        if type is not None:
-            if not set([type]).issubset(self.__tiposDisponiveisEntrada):
+        # dataType validation
+        if dataType is not None:
+            if not set([dataType]).issubset(self.__tiposDisponiveisEntrada):
                 raise ValueError('The input(s) ' + ','.join(
-                    set([type]).difference(self.__tiposDisponiveisEntrada)) + ' are not available. You should use: ' + ','.join(
+                    set([dataType]).difference(self.__tiposDisponiveisEntrada)) + ' are not available. You should use: ' + ','.join(
                     self.__tiposDisponiveisEntrada) + '.')
 
-        # Validação do número de dados experimentais
+        # validation of the amount of experimental data
 
         if self.__xtemp.shape[0] != self.__ytemp.shape[0]:
             raise ValueError('{:d} data were entered for dependent quantities, but {:d} for independent quantities'.format(self.__ytemp.shape[0],self.__xtemp.shape[0]))
 
         # ---------------------------------------------------------------------
-        # EXECUÇÃO
+        # EXECUTION
         # ---------------------------------------------------------------------
 
-        if type is None:
+        if dataType is None:
             if not self.__flag.info['dadosestimacao']:
-                type = self.__tiposDisponiveisEntrada[0]
+                dataType = self.__tiposDisponiveisEntrada[0]
             else:
-                type = self.__tiposDisponiveisEntrada[1]
+                dataType = self.__tiposDisponiveisEntrada[1]
 
-        # dados experimentais
-        if type == self.__tiposDisponiveisEntrada[0]:
+        # experimental data
+        if dataType == self.__tiposDisponiveisEntrada[0]:
             self.__flag.ToggleActive('dadosestimacao')
 
-            # caso o ID do fluxo seja 0, então não há necessidade de reiniciar, caso contrário, reiniciar.
+            # if flux ID is equal to zero, so it's not necessary to restart, otherwise, restart.
             if self.__controleFluxo.FLUXO_ID != 0:
                 self.__controleFluxo.reiniciar()
                 if self.__flag.info['dadospredicao']:
                     warn('The flux was restarted, so new validation data has to be included.', UserWarning)
             # ---------------------------------------------------------------------
-            # ATRIBUIÇÃO A GRANDEZAS
+            # ASSIGNMENT OF VALUES TO QUANTITIES
             # ---------------------------------------------------------------------
-            # Salvando os dados experimentais nas variáveis.
+            # Saving the experimental data in the variables.
             try:
                 self.x._SETdadosestimacao(estimativa=self.__xtemp,matriz_incerteza=self.__uxtemp,gL=glx)
             except Exception as erro:
@@ -816,33 +830,33 @@ class EstimacaoNaoLinear:
             except Exception as erro:
                 raise RuntimeError('EError in the creation of the estimation set of the quantity Y: {}'.format(erro))
 
-        # dados de predição
+        # prediction data
         if type == self.__tiposDisponiveisEntrada[1]:
             self.__flag.ToggleActive('dadospredicao')
 
             self.__controleFluxo.reiniciarParcial()
             # ---------------------------------------------------------------------
-            # ATRIBUIÇÃO A GRANDEZAS
+            # ASSIGNMENT OF VALUES TO QUANTITIES
             # ---------------------------------------------------------------------
-            # Salvando os dados de validação.
+            # Saving the validation data.
             try:
                 self.x._SETdadosvalidacao(estimativa=self.__xtemp,matriz_incerteza=self.__uxtemp,gL=glx)
-            except Exception as erro:
-                raise RuntimeError('Error in the creation of the validation set of the quantity X: {}'.format(erro))
+            except Exception as error:
+                raise RuntimeError('Error in the creation of the validation set of the quantity X: {}'.format(error))
 
             try:
                 self.y._SETdadosvalidacao(estimativa=self.__ytemp,matriz_incerteza=self.__uytemp,gL=gly)
-            except Exception as erro:
-                raise RuntimeError('Error in the creation of the validation set of the quantity Y: {}'.format(erro))
+            except Exception as error:
+                raise RuntimeError('Error in the creation of the validation set of the quantity Y: {}'.format(error))
 
         if not self.__flag.info['dadospredicao']:
-            # Caso setConjunto seja executado somente para os dados experimentais,
-            # será assumido que estes são os dados de validação, pois todos os cálculos 
-            # de predição são realizados para os dados de validação.
+            # If setConjunto method is only performed for experimental data,
+            # it will be assumed that also are validation data because all prediction
+            # calculation is performed to the validation data.
             # ---------------------------------------------------------------------
-            # ATRIBUIÇÃO A GRANDEZAS
+            # ASSIGNMENT OF VALUES TO QUANTITIES
             # ---------------------------------------------------------------------
-            # Salvando os dados de validação.
+            # Saving validation data.
             try:
                 self.x._SETdadosvalidacao(estimativa=self.__xtemp,matriz_incerteza=self.__uxtemp,gL=glx)
             except Exception as erro:
@@ -853,7 +867,7 @@ class EstimacaoNaoLinear:
             except Exception as erro:
                 raise RuntimeError('Error in the creation of the validation set of the quantity Y: {}'.format(erro))
 
-        # Transformando variáveis temporárias ( xtemp, uxtemp, ytemp, uytemp) em listas vazias
+        # Transforming the temporary variables ( xtemp, uxtemp, ytemp, uytemp) in empty lists.
         self.__xtemp = None
         self.__uxtemp = None
         self.__ytemp = None
@@ -1085,96 +1099,90 @@ class EstimacaoNaoLinear:
 
         return grandeza
 
-    def optimize(self, initial_estimative, lower_bound=-inf, upper_bound=inf, algorithm ='ipopt', optimizationReport = True, parametersReport = False, args=None):
+    def optimize(self, initial_estimative, lower_bound=-inf, upper_bound=inf, algorithm ='ipopt', optimizationReport = True, parametersReport = False):
         u"""
-        Método para realização da otimização
+        optimize(self, initial_estimative, lower_bound=-inf, upper_bound=inf, algorithm ='ipopt', optimizationReport = True, parametersReport = False)
 
-        =====================
-        Métodos predecessores
-        =====================
+            Solve the optimization problem.
 
-        Faz-se necessário executaro método ``setConjunto``, informando os dados estimação \
-        antes de executar a otimização.
+            Parameters
+            ----------
+            initial_estimative : list
+                list with the initial estimates for the parameters.
+            lower_bound : list, optional
+                list with the lower bounds for the parameters.
+            upper_bound : list, optional
+                list with the upper bounds for the parameters.
+            algorithm : string, optional
+                informs the optimization algorithm that will be used. Each algorithm has its own keywords.
 
-        =======================
-        Entradas (obrigatórias)
-        =======================
-        * initial_estimative (list): lista com as estimativas iniciais para os parâmetros. **Usado para outros métodos de otimização**
+                ==================== ===================================================================================
+                available algorithms                                       font
+                ==================== ===================================================================================
+                'ipopt'              https://github.com/coin-or/Ipopt
+                'bonmin '            https://github.com/coin-or/Bonmin
+                'sqpmethod'          http://casadi.sourceforge.net/v1.9.0/api/html/de/dd4/classCasADi_1_1SQPMethod.html
+                =================== ====================================================================================
 
-        ====================
-        Entradas (opcionais)
-        ====================
+            optimizationReport : bool, optional
+                informs whether the optimization report should be created.
+            parametersReport : bool, optional
+                informs whether the parameters report should be created.
 
-        * lower_bound (list): lista com os limites inferior para os parâmetros.
-        * upper_bound (list): lista com os limites superior para os parâmetros.
-        * args: argumentos extras a serem passados para o modelo
-        * algorithm (string): string informando o algoritmo de otimização a ser utilizado. Cada algoritmo tem suas próprias keywords
-
-        ===============================
-        Keywords (argumentos opcionais)
-        ===============================
-
-        available algorithms = ipotp, bnomin, sqpmethod
-
-        ==========
-        Observação
-        ==========
-        * Toda vez que a otimização é executada toda informação anterior sobre parâmetros é perdida
+             Notes
+             -----
+             Before executing the optimize method it's necessary to execute the "setConjunto" method
+             and define the estimation data.
+             Every time the optimization method is run, the information about the parameters is lost.
         """
         # ---------------------------------------------------------------------
-        # FLUXO
+        # FLUX
         # ---------------------------------------------------------------------
         self.__controleFluxo.SET_ETAPA('otimizacao')
         # ---------------------------------------------------------------------
-        # VALIDAÇÃO
+        # VALIDATION
         # ---------------------------------------------------------------------
 
-        # se não houver dados experimentais -> erro
+        # if don't have experimental data -> error
         if not self.__flag.info['dadosestimacao']:
-            raise SyntaxError('For execute optimize is necessary to input the estimation data')
+            raise SyntaxError('To execute the optimize method is necessary to input the estimation data.')
 
-        # se SETparametro não pode ser executado antes de otimiza.
+        # the SETparameter method must not be executed before the optimize method.
         if self.__controleFluxo.SETparametro:
-            raise SyntaxError('The method {} cannot be executed before {}'.format('optimize', 'SETparametro'))
+            raise SyntaxError('The method {} cannot be executed before {}'.format('optimize', 'SETparameter'))
 
-        # verificaando se algorithm é um string
+        # check if the algorithm argument has string type
         if not isinstance(algorithm, str):
             raise TypeError('The algorithm name must be a string.')
 
-        # verificando se algorithm está disponível
+        # check if the informed algorithm is available.
         if not algorithm in self.__AlgoritmosOtimizacao:
             raise NameError(
                 'The algorithm option {} is not right. Available algorithms: '.format(algorithm) + ', '.join(
                     self.__AlgoritmosOtimizacao) + '.')
 
-        # validação da estimativa inicial:
+        # validation of the initial estimative:
         if initial_estimative is None:
-            raise SyntaxError('To execute the optimize method it is necessary to give an initial estimate')
+            raise SyntaxError('To execute the optimize method it is necessary to give an initial estimative')
         if not isinstance(initial_estimative, list) or len(initial_estimative) != self.parametros.NV:
             raise TypeError(
-                'The initial estimate must be a list with the size of the number of parameters, defined in the symbols. Number of parameters: {}'.format(
+                'The initial estimative must be a list with the size of the number of parameters, defined in the symbols. Number of parameters: {}'.format(
                     self.parametros.NV))
 
         # ---------------------------------------------------------------------
-        # EXECUÇÃO
+        # EXECUTION
         # ---------------------------------------------------------------------
-        # EstimacaoNaoLinear executa somente estimação SEM reconciliação
+        # EstimacaoNaoLinear only performs estimation WITHOUT data reconciliation
         self.__flag.ToggleInactive('reconciliacao')
-
-        # definindo que args são argumentos extras a serem passados para a função objetivo (e, portanto, não sofrem validação)
-        self.__args_user = args
-
-        # indica que este algoritmo possui gráficos de desempenho
-        self.__flag.ToggleInactive('graficootimizacao')
-        # indica que esta algoritmo possui relatório de desempenho
+        # indicates that this algorithm has performance reporting.
         self.__flag.ToggleActive('relatoriootimizacao')
 
         # ---------------------------------------------------------------------
-        # VALIDAÇÃO DO MODELO
+        # MODEL VALIDATION
         # ---------------------------------------------------------------------
 
-        # Verificação se o modelo é executável nos limites de busca
-        try:  # validar se foi passado os limites superior e inferior. Obrigatorio estimativa inicial
+        # Check if the model is executable in the search boundaries.
+        try:  # Validates the informed upper and lower limits. The initial estimative of parameters is required.
             if upper_bound is not None:
                 aux = self.__excModel(upper_bound, self._values)
             if lower_bound is not None:
@@ -1187,11 +1195,12 @@ class EstimacaoNaoLinear:
                 u'Error in the model when evaluated within the defined search limits. Error identified: "{}".'.format(erro))
 
         # ---------------------------------------------------------------------
-        # EXECUÇÃO OTIMIZAÇÃO
+        # PEFORMS THE OPTIMIZATION
         # ---------------------------------------------------------------------
-        #definição o problema de otimização
+        # define the optimization problem
         nlp = {'x': self.__symParam, 'p': self.__symVariables, 'f': self.__symObjectiveFunction}
 
+        # options for printing the optimization information
         if optimizationReport is True:
             # with optimization report
             if algorithm == 'ipopt':
@@ -1212,26 +1221,23 @@ class EstimacaoNaoLinear:
             elif algorithm == 'sqpmethod':
                 options = {'print_iteration': False, 'qpsol_options': {'printLevel': 'none'}}
 
-        #montagem do problema de otimização
+        # optimization problem setup
         S = nlpsol('S', algorithm, nlp, options)
-        #passagem dos argumentos
+        # passing the arguments for the optimization problem
         self.Otimizacao = S(x0=initial_estimative, p=self._values, lbx=lower_bound, ubx=upper_bound)
 
-        # ATRIBUIÇÃO A GRANDEZAS
+        # ASSIGNMENT OF VALUES TO QUANTITIES
 
         # ---------------------------------------------------------------------
-        # OBTENÇÃO DO PONTO ÓTIMO DA FUNÇÃO OBJETIVO
+        # OPTIMAL POINT OF THE OBJECTIVE FUNCTION
         # ---------------------------------------------------------------------
         self.FOotimo = float(self.Otimizacao['f'])
         # ---------------------------------------------------------------------
-        # OBTENÇÃO DO VALOR ÓTIMO DOS PARÂMETROS
+        # OPTIMAL VALUE OF THE PARAMETERS
         # ---------------------------------------------------------------------
-        self.__opt_param = []
-        for i in range(self.parametros.NV):
-            self.__opt_param.append(float(self.Otimizacao['x'][i])) # converter o objeto DM para float, para que assim ele possa ser encaixado numa lista
-                                                                    # e ser utilizado no _SETparametro
+        self.__opt_param = [float(self.Otimizacao['x'][i]) for i in range(self.parametros.NV)] # converts DM type in float type
 
-        # Toda vez que a otimização é executada toda informação anterior sobre parâmetros é perdida
+        # every time optimization is run all previous information about parameters is lost
         self.parametros._SETparametro(self.__opt_param, None, None, limite_superior=upper_bound,limite_inferior=lower_bound)
 
         # parameters report creation
