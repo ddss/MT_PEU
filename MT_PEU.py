@@ -550,20 +550,18 @@ class EstimacaoNaoLinear:
         # relatoriootimizacao: indicar se o algoritmo de otimização possui relatório
 
         # Variável que controla o nome das pastas criadas pelos métodos gráficos e relatórios
-        self._configFolder = {'graficos':'Graficos',
-                              #'graficos-grandezas-entrada-estimacao':'Grandezas',
-                              #'graficos-grandezas-entrada-predicao':'Grandezas',
-                              'graficos-{}'.format(self.__tipoGraficos[0]): 'Regiao',
-                              'graficos-{}'.format(self.__tipoGraficos[1]): 'Grandezas',
-                              'graficos-{}'.format(self.__tipoGraficos[2]): 'Predicao',
-                              'graficos-{}'.format(self.__tipoGraficos[3]):'Grandezas',
-                              'graficos-{}'.format(self.__tipoGraficos[4]):'Otimizacao',
-                              'graficos-{}'.format(self.__tipoGraficos[5]):'Grandezas',
-                              'report':'Reports',
-                              'graficos-subfolder-DadosEstimacao':'Dados Estimacao',
-                              'graficos-subfolder-Dadosvalidacao':'Dados Validacao',
-                              'graficos-subfolder-matrizcorrelacao':'Matrizes Correlacao',
-                              'graficos-subfolder-grandezatendencia':'Tendencia observada'}
+        self._configFolder = {'plots':'Graficos',
+                              'plots-{}'.format(self.__tipoGraficos[0]): 'Regiao',
+                              'plots-{}'.format(self.__tipoGraficos[1]): 'Grandezas',
+                              'plots-{}'.format(self.__tipoGraficos[2]): 'Predicao',
+                              'plots-{}'.format(self.__tipoGraficos[3]):'Grandezas',
+                              'plots-{}'.format(self.__tipoGraficos[4]):'Otimizacao',
+                              'plots-{}'.format(self.__tipoGraficos[5]):'Grandezas',
+                              'plots-subfolder-DadosEstimacao': 'Dados Estimacao',
+                              'plots-subfolder-Dadosvalidacao': 'Dados Validacao',
+                              'plots-subfolder-matrizcorrelacao': 'Matrizes Correlacao',
+                              'plots-subfolder-grandezatendencia': 'Tendencia observada',
+                              'report':'Reports'}
 
         # variáveis auxiliares para definição de conjunto de dados
         self.__xtemp = None
@@ -1663,6 +1661,12 @@ class EstimacaoNaoLinear:
         limite_inferior = kwargs.get('limite_inferior')
         fatorlimitebusca =  kwargs.get('fatorlimitebusca') if kwargs.get('fatorlimitebusca') is not None else 1/10.
 
+        #Validação
+        if (not isinstance(limite_superior, list) and limite_superior is not None) or (not isinstance(limite_inferior, list) and limite_inferior is not None):
+            raise TypeError('The upper_limit and the lower_limit must be lists.')
+        if (limite_superior is not None and len(limite_superior) != self.parametros.NV) or (limite_inferior is not None and len(limite_inferior) != self.parametros.NV):
+            raise TypeError('Upper_limits and lower_limits must be lists of the same size as self.paramtros.NV')
+
         if limite_superior is None or limite_inferior is None:
             extremo_elipse_superior = [0 for i in range(self.parametros.NV)]
             extremo_elipse_inferior = [0 for i in range(self.parametros.NV)]
@@ -1912,7 +1916,7 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # CAMINHO BASE
         # ---------------------------------------------------------------------         
-        base_path = self.__base_path + sep + self._configFolder['graficos'] + sep
+        base_path = self.__base_path + sep + self._configFolder['plots'] + sep
 
         # ---------------------------------------------------------------------
         # GRÁFICOS
@@ -1920,11 +1924,11 @@ class EstimacaoNaoLinear:
         if (self.__tipoGraficos[1] in tipos):
             # se setConjunto foi executado alguma vez:
             if self.__controleFluxo.setConjunto:
-                base_dir = sep + self._configFolder['graficos-{}'.format(self.__tipoGraficos[1])] + sep
+                base_dir = sep + self._configFolder['plots-{}'.format(self.__tipoGraficos[1])] + sep
                 Validacao_Diretorio(base_path,base_dir)
                 # Pastas internas
                 # ------------------------------------------------------------------------------------
-                folder = sep + self._configFolder['graficos-{}'.format(self.__tipoGraficos[1])] + sep + self._configFolder['graficos-subfolder-DadosEstimacao']+ sep + self._configFolder['graficos-subfolder-grandezatendencia']+sep
+                folder = sep + self._configFolder['plots-{}'.format(self.__tipoGraficos[1])] + sep + self._configFolder['plots-subfolder-DadosEstimacao']+ sep + self._configFolder['plots-subfolder-grandezatendencia']+sep
                 Validacao_Diretorio(base_path, folder)
                 # -----------------------------------------------------------------------------------
                 # gráficos gerados para os dados experimentais
@@ -1957,10 +1961,10 @@ class EstimacaoNaoLinear:
                     # Pastas internas
                     # ------------------------------------------------------------------------------------
                     if self.__controleFluxo.FLUXO_ID == 0:
-                        folder = self._configFolder['graficos-{}'.format(self.__tipoGraficos[5])] +  sep +self._configFolder['graficos-subfolder-DadosEstimacao']+ sep+ self._configFolder['graficos-subfolder-grandezatendencia']+sep
+                        folder = self._configFolder['plots{}'.format(self.__tipoGraficos[5])] +  sep +self._configFolder['plots-subfolder-DadosEstimacao']+ sep+ self._configFolder['plots-subfolder-grandezatendencia']+sep
                         Validacao_Diretorio(base_path, folder)
                     else:
-                        folder = self._configFolder['graficos-{}'.format(self.__tipoGraficos[5])] + sep + self._configFolder['graficos-subfolder-Dadosvalidacao']+' '+str(self.__controleFluxo.FLUXO_ID)+ sep+ self._configFolder['graficos-subfolder-grandezatendencia']+sep
+                        folder = self._configFolder['plots-{}'.format(self.__tipoGraficos[5])] + sep + self._configFolder['plots-subfolder-Dadosvalidacao']+' '+str(self.__controleFluxo.FLUXO_ID)+ sep+ self._configFolder['plots-subfolder-grandezatendencia']+sep
                         Validacao_Diretorio(base_path, folder)
                     # ------------------------------------------------------------------------------------
                     self.x.Graficos(base_path, base_dir, ID=['predicao'], fluxo=self.__controleFluxo.FLUXO_ID, Fig=Fig)
@@ -1976,7 +1980,6 @@ class EstimacaoNaoLinear:
                                                                 label_y=self.y.labelGraficos('observado')[iy],
                                                                 marker='o', linestyle='None')
                             Fig.salvar_e_fechar(base_path+folder+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_sem_incerteza')
-                            #Fig.salvar_e_fechar(base_path + folder + 'predicao_' + self.y.simbolos[iy] + '_funcao_' + self.x.simbolos[ix] + '_sem_incerteza') Excluir depois
                             # Gráficos com a incerteza
                             Fig.grafico_dispersao_com_incerteza(self.x.predicao.matriz_estimativa[:,ix],
                                                                 self.y.predicao.matriz_estimativa[:,iy],
@@ -1986,14 +1989,13 @@ class EstimacaoNaoLinear:
                                                                 label_y=self.y.labelGraficos('observado')[iy],
                                                                 fator_abrangencia_x=2., fator_abrangencia_y=2., fmt= 'o')
                             Fig.salvar_e_fechar(base_path+folder+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_com_incerteza')
-                            #Fig.salvar_e_fechar(base_path + folder + 'predicao_' + self.y.simbolos[iy] + '_funcao_' + self.x.simbolos[ix] + '_com_incerteza') Excluir depois
             else:
                 warn('The input graphs could not be created because the setConjunto method was not executed.',UserWarning)
 
         # Gráficos referentes aos dados de saída (calculados)
         # grandezas-calculado
         if self.__tipoGraficos[3] in tipos:
-            base_dir = sep + self._configFolder['graficos-{}'.format(self.__tipoGraficos[3])] + sep
+            base_dir = sep + self._configFolder['plots-{}'.format(self.__tipoGraficos[3])] + sep
             Validacao_Diretorio(base_path, base_dir)
 
             # a incerteza dos parâmetros foi alguma vez executada
@@ -2017,7 +2019,7 @@ class EstimacaoNaoLinear:
             if self.__controleFluxo.incertezaParametros:
                 # Gráficos da estimação
                 if self.parametros.NV >1:
-                    base_dir = sep + self._configFolder['graficos-{}'.format(self.__tipoGraficos[0])] + sep
+                    base_dir = sep + self._configFolder['plots-{}'.format(self.__tipoGraficos[0])] + sep
                     Validacao_Diretorio(base_path, base_dir)
                 # os gráficos só podem ser executado se o número de parâmetros for
                 # maior do que 1
@@ -2076,18 +2078,18 @@ class EstimacaoNaoLinear:
                 # Pastas internas
                 # ------------------------------------------------------------------------------------
                 if self.__controleFluxo.FLUXO_ID == 0:
-                    folderone = self._configFolder['graficos-{}'.format(self.__tipoGraficos[2])] + sep + self._configFolder['graficos-subfolder-DadosEstimacao'] + sep + 'Saida calculada em funcao das entradas observadas' + sep
+                    folderone = self._configFolder['plots-{}'.format(self.__tipoGraficos[2])] + sep + self._configFolder['plots-subfolder-DadosEstimacao'] + sep + 'Saida calculada em funcao das entradas observadas' + sep
                     Validacao_Diretorio(base_path, folderone)
                 else:
-                    folderone = self._configFolder['graficos-{}'.format(self.__tipoGraficos[2])] + sep + self._configFolder['graficos-subfolder-Dadosvalidacao'] + ' ' + str(self.__controleFluxo.FLUXO_ID) + sep+ 'Saida calculada em funcao das entradas observadas' + sep
+                    folderone = self._configFolder['plots-{}'.format(self.__tipoGraficos[2])] + sep + self._configFolder['plots-subfolder-Dadosvalidacao'] + ' ' + str(self.__controleFluxo.FLUXO_ID) + sep+ 'Saida calculada em funcao das entradas observadas' + sep
                     Validacao_Diretorio(base_path, folderone)
                 # ------------------------------------------------------------------------------------
                 # ------------------------------------------------------------------------------------
                 if self.__controleFluxo.FLUXO_ID == 0:
-                    foldertwo = self._configFolder['graficos-{}'.format(self.__tipoGraficos[2])] + sep + self._configFolder['graficos-subfolder-DadosEstimacao'] + sep + 'Saida calculada em funcao das saidas observadas' + sep
+                    foldertwo = self._configFolder['plots-{}'.format(self.__tipoGraficos[2])] + sep + self._configFolder['plots-subfolder-DadosEstimacao'] + sep + 'Saida calculada em funcao das saidas observadas' + sep
                     Validacao_Diretorio(base_path, foldertwo)
                 else:
-                    foldertwo = self._configFolder['graficos-{}'.format(self.__tipoGraficos[2])] + sep + self._configFolder['graficos-subfolder-Dadosvalidacao'] + ' ' + str(self.__controleFluxo.FLUXO_ID) + sep + 'Saida calculada em funcao das saidas observadas' + sep
+                    foldertwo = self._configFolder['plots-{}'.format(self.__tipoGraficos[2])] + sep + self._configFolder['plots-subfolder-Dadosvalidacao'] + ' ' + str(self.__controleFluxo.FLUXO_ID) + sep + 'Saida calculada em funcao das saidas observadas' + sep
                     Validacao_Diretorio(base_path, foldertwo)
                 # ------------------------------------------------------------------------------------
                 #gráficos de y em função de y
@@ -2238,7 +2240,7 @@ class EstimacaoNaoLinear:
         if (self.__tipoGraficos[5] in tipos):
             # o método análise de resíduos deve ter sido executado
             if self.__controleFluxo.analiseResiduos:
-                base_dir = sep + self._configFolder['graficos-{}'.format(self.__tipoGraficos[5])] + sep
+                base_dir = sep + self._configFolder['plots-{}'.format(self.__tipoGraficos[5])] + sep
                 Validacao_Diretorio(base_path,base_dir)
                 # Gráficos relacionados aos resíduos das grandezas independentes, caso
                 # seja realizada a reconciliação
@@ -2253,10 +2255,10 @@ class EstimacaoNaoLinear:
                     # Pastas internas
                     # ------------------------------------------------------------------------------------
                     if self.__controleFluxo.FLUXO_ID == 0:
-                        folder = self._configFolder['graficos-{}'.format(self.__tipoGraficos[5])] +  sep +self._configFolder['graficos-subfolder-DadosEstimacao']+ sep + self.y.simbolos[i] + sep
+                        folder = self._configFolder['plots-{}'.format(self.__tipoGraficos[5])] +  sep +self._configFolder['plots-subfolder-DadosEstimacao']+ sep + self.y.simbolos[i] + sep
                         Validacao_Diretorio(base_path, folder)
                     else:
-                        folder = self._configFolder['graficos-{}'.format(self.__tipoGraficos[5])] + sep + self._configFolder['graficos-subfolder-Dadosvalidacao']+' '+str(self.__controleFluxo.FLUXO_ID)+ sep + self.y.simbolos[i] + sep
+                        folder = self._configFolder['plots-{}'.format(self.__tipoGraficos[5])] + sep + self._configFolder['plots-subfolder-Dadosvalidacao']+' '+str(self.__controleFluxo.FLUXO_ID)+ sep + self.y.simbolos[i] + sep
                         Validacao_Diretorio(base_path, folder)
                     # ------------------------------------------------------------------------------------
                     # Resíduos vs ycalculado

@@ -12,7 +12,8 @@ Classe auxiliar para escrita de Relatórios
 from os import getcwd, sep
 from subrotinas import Validacao_Diretorio
 from numpy import inf
-
+import xlwt
+from datetime import datetime
 # ---------------------------------------------------------------------
 # CLASSES
 # ---------------------------------------------------------------------
@@ -131,20 +132,26 @@ class Report:
         [2] https://docs.python.org/2/library/string.html#formatstrings
         '''
 
+        self._configFolder={'graficos-subfolder-Dadosvalidacao': 'Dados Validacao',
+                            'graficos-subfolder-DadosEstimacao': 'Dados Estimacao'}
+
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------
         if not isinstance(kwargs.get('export_y'),bool) and kwargs.get('export_y') is not None:
             raise TypeError('A keyword export_y deve ser booleana')
-
         if not isinstance(kwargs.get('export_cov_y'),bool) and kwargs.get('export_cov_y') is not None:
             raise TypeError('A keyword export_cov_y deve ser booleana')
-
+        if not isinstance(kwargs.get('export_y_xls'), bool) and kwargs.get('export_y_xls') is not None:
+            raise TypeError('A keyword export_y_xls deve ser booleana')
+        if kwargs.get('export_y_xls') is None:
+            export_y_xls = False
+        else:
+            export_y_xls = kwargs.get('export_y_xls')
         if kwargs.get('export_y') is None:
             export_y = False
         else:
             export_y = kwargs.get('export_y')
-
         if kwargs.get('export_cov_y') is None:
             export_cov_y = False
         else:
@@ -154,8 +161,18 @@ class Report:
         # ---------------------------------------------------------------------
         # ESCRITA DE ARQUIVO DE RELATÓRIO
         # ---------------------------------------------------------------------
+        #Pastas internas
+        #------------------------------------------------------------
+        if int(self.__fluxo) > 0:
+            folder = sep + self._configFolder['graficos-subfolder-Dadosvalidacao']+' '+self.__fluxo + sep
+            Validacao_Diretorio(self.__base_path, folder)
+        else:
+            folder = sep + self._configFolder['graficos-subfolder-DadosEstimacao'] + sep
+            Validacao_Diretorio(self.__base_path, folder)
+        #------------------------------------------------------------
         if estatisticas is not None:
-            with open(self.__base_path+'prediction-report_fl'+self.__fluxo+'.txt','wt') as f:
+            #with open(self.__base_path+folder+'prediction-report_fl'+self.__fluxo+'.txt','wt') as f:
+            with open(self.__base_path+folder+'prediction-report'+'.txt','wt') as f:
                 # TÍTULO:
                 f.write(('{:#^'+str(max([70,y.NV*18]))+'}'+self.__quebra).format(' PREDIÇÃO '))
                 f.write(('{:=^'+str(max([70,y.NV*18]))+'}'+self.__quebra).format(' GRANDEZAS DEPENDENTES '))
@@ -327,24 +344,31 @@ class Report:
                     if break_line:
                         f.write(self.__quebra)
             f.close()
-
-
         # ---------------------------------------------------------------------
         # EXPORTAÇÃO DA PREDIÇÃO
         # ---------------------------------------------------------------------
         # Valores calculados e incerteza
-        if export_y:
+        if export_y: #Formato txt
             cont = 0
             for symb in y.simbolos:
-                with open(self.__base_path+symb+'-calculado-predicao_fl'+self.__fluxo+'.txt','wt') as f:
+                # with open(self.__base_path+folder+symb+'-calculado-predicao_fl'+self.__fluxo+'.txt','wt') as f:
+                with open(self.__base_path+folder+symb+'-calculado-predicao'+'.txt','wt') as f:
                     for i in range(y.calculado.NE):
                         f.write('{:.5g},{:.5g},{:.5g}'.format(y.calculado.matriz_estimativa[i,cont],y.calculado.matriz_incerteza[i,cont],y.calculado.gL[cont][i])+self.__quebra)
                 f.close()
                 cont+=1
-
+        if export_y_xls: #Formato xls
+            cont = 0
+            wb = xlwt.Workbook()
+            ws = wb.add_sheet('calculado-predicao')
+            for i in range(y.calculado.NE):
+                 ws.write(i, 0, y.calculado.matriz_estimativa[i, cont]), ws.write(i, 1, y.calculado.matriz_incerteza[i, cont]), ws.write(i, 2, y.calculado.gL[cont][i])
+            for symb in y.simbolos:
+                wb.save(self.__base_path+folder+symb+'-calculado-predicao'+'.xls')
         # matriz de covariância
         if export_cov_y:
-            with open(self.__base_path+'y-calculado-matriz-covariancia_fl'+self.__fluxo+'.txt','wt') as f:
+            #with open(self.__base_path+folder+'y-calculado-matriz-covariancia_fl'+self.__fluxo+'.txt','wt') as f:
+            with open(self.__base_path+folder+'y-calculado-matriz-covariancia'+'.txt','wt') as f:
                 for i in range(y.NV*y.calculado.NE):
                     for j in range(y.NV*y.calculado.NE):
                         f.write('{:.5g} '.format(y.calculado.matriz_covariancia[i,j]))
