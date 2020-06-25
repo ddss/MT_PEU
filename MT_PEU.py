@@ -1114,13 +1114,13 @@ class EstimacaoNaoLinear:
             algorithm : string, optional
                 informs the optimization algorithm that will be used. Each algorithm has its own keywords.
 
-                ==================== ===================================================================================
-                available algorithms                                       font
-                ==================== ===================================================================================
+                ==================== ===================================================
+                available algorithms                     font
+                ==================== ===================================================
                 'ipopt'              https://github.com/coin-or/Ipopt
                 'bonmin '            https://github.com/coin-or/Bonmin
                 'sqpmethod'          http://casadi.sourceforge.net/v1.9.0/api/html/de/dd4/classCasADi_1_1SQPMethod.html
-                =================== ====================================================================================
+                ==================== ===================================================
 
             optimizationReport : bool, optional
                 informs whether the optimization report should be created.
@@ -1370,7 +1370,7 @@ class EstimacaoNaoLinear:
         if parametersReport is True:
             self._out.Parametros(self.parametros, self.FOotimo)
 
-    def parametersUncertainty(self,uncertaintyMethod ='Geral',parametersReport = True, objectiveFunctionMapping=True,**kwargs):
+    def parametersUncertainty(self,uncertaintyMethod ='Geral', parametersReport = True, objectiveFunctionMapping=True, **kwargs):
         u"""
 
         Método para avaliação da matriz de covariãncia dos parâmetros e região de abrangência.
@@ -1480,7 +1480,7 @@ class EstimacaoNaoLinear:
         if parametersReport is True:
             self._out.Parametros(self.parametros,self.FOotimo)
 
-    def prediction(self,predictionReport = True,**kwargs):
+    def prediction(self,predictionReport = True, **kwargs):
         u"""
         Method for prediction.
 
@@ -1659,7 +1659,7 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         limite_superior = kwargs.get('limite_superior')
         limite_inferior = kwargs.get('limite_inferior')
-        fatorlimitebusca =  kwargs.get('fatorlimitebusca') if kwargs.get('fatorlimitebusca') is not None else 1/10.
+        fatorlimitebusca = kwargs.get('fatorlimitebusca') if kwargs.get('fatorlimitebusca') is not None else 1/10.
 
         #Validação
         if (not isinstance(limite_superior, list) and limite_superior is not None) or (not isinstance(limite_inferior, list) and limite_inferior is not None):
