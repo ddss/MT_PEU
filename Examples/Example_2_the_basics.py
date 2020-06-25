@@ -52,13 +52,13 @@ Estime.setDados(1,(y,uy))
 Estime.setConjunto()
 
 #%% Optimization - estimating the parameters
-Estime.optimize(initial_estimative=[18, 20000.000])
+Estime.optimize(initial_estimative=[18, 20000.000],optimizationReport = False)
 
 #%% Evaluating the parameters uncertainty and coverage region
 Estime.parametersUncertainty(uncertaintyMethod='2InvHessiana',objectiveFunctionMapping=True)
 
 #%% Evaluating model predictions
-Estime.prediction()
+Estime.prediction(export_y=True)
 
 #%% Evaluating residuals and quality index
 Estime.residualAnalysis()

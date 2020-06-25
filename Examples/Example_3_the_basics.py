@@ -36,13 +36,13 @@ Estimation.setDados(1,(P,uP))
 Estimation.setConjunto(dataType='estimacao')
 
 #%% Optimization - estimating the parameters
-Estimation.optimize(initial_estimative = [1, 1.5, 0.009])
+Estimation.optimize(initial_estimative = [1, 1.5, 0.009],algorithm='bonmin')
 
 #%% Evaluating the parameters uncertainty and coverage region
-Estimation.parametersUncertainty(uncertaintyMethod='SensibilidadeModelo', objectiveFunctionMapping=True)
+Estimation.parametersUncertainty(uncertaintyMethod='SensibilidadeModelo', objectiveFunctionMapping=True, parametersReport = True, iteracoes =500000)
 
 #%% Evaluating model predictions
-Estimation.prediction()
+Estimation.prediction(export_y=True)
 
 #%% Evaluating residuals and quality index
 Estimation.residualAnalysis()

@@ -49,16 +49,17 @@ Estime.setConjunto(dataType='estimacao')
 Estime.optimize(initial_estimative=[0.5,25000], algorithm='ipopt')
 
 #%% Evaluating the parameters uncertainty and coverage region
-Estime.parametersUncertainty(uncertaintyMethod='Geral')
+Estime.parametersUncertainty()
 
 #%% Evaluating model predictions
-Estime.prediction()
+Estime.prediction(export_y=True)
 
 #%% Evaluating residuals and quality index
 Estime.residualAnalysis()
 
 #%% Plotting the main results
 Estime.plots()
+
 
 #%% Reference of this case study
 # SCHWAAB, M.M.;PINTO, J.C. Análise de Dados Experimentais I: Fundamentos da Estátistica e Estimação de Parâmetros. Rio de Janeiro: e-papers, 2007.

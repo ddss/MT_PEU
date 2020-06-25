@@ -79,8 +79,8 @@ u"""
  Em analise de residuos é possível vericar possíveis relações de dependencia e/ou tendencia entre as variaveis. 
 
 """
-ER.parametersUncertainty(objectiveFunctionMapping='MonteCarlo')
-ER.prediction()
+ER.parametersUncertainty(uncertaintyMethod='2InvHessiana',objectiveFunctionMapping=True)
+ER.prediction(export_y=True)
 ER.residualAnalysis()
 
 # =================================================================================
