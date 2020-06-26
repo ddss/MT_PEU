@@ -50,7 +50,7 @@ Estime.setConjunto(dataType='estimacao')
 Estime.optimize(initial_estimative=[3,0.1,5,0.4])
 
 #%% Evaluating the parameters uncertainty and coverage region
-Estime.parametersUncertainty(uncertaintyMethod='2InvHessiana')
+Estime.parametersUncertainty(uncertaintyMethod='2InvHessiana',distribuicao='uniforme')
 
 #%% Evaluating model predictions
 Estime.prediction()
