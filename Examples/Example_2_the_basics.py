@@ -57,6 +57,9 @@ Estime.optimize(initial_estimative=[18, 20000.000],optimizationReport = False)
 #%% Evaluating the parameters uncertainty and coverage region
 Estime.parametersUncertainty(uncertaintyMethod='2InvHessiana',objectiveFunctionMapping=True)
 
+#%%Running the charts without prediction.
+Estime.plots()
+
 #%% Evaluating model predictions
 Estime.prediction(export_y=True)
 
@@ -64,7 +67,7 @@ Estime.prediction(export_y=True)
 Estime.residualAnalysis()
 
 #%% Plotting the main results
-Estime.plots()
+#Estime.plots()
 
 #%% Reference of this case study
 # SCHWAAB, M.M.;PINTO, J.C. Análise de Dados Experimentais I: Fundamentos da Estátistica e Estimação de Parâmetros. Rio de Janeiro: e-papers, 2007.

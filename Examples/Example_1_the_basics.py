@@ -52,7 +52,7 @@ Estime.optimize(initial_estimative=[0.5,25000], algorithm='ipopt')
 Estime.parametersUncertainty()
 
 #%% Evaluating model predictions
-Estime.prediction(export_y=True)
+Estime.prediction()
 
 #%% Evaluating residuals and quality index
 Estime.residualAnalysis()
