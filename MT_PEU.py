@@ -745,10 +745,11 @@ class EstimacaoNaoLinear:
     def setConjunto(self,glx=[],gly=[],dataType=None,uxy=None):
         u"""
         setConjunto(self,glx=[],gly=[],dataType=None,uxy=None)
-
-            Method for including the estimation data. It must be run after the setDados method.
-
-            Parameters
+        
+        ===================================================================================
+        Method for including the estimation data. It must be run after the setDados method.
+        ===================================================================================
+            - Parameters
             ----------
             glx : list, optional
                 list with the freedom degrees for the input quantities.
@@ -758,19 +759,20 @@ class EstimacaoNaoLinear:
                 defines the purpose of the informed data set.
 
                 ============ =================================================================
-                'estimacao'   dataset to perform the parameter estimation
+                dataType     purpose
                 ============ =================================================================
-                'predicao'    dataset to perform the prediction of the output model estimates.
-                              In this case, the parameters are already known.
+                estimacao    dataset to perform the parameter estimation
+                predicao     dataset to perform the prediction of the output model estimates.
+                             In this case, the parameters are already known.
                 ============ =================================================================
 
             uxy : not in use
 
-            Notes
-            -----
-            If the dataType argument was not defined the method defines automatically as 'estimacao' or 'predicao'.
-            If the prediction data was not defined the method define dataType as 'estimacao'.
-            If the quantities freedom degrees was not defined it will be assumed constant and equal to 100
+            - Notes
+             -----
+             If the dataType argument was not defined the method defines automatically as 'estimacao' or 'predicao'.
+             If the prediction data was not defined the method define dataType as 'estimacao'.
+             If the quantities freedom degrees was not defined it will be assumed constant and equal to 100
 
         """
         # ---------------------------------------------------------------------
@@ -1101,10 +1103,11 @@ class EstimacaoNaoLinear:
         u"""
         optimize(self, initial_estimative, lower_bound=-inf, upper_bound=inf, algorithm ='ipopt', optimizationReport = True, parametersReport = False)
 
-            Solve the optimization problem.
-
-            Parameters
-            ----------
+        ==============================
+        Solve the optimization problem.
+        ==============================
+            - Parameters
+            ------------
             initial_estimative : list
                 list with the initial estimates for the parameters.
             lower_bound : list, optional
@@ -1117,9 +1120,9 @@ class EstimacaoNaoLinear:
                 ==================== ===================================================
                 available algorithms                     font
                 ==================== ===================================================
-                'ipopt'              https://github.com/coin-or/Ipopt
-                'bonmin '            https://github.com/coin-or/Bonmin
-                'sqpmethod'          http://casadi.sourceforge.net/v1.9.0/api/html/de/dd4/classCasADi_1_1SQPMethod.html
+                ipopt                https://github.com/coin-or/Ipopt
+                bonmin               https://github.com/coin-or/Bonmin
+                sqpmethod            http://casadi.sourceforge.net/v1.9.0/api/html/de/dd4/classCasADi_1_1SQPMethod.html
                 ==================== ===================================================
 
             optimizationReport : bool, optional
@@ -1127,8 +1130,8 @@ class EstimacaoNaoLinear:
             parametersReport : bool, optional
                 informs whether the parameters report should be created.
 
-             Notes
-             -----
+            - Notes
+             ------
              Before executing the optimize method it's necessary to execute the "setConjunto" method
              and define the estimation data.
              Every time the optimization method is run, the information about the parameters is lost.
@@ -1482,69 +1485,67 @@ class EstimacaoNaoLinear:
 
     def prediction(self,predictionReport = True, **kwargs):
         u"""
-        Method for prediction.
+        prediction(self,predictionReport = True, **kwargs)
 
-        ======
-        Input
-        ======
-        * predictionReport: when is true the prediction report is created but without statistical tests. The statistical tests could be included in \
-        the 'residualAnalysis' method.
+        ==============================
+        Performs the model prediction.
+        ==============================
 
-        ========
-        Keywords
-        ========
-        * See documentation of Relatorio.Predicao
+            - Parameters
+            ------------
+            predictionReport : bool, optional
+                informs whether the prediction report should be created. If is true the prediction report is created without statistical tests.\
+                The statistical tests could be included in the 'residualAnalysis' method.
 
-        ====================
-        Predecessor Methods
-        ====================
+            - Keywords
+            -----------
+            See documentation of Relatorio.Predicao.
 
-        É necessário executar o método optimize (seguido de parametersUncertainty) ou incluir o valor para a estimativa dos parâmetros e sua incerteza, pelo \
-        método ``SETparameter`` (caso não defina incerteza, executar em seguida de parametersUncertainty).
-
+            - Notes
+            ----------
+            Before executing the prediction method it's necessary to execute the optimize and parametersUncertainty methods./
+            Other option is to include the parameters value and the parameters uncertainty through the SETparameter method.
         """
         # ---------------------------------------------------------------------
-        # FLUXO
+        # FLUX
         # ---------------------------------------------------------------------
         self.__controleFluxo.SET_ETAPA('predicao')
 
         # ---------------------------------------------------------------------
-        # AVALIAÇÃO DAS MATRIZES AUXILIARES
+        # EVALUATION OF AUXILIARY MATRICES
         # ---------------------------------------------------------------------
 
-        # Matriz Hessiana da função objetivo em relação aos parâmetros
-        # Somente reavaliada caso o método que a avalia não tenha sido executado E não tenha dados validacao
+        # Hessian matrix of the objective function
+        # Only revaluated if the method that evaluates it has not been performed AND has no validation data
         if not self.__controleFluxo.Hessiana and not self.__flag.info['dadospredicao']:
             self.__Hessiana_FO_Param()
 
-        # Inversa da matriz hessiana a função objetivo em relação aos parâmetros
-        # Só avaliada se o método de avaliação da Hessiana for executado E não tenha dados validacao
+        # The inverse of the Hessian matrix of the objective function
+        # Only revaluated if the method that evaluates it has not been performed AND has no validation data
         if self.__controleFluxo.Hessiana:
             invHess = inv(self.Hessiana)
 
-        # Gy: derivadas parciais segundas da função objetivo em relação aos parâmetros e 
-        # dados experimentais
-        # Somente reavaliada caso o método que a avalia não tenha sido executado E não tenha dados validacao
+        # Gy: partial second derivatives of the objective function concerning the parameters and experimental data
+        # Only revaluated if the method that evaluates it has not been performed AND has no validation data
         if not self.__controleFluxo.Gy and not self.__flag.info['dadospredicao']:
             self.__Matriz_Gy()
 
-        # S: transposto do jacobiano do modelo em relação aos parâmetros
-        # Somente reavaliada caso não tenha sido avaliada OU se tenha dados de validação
+        # S: Matrix of the sensitivity of the model concerning the parameters
+        # Only revaluated if the method that evaluates it has not been performed AND has no validation data
         if not self.__controleFluxo.S or self.__flag.info['dadospredicao']:
-            # Matriz de sensibilidade do modelo em relação aos parâmetros
             self.__Matriz_S()
 
         # ---------------------------------------------------------------------
-        # PREDIÇÃO
+        # PREDICTION
         # ---------------------------------------------------------------------
         aux = array(self.__excModel(self.parametros.estimativa,self._values))
 
         # ---------------------------------------------------------------------
-        # AVALIAÇÃO DA PREDIÇÃO (Y CALCULADO PELO MODELO)
+        # PREDICTION EVALUATION (Y CALCULATED BY THE MODEL)
         # ---------------------------------------------------------------------    
-        # MATRIZ DE COVARIÃNCIA DE Y
-        # Se os dados de validação forem diferentes dos experimentais, será desconsiderado
-        # a covariância entre os parâmetros e dados experimentais
+        # COVARIANCE MATRIX OF Y
+        # If the validation data are different from the experimental data, the covariance between the parameters
+        # and experimental data will be disregarded.
 
         if not self.__controleFluxo.incertezaParametros:
 
@@ -1557,21 +1558,21 @@ class EstimacaoNaoLinear:
                 Uyycalculado = self.S.dot(self.parametros.matriz_covariancia).dot(self.S.transpose()) + self.y.predicao.matriz_covariancia
 
             else:
-                # Neste caso, os dados de validação são os dados experimentais e será considerada
-                # a covariância entre os parâmetros e dados experimentais
-                # COVARIÃNCIA ENTRE PARÂMETROS E DADOS EXPERIMENTAIS
+                # In this case, the validation data are the experimental data and the covariance between the parameters
+                # and the experimental data will be considered.
+                # COVARIANCE BETWEEN PARAMETERS AND EXPERIMENTAL DATA
                 Covar_param_y_experimental = -inv(self.Hessiana).dot(self.Gy).dot(self.y.predicao.matriz_covariancia)
-                # PRIMEIRA PARCELA
+                # FIRST PART
                 Uyycalculado_1 = self.S.dot(self.parametros.matriz_covariancia).dot(self.S.transpose())
-                # SEGUNDA PARCELA
+                # SECOND PART
                 Uyycalculado_2 = self.S.dot(Covar_param_y_experimental)
-                # TERCEIRA PARCELA
+                # THIRD PART
                 Uyycalculado_3 = Covar_param_y_experimental.transpose().dot(self.S.transpose())
-                # MATRIZ DE COVARIÃNCIA DE Y
+                # COVARIANCE MATRIX OF Y
                 Uyycalculado   = Uyycalculado_1 + Uyycalculado_2 + Uyycalculado_3 + self.y.estimacao.matriz_covariancia
 
         # --------------------------------------------------------------------
-        # ATRIBUIÇÃO A GRANDEZAS
+        # ASSIGNMENT OF VALUES TO QUANTITIES
         # -------------------------------------------------------------------
         self.y._SETcalculado(estimativa=aux,matriz_covariancia=Uyycalculado,
                              gL=[[self.y.estimacao.NE*self.y.NV-self.parametros.NV]*self.y.predicao.NE]*self.y.NV,

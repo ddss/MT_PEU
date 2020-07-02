@@ -107,36 +107,45 @@ class Report:
             f.close()
 
     def Predicao(self,x,y,estatisticas,**kwargs):
-        '''
-        Escrita sobre a etapa de Predição de análise de resíduos
+        u'''
+        Predicao(self,x,y,estatisticas,**kwargs)
 
-        =======
-        Entrada
-        =======
-        * x: objeto grandeza das variáveis independentes
-        * y: objeto grandeza das variáveis dependentes
-        * estatisticas: dicionário com os valores de R2 (dicionário), R2ajustado (dicionário), FO (dicionário)
+        ============================================================================
+        Write the prediction and residual analysis results in the prediction report.
+        ============================================================================
+            - Parameters
+            ------------
+            x : grandeza class instance
+                instance containing the information relating to the independent variables.
+            y : grandeza class instance
+                instance containing the information relating to the dependent variables.
+            estatisticas : dict
+                dictionary with the R2, adjusted R2, and FO (objective function) values.
 
-        ========
-        Keywargs
-        ========
-        export_y     (bool): exporta os dados calculados de y, sua incerteza e graus de liberdade em um txt com separação por vírgula
-        export_cov_y (bool): exporta a matriz de covariância de y
-
-        export_x     (bool): exporta os dados calculados de x, sua incerteza e graus de liberdade em um txt com separação  por vírgula
-        export_cov_x (bool): exporta a matriz de covariância de x
-        ==========
-        Referência
-        ==========
-        [1] https://docs.python.org/2/tutorial/inputoutput.html
-        [2] https://docs.python.org/2/library/string.html#formatstrings
+            - keywords
+            -----------
+            export_y : bool
+                exports the calculated data of y, its uncertainty, and degrees of freedom in a txt with comma separation.
+            export_y_xls : bool
+                exports the calculated data of y, its uncertainty, and degrees of freedom in a xls.
+            export_cov_y : bool
+                exports the covariance matrix of y.
+            export_x : bool
+                exports the calculated data of x, its uncertainty, and degrees of freedom in a txt with comma separation.
+            export_cov_x : bool
+                exports the covariance matrix of x.
+                
+            - References
+            -------------
+            [1] https://docs.python.org/2/tutorial/inputoutput.html
+            [2] https://docs.python.org/2/library/string.html#formatstrings
         '''
 
         self._configFolder={'graficos-subfolder-Dadosvalidacao': 'Dados Validacao',
                             'graficos-subfolder-DadosEstimacao': 'Dados Estimacao'}
 
         # ---------------------------------------------------------------------
-        # VALIDAÇÃO
+        # VALIDATION
         # ---------------------------------------------------------------------
         if not isinstance(kwargs.get('export_y'),bool) and kwargs.get('export_y') is not None:
             raise TypeError('A keyword export_y deve ser booleana')
@@ -159,9 +168,9 @@ class Report:
 
         PA = kwargs.get('PA')
         # ---------------------------------------------------------------------
-        # ESCRITA DE ARQUIVO DE RELATÓRIO
+        # REPORT FILE WRITING
         # ---------------------------------------------------------------------
-        #Pastas internas
+        # Internal folders
         #------------------------------------------------------------
         if int(self.__fluxo) > 0:
             folder = sep + self._configFolder['graficos-subfolder-Dadosvalidacao']+' '+self.__fluxo + sep
@@ -173,35 +182,35 @@ class Report:
         if estatisticas is not None:
             #with open(self.__base_path+folder+'prediction-report_fl'+self.__fluxo+'.txt','wt') as f:
             with open(self.__base_path+folder+'prediction-report'+'.txt','wt') as f:
-                # TÍTULO:
+                # TITLE:
                 f.write(('{:#^'+str(max([70,y.NV*18]))+'}'+self.__quebra).format(' PREDIÇÃO '))
                 f.write(('{:=^'+str(max([70,y.NV*18]))+'}'+self.__quebra).format(' GRANDEZAS DEPENDENTES '))
                 # R2:
                 f.write('Coeficientes de correlação:'+self.__quebra)
-                # Operador para formatar os valores de R2 e R2ajustados, porque eles são dicionários
+                # Operator to format the values of R2 and R2 adjusted, because they are dictionaries.
                 construtor_formatacao_simbolos = ['{'+str(symb)+':^8.3f} ' for symb in y.simbolos]
                 f.write('    Simbolos                             : '+ ('{:^8}'*y.NV).format(*y.simbolos) + self.__quebra)
                 f.write('    Coeficiente de determinação          : '+ (''.join(construtor_formatacao_simbolos)).format(**estatisticas['R2']) + self.__quebra)
                 f.write('    Coeficiente de determinação ajustado : '+ (''.join(construtor_formatacao_simbolos)).format(**estatisticas['R2ajustado']) + self.__quebra)
                 f.write(self.__quebra)
 
-                # Função objetivo
+                # Objective function
                 f.write('Função objetivo:'+self.__quebra)
                 f.write('    Info: a função objetivo deve estar entre chi2min e chi2max.'+self.__quebra)
-                # Operador para formatar os valores de R2 e R2ajustados, porque eles são dicionários
+                # Operator to format the values of R2 and R2 adjusted, because they are dictionaries.
                 f.write('    chi2max: {:.3f}'.format(estatisticas['FuncaoObjetivo']['chi2max'])+self.__quebra)
                 f.write('    FO     : {:.3f}'.format(estatisticas['FuncaoObjetivo']['FO'])+self.__quebra)
                 f.write('    chi2min: {:.3f}'.format(estatisticas['FuncaoObjetivo']['chi2min'])+self.__quebra)
                 f.write(self.__quebra)
 
-                # ANÁLISE DE RESÍDUOS - testes para normalidade
+                # RESIDUAL ANALYSIS - Normality tests
                 f.write('Análise de resíduos:'+self.__quebra)
                 f.write('    Normalidade:'+self.__quebra)
                 f.write('    {:-^45}'.format('Testes com p-valores')+self.__quebra)
                 f.write('    Info: p-valores devem ser maiores do que o nível de significânca (1-PA)'+self.__quebra+'    para não rejeitar a hipótese nula (Ho).'+self.__quebra)
                 f.write(self.__quebra)
                 f.write('    {:<10} : '.format('Simbolos')+ ('{:^8}'*y.NV).format(*y.simbolos)+self.__quebra)
-                # construção semi-automatizada para preencher os valores dos testes estatísticos de normalidade
+                # semi-automated construction to fill in the values of the statistical normality tests.
                 for teste in y._Grandeza__nomesTestes['residuo-Normalidade'].keys():
                     break_line = False
                     if not isinstance(y._Grandeza__nomesTestes['residuo-Normalidade'][teste],dict):
@@ -237,7 +246,7 @@ class Report:
                 #     if break_line:
                 #         f.write(self.__quebra)
 
-                # ANÁLISE DE RESÍDUOS - testes para média
+                # RESIDUAL ANALYSIS - mean test
                 f.write('    Média:'+self.__quebra)
                 f.write('    {:-^45}'.format('Testes com p-valores')+self.__quebra)
                 f.write('    Info: p-valores devem ser maiores do que o nível de significânca (1-PA)'+self.__quebra+'    para não rejeitar a hipótese nula (Ho).'+self.__quebra)
@@ -268,7 +277,7 @@ class Report:
                      if break_line:
                         f.write(self.__quebra)
                  
-                 # ANÁLISE DE RESÍDUOS - testes para autocorrelação
+                 # RESIDUAL ANALYSIS - autocorrelation tests
                 f.write(self.__quebra)
                 f.write('    Autocorrelação:'+self.__quebra)
                 f.write('    {:-^45}'.format('Testes com p-valores')+self.__quebra)
@@ -319,7 +328,7 @@ class Report:
                       if break_line:
                           f.write(self.__quebra)
 
-                # ANÁLISE DE RESÍDUOS - testes para homocedasticidade
+                # RESIDUAL ANALYSIS - homocedasticity test
                 f.write('    Homocedasticidade:'+self.__quebra)
                 f.write('    {:-^45}'.format('Testes com p-valores')+self.__quebra)
                 f.write('    Info: p-valores devem ser maiores do que o nível de significânca (1-PA)\n    para não rejeitar a hipótese nula (Ho).'+self.__quebra)
@@ -345,10 +354,10 @@ class Report:
                         f.write(self.__quebra)
             f.close()
         # ---------------------------------------------------------------------
-        # EXPORTAÇÃO DA PREDIÇÃO
+        # PREDICTION EXPORT
         # ---------------------------------------------------------------------
-        # Valores calculados e incerteza
-        if export_y: #Formato txt
+        # Calculated values and uncertainty
+        if export_y: # txt format
             cont = 0
             for symb in y.simbolos:
                 # with open(self.__base_path+folder+symb+'-calculado-predicao_fl'+self.__fluxo+'.txt','wt') as f:
@@ -357,7 +366,7 @@ class Report:
                         f.write('{:.5g},{:.5g},{:.5g}'.format(y.calculado.matriz_estimativa[i,cont],y.calculado.matriz_incerteza[i,cont],y.calculado.gL[cont][i])+self.__quebra)
                 f.close()
                 cont+=1
-        if export_y_xls: #Formato xls
+        if export_y_xls: # xls format
             cont = 0
             wb = xlwt.Workbook()
             ws = wb.add_sheet('calculado-predicao')
@@ -365,9 +374,9 @@ class Report:
                  ws.write(i, 0, y.calculado.matriz_estimativa[i, cont]), ws.write(i, 1, y.calculado.matriz_incerteza[i, cont]), ws.write(i, 2, y.calculado.gL[cont][i])
             for symb in y.simbolos:
                 wb.save(self.__base_path+folder+symb+'-calculado-predicao'+'.xls')
-        # matriz de covariância
+        # covariance matrix
         if export_cov_y:
-            #with open(self.__base_path+folder+'y-calculado-matriz-covariancia_fl'+self.__fluxo+'.txt','wt') as f:
+            # with open(self.__base_path+folder+'y-calculado-matriz-covariancia_fl'+self.__fluxo+'.txt','wt') as f:
             with open(self.__base_path+folder+'y-calculado-matriz-covariancia'+'.txt','wt') as f:
                 for i in range(y.NV*y.calculado.NE):
                     for j in range(y.NV*y.calculado.NE):
