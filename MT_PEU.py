@@ -1662,7 +1662,7 @@ class EstimacaoNaoLinear:
         fatorlimitebusca = kwargs.get('fatorlimitebusca') if kwargs.get('fatorlimitebusca') is not None else 1/10.
 
         #Validação
-        if (((not isinstance(limite_superior, list) and not isinstance(limite_superior, tuple)) and limite_superior is not None) or ((not isinstance(limite_inferior, list)) and (not isinstance(limite_inferior, tuple))) and limite_inferior is not None):
+        if (((not isinstance(limite_superior, list) and not isinstance(limite_superior, tuple)) and limite_superior is not None) or (((not isinstance(limite_inferior, list)) and (not isinstance(limite_inferior, tuple))) and limite_inferior is not None)):
             raise TypeError('The upper_limit and the lower_limit must be lists or tuples.')
         if (limite_superior is not None and len(limite_superior) != self.parametros.NV) or (limite_inferior is not None and len(limite_inferior) != self.parametros.NV):
             raise TypeError('Upper_limits and lower_limits must be lists or tuples of the same size as self.paramtros.NV')
