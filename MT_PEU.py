@@ -1710,6 +1710,9 @@ class EstimacaoNaoLinear:
         else:
             kwargs.pop('limite_inferior') # retira limite_inferior dos argumentos extras
 
+        # Validating limits
+        test_limits = [limite_inferior[i]<self.parametros.estimativa[i]<limite_superior[i] for i in arange(self.parametros.NV)]
+
         # ---------------------------------------------------------------------
         # MÉTODO MONTE CARLO
         # ---------------------------------------------------------------------
@@ -1724,16 +1727,27 @@ class EstimacaoNaoLinear:
 
             for cont in range(iteracoes):
                 if distribuicao == 'uniforme':
-                    amostra = [uniform(limite_inferior[i], limite_superior[i], 1)[0]
-                               for i in range(self.parametros.NV)]
+                    amostra = [[uniform(limite_inferior[i], limite_superior[i], 1)[0]
+                               for i in range(self.parametros.NV)]]
                 else:
-                    amostra = [triangular(limite_inferior[i], self.parametros.estimativa[i], limite_superior[i], 1)[0]
+                    amostra_total = [triangular(limite_inferior[i], self.parametros.estimativa[i], limite_superior[i], 1)[0]
                                for i in range(self.parametros.NV)]
+                    amostra_inf = [
+                        triangular(limite_inferior[i], (limite_inferior[i]+self.parametros.estimativa[i])/2, self.parametros.estimativa[i], 1)[0]
+                        for i in range(self.parametros.NV)]
+                    amostra_sup = [
+                        triangular(self.parametros.estimativa[i], (limite_superior[i] + self.parametros.estimativa[i]) / 2,
+                                   limite_superior[i], 1)[0]
+                        for i in range(self.parametros.NV)]
+                    amostra = [amostra_total,amostra_inf,amostra_sup]
 
-                FO = float(self._excObjectiveFunction(amostra, self._values)) #self._excFO returns a DM object, it's necessary convert to float object
+                FO = [float(self._excObjectiveFunction(amo_i, self._values)) for amo_i in amostra] #self._excFO returns a DM object, it's necessary convert to float object
 
-                self.__decisonVariablesMapped.append(amostra)
-                self.__OFMapped.append(FO)
+                for i,FO_i in enumerate(FO):
+                    self.__decisonVariablesMapped.append(amostra[i])
+                    self.__OFMapped.append(FO_i)
+
+
 
     def __criteriosAbrangencia(self):
         u"""
