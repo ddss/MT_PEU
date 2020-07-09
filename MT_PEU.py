@@ -1727,34 +1727,24 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         if tipo == self.__tipoObjectiveFunctionMapping[0]:
             iteracoes = int(kwargs.get('iteracoes') if kwargs.get('iteracoes') is not None else 10000)
-            distribuicao = kwargs.get('distribuicao')
-            if distribuicao is None:
-                if self.parametros.NV <= 2:
-                    distribuicao = 'uniforme'
-                else:
-                    distribuicao = 'triangular'
 
             for cont in range(iteracoes):
-                if distribuicao == 'uniforme':
-                    amostra = [[uniform(limite_inferior[i], limite_superior[i], 1)[0]
-                               for i in range(self.parametros.NV)]]
-                else:
-                    amostra_total = [triangular(limite_inferior[i], self.parametros.estimativa[i], limite_superior[i], 1)[0] for i in range(self.parametros.NV)]
 
-                    amostra_inf = [triangular(limite_inferior[i], (limite_inferior[i]+self.parametros.estimativa[i])/2, self.parametros.estimativa[i], 1)[0] for i in range(self.parametros.NV)]
+                amostra_total_uni = [uniform(limite_inferior[i], limite_superior[i], 1)[0] for i in range(self.parametros.NV)]
 
-                    amostra_sup = [triangular(self.parametros.estimativa[i], (limite_superior[i] + self.parametros.estimativa[i]) / 2, limite_superior[i], 1)[0] for i in range(self.parametros.NV)]
+                amostra_total = [triangular(limite_inferior[i], self.parametros.estimativa[i], limite_superior[i], 1)[0] for i in range(self.parametros.NV)]
 
+                amostra_inf = [triangular(limite_inferior[i], (limite_inferior[i]+self.parametros.estimativa[i])/2, self.parametros.estimativa[i], 1)[0] for i in range(self.parametros.NV)]
 
-                    amostra = [amostra_total,amostra_inf,amostra_sup]
+                amostra_sup = [triangular(self.parametros.estimativa[i], (limite_superior[i] + self.parametros.estimativa[i]) / 2, limite_superior[i], 1)[0] for i in range(self.parametros.NV)]
+
+                amostra = [amostra_total,amostra_inf,amostra_sup, amostra_total_uni]
 
                 FO = [float(self._excObjectiveFunction(amo_i, self._values)) for amo_i in amostra] #self._excFO returns a DM object, it's necessary convert to float object
 
                 for i,FO_i in enumerate(FO):
                     self.__decisonVariablesMapped.append(amostra[i])
                     self.__OFMapped.append(FO_i)
-
-
 
     def __criteriosAbrangencia(self):
         u"""
