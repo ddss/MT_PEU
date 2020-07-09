@@ -50,10 +50,10 @@ Estime.setConjunto(dataType='estimacao')
 Estime.optimize(initial_estimative=[3,0.1,5,0.4])
 
 #%% Evaluating the parameters uncertainty and coverage region
-Estime.parametersUncertainty(uncertaintyMethod='2InvHessiana',distribuicao='uniforme')
+Estime.parametersUncertainty(uncertaintyMethod='2InvHessiana', limite_inferior=[0.1,0.08,3,0.2], limite_superior=[3.5,0.2,5.5,0.5])
 
 #%% Evaluating model predictions
-Estime.prediction()
+Estime.prediction(export_y_xls=True)
 
 #%% Evaluating residuals and quality index
 Estime.residualAnalysis()
