@@ -1711,14 +1711,17 @@ class EstimacaoNaoLinear:
             kwargs.pop('limite_inferior') # retira limite_inferior dos argumentos extras
 
         # Validating limits
-        #verificar se limite superior é maior do que inferior
+        # Verificar se limite superior é maior do que inferior
+        test_bounds = [0]*self.parametros.NV
         for i in arange(self.parametros.NV):
-            if limite_inferior[i]>limite_superior[i]:
-                raise TypeError('The lower_limit values ​​cannot be greater than the upper_limit values.')
-        #test_limits = [limite_inferior[i]<self.parametros.estimativa[i]<limite_superior[i] for i in arange(self.parametros.NV)]
-        for i in arange(self.parametros.NV):
-            if limite_inferior[i]>self.parametros.estimativa[i] or self.parametros.estimativa[i]>limite_superior[i]:
-                raise TypeError('The parameter values ​​must be between the lower_limit and the upper_limit.')
+            if (limite_inferior[i]>limite_superior[i]) or (limite_inferior[i]>self.parametros.estimativa[i] or self.parametros.estimativa[i]>limite_superior[i]):
+                test_bounds[i] = 1
+
+        index_test_bounds = [i for i, ele in enumerate(test_bounds) if ele]
+
+        if any(test_bounds):
+            raise TypeError(('The parameter estimate of '+'{} '*len(index_test_bounds)+' ​​must be between the lower_limit and the upper_limit. Parameter estimate: {}').format(*[self.parametros.simbolos[i] for i in index_test_bounds],self.parametros.estimativa))
+
         # ---------------------------------------------------------------------
         # MÉTODO MONTE CARLO
         # ---------------------------------------------------------------------
