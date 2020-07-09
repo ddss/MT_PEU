@@ -1711,8 +1711,14 @@ class EstimacaoNaoLinear:
             kwargs.pop('limite_inferior') # retira limite_inferior dos argumentos extras
 
         # Validating limits
-        test_limits = [limite_inferior[i]<self.parametros.estimativa[i]<limite_superior[i] for i in arange(self.parametros.NV)]
-
+        #verificar se limite superior é maior do que inferior
+        for i in arange(self.parametros.NV):
+            if limite_inferior[i]>limite_superior[i]:
+                raise TypeError('The lower_limit values ​​cannot be greater than the upper_limit values.')
+        #test_limits = [limite_inferior[i]<self.parametros.estimativa[i]<limite_superior[i] for i in arange(self.parametros.NV)]
+        for i in arange(self.parametros.NV):
+            if limite_inferior[i]>self.parametros.estimativa[i] or self.parametros.estimativa[i]>limite_superior[i]:
+                raise TypeError('The parameter values ​​must be between the lower_limit and the upper_limit.')
         # ---------------------------------------------------------------------
         # MÉTODO MONTE CARLO
         # ---------------------------------------------------------------------
@@ -1730,15 +1736,13 @@ class EstimacaoNaoLinear:
                     amostra = [[uniform(limite_inferior[i], limite_superior[i], 1)[0]
                                for i in range(self.parametros.NV)]]
                 else:
-                    amostra_total = [triangular(limite_inferior[i], self.parametros.estimativa[i], limite_superior[i], 1)[0]
-                               for i in range(self.parametros.NV)]
-                    amostra_inf = [
-                        triangular(limite_inferior[i], (limite_inferior[i]+self.parametros.estimativa[i])/2, self.parametros.estimativa[i], 1)[0]
-                        for i in range(self.parametros.NV)]
-                    amostra_sup = [
-                        triangular(self.parametros.estimativa[i], (limite_superior[i] + self.parametros.estimativa[i]) / 2,
-                                   limite_superior[i], 1)[0]
-                        for i in range(self.parametros.NV)]
+                    amostra_total = [triangular(limite_inferior[i], self.parametros.estimativa[i], limite_superior[i], 1)[0] for i in range(self.parametros.NV)]
+
+                    amostra_inf = [triangular(limite_inferior[i], (limite_inferior[i]+self.parametros.estimativa[i])/2, self.parametros.estimativa[i], 1)[0] for i in range(self.parametros.NV)]
+
+                    amostra_sup = [triangular(self.parametros.estimativa[i], (limite_superior[i] + self.parametros.estimativa[i]) / 2, limite_superior[i], 1)[0] for i in range(self.parametros.NV)]
+
+
                     amostra = [amostra_total,amostra_inf,amostra_sup]
 
                 FO = [float(self._excObjectiveFunction(amo_i, self._values)) for amo_i in amostra] #self._excFO returns a DM object, it's necessary convert to float object
