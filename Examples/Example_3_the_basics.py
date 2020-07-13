@@ -39,7 +39,7 @@ Estimation.setConjunto(dataType='estimacao')
 Estimation.optimize(initial_estimative = [1, 1.5, 0.009],algorithm='bonmin')
 
 #%% Evaluating the parameters uncertainty and coverage region
-Estimation.parametersUncertainty(uncertaintyMethod='SensibilidadeModelo', objectiveFunctionMapping=True, parametersReport = False, iteracoes=500000)
+Estimation.parametersUncertainty(uncertaintyMethod='SensibilidadeModelo', objectiveFunctionMapping=True, parametersReport = False)
 
 #%% Evaluating model predictions
 Estimation.prediction(export_y=True)
