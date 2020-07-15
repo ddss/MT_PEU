@@ -831,7 +831,7 @@ class EstimacaoNaoLinear:
                 raise RuntimeError('EError in the creation of the estimation set of the quantity Y: {}'.format(erro))
 
         # prediction data
-        if type == self.__tiposDisponiveisEntrada[1]:
+        if dataType == self.__tiposDisponiveisEntrada[1]:
             self.__flag.ToggleActive('dadospredicao')
 
             self.__controleFluxo.reiniciarParcial()
