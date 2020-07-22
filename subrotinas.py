@@ -41,81 +41,6 @@ def WLS (parametros,*argumentos):
     result = float(dot(dot(transpose(d), inv(Vy)), d))
 
     return result
-
-def matriz2vetor(matriz):
-    u"""
-    Subrotina para converter uma matriz (array com várias colunas) em um vetor (array com uma coluna)
-    =======
-    Entrada
-    =======
-    * ``matriz`` (array): matriz que se deseja converter para vetor
-
-    =====
-    Saída
-    =====
-    * ``vetor`` (array): array com uma coluna
-
-    =======
-    Exemplo
-    =======
-    Exemplo: ::
-
-        >>> from numpy import array, transpose
-        >>> x1 = transpose(array([[1,2,3,4,5]]))
-        >>> x2 = transpose(array([[6,7,8,9,10]]))
-        >>> matriz  = concatenate((x1,x2),axis=1)
-        >>> vetor   = matriz2vetor(matriz)
-    """
-    # Obtenção da primeira coluna da matriz    
-    vetor = matriz[:,0:1]
-    for i in range(1,size(matriz,1)):
-        # Concatenar as colunas abaixo da anterior
-        vetor = concatenate((vetor,matriz[:,i:i+1]))
-
-    return vetor
-
-
-def vetor2matriz(vetor,NE):
-    u"""
-    Subrotina para converter um vetor (array com uma coluna) em um vetor (array com uma coluna)
-
-    =======
-    Entrada
-    =======
-    * ``vetor`` (array): vetor que se deseja converter para matriz
-    * ``NE`` (float): quantidade de dados de cada coluna da matriz
-
-    =====
-    Saída
-    =====
-
-    * ``matriz`` (array): matriz convertida
-
-    =======
-    Exemplo
-    =======
-    Exemplo: ::
-
-        >>> from numpy import array, transpose
-        >>> x1 = transpose(array([[1,2,3,4,5]]))
-        >>> x2 = transpose(array([[6,7,8,9,10]]))
-        >>> vetor  = concatenate((x1,x2),axis=0)
-        >>> matriz   = vetor2matriz(vetor,5)
-    """
-
-    pos_inicial = 0  # primeira linha da primeira coluna
-    pos_final   = NE # última linha da primeira coluna
-    matriz = vetor[pos_inicial:pos_final] # gera a primeira coluna
-
-    for i in range(1,size(vetor)/NE):
-        pos_inicial += NE
-        pos_final   += NE
-        # concatenando as colunas uma ao lado da outra
-        matriz = concatenate((matriz,vetor[pos_inicial:pos_final]),1)
-
-    return matriz
-
-
 def Validacao_Diretorio(base_path,diretorio=None):
         # Baseado em código de terceiros
         # Validação da existência de diretório
@@ -185,48 +110,6 @@ def eval_cov_ellipse(cov, pos, c2=2, **kwargs):
     coordenadas_x.extend([pos[0]-delta*k,pos[0]+delta*k])
 
     return coordenadas_x, coordenadas_y, width, height, theta
-
-def vetor_delta(entrada_vetor,posicao,delta):
-    u"""
-    Subrotina para alterar o(s) elementos de um vetor, acrescentando ou retirando um determinado ''delta''.
-    =======
-    Entrada
-    =======
-
-    *``entrada_vetor´´(array, ndmi=1): Vetor ao qual a posição i e j ou apenas i será alterada.
-    *``posicao´´(list ou float)= posição a ser repassada pela estrutura 'for'.
-    *``delta´´(float): valor do incremento, proporcional a grandeza que será acrescida ou decrescida.
-
-
-    =====
-    Saída
-    =====
-    * ``vetor`` (array): array com uma linha.
-
-    =======
-    Exemplo
-    =======
-    Exemplo: ::
-
-        >>>from numpy import array
-        >>>from subrotinas import vetor_delta
-
-        >>> x1 =(array([1,2,3,4,5]))
-
-        print vetor_delta(x1,3,5)
-
-        >>> array([1, 2, 3, 9, 5])
-    """
-
-    vetor = copy(entrada_vetor)
-
-    if isinstance(posicao,list):
-        vetor[posicao[0]] = vetor[posicao[0]]+delta[0]
-        vetor[posicao[1]] = vetor[posicao[1]]+delta[1]
-    else:
-        vetor[posicao] = vetor[posicao]+delta
-
-    return vetor
 
 def matrizcorrelacao(matriz_covariancia):
     u"""

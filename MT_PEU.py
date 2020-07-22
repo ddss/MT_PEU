@@ -37,8 +37,7 @@ from warnings import warn
 # IMPORTAÇÃO DE SUBROTINAS PRÓPRIAS E ADAPTAÇÕES (DESENVOLVIDAS PELO GI-UFBA)
 # ---------------------------------------------------------------------------
 from Grandeza import Grandeza
-from subrotinas import Validacao_Diretorio, eval_cov_ellipse, vetor_delta,\
-    matriz2vetor, WLS
+from subrotinas import Validacao_Diretorio, eval_cov_ellipse, WLS
 from Graficos import Grafico
 from Relatorio import Report
 from Flag import flag
