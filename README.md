@@ -23,6 +23,8 @@ This calculation engine is based on Python programming language and builts on a 
   <img src = "./Imagens/ObjectiveFunction.png">
   </p>
   <p align="justify">The optimization routines were developed by symbolic computation using the <i>casadi</i> package. The following algorithms are available: (i) <i>ipopt</i>, based on interior point primal-dual method and indicated for large dimension nonlinear problems; and (ii) <i>sqpmethod</i>, which uses sequential quadratic programming. Regarding linear models on the parameters, the solution is obtained analytically.</p>
+  
+  The MT_PEU is applicable for the following systems: SISO, MISO, and MIMO.
 
 * **Parameter uncertainty evaluation**
   <p align="justify"> The evaluation of parameter uncertainty is carried out after the optimization step and can be performed through three methods:</p>

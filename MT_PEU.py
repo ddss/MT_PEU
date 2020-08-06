@@ -764,14 +764,15 @@ class EstimacaoNaoLinear:
                 predicao     dataset to perform the prediction of the output model estimates.
                              In this case, the parameters are already known.
                 ============ =================================================================
-
             uxy : not in use
 
             - Notes
              -----
-             If the dataType argument was not defined the method defines automatically as 'estimacao' or 'predicao'.
-             If the prediction data was not defined the method define dataType as 'estimacao'.
-             If the quantities freedom degrees was not defined it will be assumed constant and equal to 100
+             -If the dataType argument was not defined the method defines automatically as 'estimacao' or 'predicao'.
+
+             -If the prediction data was not defined the method define dataType as 'estimacao'.
+
+             -If the quantities freedom degrees was not defined it will be assumed constant and equal to 100
 
         """
         # ---------------------------------------------------------------------
@@ -1130,7 +1131,7 @@ class EstimacaoNaoLinear:
                 informs whether the parameters report should be created.
 
             - Notes
-             ------
+            -------
              Before executing the optimize method it's necessary to execute the "setConjunto" method
              and define the estimation data.
              Every time the optimization method is run, the information about the parameters is lost.
@@ -1277,137 +1278,137 @@ class EstimacaoNaoLinear:
 
     def SETparameter(self,estimative,variance=None,region=None,parametersReport=True,**kwargs):
         u"""
-        Método para atribuir uma estimativa aos parâmetros e, opcionamente, sua matriz de covarância e região de abrangência.
-        Substitui o métodos otimiza e, opcionalmente, parametersUncertainty.
+        SETparameter(self,estimative,variance=None,region=None,parametersReport=True,**kwargs)
 
-        Caso seja incluída somente uma estimativa para os parâmetros, o método parametersUncertainty deve ser executado.
+        =============================================================================================================================================
+        Method for assigning an estimate to parameters. An estimate can also be defined for the parameters covariance matrix and the coverage region.
+        =============================================================================================================================================
+            - Parameters
+            ------------
+            estimative : list
+                list with the estimation of parameters
+            variance : array, ndmin=2
+                covariance matrix of the parameters
+            region : list
+                list containing lists with the parameters belonging to the coverage region
+            parametersReport : bool
+                informs whether the parameters report should be created.
 
-        ========
-        Entradas
-        ========
+            - Kwargs
+            --------
+            limite_superior : list
+                upper bound of the paramaters
+            limite_inferior : list
+                lower_bound of the parameters
+            args : dict
+                extra arguments to be passed to the model.
 
-        * estimative (list)         : estimativa para os parâmetros
-        * variance (array,ndmin=2) : matriz de covariância dos parâmetros
-        * region (list[list])       : lista contendo listas com os parâmetros que pertencem á região de abrangência
+            - Notes
+            -------
+            -Inclusion of parameter estimation: will replace the optimization method. You will need to execute the uncertaintyParameter method.
 
-        ===
-        USO
-        ===
-        * Inclusion of parameter estimation: will replace the optimization method. You will need to execute the uncertaintyParameter method.
-        * Inclusion of parameter estimation and variance: will replace the optimization method and a part of the uncertainty method.
-        For objective Function Mapping the region by the likelihood method, the uncertaintyParameter method must be performed (will override the uncertainty inseparated).
-        * Inclusion of parameter estimation, variance and region: will replace optimization and uncertaintyParameter method.
+            -Inclusion of parameter estimation and variance: will replace the optimization method and a part of the uncertainty method.
+            For objective Function Mapping the region by the likelihood method, the uncertaintyParameter method must be performed (will override the uncertainty inseparated).
 
-        =================
-        Keyword Arguments
-        =================
-        * limite_superior: limite superior dos parâmetros
-        * limtie_inferior: limite_inferior dos parâmetros
-        * args           : argumentos extras a serem passados para o modelo
+            -Inclusion of parameter estimation, variance and region: will replace optimization and uncertaintyParameter method.
 
-        =========
-        ATRIBUTOS
-        =========
-        O método irá incluir estas informações no atributo parâmetros
         """
         # ---------------------------------------------------------------------
-        # FLUXO
+        # FLUX
         # ---------------------------------------------------------------------
         self.__controleFluxo.SET_ETAPA('SETparametro')
         # ---------------------------------------------------------------------
-        # VALIDAÇÃO
+        # VALIDATION
         # ---------------------------------------------------------------------
-        # Caso não haja dados de estimação -> erro
+        # If there is no estimation data -> error
         if not self.__flag.info['dadosestimacao']:
             raise SyntaxError('It is necessary to add estimation data.')
 
-        # SETparameter não pode ser executado em conjunto com optimize
+        # SETparameter cannot run in conjunction with the optimize method.
         if self.__controleFluxo.otimizacao:
             raise SyntaxError('The SETparameter method cannot be executed with optimize method')
 
         # ---------------------------------------------------------------------
-        # ARGUMENTOS EXTRAS A SEREM PASSADOS PARA O MODELO
+        # EXTRA ARGUMENTS TO BE PASSED TO THE MODEL
         # ---------------------------------------------------------------------
-        # Obtenção de args_user
+        # Obtaining args_user
         if kwargs.get('args') is not None:
             self.__args_user = kwargs.pop('args')
 
         # ---------------------------------------------------------------------
-        # ATRIBUIÇÃO A GRANDEZAS
+        # ATTRIBUTION TO QUANTITIES
         # ---------------------------------------------------------------------
-        # Atribuindo o valores para a estimativa dos parâmetros e sua matriz de 
-        # covariância
+        #Assigning the values to the estimation of the parameters and their
+        # covariance matrix
         self.parametros._SETparametro(estimative, variance, region, **kwargs)
 
         # ---------------------------------------------------------------------
-        # AVALIAÇÃO DO MODELO
+        # MODEL EVALUATION
         # ---------------------------------------------------------------------
-        # Avaliação do modelo no ponto ótimo informado
+        # Evaluation of the model at the optimal point informed
         try:
             aux = self.__excModel(self.parametros.estimativa,self._values)
         except Exception as erro:
             raise SyntaxError(u'Error in the model when evaluated in the informed parameters estimative. Error identified: "{}"'.format(erro))
 
         # ---------------------------------------------------------------------
-        # OBTENÇÃO DO PONTO ÓTIMO
+        # OBTAINING THE OPTIMAL POINT
         # ---------------------------------------------------------------------
 
         self.FOotimo = float(self._excObjectiveFunction(self.parametros.estimativa, self._values))
 
         # ---------------------------------------------------------------------
-        # VARIÁVEIS INTERNAS
+        # INTERNAL VARIABLES
         # ---------------------------------------------------------------------
 
-        # Caso seja definida a variância, é assumido que o método parametersUncertainty
-        # foi executado, mesmo que a inclusão de abrangência seja opcional.
+        # If variance is defined, it is assumed that the parametersUncertainty method.
+        # has been executed, even if the inclusion of scope is optional.
         if variance is not None:
             self.__controleFluxo.SET_ETAPA('incertezaParametros')
 
-        # Caso seja definida a região, é assumido que o método regiaoAbrangencia
-        # foi executado.
+        # If the region is defined, it is assumed that the regiaoAbrangencia method has been executed.
         if region is not None:
             self.__controleFluxo.SET_ETAPA('regiaoAbrangencia', ignoreValidacao=True)
 
-        # parameters report creation
+        # Parameters report creation
         if parametersReport is True:
             self._out.Parametros(self.parametros, self.FOotimo)
 
     def parametersUncertainty(self,uncertaintyMethod ='Geral', parametersReport = True, objectiveFunctionMapping=True, **kwargs):
         u"""
+        parametersUncertainty(self,uncertaintyMethod ='Geral', parametersReport = True, objectiveFunctionMapping=True, **kwargs)
 
-        Método para avaliação da matriz de covariãncia dos parâmetros e região de abrangência.
+        ===================================================================================
+        Method to evaluate the covariance matrix of the parameters and the coverage region.
+        ===================================================================================
+            - Parameters
+            ------------
+            uncertaintyMethod : string
+                method for calculating the covariance matrix of the parameters.
+                available methods: 2InvHessian, Geral, SensibilidadeModelo
+            parametersReport : bool
+                informs whether the parameters report should be created.
+            objectivefunctionMapping : bool
+                Indicates whether the algorithm to map the coverage region should be executed
 
-        ===================
-        Método predescessor
-        ===================
+            - kwargs
+            --------
+            See documentation of self.__objectiveFunctionMapping
 
-        É necessário executar a otimização ou SETparametro.
+            - Notes
+            -------
+            -Before performing this method it is necessary to perform one of the following methods: (i) optimize or (ii) SETparameter
 
-        =======================
-        Entradas (opcionais)
-        =======================
+            -The coverage region is only executed if there is optimization history and the attribute regiao_abrangencia
+            is not defined for the parameters.
 
-        * uncertainty method (string): method for calculating the covariance matrix
-        of the parameters. Available methods: 2InvHessian, Geral, SensibilidadeModelo
-        * objectiveFunctionMapping (bool): Identifies if an algorithm for mapping the objective function will be executed.
-
-        ======
-        Saídas
-        ======
-        * a matriz de covariância dos parâmetros é salva na Grandeza parâmetros
-
-        ==========
-        Observação
-        ==========
-        * A região de abrangência só é executada caso haja histórico da otimização (ETAPA: mapeamentoFO) e o atributo regiao_abrangencia
-        de parâmetros não esteja definido.
         """
         # ---------------------------------------------------------------------
-        # FLUXO
+        # FLUX
         # ---------------------------------------------------------------------
         self.__controleFluxo.SET_ETAPA('incertezaParametros')
         # ---------------------------------------------------------------------
-        # VALIDAÇÃO
+        # VALIDATION
         # ---------------------------------------------------------------------         
 
         if uncertaintyMethod not in self.__metodosIncerteza:
@@ -1418,64 +1419,63 @@ class EstimacaoNaoLinear:
             raise TypeError('The argument objectiveFunctionMapping must be boolean (True ou False).')
 
         # ---------------------------------------------------------------------
-        # MATRIZ DE COVARIÂNCIA DOS PARÂMETROS
+        # COVARIANCE MATRIX OF THE PARAMETERS
         # ---------------------------------------------------------------------
 
-        # Avaliação de matrizes auxiliares
-        # Matriz Hessiana da função objetivo em relação aos parâmetros
-        # somente avaliada se o método é 2InvHess ou Geral
+        # Evaluation of the auxiliary matrices
+        # Hessian matrix of the objective function
+        # Only evaluated if the chosen method is 2InvHess or Geral
         if uncertaintyMethod == self.__metodosIncerteza[0] or uncertaintyMethod == self.__metodosIncerteza[1]:
             self.__Hessiana_FO_Param()
 
-            # Inversa da matriz hessiana a função objetivo em relação aos parâmetros
+            # Inverse of the Hessian matrix of the objective function in relation to the parameters
             invHess = inv(self.Hessiana)
 
-        # Gy: derivadas parciais segundas da função objetivo em relação aos parâmetros e
-        # dados experimentais
-        # Somente avaliada caso o método seja Geral
+        # Gy: second partial derivatives of the objective function in relation to parameters and experimental data
+        # Only evaluated if the chosen method is: Geral
         if uncertaintyMethod == self.__metodosIncerteza[1]:
             self.__Matriz_Gy()
 
-        # Matriz de sensibilidade do modelo em relação aos parâmetros
-        # Somente avaliada caso o método seja o simplificado
+        # Model sensitivity matrix relative to parameters
+        # Only evaluated if the method is: simplificado
         if uncertaintyMethod == self.__metodosIncerteza[2]:
             self.__Matriz_S()
 
         # ---------------------------------------------------------------------
-        # AVALIAÇÃO DA INCERTEZA DOS PARÂMETROS
+        # ASSESSMENT OF THE UNCERTAINTY OF THE PARAMETERS
         # ---------------------------------------------------------------------
 
-        # MATRIZ DE COVARIÂNCIA
-        # Método: 2InvHessiana ->  2*inv(Hess)
+        # COVARIANCE MATRIX
+        # Method: 2InvHessiana ->  2*inv(Hess)
         if uncertaintyMethod == self.__metodosIncerteza[0]:
             matriz_covariancia = 2*invHess
 
-        # Método: geral - > inv(H)*Gy*Uyy*GyT*inv(H)
+        # Method: geral - > inv(H)*Gy*Uyy*GyT*inv(H)
         elif uncertaintyMethod == self.__metodosIncerteza[1]:
             matriz_covariancia  = invHess.dot(self.Gy).dot(self.y.estimacao.matriz_covariancia).dot(self.Gy.transpose()).dot(invHess)
 
-        # Método: simplificado -> inv(trans(S)*inv(Uyy)*S)
+        # Method: simplificado -> inv(trans(S)*inv(Uyy)*S)
         elif uncertaintyMethod == self.__metodosIncerteza[2]:
             matriz_covariancia = inv(self.S.transpose().dot(inv(self.y.estimacao.matriz_covariancia)).dot(self.S))
 
         # ---------------------------------------------------------------------
-        # ATRIBUIÇÃO A GRANDEZA
+        # ATTRIBUTION TO THE QUANTITIES
         # ---------------------------------------------------------------------
         self.parametros._updateParametro(matriz_covariancia=matriz_covariancia)
 
         # ---------------------------------------------------------------------
-        # REGIÃO DE ABRANGÊNCIA
+        # COVERAGE REGION
         # ---------------------------------------------------------------------
         # MAPPING OF OBJECTIVE FUNCTION:
         if objectiveFunctionMapping and self.parametros.NV != 1:
             self.__objectiveFunctionMapping(**kwargs)
             self.__flag.ToggleActive('mapeamentoFO')
 
-        # A região de abrangência só é executada caso haja histórico de posicoes e fitness
+        # The coverage region is only executed if there is a history of positions and fitness
         if self.__controleFluxo.mapeamentoFO and self.parametros.NV != 1:
-            # OBTENÇÃO DA REGIÃO:
+            # OBTAINING THE REGION:
             regiao = self.regiaoAbrangencia()
-            # ATRIBUIÇÃO A GRANDEZA
+            # ATTRIBUTION TO THE QUANTITY
             self.parametros._updateParametro(regiao_abrangencia=regiao)
 
         # parameters report creation
@@ -1607,20 +1607,34 @@ class EstimacaoNaoLinear:
 
     def __objectiveFunctionMapping(self,**kwargs):
         u"""
-         Method used for objective function mapping
+        __objectiveFunctionMapping(self,**kwargs)
 
-        =================
-        Keyword arguments
-        =================
-            * MethodObjectivefunctionmapping  ('string'): defines which method is used in objective function mapping. Available: MonteCarlo
+        ===============================================
+         Performs the mapping of the objective function
+        ===============================================
+            - kwargs
+            --------
+            MethodObjectivefunctionmapping : string
+                Method used to perform the mapping of the objective function
+            iterations : int, > 0
+                Defines the number of iterations used in the monte carlo method
+            upper_bound : list
+                Lower bound of the parameters
+            lower_bound : list
+                Upper bound of the parameters
+            searchLimitFactor : float, > 0
+
+            distribution : string
+                Type of distribution used to generate random parameters in the monte carlo method
+
         """
         # ---------------------------------------------------------------------
-        # FLUXO
+        # FLUX
         # ---------------------------------------------------------------------
         self.__controleFluxo.SET_ETAPA('mapeamentoFO')
 
         # ---------------------------------------------------------------------
-        # VALIDAÇÃO
+        # VALIDATION
         # ---------------------------------------------------------------------
 
         if kwargs.get('MethodObjectivefunctionmapping') is not None:
@@ -1633,41 +1647,41 @@ class EstimacaoNaoLinear:
             raise NameError('O método solicitado para mapeamento da função objetivo {}'.format(
                 tipo) + ' não está disponível. Métodos disponíveis ' + ', '.join(self.__tipoObjectiveFunctionMapping) + '.')
 
-        # caso seja MonteCarlo:
+        # if MethodObjectivefunctionmapping = 'MonteCarlo':
         if tipo == self.__tipoObjectiveFunctionMapping[0]:
-            kwargsdisponiveis = ('iteracoes', 'limite_superior', 'limite_inferior', 'fatorlimitebusca', 'distribuicao')
+            kwargsdisponiveis = ('iterations', 'upper_bound', 'lower_bound', 'searchLimitFactor', 'distribution')
 
-            # avaliando se as keywords estão disponíveis
+            # evaluating whether keywords are available
             if not set(kwargs.keys()).issubset(kwargsdisponiveis):
-                raise NameError('O(s) keyword(s) argument digitado(s) está(ão) incorreto(s). Keyword disponíveis: ' +
+                raise NameError('Error in the keywords typed. keywords available: ' +
                                 ', '.join(kwargsdisponiveis) + '.')
-            # avaliando o número de iterações -> dever ser maior do que 1
+            # evaluating the iterations number-> must be greater than 1
             if kwargs.get(kwargsdisponiveis[0]) is not None:
                 if kwargs.get(kwargsdisponiveis[0]) < 1:
-                    raise ValueError('O número de iterações deve ser inteiro e positivo.')
-            # avaliando o fatorlimite -> deve ser positivo
+                    raise ValueError('The number of iterations must be integer and positive.')
+            # evaluating the search limit factor -> must be positive
             if kwargs.get(kwargsdisponiveis[3]) is not None:
                 if kwargs.get(kwargsdisponiveis[3]) < 0:
-                    raise ValueError('O fator limite busca deve positivo.')
-            # avaliando a distribuição
+                    raise ValueError('The search limit factor must be positive.')
+            # evaluating the distribution
             if kwargs.get(kwargsdisponiveis[4]) is not None:
-                if kwargs.get(kwargsdisponiveis[4]) not in ['uniforme', 'triangular']:
-                    raise ValueError('As distribuições disponíveis para o Método de MonteCarlo são: {}.'.format(['uniforme', 'triangular']))
+                if kwargs.get(kwargsdisponiveis[4]) not in ['uniform', 'triangular']:
+                    raise ValueError('The distributions available for the MonteCarlo Method are: {}.'.format(['uniform','triangular']))
 
         # ---------------------------------------------------------------------
-        # LIMTES DE BUSCA
+        # Search limit
         # ---------------------------------------------------------------------
-        limite_superior = kwargs.get('limite_superior')
-        limite_inferior = kwargs.get('limite_inferior')
-        fatorlimitebusca = kwargs.get('fatorlimitebusca') if kwargs.get('fatorlimitebusca') is not None else 1/10.
+        upper_bound = kwargs.get('upper_bound')
+        lower_bound = kwargs.get('lower_bound')
+        searchLimitFactor = kwargs.get('searchLimitFactor') if kwargs.get('searchLimitFactor') is not None else 1/10.
 
-        #Validação
-        if (((not isinstance(limite_superior, list) and not isinstance(limite_superior, tuple)) and limite_superior is not None) or (((not isinstance(limite_inferior, list)) and (not isinstance(limite_inferior, tuple))) and limite_inferior is not None)):
+        #Validation
+        if (((not isinstance(upper_bound, list) and not isinstance(upper_bound, tuple)) and upper_bound is not None) or (((not isinstance(lower_bound, list)) and (not isinstance(lower_bound, tuple))) and lower_bound is not None)):
             raise TypeError('The upper_limit and the lower_limit must be lists or tuples.')
-        if (limite_superior is not None and len(limite_superior) != self.parametros.NV) or (limite_inferior is not None and len(limite_inferior) != self.parametros.NV):
+        if (upper_bound is not None and len(upper_bound) != self.parametros.NV) or (lower_bound is not None and len(lower_bound) != self.parametros.NV):
             raise TypeError('Upper_limits and lower_limits must be lists or tuples of the same size as self.paramtros.NV')
 
-        if limite_superior is None or limite_inferior is None:
+        if upper_bound is None or lower_bound is None:
             extremo_elipse_superior = [0 for i in range(self.parametros.NV)]
             extremo_elipse_inferior = [0 for i in range(self.parametros.NV)]
 
@@ -1699,21 +1713,21 @@ class EstimacaoNaoLinear:
                 extremo_elipse_inferior[p2] = nanmin(coordenadas_y)
                 p2+=1
 
-        if limite_superior is None:
-            limite_superior = [extremo_elipse_superior[i] + (extremo_elipse_superior[i]-extremo_elipse_inferior[i])*fatorlimitebusca for i in range(self.parametros.NV)]
+        if upper_bound is None:
+            upper_bound = [extremo_elipse_superior[i] + (extremo_elipse_superior[i]-extremo_elipse_inferior[i])*searchLimitFactor for i in range(self.parametros.NV)]
         else:
-            kwargs.pop('limite_superior') # retira limite_superior dos argumentos extras
+            kwargs.pop('upper_bound') # removes the upper_bound from the extra arguments
 
-        if limite_inferior is None:
-            limite_inferior = [extremo_elipse_inferior[i] - (extremo_elipse_superior[i]-extremo_elipse_inferior[i])*fatorlimitebusca for i in range(self.parametros.NV)]
+        if lower_bound is None:
+            lower_bound = [extremo_elipse_inferior[i] - (extremo_elipse_superior[i]-extremo_elipse_inferior[i])*searchLimitFactor for i in range(self.parametros.NV)]
         else:
-            kwargs.pop('limite_inferior') # retira limite_inferior dos argumentos extras
+            kwargs.pop('lower_bound') # removes the lower_bound from the extra arguments
 
         # Validating limits
-        # Verificar se limite superior é maior do que inferior
+        # Checks if upper bound is greater than lower bound
         test_bounds = [0]*self.parametros.NV
         for i in arange(self.parametros.NV):
-            if (limite_inferior[i]>limite_superior[i]) or (limite_inferior[i]>self.parametros.estimativa[i] or self.parametros.estimativa[i]>limite_superior[i]):
+            if (lower_bound[i]>upper_bound[i]) or (lower_bound[i]>self.parametros.estimativa[i] or self.parametros.estimativa[i]>upper_bound[i]):
                 test_bounds[i] = 1
 
         index_test_bounds = [i for i, ele in enumerate(test_bounds) if ele]
@@ -1722,20 +1736,22 @@ class EstimacaoNaoLinear:
             raise TypeError(('The parameter estimate of '+'{} '*len(index_test_bounds)+' ​​must be between the lower_limit and the upper_limit. Parameter estimate: {}').format(*[self.parametros.simbolos[i] for i in index_test_bounds],self.parametros.estimativa))
 
         # ---------------------------------------------------------------------
-        # MÉTODO MONTE CARLO
+        # MONTE CARLO METHOD
         # ---------------------------------------------------------------------
         if tipo == self.__tipoObjectiveFunctionMapping[0]:
-            iteracoes = int(kwargs.get('iteracoes') if kwargs.get('iteracoes') is not None else 10000)
+            iterations = int(kwargs.get('iterations') if kwargs.get('iterations') is not None else 10000)
 
-            for cont in range(iteracoes):
+            for cont in range(iterations):
 
-                amostra_total_uni = [uniform(limite_inferior[i], limite_superior[i], 1)[0] for i in range(self.parametros.NV)]
+                amostra_total_uni = [uniform(lower_bound[i], upper_bound[i], 1)[0] for i in range(self.parametros.NV)]
 
-                amostra_total = [triangular(limite_inferior[i], self.parametros.estimativa[i], limite_superior[i], 1)[0] for i in range(self.parametros.NV)]
+                amostra_total = [triangular(lower_bound[i], self.parametros.estimativa[i], upper_bound[i], 1)[0] for i in range(self.parametros.NV)]
 
-                amostra_inf = [triangular(limite_inferior[i], (limite_inferior[i]+self.parametros.estimativa[i])/2, self.parametros.estimativa[i], 1)[0] for i in range(self.parametros.NV)]
+                amostra_inf = [triangular(lower_bound[i], (lower_bound[i]+self.parametros.estimativa[i])/2, self.parametros.estimativa[i], 1)[0] for i in range(self.parametros.NV)]
 
-                amostra_sup = [triangular(self.parametros.estimativa[i], (limite_superior[i] + self.parametros.estimativa[i]) / 2, limite_superior[i], 1)[0] for i in range(self.parametros.NV)]
+                simetria = [amostra_inf]
+
+                amostra_sup = [triangular(self.parametros.estimativa[i], (upper_bound[i] + self.parametros.estimativa[i]) / 2, upper_bound[i], 1)[0] for i in range(self.parametros.NV)]
 
                 amostra = [amostra_total,amostra_inf,amostra_sup, amostra_total_uni]
 

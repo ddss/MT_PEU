@@ -77,7 +77,7 @@ Estime.optimize(initial_estimative=[3,0.1,5,0.4], lower_bound=[0.1,0.08,3,0.2], 
 # limite_inferior: Lower limit of parameters;
 # limite_superior: Upper limit of the parameters.
 Estime.parametersUncertainty(uncertaintyMethod='2InvHessiana', parametersReport = True, objectiveFunctionMapping=True,
-                             limite_inferior=[0.1,0.08,3,0.2], limite_superior=[3.5,0.2,5.5,0.5])
+                             lower_bound=[0.1,0.08,3,0.2], upper_bound=[3.5,0.2,5.5,0.5])
 
 #%% Evaluating model predictions
 # export_y: Exports the calculated data of y, its uncertainty, and degrees of freedom in a txt with comma separation (True or False);
