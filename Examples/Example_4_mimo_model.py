@@ -22,7 +22,6 @@ def Model(param,x,*args):
 Estime = EstimacaoNaoLinear(Model,symbols_x=['x1','x2'],symbols_y=['y1','y2'],symbols_param=['alpha1','alpha2', 'beta1', 'beta2'],
                           label_latex_param=[r'$\alpha_1$',r'$\alpha_2$',r'$\beta_1$',r'$\beta_2$'],units_y=['kg','kg'],Folder='MimoModelEX4')
 
-
 #%% Defining observed data
 # Input data
 # input 1
@@ -64,7 +63,7 @@ Estime.setConjunto(dataType='estimacao', glx=[], gly=[])
 # algorithm: Informs the optimization algorithm that will be used. Each algorithm has its own keywords;
 # optimizationReport: Informs whether the optimization report should be created (True or False);
 # parametersReport: Informs whether the parameters report should be created (True or False).
-Estime.optimize(initial_estimative=[3,0.1,5,0.4], lower_bound=[0.1,0.08,3,0.2], upper_bound=[3.5,0.2,5.5,0.5],  algorithm ='ipopt',
+Estime.optimize(initial_estimative=[3,0.1,5,0.4], algorithm='ipopt', lower_bound=[0.2,0.09,3.1,0.3], upper_bound=[3.6,0.3,5.6,0.6],
                 optimizationReport = True, parametersReport = False)
 
 #%% Evaluating the parameters uncertainty and coverage region
