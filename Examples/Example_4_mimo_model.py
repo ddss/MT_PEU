@@ -13,11 +13,11 @@ def Model(param,x,*args):
 
 #%% Starting the MT_PEU main object
 # Model: Pass the model defined in def Model;
-# symbols_x: Symbols for variable x;
-# symbols_y: Symbols for variable y;
+# symbols_x: Symbols for quantity x;
+# symbols_y: Symbols for quantity y;
 # symbols_param:Symbols for the parameters to be estimated;
 # label_latex_param: Symbols for parameters written in LaTex;
-# units_y: Units of measure for independent variables;
+# units_y: Units of measurement for independent quantities;
 # Folder: Defines the name of the folder where the results will be saved.
 Estime = EstimacaoNaoLinear(Model,symbols_x=['x1','x2'],symbols_y=['y1','y2'],symbols_param=['alpha1','alpha2', 'beta1', 'beta2'],
                           label_latex_param=[r'$\alpha_1$',r'$\alpha_2$',r'$\beta_1$',r'$\beta_2$'],units_y=['kg','kg'],Folder='MimoModelEX4')
@@ -47,23 +47,21 @@ uy2 = [1]*10
 #%% Setting the observed data set
 
 # inputs
-Estime.setDados(0,(x1,ux1),(x2,ux2))
+Estime.setDados(0, (x1, ux1), (x2, ux2))
 # outputs
 Estime.setDados(1, (y1, uy1), (y2, uy2))
 
 # Defining the previous data set to be used to parameter estimation
-    # dataType: Defines the purpose of the informed data set;
-        # Options: estimacao, predicao.
-    # glx: Degrees of freedom of variable x;
-    # gly: Degrees of freedom of variable y.
-Estime.setConjunto(dataType='estimacao',glx=[], gly=[])
+# dataType: Defines the purpose of the informed data set: estimacao, predicao.
+# glx: Degrees of freedom of quantity x;
+# gly: Degrees of freedom of quantity y;
+Estime.setConjunto(dataType='estimacao', glx=[], gly=[])
 
 #%% Optimization - estimating the parameters
 # initial_estimative: List with the initial estimates for the parameters;
 # lower_bound: List with the lower bounds for the parameters;
 # upper_bound: List with the upper bounds for the parameters;
 # algorithm: Informs the optimization algorithm that will be used. Each algorithm has its own keywords;
-    # Options: ipopt, bonmin and sqpmethod.
 # optimizationReport: Informs whether the optimization report should be created (True or False);
 # parametersReport: Informs whether the parameters report should be created (True or False).
 Estime.optimize(initial_estimative=[3,0.1,5,0.4], lower_bound=[0.1,0.08,3,0.2], upper_bound=[3.5,0.2,5.5,0.5],  algorithm ='ipopt',
@@ -71,7 +69,6 @@ Estime.optimize(initial_estimative=[3,0.1,5,0.4], lower_bound=[0.1,0.08,3,0.2], 
 
 #%% Evaluating the parameters uncertainty and coverage region
 # uncertaintyMethod: method for calculating the covariance matrix of the parameters;
-    # Options: 2InvHessian, Geral and SensibilidadeModelo.
 # parametersReport: Informs whether the parameters report should be created (True or False);
 # objectiveFunctionMapping: Deals with mapping the objective function (True or False);
 # limite_inferior: Lower limit of parameters;
@@ -85,7 +82,6 @@ Estime.parametersUncertainty(uncertaintyMethod='2InvHessiana', parametersReport 
 # export_cov_y: Exports the covariance matrix of y (True or False);
 # export_x: Exports the calculated data of x, its uncertainty, and degrees of freedom in a txt with comma separation(True or False);
 # export_cov_x: Exports the covariance matrix of x (True or False).
-
 Estime.prediction(export_y=True,export_y_xls=True, export_cov_y=True, export_x=True, export_cov_x=True)
 
 #%% Evaluating residuals and quality index
