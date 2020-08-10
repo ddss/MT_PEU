@@ -3,6 +3,7 @@ from MT_PEU import EstimacaoNaoLinear
 from casadi import exp
 
 #%% Model definition
+# def Model: The def model specifies the equations with their respective parameters.
 def Model(param, x, args):
     T = x[:, 0]
     A, B, C = param[0], param[1], param[2]
@@ -10,6 +11,11 @@ def Model(param, x, args):
     return exp(A - (B / (T + C)))  # Pvp calculation - vectorized
 
 #%% Starting the MT_PEU main object
+# Model: Pass the model defined in def Model;
+# symbols_x: Symbols for quantity x;
+# symbols_y: Symbols for quantity y;
+# symbols_param:Symbols for the parameters to be estimated;
+# Folder: Defines the name of the folder where the results will be saved.
 Estimation = EstimacaoNaoLinear(Model, symbols_x=[r'T'], symbols_y=[r'y'], symbols_param=['A','B','C'],  Folder='VapourPressuresEX3' )
 
 #%% Defining observed data
@@ -32,17 +38,30 @@ Estimation.setDados(0,(T,uxT))
 # outputs
 Estimation.setDados(1,(P,uP))
 
-# Defining the previous data set to be used to parameter estimation
+# Defining the previous data set to be used to parameter estimation.
+# dataType: Defines the purpose of the informed data set: estimacao, predicao.
 Estimation.setConjunto(dataType='estimacao')
 
-#%% Optimization - estimating the parameters
-Estimation.optimize(initial_estimative = [1, 1.5, 0.009],algorithm='bonmin')
+#%% Optimization - estimating the parameters,
+# initial_estimative: List with the initial estimates for the parameters;
+# algorithm: Informs the optimization algorithm that will be used. Each algorithm has its own keywords;
+# optimizationReport: Informs whether the optimization report should be created (True or False);
+# parametersReport: Informs whether the parameters report should be created (True or False).
+Estimation.optimize(initial_estimative = [1, 1.5, 0.009],algorithm='bonmin', optimizationReport = True, parametersReport = False)
 
 #%% Evaluating the parameters uncertainty and coverage region
+# uncertaintyMethod: method for calculating the covariance matrix of the parameters;
+# objectiveFunctionMapping: Deals with mapping the objective function (True or False);
+# limite_inferior: Lower limit of parameters;
+# limite_superior: Upper limit of the parameters.
 Estimation.parametersUncertainty(uncertaintyMethod='SensibilidadeModelo', objectiveFunctionMapping=True, parametersReport = False)
 
 #%% Evaluating model predictions
-Estimation.prediction(export_y=True)
+# export_y: Exports the calculated data of y, its uncertainty, and degrees of freedom in a txt with comma separation (True or False);
+# export_y_xls: Exports the calculated data of y, its uncertainty, and degrees of freedom in a xls (True or False);
+# export_cov_y: Exports the covariance matrix of y (True or False);
+# export_x: Exports the calculated data of x, its uncertainty, and degrees of freedom in a txt with comma separation(True or False);
+Estimation.prediction(export_y=True, export_y_xls=True, export_cov_y=True, export_x=True)
 
 #%% Evaluating residuals and quality index
 Estimation.residualAnalysis()
