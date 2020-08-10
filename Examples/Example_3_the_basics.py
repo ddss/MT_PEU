@@ -52,8 +52,7 @@ Estimation.optimize(initial_estimative = [1, 1.5, 0.009],algorithm='bonmin', opt
 #%% Evaluating the parameters uncertainty and coverage region
 # uncertaintyMethod: method for calculating the covariance matrix of the parameters;
 # objectiveFunctionMapping: Deals with mapping the objective function (True or False);
-# limite_inferior: Lower limit of parameters;
-# limite_superior: Upper limit of the parameters.
+# parametersReport: Informs whether the parameters report should be created.
 Estimation.parametersUncertainty(uncertaintyMethod='SensibilidadeModelo', objectiveFunctionMapping=True, parametersReport = False)
 
 #%% Evaluating model predictions
