@@ -3,6 +3,7 @@ from MT_PEU import EstimacaoNaoLinear
 from numpy import exp
 
 #%% Model definition
+# def Model: The def model specifies the equations with their respective parameters.
 def Model(param, x, *args):
     ko, E = param[0], param[1]
     time, T = x[:,0], x[:,1]
@@ -10,6 +11,16 @@ def Model(param, x, *args):
     return exp(-ko * time * exp(-E * (1 / T - 1. / 630.)))
 
 #%% Starting the MT_PEU main object
+# Model: Pass the model defined in def Model;
+# symbols_x: Symbols for quantity x;
+# symbols_y: Symbols for quantity y;
+# symbols_param:Symbols for the parameters to be estimated;
+# label_latex_param: Symbols for parameters written in LaTex;
+# label_latex_x: Symbols for quantities x written in LaTex
+# units_y: Units of measurement for independent quantities;
+# units_param: units of measurement of the parameters;
+# units_x: units of measurement of dependent quantities;
+# Folder: Defines the name of the folder where the results will be saved.
 Estime = EstimacaoNaoLinear(Model, symbols_x=[r't', 'Tau'], units_x=['s', 'K'], label_latex_x=[r'$t$', '$T$'],
                             symbols_y=[r'y'], units_y=['adm'],
                             symbols_param=['ko', 'E'], units_param=['adm','K'],
@@ -47,19 +58,40 @@ Estime.setDados(0, (time, uxtime), (temperature, uxtemperature))
 Estime.setDados(1, (y, uy1))
 
 # Defining the previous data set to be used to parameter estimation
-Estime.setConjunto(dataType='estimacao')
+# dataType: Defines the purpose of the informed data set: estimacao, predicao.
+# glx: Degrees of freedom of quantity x;
+# gly: Degrees of freedom of quantity y;
+Estime.setConjunto(dataType='estimacao', glx=[], gly=[])
 
 #%% Optimization - estimating the parameters
-Estime.optimize(initial_estimative=[0.005, 20000.000])
+# initial_estimative: List with the initial estimates for the parameters;
+# lower_bound: List with the lower bounds for the parameters;
+# upper_bound: List with the upper bounds for the parameters;
+# algorithm: Informs the optimization algorithm that will be used. Each algorithm has its own keywords;
+# optimizationReport: Informs whether the optimization report should be created (True or False);
+# parametersReport: Informs whether the parameters report should be created (True or False).
+Estime.optimize(initial_estimative=[0.005, 20000.000], algorithm='ipopt', lower_bound=[0.006,15000], upper_bound=[100,20000],
+                optimizationReport = True, parametersReport = False)
 
 #%% Evaluating the parameters uncertainty and coverage region
-Estime.parametersUncertainty(uncertaintyMethod='Geral',objectiveFunctionMapping=False)
+# uncertaintyMethod: method for calculating the covariance matrix of the parameters;
+# objectiveFunctionMapping: Deals with mapping the objective function (True or False);
+# limite_inferior: Lower limit of parameters;
+# limite_superior: Upper limit of the parameters.
+# parametersReport: Informs whether the parameters report should be created.
+Estime.parametersUncertainty(uncertaintyMethod='Geral',objectiveFunctionMapping=False, limite_inferior=[0.2,15000], limite_superior=[3.6,19000],
+                             parametersReport = True)
 
 #%% Evaluating model predictions
-Estime.prediction()
+# export_y: Exports the calculated data of y, its uncertainty, and degrees of freedom in a txt with comma separation (True or False);
+# export_y_xls: Exports the calculated data of y, its uncertainty, and degrees of freedom in a xls (True or False);
+# export_cov_y: Exports the covariance matrix of y (True or False);
+# export_x: Exports the calculated data of x, its uncertainty, and degrees of freedom in a txt with comma separation(True or False);
+# export_cov_x: Exports the covariance matrix of x (True or False).
+Estime.prediction(export_y=True,export_y_xls=True, export_cov_y=True, export_x=True, export_cov_x=True)
 
 #%% Evaluating residuals and quality index
-Estime.residualAnalysis()
+Estime.residualAnalysis(report=True)
 
 #%% Plotting the main results
 Estime.plots()
@@ -98,13 +130,21 @@ Estime.setDados(0,(time,uxtime),(temperature,uxtemperature))
 Estime.setDados(1,(y,uy1))
 
 # Defining the previous data set to be used to validation
-Estime.setConjunto(dataType='predicao')
+# dataType: Defines the purpose of the informed data set: estimacao, predicao.
+# glx: Degrees of freedom of quantity x;
+# gly: Degrees of freedom of quantity y;
+Estime.setConjunto(dataType='predicao', glx=[], gly=[])
 
 #%% Evaluating model predictions for the validation data
-Estime.prediction()
+# export_y: Exports the calculated data of y, its uncertainty, and degrees of freedom in a txt with comma separation (True or False);
+# export_y_xls: Exports the calculated data of y, its uncertainty, and degrees of freedom in a xls (True or False);
+# export_cov_y: Exports the covariance matrix of y (True or False);
+# export_x: Exports the calculated data of x, its uncertainty, and degrees of freedom in a txt with comma separation(True or False);
+# export_cov_x: Exports the covariance matrix of x (True or False).
+Estime.prediction(export_y=True,export_y_xls=True, export_cov_y=True, export_x=True, export_cov_x=True)
 
 #%% Evaluating residuals and quality index
-Estime.residualAnalysis()
+Estime.residualAnalysis(report=True)
 
 #%% Plotting the main results
 Estime.plots()
