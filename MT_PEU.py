@@ -1755,7 +1755,7 @@ class EstimacaoNaoLinear:
 
                 simetria_x = [(self.parametros.estimativa[i]-abs(self.parametros.estimativa[i] - amostra_sup[i])) for i in range(self.parametros.NV)]
 
-                amostra = [amostra_total,amostra_inf,amostra_sup, amostra_total_uni, simetria_x, simetria_y]
+                amostra = [amostra_total, amostra_inf, amostra_sup, amostra_total_uni, simetria_x, simetria_y]
 
                 FO = [float(self._excObjectiveFunction(amo_i, self._values)) for amo_i in amostra] #self._excFO returns a DM object, it's necessary convert to float object
 
