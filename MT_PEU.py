@@ -1743,26 +1743,70 @@ class EstimacaoNaoLinear:
 
             for cont in range(iterations):
 
+                # samples generated with uniform distribution
                 amostra_total_uni = [uniform(lower_bound[i], upper_bound[i], 1)[0] for i in range(self.parametros.NV)]
 
+                # samples generated with triangular distribution, considering the whole area of the Cartesian plane
                 amostra_total = [triangular(lower_bound[i], self.parametros.estimativa[i], upper_bound[i], 1)[0] for i in range(self.parametros.NV)]
 
+                # samples generated with triangular distribution, considering the third quadrant of the Cartesian plane
                 amostra_inf = [triangular(lower_bound[i], (lower_bound[i]+self.parametros.estimativa[i])/2, self.parametros.estimativa[i], 1)[0] for i in range(self.parametros.NV)]
 
-                amostras_simetricas = []
-                for i in range(self.parametros.NV):
-                    simetrica = [None]*self.parametros.NV
-                    simetrica[i] = (self.parametros.estimativa[i]-abs(self.parametros.estimativa[i] - amostra_inf[i]))
-                    for j in range(self.parametros.NV):
-                        if j!=i:
-                            simetrica[j] = amostra_inf[j]
-                    amostras_simetricas.append(simetrica)
+                # The number of combinations is equal to: n! / (p!(n-p)!)
+                # n = self.parametros.NV; p = 2 (the parameters are combined two by two)
 
+                # Calculating the symmetrical points for the amostra_inf
+                amostras_simetricas_inf = []
+                for i in range(self.parametros.NV-1):
+                    # Symmetry with respect to the y axis
+                    simetrica_y = [None]*self.parametros.NV
+                    simetrica_y[i] = self.parametros.estimativa[i] + abs(self.parametros.estimativa[i] - amostra_inf[i])
+
+                    # Symmetry with respect to the x axis
+                    simetrica_x = [None] * self.parametros.NV
+                    simetrica_x[i+1] = self.parametros.estimativa[i+1] + abs(self.parametros.estimativa[i+1] - amostra_inf[i+1])
+
+                    # Completing the list with the parameters that remained constant for each symmetry
+                    for j in range(self.parametros.NV):
+                        if simetrica_y[j] is None:
+                        #if j!=i:
+                            simetrica_y[j] = amostra_inf[j]
+                        if simetrica_x[j] is None:
+                        #if j == i:
+                            simetrica_x[j] = amostra_inf[j]
+
+                    # Adding the symmetrical points to a list
+                    amostras_simetricas_inf.append(simetrica_y)
+                    amostras_simetricas_inf.append(simetrica_x)
+
+                # samples generated with triangular distribution, considering the first quadrant of the Cartesian plane
                 amostra_sup = [triangular(self.parametros.estimativa[i], (upper_bound[i] + self.parametros.estimativa[i]) / 2, upper_bound[i], 1)[0] for i in range(self.parametros.NV)]
 
-                simetria_x = [(self.parametros.estimativa[i]-abs(self.parametros.estimativa[i] - amostra_sup[i])) for i in range(self.parametros.NV)]
+                # Calculating the symmetrical points for the amostra_sup
+                amostras_simetricas_sup = []
+                for i in range(self.parametros.NV - 1):
+                    # Symmetry with respect to the y axis
+                    simetrica_y = [None] * self.parametros.NV
+                    simetrica_y[i] = self.parametros.estimativa[i] - abs(self.parametros.estimativa[i] - amostra_sup[i])
 
-                amostra = [amostra_total, amostra_inf, amostra_sup, amostra_total_uni, simetria_x, *amostras_simetricas]
+                    # Symmetry with respect to the x axis
+                    simetrica_x = [None] * self.parametros.NV
+                    simetrica_x[i + 1] = self.parametros.estimativa[i + 1] - abs(self.parametros.estimativa[i + 1] - amostra_sup[i + 1])
+
+                    # Completing the list with the parameters that remained constant for each symmetry
+                    for j in range(self.parametros.NV):
+                        if simetrica_y[j] is None:
+                            # if j!=i:
+                            simetrica_y[j] = amostra_sup[j]
+                        if simetrica_x[j] is None:
+                            # if j == i:
+                            simetrica_x[j] = amostra_sup[j]
+
+                    # Adding the symmetrical points to a list
+                    amostras_simetricas_sup.append(simetrica_y)
+                    amostras_simetricas_sup.append(simetrica_x)
+
+                amostra = [amostra_total, amostra_inf, amostra_sup, amostra_total_uni, *amostras_simetricas_sup, *amostras_simetricas_inf]
 
                 FO = [float(self._excObjectiveFunction(amo_i, self._values)) for amo_i in amostra] #self._excFO returns a DM object, it's necessary convert to float object
 
