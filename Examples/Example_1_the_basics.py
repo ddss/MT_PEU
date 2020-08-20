@@ -16,7 +16,6 @@ def Model(param,x,*args):
 # symbols_x: Symbols for quantity x;
 # symbols_y: Symbols for quantity y;
 # symbols_param:Symbols for the parameters to be estimated;
-# Folder: Defines the name of the folder where the results will be saved.
 Estime = EstimacaoNaoLinear(Model, symbols_x=['t','Tao'], symbols_y=['y'], symbols_param=['ko','E'], Folder='KineticModelEX1')
 
 #%% Defining observed data

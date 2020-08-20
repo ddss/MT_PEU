@@ -1,116 +1,59 @@
-# -*- coding: utf-8 -*-
-"""
-Exemplos de validação
-
-@author(es): Daniel, Francisco, Anderson, Leomar, Victor, Leonardo, Regiane
-@GrupoPesquisa: PROTEC
-@LinhadePesquisa: GI-UFBA
-
-SUMÁRIO:
-
-I - INCLUSÃO DAS BIBLIOTECAS
-II - INICIALIZAÇÃO DA CLASSE
-III - INCLUSÃO DE DADOS
-IV - OTIMIZAÇÃO
-V - INCERTEZA E ANALISE DE RESIDUOS
-VI - GERAÇÃO DE GRAFICOS E RELATÓRIOS
-
-"""
-
-# =================================================================================
-# PARTE I - INCLUSÃO DAS BIBLIOTECAS
-# ==============================================================================
-
-u""" 
-Abaixo estão representadas as bibliotecas necessárias para a execução:
-
-"""
-
-from numpy import array
+#%% Packages importing
 from MT_PEU_Linear import EstimacaoLinear
 
-# =================================================================================
-# II - INICIALIZAÇÃO DA CLASSE
-# =================================================================================
-
-u"""
-
-Nessa etapa é inicializada a classe que realiza a estimação. 
-Também é possível renomear a pasta onde são apresentados os resultados.  
-
-"""
-
-# Com o cálculo do termo independente
-
+#%% Initialization of the class that performs the estimation.
 ER = EstimacaoLinear(['y'],['x'],['p1','p2'],folder='LinearModelEX6')
 
-# =================================================================================
-# III - INCLUSÃO DE DADOS
-# =================================================================================
-
+#%% Defining observed data
+# Input data
+# input 1
 x = [0,1,2,3,4,5]
+# input 1 uncertainty
 ux = [1,1,1,1,1,1]
-#
+# Output data
+# output 1
 y = [.1,.9,2.2,3.2,3.9,4.8]
+# output 1 uncertainty
 uy = [1,1,1,1,1,1]
-#
+
+#%% Setting the observed data set
+# inputs
 ER.setDados(0,(x,ux))
+# outputs
 ER.setDados(1,(y,uy))
-#
-ER.setConjunto()
 
-# =================================================================================
-# IV - OTIMIZAÇÃO
-# =================================================================================
+# Defining the previous data set to be used to parameter estimation
+# dataType: Defines the purpose of the informed data set: estimacao, predicao.
+# glx: Degrees of freedom of quantity x;
+# gly: Degrees of freedom of quantity y;
+ER.setConjunto(glx=[],gly=[],dataType='estimacao')
 
-u"""
-Método para obtenção da estimativa dos parâmetros e sua matriz de covariância.
-
-"""
-
+#%% Optimization - estimating the parameters
+# parametersReport: Informs whether the parameters report should be created (True or False).
 ER.optimize(parametersReport=False)
 
-# =================================================================================
-# V - INCERTEZA E ANALISE DE RESIDUOS
-# =================================================================================
+#%% Evaluating the parameters uncertainty and coverage region
+# objectiveFunctionMapping: Deals with mapping the objective function (True or False);
+# parametersReport: Informs whether the parameters report should be created.
+ER.parametersUncertainty(objectiveFunctionMapping=True, parametersReport=True)
 
-u"""
+#%% Evaluating model predictions
+# export_y: Exports the calculated data of y, its uncertainty, and degrees of freedom in a txt with comma separation (True or False);
+# export_y_xls: Exports the calculated data of y, its uncertainty, and degrees of freedom in a xls (True or False);
+# export_cov_y: Exports the covariance matrix of y (True or False);
+# export_x: Exports the calculated data of x, its uncertainty, and degrees of freedom in a txt with comma separation(True or False);
+# export_cov_x: Exports the covariance matrix of x (True or False).
+ER.prediction(export_y=True,export_y_xls=True, export_cov_y=True, export_x=True, export_cov_x=True)
 
- Na estimação linear, o metodo disponivel para avaliar a incerteza é o MonteCarlo.
- As analises são feitas, utilizando dados de predição.
- Em analise de residuos é possível vericar possíveis relações de dependencia e/ou tendencia entre as variaveis. 
+#%% Evaluating residuals and quality index
+ER.residualAnalysis(report=True)
 
-"""
-
-ER.parametersUncertainty()
-ER.prediction()
-ER.residualAnalysis()
-
-# =================================================================================
-# VI - GERAÇÃO DE GRAFICOS E RELATÓRIOS
-# =================================================================================
-
-u"""
-
- Nesta etapa ocorre a geração dos dados de saída do programa : relátorios e gráficos
-
-"""
-
+#%% Plotting the main results
 ER.plots()
-
 ER.reports()
 
+#%% Reference of this case study
+# SCHWAAB, M.M.;PINTO, J.C. Análise de Dados Experimentais I: Fundamentos da Estátistica e Estimação de Parâmetros. Rio de Janeiro: e-papers, 2007.
+# Avaliação de dados de medição — Guia para a expressão de incerteza de medição http://www.inmetro.gov.br/noticias/conteudo/iso_gum_versao_site.pdf
 
 
-u"""
-
-Referências: 
-
-SCHWAAB, M.M.;PINTO, J.C. Análise de Dados Experimentais I: Fundamentos da Estátistica e Estimação de Parâmetros. 
-Rio de Janeiro: e-papers, 2007.
-
-Avaliação de dados de medição — Guia para a expressão de incerteza de medição 
-http://www.inmetro.gov.br/noticias/conteudo/iso_gum_versao_site.pdf 
-
-
-"""
