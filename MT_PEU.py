@@ -1755,18 +1755,17 @@ class EstimacaoNaoLinear:
                 # samples generated with triangular distribution, considering the first quadrant of the Cartesian plane
                 amostra_sup = [triangular(self.parametros.estimativa[i], (upper_bound[i] + self.parametros.estimativa[i]) / 2, upper_bound[i], 1)[0] for i in range(self.parametros.NV)]
 
-
-                # The number of combinations is equal to: n! / (p!(n-p)!)
-                # n = self.parametros.NV; p = 2 (the parameters are combined two by two)
-
                 # Symmetry factor
-                SF = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1,
+                SF = [-2, -1.9, -1.8, -1.7, -1.6, -1.5, -1.4, -1.3, -1.2, -1,
+                      -0.9, -0.8, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2, -0.1,
+                      0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1,
                       1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2]
 
                 # Calculating the symmetrical points
                 amostras_simetricas = []
                 for i in range(self.parametros.NV-1):
                     for factor in SF:
+
                         # Third quadrant (inferior)
                         # Symmetry with respect to the y axis
                         simetrica_y_inf = [None] * self.parametros.NV
@@ -1827,9 +1826,10 @@ class EstimacaoNaoLinear:
                         # Adding the symmetrical points to a list
                         amostras_simetricas.append(simetrica_x_inf)
                         amostras_simetricas.append(simetrica_y_inf)
+                        amostras_simetricas.append(simetrica_o_inf)
                         amostras_simetricas.append(simetrica_x_sup)
                         amostras_simetricas.append(simetrica_y_sup)
-
+                        amostras_simetricas.append(simetrica_o_sup)
 
                 amostra = [amostra_total, amostra_inf, amostra_sup, amostra_total_uni, *amostras_simetricas]
 
