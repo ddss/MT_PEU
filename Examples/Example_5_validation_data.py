@@ -70,7 +70,7 @@ Estime.setConjunto(dataType='estimacao', glx=[], gly=[])
 # algorithm: Informs the optimization algorithm that will be used. Each algorithm has its own keywords;
 # optimizationReport: Informs whether the optimization report should be created (True or False);
 # parametersReport: Informs whether the parameters report should be created (True or False).
-Estime.optimize(initial_estimative=[0.005, 20000.000], algorithm='ipopt', lower_bound=[0.006,15000], upper_bound=[100,20000],
+Estime.optimize(initial_estimative=[0.005, 20000.000], algorithm='ipopt', lower_bound=[0.006,15000], upper_bound=[100,30000],
                 optimizationReport = True, parametersReport = False)
 
 #%% Evaluating the parameters uncertainty and coverage region
@@ -79,8 +79,8 @@ Estime.optimize(initial_estimative=[0.005, 20000.000], algorithm='ipopt', lower_
 # limite_inferior: Lower limit of parameters;
 # limite_superior: Upper limit of the parameters.
 # parametersReport: Informs whether the parameters report should be created.
-Estime.parametersUncertainty(uncertaintyMethod='Geral',objectiveFunctionMapping=False, limite_inferior=[0.2,15000], limite_superior=[3.6,19000],
-                             parametersReport = True)
+Estime.parametersUncertainty(uncertaintyMethod='Geral',objectiveFunctionMapping=True, lower_bound=[7.2e-3,26400], upper_bound=[7.7e-3,28600],
+                             parametersReport = True, iterations=200)
 
 #%% Evaluating model predictions
 # export_y: Exports the calculated data of y, its uncertainty, and degrees of freedom in a txt with comma separation (True or False);
