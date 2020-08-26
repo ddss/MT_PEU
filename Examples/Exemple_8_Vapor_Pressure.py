@@ -3,6 +3,7 @@ from MT_PEU import EstimacaoNaoLinear
 from casadi import exp, log
 
 #%% Model definition non-liear
+# def Model: The def model specifies the equations with their respective parameters.
 def Model(param, x, args):
     T = x[:, 0]
     A, B = param[0], param[1]
@@ -10,6 +11,11 @@ def Model(param, x, args):
     return exp(A / 8.31446 + B / (8.31446 * T) - (68.2 / 8.31446) * log(T / 298.15))  # Pvp calculation - vectorized
 
 #%% Starting the MT_PEU main object
+# Model: Pass the model defined in def Model;
+# symbols_x: Symbols for quantity x;
+# symbols_y: Symbols for quantity y;
+# symbols_param:Symbols for the parameters to be estimated;
+# Folder: Defines the name of the folder where the results will be saved.
 Estimation = EstimacaoNaoLinear(Model, symbols_x=[r'T'], symbols_y=[r'P'], symbols_param=['A','B'],  Folder='VapourpressuresNonLinearEX8' )
 
 #%% Defining observed data
@@ -33,19 +39,35 @@ Estimation.setDados(0,(T,uT))
 Estimation.setDados(1,(P,uP))
 
 # Defining the previous data set to be used to parameter estimation
-Estimation.setConjunto(dataType='estimacao')
+# dataType: Defines the purpose of the informed data set: estimacao, predicao.
+# glx: Degrees of freedom of quantity x;
+# gly: Degrees of freedom of quantity y;
+Estimation.setConjunto(dataType='estimacao', glx=[], gly=[])
 
 #%% Optimization - estimating the parameters
-Estimation.optimize(initial_estimative = [200, -80680.1])
+# initial_estimative: List with the initial estimates for the parameters;
+# lower_bound: List with the lower bounds for the parameters;
+# algorithm: Informs the optimization algorithm that will be used. Each algorithm has its own keywords;
+# optimizationReport: Informs whether the optimization report should be created (True or False);
+# parametersReport: Informs whether the parameters report should be created (True or False).
+Estimation.optimize(initial_estimative = [200, -80680.1], algorithm='ipopt', optimizationReport = True, parametersReport = False)
 
 #%% Evaluating the parameters uncertainty and coverage region
-Estimation.parametersUncertainty(uncertaintyMethod='SensibilidadeModelo', objectiveFunctionMapping=True)
+# uncertaintyMethod: method for calculating the covariance matrix of the parameters;
+# objectiveFunctionMapping: Deals with mapping the objective function (True or False);
+# parametersReport: Informs whether the parameters report should be created.
+Estimation.parametersUncertainty(uncertaintyMethod='SensibilidadeModelo', objectiveFunctionMapping=True, parametersReport = True)
 
 #%% Evaluating model predictions
-Estimation.prediction()
+# export_y: Exports the calculated data of y, its uncertainty, and degrees of freedom in a txt with comma separation (True or False);
+# export_y_xls: Exports the calculated data of y, its uncertainty, and degrees of freedom in a xls (True or False);
+# export_cov_y: Exports the covariance matrix of y (True or False);
+# export_x: Exports the calculated data of x, its uncertainty, and degrees of freedom in a txt with comma separation(True or False);
+# export_cov_x: Exports the covariance matrix of x (True or False).
+Estimation.prediction(export_y=True,export_y_xls=True, export_cov_y=True, export_x=True, export_cov_x=True)
 
 #%% Evaluating residuals and quality index
-Estimation.residualAnalysis()
+Estimation.residualAnalysis(report=True)
 
 #%% Plotting the main results
 Estimation.plots()
@@ -57,6 +79,10 @@ from MT_PEU_Linear import EstimacaoLinear
 from numpy import log, array
 
 #%% Starting the MT_PEU main object
+# symbols_x: Symbols for quantity x;
+# symbols_y: Symbols for quantity y;
+# symbols_param:Symbols for the parameters to be estimated;
+# Folder: Defines the name of the folder where the results will be saved.
 Estimation = EstimacaoLinear(symbols_x=[r'X1'], symbols_y=[r'Y1'], symbols_param=['A1','B1'],  folder='VapourpressuresLinearEX8')
 #Input observed data
 X = 1./array(T)
@@ -77,19 +103,29 @@ Estimation.setDados(0, (X.tolist(), uX.tolist()))
 Estimation.setDados(1, (Y.tolist(), uY.tolist()))
 
 # Defining the previous data set to be used to parameter estimation
-Estimation.setConjunto()
+# dataType: Defines the purpose of the informed data set: estimacao, predicao.
+# glx: Degrees of freedom of quantity x;
+# gly: Degrees of freedom of quantity y;
+Estimation.setConjunto(dataType='estimacao', glx=[], gly=[])
 
 #%% Optimization - estimating the parameters
-Estimation.optimize()
+# parametersReport: Informs whether the parameters report should be created (True or False).
+Estimation.optimize(parametersReport=True)
 
 #%% Evaluating the parameters uncertainty and coverage region
+# objectiveFunctionMapping: Deals with mapping the objective function (True or False);
 Estimation.parametersUncertainty(objectiveFunctionMapping=True)
 
 #%% Evaluating model predictions
-Estimation.prediction()
+# export_y: Exports the calculated data of y, its uncertainty, and degrees of freedom in a txt with comma separation (True or False);
+# export_y_xls: Exports the calculated data of y, its uncertainty, and degrees of freedom in a xls (True or False);
+# export_cov_y: Exports the covariance matrix of y (True or False);
+# export_x: Exports the calculated data of x, its uncertainty, and degrees of freedom in a txt with comma separation(True or False);
+# export_cov_x: Exports the covariance matrix of x (True or False).
+Estimation.prediction(export_y=True,export_y_xls=True, export_cov_y=True, export_x=True, export_cov_x=True)
 
 #%% Evaluating residuals and quality index
-Estimation.residualAnalysis()
+Estimation.residualAnalysis(report=True)
 
 #%% Plotting the main results
 Estimation.plots()
