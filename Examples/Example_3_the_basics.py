@@ -50,10 +50,14 @@ Estimation.setConjunto(dataType='estimacao')
 Estimation.optimize(initial_estimative = [1, 1.5, 0.009],algorithm='bonmin', optimizationReport = True, parametersReport = False)
 
 #%% Evaluating the parameters uncertainty and coverage region
-# uncertaintyMethod: method for calculating the covariance matrix of the parameters;
+# uncertaintyMethod: method for calculating the covariance matrix of the parameters: 2InvHessian, Geral, SensibilidadeModelo
+# Geral obtains the parameters uncertainty matrix without approximations (most accurate), while 2InvHessian and SensibilidadeModelo involves
+# some approximations.
 # objectiveFunctionMapping: Deals with mapping the objective function (True or False);
-# parametersReport: Informs whether the parameters report should be created.
-Estimation.parametersUncertainty(uncertaintyMethod='SensibilidadeModelo', objectiveFunctionMapping=True, parametersReport = False)
+# parametersReport: Informs whether the parameters report should be created (True or False).
+# iterations: Number of iterations to perform the mapping of the objective function. The higher the better mapping, but it
+# increases the execution time
+Estimation.parametersUncertainty(uncertaintyMethod='Geral', objectiveFunctionMapping=True, iterations=5000, parametersReport = False)
 
 #%% Evaluating model predictions
 # export_y: Exports the calculated data of y, its uncertainty, and degrees of freedom in a txt with comma separation (True or False);

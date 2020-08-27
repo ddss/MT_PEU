@@ -1745,7 +1745,7 @@ class EstimacaoNaoLinear:
         # MONTE CARLO METHOD
         # ---------------------------------------------------------------------
         if tipo == self.__tipoObjectiveFunctionMapping[0]:
-            iterations = int(kwargs.get('iterations') if kwargs.get('iterations') is not None else 10000)
+            iterations = int(kwargs.get('iterations') if kwargs.get('iterations') is not None else 500)
 
             for cont in range(iterations):
 
@@ -1762,10 +1762,7 @@ class EstimacaoNaoLinear:
                 amostra_sup = [triangular(self.parametros.estimativa[i], (upper_bound[i] + self.parametros.estimativa[i]) / 2, upper_bound[i], 1)[0] for i in range(self.parametros.NV)]
 
                 # Symmetry factor
-                SF = [-2, -1.9, -1.8, -1.7, -1.6, -1.5, -1.4, -1.3, -1.2, -1,
-                      -0.9, -0.8, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2, -0.1,
-                      0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1,
-                      1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2]
+                SF = linspace(-2, 2, 50, endpoint=True)
 
                 # Calculating the symmetrical points
                 amostras_simetricas = []
