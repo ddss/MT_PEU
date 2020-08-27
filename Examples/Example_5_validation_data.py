@@ -77,7 +77,8 @@ Estime.optimize(initial_estimative=[0.005, 20000.000], algorithm='ipopt', lower_
 # uncertaintyMethod: method for calculating the covariance matrix of the parameters;
 # objectiveFunctionMapping: Deals with mapping the objective function (True or False);
 # limite_inferior: Lower limit of parameters;
-# limite_superior: Upper limit of the parameters.
+# limite_superior: Upper limit of the parameters;
+# iterations: Defines the number of iterations used in the monte carlo method.
 # parametersReport: Informs whether the parameters report should be created.
 Estime.parametersUncertainty(uncertaintyMethod='Geral',objectiveFunctionMapping=True, lower_bound=[7.2e-3,26400], upper_bound=[7.7e-3,28600],
                              parametersReport = True, iterations=200)
@@ -97,7 +98,7 @@ Estime.residualAnalysis(report=True)
 Estime.plots()
 
 # =================================================================================
-# IX - OPTIONAL: VALIDATION
+# OPTIONAL: VALIDATION
 # =================================================================================
 
 u"""

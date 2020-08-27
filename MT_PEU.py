@@ -1240,6 +1240,10 @@ class EstimacaoNaoLinear:
 
         # every time optimization is run all previous information about parameters is lost
         self.parametros._SETparametro(self.__opt_param, None, None, limite_superior=upper_bound,limite_inferior=lower_bound)
+         #warn
+        for i in range(self.parametros.NV):
+            if self.parametros.estimativa[i] == lower_bound[i] or self.parametros.estimativa[i] == upper_bound[i]:
+                warn('Estimated parameters equal to the upper or lower limit.')
 
         # parameters report creation
         if parametersReport is True:
