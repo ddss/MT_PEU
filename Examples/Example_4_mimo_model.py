@@ -87,5 +87,6 @@ Estime.prediction(export_y=True,export_y_xls=True, export_cov_y=True, export_x=T
 Estime.residualAnalysis(report=True)
 
 #%% Plotting the main results
+# using solely default options
 Estime.plots()
 Estime.reports()

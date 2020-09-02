@@ -16,7 +16,7 @@ def Model(param, x, args):
 # symbols_y: Symbols for quantity y;
 # symbols_param:Symbols for the parameters to be estimated;
 # Folder: Defines the name of the folder where the results will be saved.
-Estimation = EstimacaoNaoLinear(Model, symbols_x=[r'T'], symbols_y=[r'y'], symbols_param=['A','B','C'],  Folder='VapourPressuresEX3' )
+Estimation = EstimacaoNaoLinear(Model, symbols_x=[r'T'], symbols_y=[r'y'], symbols_param=['A','B','C'],  Folder='Exemple_3' )
 
 #%% Defining observed data
 # Input data
@@ -67,8 +67,10 @@ Estimation.parametersUncertainty(uncertaintyMethod='Geral', objectiveFunctionMap
 Estimation.prediction(export_y=True, export_y_xls=True, export_cov_y=True, export_x=True)
 
 #%% Evaluating residuals and quality index
+# using solely default options
 Estimation.residualAnalysis()
 
 #%% Plotting the main results
+# using solely default options
 Estimation.plots()
 

@@ -17,7 +17,7 @@ def Model(param, x, *args):
 # symbols_y: list of symbols for quantity y;
 # symbols_param: list of symbols for the parameters to be estimated;
 # Folder: string with the name of the folder where reports and charts will be saved;
-Estime = EstimacaoNaoLinear(Model, symbols_x=['t','Tao'], symbols_y=['y'], symbols_param=['ko','E'], Folder='Example 1')
+Estime = EstimacaoNaoLinear(Model, symbols_x=['t','Tao'], symbols_y=['y'], symbols_param=['ko','E'], Folder='Example_1')
 
 #%% Defining observed data
 # Observed data of dependent variable

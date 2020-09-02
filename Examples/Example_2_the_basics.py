@@ -13,17 +13,17 @@ def Model (param,x, *args):
 
 #%% Starting the MT_PEU main object
 # Model: Pass the model defined in def Model;
-# symbols_x: Symbols for quantity x;
-# symbols_y: Symbols for quantity y;
-# symbols_param:Symbols for the parameters to be estimated;
-# label_latex_param: Symbols for parameters written in LaTex;
-# units_y: Units of measurement for independent quantities;
-# units_x: units of measurement of dependent quantities;
-# units_param: units of measurement of the parameters;
+# symbols_x: List of symbols for quantity x;
+# symbols_y: List of symbols for quantity y;
+# symbols_param: List of symbols for the parameters to be estimated;
+# label_latex_param: List of symbols for parameters written in LaTex;
+# units_y: List of units of measurement for independent quantities;
+# units_x: List of units of measurement of dependent quantities;
+# units_param: List of units of measurement of the parameters;
 # Folder: Defines the name of the folder where the results will be saved.
 Estime = EstimacaoNaoLinear(Model, symbols_x=['t','Tao'], units_x=['s','K'],
                             symbols_y=[r'y'], units_y=['adm'],
-                            symbols_param=['ko','E'], units_param=['adm','K'], Folder='KineticModelEX2')
+                            symbols_param=['ko','E'], units_param=['adm','K'], Folder='Exemple_2')
 
 #%% Defining observed data
 # Input data
@@ -73,6 +73,7 @@ Estime.optimize(initial_estimative=[18, 20000.000],optimizationReport = False, a
 Estime.parametersUncertainty(uncertaintyMethod='2InvHessiana',objectiveFunctionMapping=True)
 
 #%%Running the charts without prediction.
+# using solely default options
 Estime.plots()
 
 #%% Evaluating model predictions
@@ -82,6 +83,7 @@ Estime.plots()
 Estime.prediction(export_y=True, export_y_xls=True, export_cov_y=True, )
 
 #%% Evaluating residuals and quality index
+# using solely default options
 Estime.residualAnalysis()
 
 #%% Plotting the main results

@@ -78,7 +78,8 @@ Estime.optimize(initial_estimative=[0.005, 20000.000], algorithm='ipopt', lower_
 # objectiveFunctionMapping: Deals with mapping the objective function (True or False);
 # limite_inferior: Lower limit of parameters;
 # limite_superior: Upper limit of the parameters;
-# iterations: Defines the number of iterations used in the monte carlo method.
+# iterations: Number of iterations to perform the mapping of the objective function. The higher the better mapping, but it
+# increases the execution time
 # parametersReport: Informs whether the parameters report should be created.
 Estime.parametersUncertainty(uncertaintyMethod='Geral',objectiveFunctionMapping=True, lower_bound=[7.2e-3,26400], upper_bound=[7.7e-3,28600],
                              parametersReport = True, iterations=200)
@@ -148,6 +149,7 @@ Estime.prediction(export_y=True,export_y_xls=True, export_cov_y=True, export_x=T
 Estime.residualAnalysis(report=True)
 
 #%% Plotting the main results
+# using solely default options
 Estime.plots()
 
 #%% Reference of this case study

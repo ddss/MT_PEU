@@ -12,9 +12,9 @@ def Model(param, x, args):
 
 #%% Starting the MT_PEU main object
 # Model: Pass the model defined in def Model;
-# symbols_x: Symbols for quantity x;
-# symbols_y: Symbols for quantity y;
-# symbols_param:Symbols for the parameters to be estimated;
+# symbols_x: List of symbols for quantity x;
+# symbols_y: List of symbols for quantity y;
+# symbols_param: List of symbols for the parameters to be estimated;
 # Folder: Defines the name of the folder where the results will be saved.
 Estimation = EstimacaoNaoLinear(Model, symbols_x=[r'T'], symbols_y=[r'P'], symbols_param=['A','B'],  Folder='VapourpressuresNonLinearEX8' )
 
@@ -79,9 +79,9 @@ from MT_PEU_Linear import EstimacaoLinear
 from numpy import log, array
 
 #%% Starting the MT_PEU main object
-# symbols_x: Symbols for quantity x;
-# symbols_y: Symbols for quantity y;
-# symbols_param:Symbols for the parameters to be estimated;
+# symbols_x: List of symbols for quantity x;
+# symbols_y: List of symbols for quantity y;
+# symbols_param: List of symbols for the parameters to be estimated;
 # Folder: Defines the name of the folder where the results will be saved.
 Estimation = EstimacaoLinear(symbols_x=[r'X1'], symbols_y=[r'Y1'], symbols_param=['A1','B1'],  folder='VapourpressuresLinearEX8')
 #Input observed data
@@ -128,4 +128,5 @@ Estimation.prediction(export_y=True,export_y_xls=True, export_cov_y=True, export
 Estimation.residualAnalysis(report=True)
 
 #%% Plotting the main results
+# using solely default options
 Estimation.plots()
