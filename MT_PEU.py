@@ -1628,6 +1628,15 @@ class EstimacaoNaoLinear:
                 Lower bound of the parameters
             lower_bound : list
                 Upper bound of the parameters
+            symmetryFactorLimit : list
+                This variable is used to generate more points to fill the coverage region. It is recommended that the
+                greater the interval of the region, the greater the limits of the symmetrical factor.
+
+                symmetryFactorLimit[0] -> lower bound of the symmetry factor
+
+                symmetryFactorLimit[1] -> upper bound of the symmetry factor
+
+                symmetryFactorLimit[2] -> number of points generated from the symmetric factor
             searchLimitFactor : float, > 0
 
             distribution : string
@@ -1655,7 +1664,7 @@ class EstimacaoNaoLinear:
 
         # if MethodObjectivefunctionmapping = 'MonteCarlo':
         if tipo == self.__tipoObjectiveFunctionMapping[0]:
-            kwargsdisponiveis = ('iterations', 'upper_bound', 'lower_bound', 'searchLimitFactor', 'distribution')
+            kwargsdisponiveis = ('iterations', 'upper_bound', 'lower_bound', 'searchLimitFactor', 'distribution', 'symmetryFactorLimit')
 
             # evaluating whether keywords are available
             if not set(kwargs.keys()).issubset(kwargsdisponiveis):
@@ -1673,6 +1682,12 @@ class EstimacaoNaoLinear:
             if kwargs.get(kwargsdisponiveis[4]) is not None:
                 if kwargs.get(kwargsdisponiveis[4]) not in ['uniform', 'triangular']:
                     raise ValueError('The distributions available for the MonteCarlo Method are: {}.'.format(['uniform','triangular']))
+            # evaluating the symmetry Factor Limit
+            if kwargs.get(kwargsdisponiveis[5]) is not None:
+                if not isinstance(kwargs.get(kwargsdisponiveis[5]), list):
+                    raise TypeError('The symmetry factor limit must be a list')
+                if isinstance(kwargs.get(kwargsdisponiveis[5]), list) and len(kwargs.get(kwargsdisponiveis[5])) != 3:
+                    raise ValueError('The size of symmetry factor limit must be equal to trhee. See documentation of objectiveFunctionMapping method')
 
         # ---------------------------------------------------------------------
         # Search limit
@@ -1762,7 +1777,9 @@ class EstimacaoNaoLinear:
                 amostra_sup = [triangular(self.parametros.estimativa[i], (upper_bound[i] + self.parametros.estimativa[i]) / 2, upper_bound[i], 1)[0] for i in range(self.parametros.NV)]
 
                 # Symmetry factor
-                SF = linspace(-2, 2, 50, endpoint=True)
+                # It is applied to symmetricals to generate more points
+                SF_limits = kwargs.get('symmetryFactorLimit') if kwargs.get('symmetryFactorLimit') is not None else [-2,2,50]
+                SF = linspace(SF_limits[0], SF_limits[1], SF_limits[2], endpoint=True)
 
                 # Calculating the symmetrical points
                 amostras_simetricas = []
