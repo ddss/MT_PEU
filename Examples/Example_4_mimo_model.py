@@ -13,11 +13,11 @@ def Model(param,x,*args):
 
 #%% Starting the MT_PEU main object
 # Model: Pass the model defined in def Model;
-# symbols_x: Symbols for quantity x;
-# symbols_y: Symbols for quantity y;
-# symbols_param:Symbols for the parameters to be estimated;
-# label_latex_param: Symbols for parameters written in LaTex;
-# units_y: Units of measurement for independent quantities;
+# symbols_x: Lis of symbols for quantity x;
+# symbols_y: List of symbols for quantity y;
+# symbols_param: List of symbols for the parameters to be estimated;
+# label_latex_param: List of ymbols for parameters written in LaTex;
+# units_y: List of units of measurement for independent quantities;
 # Folder: Defines the name of the folder where the results will be saved.
 Estime = EstimacaoNaoLinear(Model,symbols_x=['x1','x2'],symbols_y=['y1','y2'],symbols_param=['alpha1','alpha2', 'beta1', 'beta2'],
                           label_latex_param=[r'$\alpha_1$',r'$\alpha_2$',r'$\beta_1$',r'$\beta_2$'],units_y=['kg','kg'],Folder='MimoModelEX4')

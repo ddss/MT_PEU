@@ -12,9 +12,9 @@ def Model(param, x, args):
 
 #%% Starting the MT_PEU main object
 # Model: Pass the model defined in def Model;
-# symbols_x: Symbols for quantity x;
-# symbols_y: Symbols for quantity y;
-# symbols_param:Symbols for the parameters to be estimated;
+# symbols_x: List of ymbols for quantity x;
+# symbols_y: List of ymbols for quantity y;
+# symbols_param: List of Symbols for the parameters to be estimated;
 # Folder: Defines the name of the folder where the results will be saved.
 Estimation = EstimacaoNaoLinear(Model, symbols_x=[r'T'], symbols_y=[r'y'], symbols_param=['A','B','C'],  Folder='Exemple_3' )
 

@@ -12,14 +12,14 @@ def Model(param, x, *args):
 
 #%% Starting the MT_PEU main object
 # Model: Pass the model defined in def Model;
-# symbols_x: Symbols for quantity x;
-# symbols_y: Symbols for quantity y;
-# symbols_param:Symbols for the parameters to be estimated;
-# label_latex_param: Symbols for parameters written in LaTex;
-# label_latex_x: Symbols for quantities x written in LaTex
-# units_y: Units of measurement for independent quantities;
-# units_param: units of measurement of the parameters;
-# units_x: units of measurement of dependent quantities;
+# symbols_x: List of symbols for quantity x;
+# symbols_y: List of symbols for quantity y;
+# symbols_param: List of symbols for the parameters to be estimated;
+# label_latex_param: List of symbols for parameters written in LaTex;
+# label_latex_x: List of symbols for quantities x written in LaTex
+# units_y: List of units of measurement for independent quantities;
+# units_param: List of units of measurement of the parameters;
+# units_x: List of units of measurement of dependent quantities;
 # Folder: Defines the name of the folder where the results will be saved.
 Estime = EstimacaoNaoLinear(Model, symbols_x=[r't', 'Tau'], units_x=['s', 'K'], label_latex_x=[r'$t$', '$T$'],
                             symbols_y=[r'y'], units_y=['adm'],
