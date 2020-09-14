@@ -25,7 +25,7 @@ Estime = EstimacaoNaoLinear(Model, symbols_x=[r't', 'Tau'], units_x=['s', 'K'], 
                             symbols_y=[r'y'], units_y=['adm'],
                             symbols_param=['ko', 'E'], units_param=['adm','K'],
                             label_latex_param=[r'$k_o$', r'$E$'],
-                            Folder='KineticModelEX5')
+                            Folder='Exemple5')
 
 #%% Defining observed data
 # Input data

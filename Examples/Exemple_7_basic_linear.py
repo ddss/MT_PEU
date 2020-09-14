@@ -2,7 +2,7 @@
 from MT_PEU_Linear import EstimacaoLinear
 
 #%% Initialization of the class that performs the estimation.
-ER = EstimacaoLinear(['q'],['x'],['k'],folder='LinearModelEX7')
+ER = EstimacaoLinear(['q'],['x'],['k'],folder='Exemple7')
 
 #%% Defining observed data
 # Input data
