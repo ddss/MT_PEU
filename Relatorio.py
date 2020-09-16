@@ -63,24 +63,35 @@ class Report:
         [1] https://docs.python.org/2/tutorial/inputoutput.html
         [2] https://docs.python.org/2/library/string.html#formatstrings
         '''
-        with open(self.__base_path+'parameters-report.txt','wt') as f:
+        with open(self.__base_path+'parameters-report.html','wt') as f:
             # Criação do título: o tamanho dele será o máximo entre 65 e 18*NP (Apenas por estética)
-            f.write(('{:#^'+str(max([70,parametros.NV*18]))+'}'+self.__quebra).format('PARÂMETROS'))
-
+            f.write(('<p>{:#^'+str(max([70,parametros.NV*18]))+'}</p>'+self.__quebra).format('PARÂMETROS'))
             # Estimativa dos parâmetros
-            f.write(('Simbolos   : '+ '{:^10} '*parametros.NV).format(*parametros.simbolos)+self.__quebra)
-            f.write(('Estimativa : '+ '{:^10.3e} '*parametros.NV).format(*parametros.estimativa)+self.__quebra)
+            f.write( '<table border = "1">\n')
+            f.write('<tr>\n')
+            f.write(('<td>Simbolos</td>'+ ' <td>{:^10}</td> '*parametros.NV).format(*parametros.simbolos)+self.__quebra)
+            f.write('</tr>\n')
+            f.write('<tr>\n')
+            f.write(('<td>Estimativa</td>'+ ' <td>{:^10.3e}</td> '*parametros.NV).format(*parametros.estimativa)+self.__quebra)
+            f.write('</tr>\n')
 
             if parametros.matriz_covariancia is not None:
                 # Matriz de covariância, incerteza e matriz de correlação
-                f.write(('Variância  : '+ '{:^10.3e} '*parametros.NV).format(*[parametros.matriz_covariancia[i,i] for i in range(parametros.NV)]) + self.__quebra)
-                f.write(('Incerteza  : '+ '{:^10.3e} '*parametros.NV).format(*[parametros.matriz_incerteza[0,i] for i in range(parametros.NV)]) + self.__quebra)
+                f.write('<tr>\n')
+                f.write(('<td>Variância</td>'+ '<td>{:^10.3e}</td> '*parametros.NV).format(*[parametros.matriz_covariancia[i,i] for i in range(parametros.NV)]) + self.__quebra)
+                f.write('</tr>\n')
+                f.write('<tr>\n')
+                f.write(('<td>Incerteza</td>'+ '<td>{:^10.3e}</td> '*parametros.NV).format(*[parametros.matriz_incerteza[0,i] for i in range(parametros.NV)]) + self.__quebra)
+                f.write('</tr>\n')
+                f.write('</table>\n')
                 f.write(self.__quebra)
-                f.write('Matriz de covariância:'+self.__quebra)
-                f.write(str(parametros.matriz_covariancia)+self.__quebra)
+
+                f.write('<p>Matriz de covariância:</p>'+self.__quebra)
+                f.write('<p>'+str(parametros.matriz_covariancia)+'</p>'+self.__quebra)
                 f.write(self.__quebra)
-                f.write('Matriz de correlação:'+self.__quebra)
-                f.write(str(parametros.matriz_correlacao)+self.__quebra)
+                f.write('<p>Matriz de correlação:</p>'+self.__quebra)
+                f.write('<p>'+str(parametros.matriz_correlacao)+'</p>'+self.__quebra)
+
             else:
                 f.write('Variância : não avaliada '+self.__quebra)
                 f.write('Incerteza : não avaliada '+self.__quebra)
@@ -90,20 +101,33 @@ class Report:
                 f.write(self.__quebra)
                 f.write('Matriz de correlação: não avaliada')
 
+
             f.write(self.__quebra)
             # Valor da função objetivo no ponto ótimo
-            f.write( 'FObj : '+ '{:.3g} '.format(pontoOtimo)+('- {:<} '+self.__quebra).format('Valor da função objetivo no ponto ótimo'))
+            f.write( '<p>FObj : '+ '{:.3g} '.format(pontoOtimo)+('- {:<} '+self.__quebra).format('Valor da função objetivo no ponto ótimo</p>'))
             f.write(self.__quebra)
-            f.write(('{:-^'+str(max([70,parametros.NV*18]))+'}'+self.__quebra).format('RESTRIÇÕES'))
-            f.write(('Simbolos        : '+ '{:^10} '*parametros.NV).format(*parametros.simbolos) + self.__quebra)
+            f.write(('<p>{:-^'+str(max([70,parametros.NV*18]))+'}</p>'+self.__quebra).format('RESTRIÇÕES'))
+
+            f.write('<table border = "5">\n')
+            f.write('<tr>\n')
+            f.write(('<td>Simbolos</td>'+ '<td>{:^10}</td>'*parametros.NV).format(*parametros.simbolos) + self.__quebra)
+            f.write('</tr>\n')
             if parametros.limite_superior != inf and parametros.limite_superior is not None:
-                f.write(('Limite superior : '+ '{:^10.3e} '*parametros.NV).format(*parametros.limite_superior) + self.__quebra)
+                f.write('<tr>\n')
+                f.write(('<td>Limite superior</td>'+ '<td>{:^10.3e}</td>'*parametros.NV).format(*parametros.limite_superior) + self.__quebra)
+                f.write('</tr>\n')
             else:
-                f.write(('Limite superior : '+ '{:^10} '*parametros.NV).format(*['N/A']*parametros.NV) + self.__quebra)
+                f.write('<tr>\n')
+                f.write(('<td>Limite superior</td>'+ '<td>{:^10}</td>'*parametros.NV).format(*['N/A']*parametros.NV) + self.__quebra)
+                f.write('</tr>\n')
             if parametros.limite_inferior != -inf and parametros.limite_inferior is not None:
-                f.write(('Limite inferior : '+ '{:^10.3e} '*parametros.NV).format(*parametros.limite_inferior) + self.__quebra)
+                f.write('<tr>\n')
+                f.write(('<td>Limite inferior</td>'+ '<td>{:^10.3e}</td>'*parametros.NV).format(*parametros.limite_inferior) + self.__quebra)
+                f.write('</tr>\n')
             else:
-                f.write(('Limite inferior : '+ '{:^10} '*parametros.NV).format(*['N/A']*parametros.NV) + self.__quebra)
+                f.write('<tr>\n')
+                f.write(('<td>Limite inferior</td>'+ '<td>{:^10}</td>'*parametros.NV).format(*['N/A']*parametros.NV) + self.__quebra)
+                f.write('</table>\n')
             f.close()
 
     def Predicao(self,x,y,estatisticas,**kwargs):
@@ -181,7 +205,7 @@ class Report:
         #------------------------------------------------------------
         if estatisticas is not None:
             #with open(self.__base_path+folder+'prediction-report_fl'+self.__fluxo+'.txt','wt') as f:
-            with open(self.__base_path+folder+'prediction-report'+'.txt','wt') as f:
+            with open(self.__base_path+folder+'prediction-report'+'.html','wt') as f:
                 # TITLE:
                 f.write(('{:#^'+str(max([70,y.NV*18]))+'}'+self.__quebra).format(' PREDIÇÃO '))
                 f.write(('{:=^'+str(max([70,y.NV*18]))+'}'+self.__quebra).format(' GRANDEZAS DEPENDENTES '))

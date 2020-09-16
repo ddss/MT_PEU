@@ -1206,10 +1206,10 @@ class EstimacaoNaoLinear:
             # with optimization report
             if algorithm == 'ipopt':
                 options = {'print_time': False, 'ipopt' :{'print_level': 0, 'file_print_level': 5,
-                                                          'output_file': self._out.optimization()+  'Optimization_report.txt'}}
+                                                          'output_file': self._out.optimization()+  'Optimization_report.html'}}
             elif algorithm == 'bonmin':
                 options = {'print_time': False, 'bonmin':{'file_print_level': 5,
-                                                          'output_file': self._out.optimization() + 'Optimization_report.txt'}}
+                                                          'output_file': self._out.optimization() + 'Optimization_report.html'}}
             elif algorithm =='sqpmethod':
                 options = {'print_iteration': False, 'qpsol_options':{'printLevel': 'none'}}
 
