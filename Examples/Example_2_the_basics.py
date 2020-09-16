@@ -23,7 +23,7 @@ def Model (param,x, *args):
 # Folder: Defines the name of the folder where the results will be saved.
 Estime = EstimacaoNaoLinear(Model, symbols_x=['t','Tao'], units_x=['s','K'],
                             symbols_y=[r'y'], units_y=['adm'],
-                            symbols_param=['ko','E'], units_param=['adm','K'], Folder='Exemple_2')
+                            symbols_param=['ko','E'], units_param=['adm','K'], Folder='Exemple2')
 
 #%% Defining observed data
 # Input data
