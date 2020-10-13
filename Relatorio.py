@@ -213,9 +213,9 @@ class Report:
                 f.write('<p>Coeficientes de correlação:</p>'+self.__quebra)
                 # Operator to format the values of R2 and R2 adjusted, because they are dictionaries.
                 construtor_formatacao_simbolos = ['{'+str(symb)+':^8.3f}' for symb in y.simbolos]
-                f.write('<p>&nbsp;&nbsp;&nbsp;&nbsp;Simbolos                             : '+ ('{:^8}</p>'*y.NV).format(*y.simbolos) + self.__quebra)
-                f.write('<p>&nbsp;&nbsp;&nbsp;&nbsp;Coeficiente de determinação          : '+ (''.join(construtor_formatacao_simbolos)).format(**estatisticas['R2'])+'</p>' + self.__quebra)
-                f.write('<p>&nbsp;&nbsp;&nbsp;&nbsp;Coeficiente de determinação ajustado : '+ (''.join(construtor_formatacao_simbolos)).format(**estatisticas['R2ajustado'])+'</p>' + self.__quebra)
+                f.write('<p>&nbsp;&nbsp;&nbsp;&nbsp;Simbolos:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'+ ('{:^8}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'*y.NV).format(*y.simbolos) +'</p>' + self.__quebra)
+                f.write('<p>&nbsp;&nbsp;&nbsp;&nbsp;Coeficiente de determinação&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: '+ ('&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'.join(construtor_formatacao_simbolos)).format(**estatisticas['R2'])+'</p>' + self.__quebra)
+                f.write('<p>&nbsp;&nbsp;&nbsp;&nbsp;Coeficiente de determinação ajustado&nbsp;: '+ ('&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'.join(construtor_formatacao_simbolos)).format(**estatisticas['R2ajustado'])+'</p>' + self.__quebra)
                 f.write(self.__quebra)
 
                 # Objective function
@@ -241,7 +241,7 @@ class Report:
                 f.write(self.__quebra)
                 f.write('<table border = "1">\n')
                 f.write('</tr>\n')
-                f.write('<th>{:<10} &nbsp;&nbsp;&nbsp;&nbsp;</th>'.format('Simbolos')+ ('<th colspan="2">{}</th>'*y.NV).format(*y.simbolos)+self.__quebra)
+                f.write('<th>{:<10} &nbsp;&nbsp;&nbsp;&nbsp;</th>'.format('Simbolos')+ ('<th colspan="1">{}</th>'*y.NV).format(*y.simbolos)+self.__quebra)
                 # semi-automated construction to fill in the values of the statistical normality tests.
                 for teste in y._Grandeza__nomesTestes['residuo-Normalidade'].keys():
                     break_line = False
@@ -285,13 +285,13 @@ class Report:
                 f.write('<p>    {:-^45}</p>'.format('Testes com p-valores')+self.__quebra)
                 f.write('<p>    Info: p-valores devem ser maiores do que o nível de significânca (1-PA)</p>'+self.__quebra+'    para não rejeitar a hipótese nula (Ho).</p>'+self.__quebra)
                 f.write(self.__quebra)
-                f.write('<p>    {:<8}:'.format('Simbolos') + ('{:^8}</p>'*y.NV).format(*y.simbolos) + self.__quebra)
+                f.write('<p>    {:<8}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:'.format('Simbolos') + ('{:^8}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'*y.NV).format(*y.simbolos) +'</p>'+ self.__quebra)
                 # construção semi-automatizada para preencher os valores dos testes estatísticos para média
                 for teste in y._Grandeza__nomesTestes['residuo-Media'].keys():
-                     f.write('<p>    {:<8}:'.format(teste))
+                     f.write('<p>    {:<8}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:'.format(teste))
                      for symb in y.simbolos:
                          if isinstance(y.estatisticas[symb]['residuo-Media'][teste],float):
-                             f.write('{:^8.3f}'.format(y.estatisticas[symb]['residuo-Media'][teste])+' ')
+                             f.write('{:^8.3f}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'.format(y.estatisticas[symb]['residuo-Media'][teste])+' ')
                          else:
                              f.write('N/A')
                              f.write(self.__quebra)
@@ -310,50 +310,50 @@ class Report:
 
                      if break_line:
                         f.write(self.__quebra)
-                 
+
                  # RESIDUAL ANALYSIS - autocorrelation tests
                 f.write(self.__quebra)
                 f.write('<p>    Autocorrelação:</p>'+self.__quebra)
                 f.write('<p>    {:-^45}</p>'.format('Testes com p-valores')+self.__quebra)
                 f.write('<p>    Info: p-valores devem ser maiores do que o nível de significânca (1-PA)</p>\n   <p> para não rejeitar a hipótese nula (Ho).</p>'+self.__quebra)
                 f.write(self.__quebra)
-                f.write('<p>    {:<}:                                 '.format('Simbolos')+ ('&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:^8}</p>'*y.NV).format(*y.simbolos)+self.__quebra)
+                f.write('<p>    {:<}:                                 '.format('Simbolos')+ ('&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:^8}'*y.NV).format(*y.simbolos)+'</p>'+self.__quebra)
                 for teste in y._Grandeza__nomesTestes['residuo-Autocorrelacao'].keys():
                     break_line = False
                     if teste == 'Ljung-Box':
                       if isinstance(y._Grandeza__nomesTestes['residuo-Autocorrelacao'][teste],dict):
-                          f.write('<p>    {:<}: </p>'.format(teste)+self.__quebra)
+                          f.write('<p>    {:<}:</p>'.format(teste)+self.__quebra)
                           for key in y._Grandeza__nomesTestes['residuo-Autocorrelacao'][teste].keys():
                               f.write('<p>            {:<33}:'.format(key))
                               for symb in y.simbolos:
                                   if isinstance(y._Grandeza__nomesTestes['residuo-Autocorrelacao'][teste][key],float):
-                                      f.write('{:^8.3f}'.format(y.estatisticas[symb]['residuo-Autocorrelacao'][teste][key]))
+                                      f.write('&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:^8.3f}'.format(y.estatisticas[symb]['residuo-Autocorrelacao'][teste][key]))
                                   else:
                                       f.write('N/A')
                               if  isinstance(y._Grandeza__nomesTestes['residuo-Autocorrelacao'][teste],dict):
                                     f.write('| Ho: {}</p>'.format(y._Grandeza__TestesInfo['residuo-Autocorrelacao'][teste][key]['H0']))
-                              
+
                               f.write(self.__quebra)
                           break_line = True
-                        
-#                      
+
+#
                     if break_line:
                         f.write(self.__quebra)
-                             
+
                 f.write('<p>    {:-^45}</p>'.format('Testes com estatística')+self.__quebra)
                 f.write('<p>    Info: (i) Se a estatística do teste estiver próxima de 0 indica autocorrelação positiva</p>\n          <p>(ii) Se a estatística do teste estiver próxima de 4 indica autocorrelação negativa</p>\n          <p>(iii) Se a estatística do teste estiver próxima de 2 indica que não há autocorrelação.</p>'+self.__quebra)
                 f.write(self.__quebra)
-                f.write('<p>&nbsp;&nbsp;&nbsp;&nbsp;{:<}:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'.format('Simbolos')+ ('{:^8}</p>'*y.NV).format(*y.simbolos)+self.__quebra)
+                f.write('<p>&nbsp;&nbsp;&nbsp;&nbsp;{:<}:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'.format('Simbolos')+ ('&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:^8}'*y.NV).format(*y.simbolos)+'</p>'+self.__quebra)
                 for teste in y._Grandeza__nomesTestes['residuo-Autocorrelacao'].keys():
                     break_line = False
                     if teste == 'Durbin Watson':
                       if isinstance(y._Grandeza__nomesTestes['residuo-Autocorrelacao'][teste],dict):
-                          f.write('<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:<}:</p>'.format(teste)+self.__quebra)
+                          f.write('<p>{:<}:</p>'.format(teste)+self.__quebra)
                           for key in y._Grandeza__nomesTestes['residuo-Autocorrelacao'][teste].keys():
                               f.write('<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:<11}:'.format(key))
                               for symb in y.simbolos:
                                   if isinstance(y._Grandeza__nomesTestes['residuo-Autocorrelacao'][teste][key],float):
-                                      f.write('{:^8.3f}</p>'.format(y.estatisticas[symb]['residuo-Autocorrelacao'][teste][key]))
+                                      f.write('{:^8.3f}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'.format(y.estatisticas[symb]['residuo-Autocorrelacao'][teste][key]))
                                   else:
                                       f.write('N/A</p>')
                               f.write(self.__quebra)
@@ -367,7 +367,7 @@ class Report:
                 f.write('<p>&nbsp;&nbsp;&nbsp;&nbsp;{:-^45}</p>'.format('Testes com p-valores')+self.__quebra)
                 f.write('<p>&nbsp;&nbsp;&nbsp;&nbsp;Info: p-valores devem ser maiores do que o nível de significânca (1-PA)</p>\n <p>para não rejeitar a hipótese nula (Ho).</p>'+self.__quebra)
                 f.write(self.__quebra)
-                f.write('<p>&nbsp;&nbsp;&nbsp;&nbsp;{:<}:                                 '.format('Simbolos')+ ('{:^8}</p>'*y.NV).format(*y.simbolos)+self.__quebra)
+                f.write('<p>&nbsp;&nbsp;&nbsp;&nbsp;{:<}:                                 '.format('Simbolos')+ ('&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:^8}'*y.NV).format(*y.simbolos)+'</p>'+self.__quebra)
                 for teste in y._Grandeza__nomesTestes['residuo-Homocedasticidade'].keys():
                     break_line = False
                     if isinstance(y._Grandeza__nomesTestes['residuo-Homocedasticidade'][teste],dict):
@@ -376,7 +376,7 @@ class Report:
                             f.write('<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:<33}:'.format(key))
                             for symb in y.simbolos:
                                 if isinstance(y._Grandeza__nomesTestes['residuo-Homocedasticidade'][teste][key],float):
-                                    f.write('{:^8.3f}'.format(y.estatisticas[symb]['residuo-Homocedasticidade'][teste][key]))
+                                    f.write('{:^8.3f}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'.format(y.estatisticas[symb]['residuo-Homocedasticidade'][teste][key]))
                                 else:
                                     f.write('N/A')
                             if isinstance(y._Grandeza__nomesTestes['residuo-Homocedasticidade'][teste],dict):
