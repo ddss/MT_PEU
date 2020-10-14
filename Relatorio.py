@@ -113,32 +113,37 @@ class Report:
         ============================================================================
         Write the prediction and residual analysis results in the prediction report.
         ============================================================================
-            - Parameters
-            ------------
-            x : grandeza class instance
-                instance containing the information relating to the independent variables.
-            y : grandeza class instance
-                instance containing the information relating to the dependent variables.
-            estatisticas : dict
-                dictionary with the R2, adjusted R2, and FO (objective function) values.
 
-            - keywords
-            -----------
-            export_y : bool
-                exports the calculated data of y, its uncertainty, and degrees of freedom in a txt with comma separation.
-            export_y_xls : bool
-                exports the calculated data of y, its uncertainty, and degrees of freedom in a xls.
-            export_cov_y : bool
-                exports the covariance matrix of y.
-            export_x : bool
-                exports the calculated data of x, its uncertainty, and degrees of freedom in a txt with comma separation.
-            export_cov_x : bool
-                exports the covariance matrix of x.
-                
-            - References
-            -------------
-            [1] https://docs.python.org/2/tutorial/inputoutput.html
-            [2] https://docs.python.org/2/library/string.html#formatstrings
+        - Parameters
+        ------------
+
+        x : grandeza class instance
+            instance containing the information relating to the independent variables.
+        y : grandeza class instance
+            instance containing the information relating to the dependent variables.
+        estatisticas : dict
+            dictionary with the R2, adjusted R2, and FO (objective function) values.
+
+        - keywords
+        -----------
+
+        export_y : bool
+            exports the calculated data of y, its uncertainty, and degrees of freedom in a txt with comma separation.
+        export_y_xls : bool
+            exports the calculated data of y, its uncertainty, and degrees of freedom in a xls.
+        export_cov_y : bool
+            exports the covariance matrix of y.
+        export_x : bool
+            exports the calculated data of x, its uncertainty, and degrees of freedom in a txt with comma separation.
+        export_cov_x : bool
+            exports the covariance matrix of x.
+
+        - References
+        -------------
+
+        [1] https://docs.python.org/2/tutorial/inputoutput.html
+
+        [2] https://docs.python.org/2/library/string.html#formatstrings
         '''
 
         self._configFolder={'graficos-subfolder-Dadosvalidacao': 'Dados Validacao',

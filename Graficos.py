@@ -208,8 +208,10 @@ class Grafico:
 
         :param **kwargs: keyword argumentos a serem passados para método self.matplotlib.pyplot.errorbar
         """
-        if not isinstance(fator_abrangencia_x, float) or not isinstance(fator_abrangencia_y, float):
-            raise TypeError('Fatores de abrangência precisam ser floats.')
+        #if not isinstance(fator_abrangencia_x, float) or not isinstance(fator_abrangencia_y, float):
+         #   raise TypeError('Fatores de abrangência precisam ser floats.')
+
+        #if len()
 
         # organizando os vetores
         y = y[argsort(x)]
@@ -221,11 +223,11 @@ class Grafico:
 
         # incerteza expandida
         if ux is not None:
-            xerr = fator_abrangencia_x*ux
+            xerr = [fator_abrangencia_x[i] * ux[i] for i in range(len(ux))]
         else:
             xerr = None
         if uy is not None:
-            yerr = fator_abrangencia_y*uy
+            yerr = [fator_abrangencia_y[i]*uy[i] for i in range(len(uy))]
         else:
             yerr = None
 

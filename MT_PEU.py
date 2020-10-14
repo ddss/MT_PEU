@@ -1,18 +1,18 @@
  # -*- coding: utf-8 -*-
 """
-Principais classes do motor de cálculo do PEU
+Main class of the PEU calculation engine
 
-@author(es): Daniel, Francisco, Anderson, Victor, Leonardo, Regiane
-@GrupoPesquisa: PROTEC
+@author(s): Daniel, Francisco, Anderson, Victor, Leonardo, Regiane
+@ResearchGroup: PROTEC
 @LinhadePesquisa: GI-UFBA
 """
 
 # --------------------------------------------------------------------
-# IMPORTAÇÃO DE PACOTES DE TERCEIROS
+# IMPORTING PACKAGES
 # ---------------------------------------------------------------------
-# Cálculos científicos
+# Scientific calculations
 from numpy import array, size, linspace, min, max, copy,\
-    mean, ones, ndarray, nanmax, nanmin, arange, transpose, delete, concatenate, linalg,inf
+    mean, nanmax, nanmin, arange,inf, reshape
 from numpy.core.multiarray import ndarray
 from numpy.random import uniform, triangular
 from scipy.stats import f, t, chi2
@@ -22,20 +22,20 @@ from math import floor, log10
 #from threading import Thread
 from scipy import transpose, dot, concatenate, matrix
 from scipy.optimize import  minimize, rosen, rosen_der
-# Pacotes do sistema operacional
+# Operating System Packages
 from os import getcwd, sep
 from casadi import MX,DM,vertcat,horzcat,nlpsol,sum1,jacobian,hessian,mtimes,inv as inv_cas, diag,Function
 # Exception Handling
 from warnings import warn
 
-# Sistema
+# System
 #TODO: CORRIGIR ENCONDING
 #import sys
 #sys.setdefaultencoding("utf-8") # Forçar o sistema utilizar o coding utf-8
 
-# ---------------------------------------------------------------------------
-# IMPORTAÇÃO DE SUBROTINAS PRÓPRIAS E ADAPTAÇÕES (DESENVOLVIDAS PELO GI-UFBA)
-# ---------------------------------------------------------------------------
+# ----------------------------------------------------------------
+# IMPORT OF OWN SUBROUTINES AND ADAPTATIONS (DEVELOPED BY GI-UFBA)
+# ----------------------------------------------------------------
 from Grandeza import Grandeza
 from subrotinas import Validacao_Diretorio, eval_cov_ellipse, WLS
 from Graficos import Grafico
@@ -48,31 +48,36 @@ class EstimacaoNaoLinear:
 
         def __init__(self):
             u"""
-            Classe voltada para controlar o fluxo de etapas de EstimacaoNaoLinear
+            __init__(self)
 
-            ==========
-            ATRIBUTOS:
-            ==========
+            =================================================================================
+            Class to control the flux of execution of methods of the EstimacaoNaoLinear class
+            =================================================================================
 
-            * Cada atributo representa uma etapa da classe EstimacaoNaoLinear e assumem 2 valores:
+            - Attributes
+            ------------
 
-                * 0 : o método NÃO foi executado
-                * 1 : o método foi executado
+            Each attribute represents one step of the EstimacaoNaoLinear class and can take two values:
 
-            ========
-            MÉTODOS:
-            ========
+            -0: the method was NOT executed
 
-            * .SET_ETAPA: método para, na execução da Estimacao, indicar qual etapa está sendo avaliada.O método irá avaliar
-            se as etapas predecessoras foram executadas.
-            * .reiniciar: reinicia o fluxo. Atribui 0 a todos os atributos.
-            * .reinicicarParcial: reiniciar parcialmente o fluxo. Exemplo: quando dados de validação forem inseridos.
+            -1: the method was executed
 
-            =============
-            PROPRIEDADES:
-            =============
+            - Methods
+            ---------
 
-            * definem as etapas predecessoras e/ou sucessoras de cada etapa (atributo)
+            -SET_ETAPA: This method indicates which step of the estimation procedure is running.\
+            To execute a step, the method evaluates if the predecessor step was executed.
+
+            -reiniciar: restarts the flux. Assigns the value 0 to all the attributes.
+
+            -reiniciarParcial: partially restarts the flux, for example, when entering validation data.
+
+            - Properties
+            ------------
+
+            define the predecessor and/or successor steps of each step (attribute)
+
             """
             self.setDados = 0
             self.setConjunto = 0
@@ -93,47 +98,61 @@ class EstimacaoNaoLinear:
 
         def SET_ETAPA(self,etapa,ignoreValidacao=False):
             u"""
-            Método voltado para definição de uma etapa e suas validações
+            SET_ETAPA(self,etapa,ignoreValidacao=False)
 
-            =========
-            ENTRADAS:
-            =========
+            ================================================
+            Method for defining a stage and its validations
+            ================================================
 
-            * etapa (string): define a etapa que está em execução e se deseja validar. Deve ter mesmo nome que um
-            dos atributos (em __init__)
-            * ignoreValidacao (bool): irá ignorar a validação e atribuir 1 à etapa
+            - Parameters
+            ------------
 
-            Se o método ocorrer sem erros, atribuirá 1 a etapa.
+            etapa : string
+                defines the stage that is in execution and will be validated.
+                It must have the same name as one of the attributes (in __init__).
+            ignoreValidacao : bool
+                will ignore the validation and assign the value 1 to the stage.
+
+            - Notes
+            --------
+
+            If the method occurs without errors, it will assign 1 to the step.
+
             """
             if not ignoreValidacao:
-                # Teste para verificar se as etapas predecessoras foram executadas
+                # Test to verify if the predecessor steps were executed.
                 teste = [getattr(self,elemento) for elemento in getattr(self, '_predecessora_'+etapa)]
-                # Caso não haja predecessora, o valor é atribuído a True
+                # If there is no predecessor step, the value is assigned to True.
                 teste = teste if teste != [] else [True]
-                # Caso nenhuma predecessora tenha sido executada, retorna um erro
+                # If no predecessor step has been executed, returns an error
                 if not any(teste):
                     raise SyntaxError('To run the {} method you must first run {}.'.format(etapa, ' or '.join(
                         getattr(self, '_predecessora_' + etapa))))
-            # atribuindo o valor 1 (executado) ao atributo referente à etapa, atualmente em execução
+            # Assigning the value 1 (executed) to the attribute related to the step being executed
             setattr(self, etapa, 1)
 
         def reiniciar(self,manter='setConjunto'):
             u"""
-            Método utilizado para reiniciar o fluxo. (IMPACTA todas as etapas)
+            reiniciar(self,manter='setConjunto')
 
-            Entende-se por reinicialização de fluxo, atribuir o valor de todos os atributos a zero, ou seja,
-            como se os métodos de EstimacaoNaoLinear não tivessem sido executados.
+            ====================================================
+            Method used to restart the flux. (IMPACTS all steps)
+            ====================================================
 
-            =========
-            ENTRADAS:
-            =========
-            * manter (string): etapa que será mantida como 1.
+            - Parameters
+            ------------
 
-            =========
-            Filosofia
-            =========
-            * Todas as vezes que dados experimentais são adionados, o fluxo é reiniciado, inclusive definindo que não foram inseridos
-             dados de validação
+            manter : string
+                step that will be maintained with the value 1.
+
+            - Notes
+            --------
+
+            -By flow reset we mean assigning the value of all attributes to zero,
+            i.e. as if the EstimacaoNaoLinear methods had not been executed.
+
+            -Every time experimental data is added, the flux restarts and defines that no validation data has been entered
+
             """
             for atributo in vars(self).keys():
                 if atributo != '_Fluxo__fluxo':
@@ -144,19 +163,24 @@ class EstimacaoNaoLinear:
 
         def reiniciarParcial(self, etapas=None):
             u"""
-            Método utilizado para reiniciar apenas etapas específicas
+            reiniciarParcial(self, etapas=None)
 
-            ========
-            ENTRADAS
-            ========
+            ==========================================
+            Method used to restart only specific steps
+            ==========================================
 
-            * etapas (list): lista com as etapas que serão reiniciadas.
+            - Parameters
+            _____________
 
-            =========
-            Filosofia
-            =========
-            * Toda vez que é adicionado dados de validação é iniciado um novo fluxo de trabalho, para que a predição, analise de residuos
-             e os respectivos gráficos e relatórios destas etapas sejam corretamente criados.
+            etapas : list
+                list with the steps that will be restarted.
+
+            - Notes
+            -------
+
+            Every time validation data is added a new workflow begins. The objective is to correctly
+            perform the prediction and residual analysis and generate the graphs and reports exclusive to this step.
+
             """
 
             etapas = etapas if etapas is not None else self._sucessoresValidacao
@@ -169,7 +193,7 @@ class EstimacaoNaoLinear:
         @property
         def FLUXO_ID(self):
             u"""
-            Obtém o número de identificação do fluxo
+            Obtains the flux identification number
             """
             return self.__fluxoID
 
@@ -235,320 +259,295 @@ class EstimacaoNaoLinear:
 
     def __init__(self, Model, symbols_y, symbols_x, symbols_param, PA=0.95, Folder='Projeto', **kwargs):
         u"""
-        Classe para executar a estimação de parâmetros de modelos não lineares.
+        __init__(self, Model, symbols_y, symbols_x, symbols_param, PA=0.95, Folder='Projeto', **kwargs)
 
-        Esta classe conta com um conjunto de métodos para obtenção do ótimo, utilizando a função objetivo WLS
-        (weighted least squares), avaliação da incerteza dos parâmetros (com região de abrangência), estimativa da
-        predição, cálculo da incerteza da predição e análise de resíduos.
+        ====================================================
+        Class for estimating parameters of nonlinear models.
+        ====================================================
 
-        Classes auxiliares:
-        * Grandeza
-        * Flag
-        * Graficos
-        * Relatorio
+        Class description
+        ------------------
 
-        ======================
-        Bibliotecas requeridas
-        ======================
-        * Numpy
-        * Scipy
-        * Matplotlib
-        * Math
-        * statsmodels
+        This class has a set of methods for performing the following main functions:
+        (1) obtaining the optimal point of the optimization problem, using the objective function WLS (weighted least squares);
+        (2) evaluation of the uncertainty of the parameters (with evaluation of the coverage region);
+        (3) estimation of the prediction;
+        (4) calculation of the uncertainty of the prediction;
+        and (5) residual analysis.
 
-        * É recomendado uso da distribuição Anaconda Python 3
+        Auxiliary classes
+        ------------------
 
-        =======================
-        Entradas (obrigatórias)
-        =======================
-        * ``Model`` (Thread)       : objeto modelo. O modelo deve retornar um array com número de colunas igual ao número de grandezas dependentes.
-        * ``symbols_y`` (list)     : lista com os simbolos das grandezas dependentes (Não podem haver caracteres especiais)
-        * ``symbols_x`` (list)     : lista com os simbolos das grandezas independentes (Não podem haver caracteres especiais)
-        * ``symbols_param`` (list) : lista com o simbolos dos parâmetros  (Não podem haver caracteres especiais)
+        -Grandeza
 
-        ====================
-        Entradas (opcionais)
-        ====================
-        * ``PA`` (float): probabilidade de abrangência da análise. Deve estar entre 0 e 1. Default: 0.95.
-        * ``projeto`` (string): nome do projeto (Náo podem haver caracteres especiais)
+        -Flag
 
-        ==============================
-        Keywords (Entradas opcionais):
-        ==============================
+        -Graficos
 
-        * ``names_x``        (list): lista com os nomes para x
-        * ``units_x``        (list): lista com as unidades para x (inclusive em formato LATEX)
-        * ``label_latex_x``  (list): lista com os símbolos das variáveis em formato LATEX
+        -Relatorio
 
-        * ``names_y``        (list): lista com os nomes para y
-        * ``units_y``        (list): lista com as unidades para y (inclusive em formato LATEX)
-        * ``label_latex_y``  (list): lista com os símbolos das variáveis em formato LATEX
+        Required libraries
+        -------------------
 
-        * ``names_param``       (list): lista com os nomes para os parâmetros (inclusive em formato LATEX)
-        * ``units_param``       (list): lista com as unidades para os parâmetros (inclusive em formato LATEX)
-        * ``label_latex_param`` (list): lista com os símbolos das variáveis em formato LATEX
+        -Numpy
 
-        * ``base_path`` (string): String que define o diretório pai que serão criados/salvos os arquivos gerados pelo motor de cálculo
+        -Scipy
 
-        =======
-        Métodos
-        =======
+        -Matplotlib
 
-        Para a realização da estimação de parâmetros de um certo modelo faz-se necessário executar \
-        alguns métodos, na ordem indicada (vide observação):
+        -Math
 
-        **ESTIMAÇÂO DE PARÂMETROS**
+        -statsmodels
 
-        * ``setDados'': método para incluir os dados experimentais. Deve ser executado uma vez para as grandezas dependentes e outra
-        para as grandezas independentes. (Vide documentação do método)
-        * ``setConjunto``        : método para definir se os dados experimentais incluídos serão usados para estimação de parâmetros ou para
-        validação. (Vide documentação do método)
-        * ``optimize``              : método para realizar a otimização, com base no conjunto de dados definido em setConjunto. (Vide documentação do método)
-        * ``parametersUncertainty``  : método que avalia a incerteza dos parâmetros (Vide documentação do método)
-        * ``setDados'': (é opcional para inclusão de dados de validação)
-        * ``setConjunto``        : (é opcional para inclusão de dados de validação)
-        * ``Prediction``             : método que avalia a predição do modelo e sua incerteza ou utilizando os dados de validação. Caso estes \
-        não estejam disponíveis, será utilizado os mesmos dados de estimação (Vide documentação do método)
-        * ``residualAnalysis``      : método para executar a análise de resíduos (Vide documentação do método)
-        * ``plots``             : método para criação dos gráficos (Vide documentação do método)
-        * ``_armazenarDicionario`` : método que retorna as grandezas sob a forma de um dicionário (Vide documentação do método)
+        -casadi
 
-        **PREDIÇÃO**
+        We recommend the use of Anaconda Python 3 distribution.
 
-        * ``setConjunto``        : método para incluir dados obtidos de experimentos. Neste há a opção de determinar \
-        se estes dados serão utilizados como dados para estimar os parâmetros ou para validação. (Vide documentação do método)
-        * ``SETparametro``         : método adicionar manualmente valores das estimativas dos parâmetros e sua matriz covarãncia. É assumido \
-        que os parâmetros foram estimados para o conjunto de dados fornecidos para estimação.
-        * ``setConjunto``        : (é opcional para inclusão de dados de validação)
-        * parametersUncertainty      : (é opcional para avaliação da incerteza, caso não incluído em SETparametro). Entretanto, este estará limitado a \
-        calcular a matriz de covariância dos parâmetros. Não será avaliada a região de abrangẽncia (esta deve ser incluída via SETparametro)
-        * ``Prediction``             : método que avalia a predição do modelo e sua incerteza ou utilizando os dados de validação. Caso estes \
-        não estejam disponíveis, será utilizado os mesmos dados de estimação (Vide documentação do método)
-        * ``residualAnalysis``      : método para executar a análise de resíduos (Vide documentação do método)
-        * ``plots``             : método para criação dos gráficos (Vide documentação do método)
-        * ``_armazenarDicionario`` : método que retorna as grandezas sob a forma de um dicionário (Vide documentação do método)
+        - **Parameters**
+        ----------------
+
+        **Model : (Thread)**
+            The model must return an array with the number of columns equal to the number of dependent quantities.
+            It must have the following structure:
+
+                def Model(param, x):
+                    .
+                    .
+                    .
+                return y
+
+            Where y is the mathematical expression of the model.
+
+            -The definition of the variables of the model must be in accordance with the order in which
+            the experimental data are informed in the "setDados" method.
+        **symbols_y : list**
+            list with the symbols of the dependent quantities (No special characters allowed).
+        **symbols_x : list**
+            list with the symbols of the independent quantities (No special characters allowed).
+        **symbols_param : list**
+            list with the symbols of the parameters (No special characters allowed).
+        **PA : float, optional**
+            coverage probability. Must be between 0 and 1. Default: 0.95.
+        **folder : string, optional**
+            Name of the folder where the results will be stored. (No special characters allowed).
+
+        - **kwargs**
+        ------------
+
+        **names_x : list**
+            list with the names of the independent quantities.
+        **units_x : list**
+            list with the units of the independent quantities (Latex format is accepted).
+        **label_latex_x : list**
+            list with the symbols of the independent quantities in latex format.
+        **names_y : list**
+            list with the names of the dependent quantities.
+        **units_y : list**
+            list with the units of the dependent quantities (Latex format is accepted).
+        **label_latex_y : list**
+            list with the symbols of the dependent quantities in latex format.
+        **names_param : list**
+            list with the names of the parameters.
+        **units_param : list**
+            list with the units of the parameters (Latex format is accepted).
+        **label_latex_param : list**
+            list with the symbols of the parameters in latex format.
+        **base_path : string**
+            defines the directory to store the files generated by the calculation engine
+
+        - **Class Methods**
+        -------------------
+
+        Main methods
+        ------------
+
+        **setDados**
+            method for entering the experimental data. It must be executed once for dependent quantities and once for
+            independent quantities. (See method documentation)
+
+        **setConjunto**
+            defines the purpose of the experimental data included: (i) parameter estimation or (ii) validation. (See method documentation)
+
+        **optimize**
+            performs the optimization, based on the data set defined in setConjunto. (See method documentation)
+
+        **parametersUncertainty**
+            evaluates the uncertainty of the parameters. (See method documentation)
+
+        **SETparameter**
+            allows you to manually add the values of the parameter estimates and their covariance matrix.
+            It is assumed that the parameters were estimated for the data set provided for estimation.
+
+        **prediction**
+            evaluates the model prediction and its uncertainty or using the validation data.
+            If these are not available, the same estimation data will be used (See method documentation)
+
+        **residualAnalysis**
+            performs the residue analysis. (see method documentation)
+
+        **plots**
+            create the plots. (see method documentation)
+
+        **report**
+            create the reports containing the main results. (see method documentation)
 
 
-        **OBSERVAÇÃO**: A ordem de execução dos métodos é importante. Esta classe só permite a execução de métodos, caso as etapas predescessoras tenham sido
-        executadas. Entretanto, alguns métodos possuem flexibilidade. Segue abaixo algumas exemplos:
-        * setConjunto para definir os dados de estimação deve ser sempre executado antes de optimize
-        * setConjunto para definir os dados de validação deve ser sempre executado antes de predicao
-        * plots é um método que pode ser executado em diferentes momentos:
-            * se for solicitado os gráficos das grandezas-entrada, o método pode ser executado logo após setDados
-            * se for solicitado os gráficos da otimização, o método pode ser executado logo após otimização
+        **obs**: The sequence of execution of the methods is important. This class only allows the execution of methods,
+        if the predecessor steps have been executed. However, some methods have flexibility, for example:
 
-        =================
-        Fluxo de trabalho
-        =================
+        -setConjunto method to define the estimation data should always be executed before optimize method.
 
-        Esta classe possui uma classe interna, Fluxo, que valida a correta ordem de execução dos métodos. É importante
-        salientar que cada vez que o método ``setConjunto`` é utilizado, é criado um novo ``Fluxo de trabalho`` ou ele
-        ``Reinicia`` todos.
+        -setConjunto method to define the validation data should always be executed before prediction method.
 
-        **Observação 1**: Se forem adicionados diferentes dados de validação (execuções do método setDados para incluir tais dados), \
-        são iniciado novos fluxos.
 
-        **Observação 2**: Se forem adicionados novos dados para estimacao, todo o histórico de fluxos é apagado e reniciado.
+        - **Fluxes**
+        -------------
 
-        Esta característica permite a avaliação de diferentes dados de valiação consecutivamente (uso dos métodos Prediction, residualAnalysis, plots),
-        após a estimação dos parâmetros (optimize, parametersUncertainty)
+        The EstimacaoNaoLinear class has an internal class called 'Fluxo' which validates the correct order of execution of the methods.
+        It is important to note that each time the setConjunto method is uxecuted, two possibilities can occur:
 
-        ======
-        Saídas
-        ======
+        - **(1)**: Inserting validation data starts new fluxes.
 
-        As saídas deste motor de cálculo estão, principalmente, sob a forma de atributos e gráficos.
-        Os principais atributos de uma variável Estimacao, são:
+        - **(2)**: Entering new estimation data deletes the flux history and restarts the procedure.
 
-        * ``x`` : objeto Grandeza que contém todas as informações referentes às grandezas \
-        independentes sob a forma de atributos:
-            * ``estimação`` : referente aos dados experimentais. Principais atributos: ``matriz_estimativa``, ``matriz_covariancia``
-            * ``calculado``    : referente aos dados calculados pelo modelo. Principais atributos: ``matriz_estimativa``, ``matriz_covariancia``
-            * ``predicao``    : referente aos dados de validação. Principais atributos: ``matriz_estimativa``, ``matriz_covariancia``
-            * ``residuos``     : referente aos resíduos de regressão. Principais atributos: ``matriz_estimativa``, ``estatisticas``
+        This feature allows the evaluation of different validation data consecutively
+        (through Prediction, residualAnalysis and plots methods),
+        after the estimation of parameters (optimize, parametersUncertainty)
 
-        * ``y``          : objeto Grandeza que contém todas as informações referentes às grandezas \
-        dependentes sob a forma de atributos. Os atributos são os mesmos de x.
+         - **Outputs**
+        ---------------
 
-        * ``parametros`` : objeto Grandeza que contém todas as informações referentes aos parâmetros sob a forma de atributos.
-            * ``estimativa``         : estimativa para os parâmetros
-            * ``matriz_covariancia`` : matriz de covariância
-            * ``matriz_correlacao``   : matriz de correlação
-            * ``regiao_abrangencia`` : pontos contidos na região de abrangência
+        The outputs of this calculation engine are mainly in the form of attributes and graphics.
+        The main attributes of an Estimation variable are:
 
-        Obs.: Para informações mais detalhadas, consultar os Atributos da classe Grandeza.
+        - **x**: object of the 'Grandeza' class that contains all the information concerning the independent quantities in the form of attributes:
 
-        * ``PA``: probabilidade de abrangência da análise
+            -**estimacao**: it contains information from the experimental data. Main attributes: `matriz_estimativa`, `matriz_covariancia`
 
-        ===============
-        Função objetivo
-        ===============
+            -**calculado**: it contains information from the data calculated by the model. Main attributes: `matriz_estimativa`, `matriz_covariancia`
 
-        A função objetivo deve ser um objeto com uma estrutura específica. Consulte arquivo Funcao_Objetivo.
+            -**predicao**: it contains information from the estimation residues. Main attributes: `matriz_estimativa`, `estatisticas`
 
-        OBSERVAÇÃO:
-        O Motor de cálculo sempre irá enviar como uma lista argumentos para a função objetivo \
-        nesta ordem:
+        - **y**: object of the 'Grandeza' class that contains all the information concerning the dependent quantities in the form of attributes: **The attributes are the same as "x" object**
 
-        * vetor com os pontos experimentais das grandezas dependentes
-        * matriz com os pontos experimentais das grandezas independentes (cada coluna representa uma grandeza independente)
-        * matriz covariância das grandezas dependentes
-        * matriz covariância das grandezas independentes
-        * argumentos extras a serem passados para o modelo (entrada de usuário)
-        * o modelo
-        * lista com os símbolos das grandezas independentes
-        * lista com os símbolos das grandezas dependentes
-        * lista com os símbolos dos parâmetros
+        - **parametros**: object of the 'Grandeza' class that contains all the information concerning the parameters in the form of attributes:
 
-        =======
-        Modelo
-        ======
-        Deve ter a seguinte estrutura
+            -**estimativa**: estimate of the parameters
 
-        def model(parametros,x,*args):
+            -**matriz_covariancia**: the covariance matrix
 
-            ...
+            -**matriz_correlacao**: the correlation matrix
 
-            return y
+            -**regiao_abrangencia**: points that belong to the coverage region
 
-        onde y é uma matriz onde cada coluna representa os valores calculados para cada grandeza de saída, dado o vetor
-        de grandezas independente x.
+        - **Notes**
+        ------------
 
-        =====================
-        Atributos em destaque
-        =====================
+        - **._configFolder**: variable that contains the name of all the folders created by the algorithm in the Graphics and Reports steps.
+        Changing the contents of a key changes the names of the folders. It is allowed to change the contents of the keys (folder names), b
+        ut changing the keys will cause errors.
 
-        CONFIGURAÇÕES:
+        - **.__flag: controls the behavior of the algorithm. available Flags:
 
-        * ._configFolder: variável que contém o nome de todas as pastas criadas pelo algoritmo nas etapas de Gráficos e
-         relatórios. Alterando o conteúdo de uma chave, altera-se o nomes das pastas. É permitido alterar o conteúdo das
-         chaves (nomes das pastas), mas alterando as chaves ocasionará erros.
+            -**dadosestimacao**: identifies if estimation data were entered
 
-        * .__args_user: variável que contém os argumentos extras a serem passados para o modelo. Equivale ao argumento
-        args em otimiza.
+            -**dadospredicao**: identifies if validation data were entered
 
-        * .__flag: classe flag que controla o comportamento do algoritmo. Flags disponíveis:
-            *'dadosestimação': identifica se dados para a estimação foram inseridos
-            * 'dadospredicao'   : identifica se dados para validação foram inseridos
-            * 'reconciliacao'    : identifica se foi solicitada reconciliação de dados (HOLD: aguarda implementação da
-            reconciliação)
-            * 'graficootimizacao': identifica se o algoritmo de otimização tem gráficos de desempenho
-            * 'relatoriootimizacao': identifica se o algoritmo de otimização possui relatório na forma de um arquivo
+        - **.__base_path**: identifies the root path on which all graphs and reports will be saved
 
-        * .__base_path: identifica o caminho raiz nos quais todos gráficos e relatórios serão salvos
-        * .__controleFluxo: objeto Fluxo que controla a validação das etapas, e o fluxo de execução do motor de cálculo.
-           * .__controleFLuxo.FLUXO_ID: 0 se só houverem dados experimentais. >0 foram inseridos dados de validação (Isto
-           é usado na plotagem de gráficos, para evitar que o uso de dados de validação sucessivos sobrescrevam os gráficos)
+        - **.__controleFluxo**: controls the validation of the steps, and the flux execution of the calculation engine.
 
-        OUTROS:
+            -**.__controleFLuxo.FLUXO_ID**: 0 if only experimental data. >0 if 0 if validation data has been entered
+            (This is used in plotting of graphs, to prevent the use of successive validation data from overwriting the graphs)
 
-        * .Otimizacao: salva todas as informações do algorimo de otimização. [Só existe após execução do método otimização].
-        * ._deltaHessiana: incremento a ser utilizado para avaliar a matriz Hessiana (pode ser definido via kwargs no método
-        incertezaParametros e/ou Predicao)
-        * ._deltaGy: incremento a ser utilizado para avaliar a matriz Gy (derivadas segundas da função objetivo em relação
-        a dados estimação de y e parâmetros) (pode ser definido via kwargs no método incertezaParametros e/ou Predicao)
-        * ._deltaS: incremento a ser utilizado para avalair a transposta da matriz jacobiana do modelo em relação aos
-        parâmetros (pode ser definido via kwargs no método incertezaParametros e/ou Predicao)
-        * .Hessiana: salva a matriz Hessiana (somente avaliada após incertezaParametros ou Predicao - a depender do método solicitado)
-        * .Gy: salva matriz Gy (somente avaliada após incertezaParametros ou Predicao - a depender do método solicitado)
-        * .S: salva matriz S (somente avaliada após incertezaParametros ou Predicao - a depender do método solicitado)
-        * .estatisticas: dicionário que contém aguns testes estatístcicos (Para outras estatísticas aqui não incluídas
-        consulte Grandezas)
-        * FOotimo: valor da função objetivo no ponto ótimo
         """
         # ---------------------------------------------------------------------
-        # CONTROLE DO FLUXO DE INFORMAÇÕES DO ALGORITMO
+        # CONTROL OF THE INFORMATION FLUX OF THE ALGORITHM
         # ---------------------------------------------------------------------
-        # FLUXO DE INFORMAÇÕES -> conjunto de etapas do algoritmo
+        # INFORMATION FLOW -> set of algorithm steps
         self.__controleFluxo = self.Fluxo()
 
         # ---------------------------------------------------------------------
-        # VALIDAÇÕES GERAIS DE KEYWORDS
+        # GENERAL KEYWORD VALIDATIONS
         # ---------------------------------------------------------------------
-        # Keywords disponíveis para o método de entrada
+        # Available Keywords for the input method
         self.__keywordsEntrada = ('names_x', 'units_x', 'label_latex_x', 'names_y', 'units_y', 'label_latex_y',
                                   'names_param','units_param', 'label_latex_param', 'base_path')
 
-        # Validação se houve keywords digitadas incorretamente:
+        # Validation to check if keywords were typed incorrectly:
         keyincorreta = [key for key in kwargs.keys() if not key in self.__keywordsEntrada]
 
         if len(keyincorreta) != 0:
             raise NameError('keyword(s) incorreta(s): ' + ', '.join(keyincorreta) + '.' +
                             ' Keywords disponíveis: ' + ', '.join(self.__keywordsEntrada) + '.')
 
-        # Verificação de PA está entre 0 e 1
+        # Check if PA is between 0 and 1
         if not 0 < PA < 1:
             raise ValueError('The coverage probability must be between 0 and 1.')
 
-        # Verificação se o nome do projeto é um string
+        # Validation to check if the project name is a string
         if not isinstance(Folder, str):
             raise TypeError('The Folder name must be a string.')
 
-        # Verificação se o nome do projeto possui caracteres especiais
+        # Validation to check if the project name has special characters.
         if not Folder.isalnum():
             raise NameError('The folder name must not contain special characters')
 
-        # Verificação se o base_path é uma string
+        # Check if base_path is a string
         if kwargs.get(self.__keywordsEntrada[9]) is not None and not isinstance(kwargs.get(self.__keywordsEntrada[9]),
                                                                                   str):
             raise TypeError('The keyword {} must be a string.'.format(self.__keywordsEntrada[9]))
 
         # ---------------------------------------------------------------------
-        # INICIALIZAÇÃO DAS GRANDEZAS
+        # INITIALIZATION OF QUANTITIES
         # ---------------------------------------------------------------------
-        # Variável      = Grandeza(simbolos      ,nomes                                ,unidades                             ,label_latex                          )
+        # Variable      = Grandeza(symbols      ,names                                ,units                                ,label_latex                          )
         self.x          = Grandeza(symbols_x    ,kwargs.get(self.__keywordsEntrada[0]),kwargs.get(self.__keywordsEntrada[1]),kwargs.get(self.__keywordsEntrada[2]))
         self.y          = Grandeza(symbols_y    ,kwargs.get(self.__keywordsEntrada[3]),kwargs.get(self.__keywordsEntrada[4]),kwargs.get(self.__keywordsEntrada[5]))
         self.parametros = Grandeza(symbols_param,kwargs.get(self.__keywordsEntrada[6]),kwargs.get(self.__keywordsEntrada[7]),kwargs.get(self.__keywordsEntrada[8]))
 
-        # Verificação se os símbolos são distintos
-        # set: conjunto de elementos distintos não ordenados (trabalha com teoria de conjuntos)
+        # Check if the symbols are different
+        # set: set of distinct non-ordered elements (works with set theory)
         if len(set(self.y.simbolos).intersection(self.x.simbolos)) != 0 or len(set(self.y.simbolos).intersection(self.parametros.simbolos)) != 0 or len(set(self.x.simbolos).intersection(self.parametros.simbolos)) != 0:
             raise NameError('The symbols of the quantities must be different.')
 
 
         # ---------------------------------------------------------------------
-        # OUTRAS VARIÁVEIS
+        # OTHER VARIABLES
         # ---------------------------------------------------------------------
-        # Propabilidade de abrangência
+        # Coverage probability
         self.PA = PA
 
         # Incremento das derivadas numéricas
-        self._deltaHessiana = 1e-5  # Hessiana da função objetivo
-        self._deltaGy = 1e-5        # Gy (derivada parcial segunda da função objetivo em relação aos parâmetros e dados experimentais)
-        self._deltaS = 1e-5         # S (transposto do jacobiano do modelo)
+        #self._deltaHessiana = 1e-5  # Hessiana da função objetivo
+        #self._deltaGy = 1e-5        # Gy (derivada parcial segunda da função objetivo em relação aos parâmetros e dados experimentais)
+        #self._deltaS = 1e-5         # S (transposto do jacobiano do modelo)
 
         # ---------------------------------------------------------------------
-        # CRIAÇÃO DAS VARIÁVEIS INTERNAS
+        # INTERNAL VARIABLES CREATION
         # ---------------------------------------------------------------------
-        # Modelo
+        # Model
         self.__modelo    = Model
-        # Argumentos extras a serem passados para o modelo definidos pelo usuário.
-        self.__args_user = None # Aqui iniciado para que possa existir na herança
         # Optimization algorithm position history (parameters) (used in optimizes and / or objective function mapping
         self.__decisonVariablesMapped = []
         # Fitness history (objective function value) of the optimization algorithm (used in optimizing and / or objective function mapping)
         self.__OFMapped = []
-        # Caminho base para os arquivos, caso seja definido a keyword base_path ela será utilizada.
+        # Base path for the files, if the base_path keyword is defined it will be used.
         if kwargs.get(self.__keywordsEntrada[9]) is None:
             self.__base_path = getcwd()+ sep +str(Folder)+sep
         else:
             self.__base_path = kwargs.get(self.__keywordsEntrada[9])
 
-        # Flags para controle de informações
+        # Flags for information control
         self.__flag = flag()
         self.__flag.setCaracteristica(['dadosestimacao','dadospredicao',
                                        'reconciliacao','mapeamentoFO',
                                        'graficootimizacao','relatoriootimizacao','Linear'])
-        # uso das caracterśiticas:
-        # dadosestimacao: indicar se dadosestimacao foram inseridos
-        # dadospredicao: indicar se dadospredicao foram inseridos
-        # reconciliacao: indicar se reconciliacao está sendo executada
-        # graficootimizacao: indicar se na etapa de otimização são utilizados algoritmos de otimização que possuem
-        #                    gráficos de desempenho
-        # relatoriootimizacao: indicar se o algoritmo de otimização possui relatório
+        # use of the characteristics:
+        # dadosestimacao: indicates if estimation data was entered
+        # dadospredicao: indicates if prediction data was entered
 
-        # Variável que controla o nome das pastas criadas pelos métodos gráficos e relatórios
+        # Variable that controls the name of the folders created by the graphic methods and reports
         self._configFolder = {'plots':'Graficos',
                               'plots-{}'.format(self.__tipoGraficos[0]): 'Regiao',
                               'plots-{}'.format(self.__tipoGraficos[1]): 'Grandezas',
@@ -562,7 +561,7 @@ class EstimacaoNaoLinear:
                               'plots-subfolder-grandezatendencia': 'Tendencia observada',
                               'report':'Reports'}
 
-        # variáveis auxiliares para definição de conjunto de dados
+        # Auxiliary variables for data set definition
         self.__xtemp = None
         self.__uxtemp = None
         self.__ytemp = None
@@ -587,17 +586,17 @@ class EstimacaoNaoLinear:
 
     @property
     def __metodosIncerteza(self):
-        # métodos para avaliação da incerteza
+        # methods for uncertainty evaluation
         return ('2InvHessiana', 'Geral', 'SensibilidadeModelo')
 
     @property
     def __keywordsDerivadas(self):
-        # keywords disponíveis para avaliação das derivadas
+        # available keywords to evaluate the derivatives
         return ('deltaHess', 'deltaGy', 'deltaS', 'delta')
 
     @property
     def __tipoObjectiveFunctionMapping(self):
-        # types of objective function mapping algorithms available
+        # objective function mapping algorithms available
         return ('MonteCarlo',)
 
     @property
@@ -608,23 +607,46 @@ class EstimacaoNaoLinear:
     @property
     def _args_model(self):
         """
-        Método que retorna argumentos extras a serem passados para o modelo
+        _args_model(self)
 
-        :return: lista (list) com argumentos extras
+        ==============================================================
+        Method that returns extra arguments to be passed to the model.
+        ==============================================================
+
         """
         # ---------------------------------------------------------------------
-        # LISTA DE ATRIBUTOS A SEREM INSERIDOS NO MODELO
+        # LIST OF ATTRIBUTES TO INSERT IN THE MODEL
         # ---------------------------------------------------------------------
 
         return [self.__args_user,self.x.simbolos,self.y.simbolos,self.parametros.simbolos]
 
     def __validacaoDadosEntrada(self,dados,udados,NV):
         u"""
-        Validação dos dados de entrada
+        __validacaoDadosEntrada(self,dados,udados,NV):
 
-        * verificar se as colunas dos arrays de entrada tem o mesmo número dos símbolos das variáveis definidas (y, x)
-        * verificar se o número de pontos é o mesmo
-        * verificar se os graus de liberdade são suficientes para realizar a estimação
+        ==============================================
+        Method to perform the validation of input data
+        ==============================================
+
+        - Parameters
+        ------------
+
+        dados : ndarray
+            contains the experimental data
+        udados : ndarray
+            contains the uncertainties of the experimental data
+        NV : int
+            Number of quantities to be validated
+
+        - Notes
+        -------
+
+        -check if the column number of the input arrays is equal to the number of symbols of the defined variables (y, x)
+
+        -check if the number of points is the same
+
+        -check if the degrees of freedom are sufficient to perform the estimation
+
         """
         if dados.shape[1] != NV:
             raise ValueError('The number of variables defined was {:d}, but data was entered for {:d} variables.'.format(NV,dados.shape[1]))
@@ -640,59 +662,78 @@ class EstimacaoNaoLinear:
 
     def setDados(self, type, *data):
         u"""
-        Método para tratar os dados de entrada de grandezas dependentes e independentes e organizá-los em formato adequado.
-        Este método deve ser executado para cada grupo de grandezas envolvidas na estimação: (i) grandezas independentes e (ii) grandezas
-        independentes.
-        Após inclusão dos grupos de grandezas é necessário executar o método setConjunto para definir se s grupos de grandezas (dependentes-indepentes) serão
-        usados para a estimação (avaliação dos parâmetros) ou predição (validação do modelo).
+        setDados(self, type, *data):
 
-        =======================
-        Entradas (Obrigatórias)
-        =======================
+        ===================================================================================================================
+        Method to collect the input data of dependent and independent quantities and organize them in an appropriate format
+        ===================================================================================================================
 
-        type (bool): 0 (grandeza independente) ou 1 (grandeza dependente)
-        *dados: tuplas contém os dados experimentais e incertezas das grandezas. Cada tupla deve
-        conter duas listas: (i) uma com os dados experimentais de uma grandeza e (ii) outra lista contendo as incertezas
-        associada à cada dado. Formato: ([dados grandeza],[incertezas grandeza]). Podem ser inseridas uma tupla para cada grandeza.
+        - Parameters
+        ------------
 
-        ========
-        Exemplo
-        ========
-        # Considere o grupo de dados:
-        # Grandezas independentes:
-        x1 = [1,2,3] # dados
-        ux1 = [1,1,1] # incerteza
-        x2 = [ 4,5,6 ] # dados
-        ux2 = [1,1,1] # incerteza
-        # Grandezas dependentes
-        y1  = [5,7,8]
-        uy1 = [1,1,1]
+        type : bool
+            must be 0 for independent quantity or 1 for dependent quantity.
+        data : Tuples
+            Tuples that contain the experimental data and uncertainties of the quantities.
+            Each tuple must contain two lists: (i) one with the experimental data of a quantity and
+            (ii) another list containing the uncertainties associated with each data.
 
-        Estime = EstimacaoNaoLinear(Modelo,simbolos_x=['x1','x2'], simbolos_y=['y1'], simbolos_param=['A','B'])
-        Estime.setDados(0,(x1,ux1),(x2,ux2))
-        Estime.setDados(1,(y1,uy1))
+            *Format: ([data quantity],[uncertainties quantity]).
 
-        Para consultar variáveis, faz-se necessário indicar que os dados inseridos constituem um conjunto:
+            *A tuple can be inserted for each quantity.
 
-        Estime.setConjunto()
+        - Notes
+        -------
 
-        As variáveis, então, podem ser consultadas através:
+        -This method must be performed for each group of quantities involved in the parameter estimation procedure:
+        (i) independent quantities and (ii) independent quantities.
 
-        # Grandezas independentes:
+        -After including the groups of quantities it is necessary to execute the method setConjunto to define the type of application of each data set.
+        The possibilities are: (1) estimation (parameter evaluation) or (2) prediction (model validation).
 
-        Estime.x.estimacao.matriz_estimativa # Dados
-        Estime.x.estimacao.matriz_covariancia # Incertezas foram convertidas em uma matriz de covariância
+        -Converts pairs of data lists and their respective uncertainties into two-dimensional arrays
 
-        # Grandeza dependentes
-
-        Estime.y.estimacao.matriz_estimativa  # Dados
-        Estime.y.estimacao.matriz_covariancia # Incertezas foram convertidas em uma matriz de covariância
+        -These arrays are stored as temporary variables and can be consulted after the setSConjunto method has been executed.
 
         ============
-        Detalhamento
+        How to use
         ============
-        * Converte pares de listas de dados e suas respectivas incertezas em arrays de duas dimensões
-        * Estes arrays são armazenados como variáveis temporárias, pondendo ser consultados após método setConjunto.
+
+        Consider the data set:
+        ----------------------
+
+        Independent quantities
+            - x1 = [1,2,3] # experimental data of the quantity x1
+            - ux1 = [1,1,1] # uncertainty of the quantity x1
+            - x2 = [ 4,5,6 ] # experimental data of the quantity x2
+            - ux2 = [1,1,1] # uncertainty of the quantity x2
+
+        Dependent quantities
+            - y1 = [5,7,7] # experimental data of the quantity y1
+            - uy1 = [1,1,1] # uncertainty of the quantity y1
+
+        How to call the method in python code
+        ------------------------------------
+
+        - Estime = EstimacaoNaoLinear(Model,symbols_x=['x1','x2'], symbols_y=['y1'], symbols_param=['A','B'])
+        - Estime.setDados(0,(x1,ux1),(x2,ux2))
+        - Estime.setDados(1,(y1,uy1))
+
+        To consult variables, it is necessary to indicate that the data inserted constitute a set:
+        ------------------------------------------------------------------------------------------
+
+        - Estime.setConjunto()
+
+        The variables can then be consulted through:
+        --------------------------------------------
+
+        Independent quantities:
+            - Estime.x.estimacao.matriz_estimativa     #experimental data
+            - Estime.x.estimacao.matriz_covariancia    #Uncertainties were converted into a covariance matrix
+
+        Dependent quantities:
+            - Estime.y.estimacao.matriz_estimativa     #experimental data
+            - Estime.y.estimacao.matriz_covariancia    #Uncertainties were converted into a covariance matrix
         """
 
         # VALIDATION
@@ -748,31 +789,35 @@ class EstimacaoNaoLinear:
         ===================================================================================
         Method for including the estimation data. It must be run after the setDados method.
         ===================================================================================
-            - Parameters
-            ----------
-            glx : list, optional
-                list with the freedom degrees for the input quantities.
-            gly : list, optional
-                list with the freedom degrees for the output quantities.
-            dataType : string, optionial
-                defines the purpose of the informed data set.
 
-                ============ =================================================================
-                dataType     purpose
-                ============ =================================================================
-                estimacao    dataset to perform the parameter estimation
-                predicao     dataset to perform the prediction of the output model estimates.
-                             In this case, the parameters are already known.
-                ============ =================================================================
-            uxy : not in use
+        - Parameters
+        ----------
 
-            - Notes
-             -----
-             -If the dataType argument was not defined the method defines automatically as 'estimacao' or 'predicao'.
+        glx : list, optional
+            list with the freedom degrees for the input quantities.
+        gly : list, optional
+            list with the freedom degrees for the output quantities.
+        dataType : string, optionial
+            defines the purpose of the informed data set.
 
-             -If the prediction data was not defined the method define dataType as 'estimacao'.
+            ============ =================================================================
+            dataType     purpose
+            ============ =================================================================
+            estimacao    dataset to perform the parameter estimation
+            predicao     dataset to perform the prediction of the output model estimates.
+                         In this case, the parameters are already known.
+            ============ =================================================================
+        uxy : not in use
 
-             -If the quantities freedom degrees was not defined it will be assumed constant and equal to 100
+
+        - Notes
+        -------
+
+        -If the dataType argument was not defined the method defines automatically as 'estimacao' or 'predicao'.
+
+        -If the prediction data was not defined the method define dataType as 'estimacao'.
+
+        -If the quantities freedom degrees was not defined it will be assumed constant and equal to 100
 
         """
         # ---------------------------------------------------------------------
@@ -878,17 +923,13 @@ class EstimacaoNaoLinear:
 
     def _constructionCasadiVariables(self): # construction of the casadi variables
         u"""
+        _constructionCasadiVariables(self)
 
-        When MT_PEU is working with estimation data the symbolics variables should be created with this data.
-        But if the data is for validation, so validation data should be used for to create the symbolic variables.
-        This is necessary because the data size is considered in the symbolic variables creation.
+        ============================
+        Symbolic variables creation.
+        ============================
 
         """
-        # ---------------------------------------------------------------------
-        # VALIDATION
-        # ---------------------------------------------------------------------
-
-
 
         # --------------------------------------------------------------------------------
         # CREATION OF CASADI'S VARIABLES THAT WILL BE USED TO BUILD THE CASADI'S MODEL
@@ -942,11 +983,6 @@ class EstimacaoNaoLinear:
             self.__symVariables = vertcat(self.__symVariables, self.__symUyo)
             self._values = vertcat(self._values,
                                    self.y.estimacao.matriz_incerteza.reshape(self.y.estimacao.NE*self.y.NV,1))
-
-            #for i in range(self.x.estimacao.NE):
-             #   self.__symUxo = vertcat(self.__symUxo, MX.sym('Uxo' + str(i)))
-             #   self.__symVariables = vertcat(self.__symVariables, self.__symUxo[i])
-              #  self._values = vertcat(self._values, self.y.estimacao.matriz_incerteza[:, i:i + 1])
 
             # Model definition
 
@@ -1106,35 +1142,39 @@ class EstimacaoNaoLinear:
         ==============================
         Solve the optimization problem.
         ==============================
-            - Parameters
-            ------------
-            initial_estimative : list
-                list with the initial estimates for the parameters.
-            lower_bound : list, optional
-                list with the lower bounds for the parameters.
-            upper_bound : list, optional
-                list with the upper bounds for the parameters.
-            algorithm : string, optional
-                informs the optimization algorithm that will be used. Each algorithm has its own keywords.
 
-                ==================== ===================================================
-                available algorithms                     font
-                ==================== ===================================================
-                ipopt                https://github.com/coin-or/Ipopt
-                bonmin               https://github.com/coin-or/Bonmin
-                sqpmethod            http://casadi.sourceforge.net/v1.9.0/api/html/de/dd4/classCasADi_1_1SQPMethod.html
-                ==================== ===================================================
+        - Parameters
+        ------------
 
-            optimizationReport : bool, optional
-                informs whether the optimization report should be created.
-            parametersReport : bool, optional
-                informs whether the parameters report should be created.
+        initial_estimative : list
+            list with the initial estimates for the parameters.
+        lower_bound : list, optional
+            list with the lower bounds for the parameters.
+        upper_bound : list, optional
+            list with the upper bounds for the parameters.
+        algorithm : string, optional
+            informs the optimization algorithm that will be used. Each algorithm has its own keywords.
 
-            - Notes
-            -------
-             Before executing the optimize method it's necessary to execute the "setConjunto" method
-             and define the estimation data.
-             Every time the optimization method is run, the information about the parameters is lost.
+            ==================== ===================================================
+            available algorithms                     font
+            ==================== ===================================================
+            ipopt                https://github.com/coin-or/Ipopt
+            bonmin               https://github.com/coin-or/Bonmin
+            sqpmethod            http://casadi.sourceforge.net/v1.9.0/api/html/de/dd4/classCasADi_1_1SQPMethod.html
+            ==================== ===================================================
+
+        optimizationReport : bool, optional
+            informs whether the optimization report should be created.
+        parametersReport : bool, optional
+            informs whether the parameters report should be created.
+
+        - Notes
+        -------
+
+        -Before executing the optimize method it's necessary to execute the "setConjunto" method
+         and define the estimation data.
+
+        -Every time the optimization method is run, the information about the parameters is lost.
         """
         # ---------------------------------------------------------------------
         # FLUX
@@ -1289,34 +1329,38 @@ class EstimacaoNaoLinear:
         =============================================================================================================================================
         Method for assigning an estimate to parameters. An estimate can also be defined for the parameters covariance matrix and the coverage region.
         =============================================================================================================================================
-            - Parameters
-            ------------
-            estimative : list
-                list with the estimation of parameters
-            variance : array, ndmin=2
-                covariance matrix of the parameters
-            region : list
-                list containing lists with the parameters belonging to the coverage region
-            parametersReport : bool
-                informs whether the parameters report should be created.
 
-            - Kwargs
-            --------
-            limite_superior : list
-                upper bound of the paramaters
-            limite_inferior : list
-                lower_bound of the parameters
-            args : dict
-                extra arguments to be passed to the model.
+        - Parameters
+        ------------
 
-            - Notes
-            -------
-            -Inclusion of parameter estimation: will replace the optimization method. You will need to execute the uncertaintyParameter method.
+        estimative : list
+            list with the estimation of parameters
+        variance : array, ndmin=2
+            covariance matrix of the parameters
+        region : list
+            list containing lists with the parameters belonging to the coverage region
+        parametersReport : bool
+            informs whether the parameters report should be created.
 
-            -Inclusion of parameter estimation and variance: will replace the optimization method and a part of the uncertainty method.
-            For objective Function Mapping the region by the likelihood method, the uncertaintyParameter method must be performed (will override the uncertainty inseparated).
+        - Kwargs
+        --------
 
-            -Inclusion of parameter estimation, variance and region: will replace optimization and uncertaintyParameter method.
+        limite_superior : list
+            upper bound of the paramaters
+        limite_inferior : list
+            lower_bound of the parameters
+        args : dict
+            extra arguments to be passed to the model.
+
+        - Notes
+        -------
+
+        -Inclusion of parameter estimation: will replace the optimization method. You will need to execute the uncertaintyParameter method.
+
+        -Inclusion of parameter estimation and variance: will replace the optimization method and a part of the uncertainty method.
+        For objective Function Mapping the region by the likelihood method, the uncertaintyParameter method must be performed (will override the uncertainty inseparated).
+
+        -Inclusion of parameter estimation, variance and region: will replace optimization and uncertaintyParameter method.
 
         """
         # ---------------------------------------------------------------------
@@ -1387,26 +1431,30 @@ class EstimacaoNaoLinear:
         ===================================================================================
         Method to evaluate the covariance matrix of the parameters and the coverage region.
         ===================================================================================
-            - Parameters
-            ------------
-            uncertaintyMethod : string
-                method for calculating the covariance matrix of the parameters.
-                available methods: 2InvHessian, Geral, SensibilidadeModelo
-            parametersReport : bool
-                informs whether the parameters report should be created.
-            objectivefunctionMapping : bool
-                Indicates whether the algorithm to map the coverage region should be executed
 
-            - kwargs
-            --------
-            See documentation of self.__objectiveFunctionMapping
+        - Parameters
+        ------------
 
-            - Notes
-            -------
-            -Before performing this method it is necessary to perform one of the following methods: (i) optimize or (ii) SETparameter
+        uncertaintyMethod : string
+            method for calculating the covariance matrix of the parameters.
+            available methods: 2InvHessian, Geral, SensibilidadeModelo
+        parametersReport : bool
+            informs whether the parameters report should be created.
+        objectivefunctionMapping : bool
+            Indicates whether the algorithm to map the coverage region should be executed
 
-            -The coverage region is only executed if there is optimization history and the attribute regiao_abrangencia
-            is not defined for the parameters.
+        - kwargs
+        --------
+
+        See documentation of self.__objectiveFunctionMapping
+
+        - Notes
+        -------
+
+        -Before performing this method it is necessary to perform one of the following methods: (i) optimize or (ii) SETparameter
+
+        -The coverage region is only executed if there is optimization history and the attribute regiao_abrangencia
+        is not defined for the parameters.
 
         """
         # ---------------------------------------------------------------------
@@ -1496,20 +1544,23 @@ class EstimacaoNaoLinear:
         Performs the model prediction.
         ==============================
 
-            - Parameters
-            ------------
-            predictionReport : bool, optional
-                informs whether the prediction report should be created. If is true the prediction report is created without statistical tests.\
-                The statistical tests could be included in the 'residualAnalysis' method.
+        - Parameters
+        ------------
 
-            - Keywords
-            -----------
-            See documentation of Relatorio.Predicao.
+        predictionReport : bool, optional
+            informs whether the prediction report should be created. If is true the prediction report is created without statistical tests.\
+            The statistical tests could be included in the 'residualAnalysis' method.
 
-            - Notes
-            ----------
-            Before executing the prediction method it's necessary to execute the optimize and parametersUncertainty methods./
-            Other option is to include the parameters value and the parameters uncertainty through the SETparameter method.
+        - Keywords
+        -----------
+
+        See documentation of Relatorio.Predicao.
+
+        - Notes
+        ----------
+
+        Before executing the prediction method it's necessary to execute the optimize and parametersUncertainty methods./
+        Other option is to include the parameters value and the parameters uncertainty through the SETparameter method.
         """
         # ---------------------------------------------------------------------
         # FLUX
@@ -1618,29 +1669,31 @@ class EstimacaoNaoLinear:
         ===============================================
          Performs the mapping of the objective function
         ===============================================
-            - kwargs
-            --------
-            MethodObjectivefunctionmapping : string
-                Method used to perform the mapping of the objective function
-            iterations : int, > 0
-                Defines the number of iterations used in the monte carlo method
-            upper_bound : list
-                Lower bound of the parameters
-            lower_bound : list
-                Upper bound of the parameters
-            symmetryFactorLimit : list
-                This variable is used to generate more points to fill the coverage region. It is recommended that the
-                greater the interval of the region, the greater the limits of the symmetrical factor.
 
-                symmetryFactorLimit[0] -> lower bound of the symmetry factor
+        - kwargs
+        --------
 
-                symmetryFactorLimit[1] -> upper bound of the symmetry factor
+        MethodObjectivefunctionmapping : string
+            Method used to perform the mapping of the objective function
+        iterations : int, > 0
+            Defines the number of iterations used in the monte carlo method
+        upper_bound : list
+            Lower bound of the parameters
+        lower_bound : list
+            Upper bound of the parameters
+        symmetryFactorLimit : list
+            This variable is used to generate more points to fill the coverage region. It is recommended that the
+            greater the interval of the region, the greater the limits of the symmetrical factor.
 
-                symmetryFactorLimit[2] -> number of points generated from the symmetric factor
-            searchLimitFactor : float, > 0
+            symmetryFactorLimit[0] -> lower bound of the symmetry factor
 
-            distribution : string
-                Type of distribution used to generate random parameters in the monte carlo method
+            symmetryFactorLimit[1] -> upper bound of the symmetry factor
+
+            symmetryFactorLimit[2] -> number of points generated from the symmetric factor
+        searchLimitFactor : float, > 0
+
+        distribution : string
+            Type of distribution used to generate random parameters in the monte carlo method
 
         """
         # ---------------------------------------------------------------------
@@ -1861,114 +1914,121 @@ class EstimacaoNaoLinear:
 
     def __criteriosAbrangencia(self):
         u"""
-        Método que retorna os valores das distribuições de Fisher, chi2 e o valor limite da função objetivo.
-        Utilizado para avaliar a região de abrangẽncia
+         __criteriosAbrangencia(self)
+
+        =======================================================================================================
+         Returns the values of the Fisher and chi2 distributions and the limit value of the objective function.
+        =======================================================================================================
+
+            - Notes
+            ----------
+            Used to evaluate the coverage region.
         """
 
-        # TesteF = F(PA,NP,NE*NY-NP)
+        # F test = F(PA,NP,NE*NY-NP)
         fisher = f.ppf(self.PA,self.parametros.NV,(self.y.estimacao.NE*self.y.NV-self.parametros.NV))
 
-        # Valor para a ellipse de abrangência:
+        # Value for the coverage ellipse:
         ellipseComparacao = self.FOotimo*(float(self.parametros.NV)/(self.y.estimacao.NE*self.y.NV-float(self.parametros.NV))*fisher)
 
         return fisher, ellipseComparacao
 
     def regiaoAbrangencia(self):
         u"""
-        Método para avaliação da região de abrangência pelo critério de Fisher, conhecidas
-        como região de verossimilhança [1].
+        regiaoAbrangencia(self)
+
+        ==============================================================================================
+        Method to evaluate the coverage region by Fisher's criteria, known as likelihood region [1]
+        ==============================================================================================
+
+             - References
+             ------------
+             [1] SCHWAAB, M. et al. Nonlinear parameter estimation through particle swarm optimization. Chemical Engineering Science, v. 63, n. 6, p. 1542–1552, mar. 2008.
 
         ==========
-        Referência
-        ==========
-        [1] SCHWAAB, M. et al. Nonlinear parameter estimation through particle swarm optimization. Chemical Engineering Science, v. 63, n. 6, p. 1542–1552, mar. 2008.
         """
         # ---------------------------------------------------------------------
-        # FLUXO
+        # FLUX
         # ---------------------------------------------------------------------
         self.__controleFluxo.SET_ETAPA('regiaoAbrangencia')
 
         # ---------------------------------------------------------------------
-        # DETERMINAÇÃO DA REGIÃO DE ABRANGÊNCIA PELO CRITÉRIO DE FISHER
+        # DETERMINATION OF THE COVERAGE REGION BY THE FISHER CRITERIA
         # ---------------------------------------------------------------------
         fisher, ellipseComparacao = self.__criteriosAbrangencia()
 
-        # Comparação dos valores da função objetivo avaliados na etapa de otimização com FOcomparacao, caso
-        # sejam menores, os respectivos parâmetros estarão contidos da região de abrangência.
+        # Comparison of the objective function value evaluated in the optimization step with the OFMapped variable.
+        # If they are smaller, the respective parameters will be contained in the coverage region.
         regiao = []
         for pos,OFMapped in enumerate(self.__OFMapped):
             if OFMapped <= ellipseComparacao+self.FOotimo:
                 regiao.append(self.__decisonVariablesMapped[pos])
 
-        # ---------------------------------------------------------------------
-        # AVALIAÇÃO SE A REGIÃO DE ABRANGÊNCIA NÃO ESTÁ VAZIA (Warning)
-        # ---------------------------------------------------------------------
+        # -------------------------------------------------------------------
+        # ASSESSING WHETHER POINTS WERE OBTAINED TO FILL THE COVERAGE REGION
+        # -------------------------------------------------------------------
         if regiao == []:
-            warn('The coverage region evaluated by the likelihood method contains no points. Review the parameters of the algorithm used..',UserWarning)
+            warn('The coverage region evaluated by the likelihood method contains no points. Review the parameters of the algorithm used.',UserWarning)
 
         return regiao
 
     def residualAnalysis(self, report=True, **kwargs):
         u"""
-        Método para realização da análise de resíduos.
-        A análise da sempre preferência aos dados de validação.
+        residualAnalysis(self, report=True, **kwargs)
 
-        ======
-        Input
-        ======
-        * When report is true the prediction report includes statistical tests
+        ========================================
+         Method to perform the residual analysis
+        ========================================
 
-        ======
-        Saídas
-        ======
-        * Cálculo do R2 e R2 ajustado (atributos: R2 e R2ajustado)
-        * Aplicação de testes estatísticos para as grandezas. Criação do atributo estatisticas para cada grandeza x e y. (Vide documentação de Grandeza)
-        * Teste estatítico para avaliar se a função objetivo segue uma chi2 (atributo estatisticas)
-              * Se FO pertence ao intervalo chi2min < FO < chi2max, tem uma situação ideal, então o modelo representa bem os dados
+        - Parameters
+        ------------
 
-               Caso contrário há duas situações possíveis ao se analisar a FO com a chi2:
+        report : bool, optional
+        informs whether the The statistical tests results should be included in the the prediction report.
 
-              * FO < chi2min, O modelo representa os dados esperimentais muito melhor que o esperado,
-              o que pode indicar que há super parametrização do modelo ou que os erros esperimentais estão superestimados:
-              * FO > chi2max: o modelo não é capaz de explicar os erros experimentais
-              ou pode haver subestimação dos erros esperimentais
+        - Keywords
+        -----------
 
-        ========
-        Keywords
-        ========
-        * See documentation of Relatorio.Predicao
+        See documentation of Relatorio.Predicao.
+
+        - Notes
+        ----------
+
+        -Preferably, the analysis is performed with the validation data.
+
+        -The statistical tests are applied for x and y quantities.
 
         """
         # ---------------------------------------------------------------------
-        # FLUXO
+        # FLUX
         # ---------------------------------------------------------------------
         self.__controleFluxo.SET_ETAPA('analiseResiduos')
         # ---------------------------------------------------------------------
-        # VALIDAÇÃO
+        # VALIDATION
         # ---------------------------------------------------------------------         
 
-        # Tamanho dos vetores:
+        # Size of the vectors:
         if self.y.predicao.NE != self.y.calculado.NE:
             raise TypeError(u'The length of the validation and calculated vectors are not consistent. Evaluate the need to perform the prediction method.')
         # ---------------------------------------------------------------------
-        # CÁLCULO DOS RESÍDUOS
+        # RESIDUES CALCULATION
         # ---------------------------------------------------------------------          
-        # Calculos dos residuos (ou desvios) - estão baseados nos dados de validação
+        # Residues calculation (or deviations) - are based on the validation data
         residuo_y = self.y.predicao.matriz_estimativa - self.y.calculado.matriz_estimativa
         residuo_x = self.x.predicao.matriz_estimativa - self.x.calculado.matriz_estimativa
 
         # ---------------------------------------------------------------------
-        # ATRIBUIÇÃO A GRANDEZAS
+        # ATTRIBUTION TO QUANTITIES
         # ---------------------------------------------------------------------       
-        # Attribuição dos valores nos objetos
+        # Attribution of values on objects
         self.x._SETresiduos(estimativa=residuo_x)
         self.y._SETresiduos(estimativa=residuo_y)
 
         # ---------------------------------------------------------------------
-        # CÁLCULO DE R2 e R2 ajustado
+        # R2 and R2 adjusted calculation
         # ---------------------------------------------------------------------   
         self.estatisticas = {'R2': {}, 'R2ajustado': {}, 'FuncaoObjetivo': {}}
-        # Para y:
+        # For y:
         for i,symb in enumerate(self.y.simbolos):
             SSE = sum(self.y.residuos.matriz_estimativa[:,i]**2)
             SST = sum((self.y.predicao.matriz_estimativa[:,i]-\
@@ -1976,7 +2036,7 @@ class EstimacaoNaoLinear:
             self.estatisticas['R2'][symb]         = 1 - SSE/SST
             self.estatisticas['R2ajustado'][symb] = 1 - (SSE/(self.y.predicao.NE-self.parametros.NV))\
                                        /(SST/(self.y.predicao.NE - 1))
-        # Para x:                                           
+        # For x:
         for i,symb in enumerate(self.x.simbolos):
             if self.__flag.info['reconciliacao']:
                 SSEx = sum(self.x.residuos.matriz_estimativa[:,i]**2)
@@ -1990,18 +2050,18 @@ class EstimacaoNaoLinear:
                 self.estatisticas['R2ajustado'][symb] = None
 
         # ---------------------------------------------------------------------
-        # EXECUÇÃO DE TESTES ESTATÍSTICOS
+        # EXECUTION OF STATISTICAL TESTS
         # ---------------------------------------------------------------------             
-        # Grandezas independentes
+        # Independent quantities
         if self.__flag.info['reconciliacao']:
             self.x._testesEstatisticos(self.y.predicao.matriz_estimativa)
 
-        # Grandezas dependentes            
+        # Dependent quantities
         self.y._testesEstatisticos(self.x.predicao.matriz_estimativa)
 
-        # ---------------------------------------------------------------------
-        # VALIDAÇÃO DO VALOR DA FUNÇÃO OBJETIVO COMO UMA CHI 2
-        # ---------------------------------------------------------------------
+        # -----------------------------------------------------------------
+        # VALIDATION OF THE VALUE OF THE OBJECTIVE FUNCTION AS A CHI-SQUARE
+        # -----------------------------------------------------------------
         # TODO: substituir pelo grau de liberdade dos parâmetros, após merge com IncertezaParametros
         gL = self.y.estimacao.NE*self.y.NV - self.parametros.NV
 
@@ -2017,73 +2077,92 @@ class EstimacaoNaoLinear:
 
     def plots(self,**kwargs):
         u"""
-        Métodos para gerar e salvar os gráficos
+        plots(self,**kwargs)
 
-        =======================
-        Gráficos diponíveis
-        =======================
-            * 'regiaoAbrangencia': gráficos da região de abrangência dos parâmetros
-            * 'grandezas-entrada': gráficos referentes aos dados de entrada e de validação
-            * 'predicao': gráficos da predição
-            * 'grandezas-calculadas': gráficos dos valores calculados de cada grandeza
-            * 'otimizacao': gráficos referentes à otimização (depende do algoritmo utilizado)
-            * 'analiseResiduos': gráficos referentes à análise de resíduos.
+        ======================================
+        Routines for creating and saving plots
+        ======================================
+
+        **- kwargs**
+        ------------
+
+        **types : list**
+            It informs which plots should be created. See, below, "Available plots" .
+
+        **- Notes**
+        ------------
+
+        After using the setDados method, the plots method can be used anywhere in the code.
+        However, it will create the plots according to the information already obtained
+
+        Available plots:
+            'regiaoAbrangencia': plots the coverage region of the parameters
+
+            'grandezas-entrada': plots for input and validation data
+
+            'predicao": plots for the prediction results
+
+            'grandezas-calculadas': plots for the calculated values of each quantity
+            
+            'analiseResiduos': plots for the residual analysis
+
         """
-        if kwargs.get('tipos') is None:
-            tipos = []
+        if kwargs.get('types') is None:
+            types = []
             for fl_key in self.__graph_flux_association.keys():
                 if getattr(self.__controleFluxo, fl_key):
-                    tipos.extend(self.__graph_flux_association[fl_key])
+                    types.extend(self.__graph_flux_association[fl_key])
 
-        # Início da Figura que conterá os gráficos -> objeto
+        # Initialization of the Figure that will contain the graphs -> object
         Fig = Grafico(dpi=300)
 
         # ---------------------------------------------------------------------
-        # CAMINHO BASE
+        # BASE PATH
         # ---------------------------------------------------------------------         
         base_path = self.__base_path + sep + self._configFolder['plots'] + sep
 
         # ---------------------------------------------------------------------
-        # GRÁFICOS
+        # PLOTS
         # ---------------------------------------------------------------------
-        if (self.__tipoGraficos[1] in tipos):
-            # se setConjunto foi executado alguma vez:
+        if (self.__tipoGraficos[1] in types):
+            # if setConjunto method was executed at any time:
             if self.__controleFluxo.setConjunto:
                 base_dir = sep + self._configFolder['plots-{}'.format(self.__tipoGraficos[1])] + sep
                 Validacao_Diretorio(base_path,base_dir)
-                # Pastas internas
+                # Internal folders
                 # ------------------------------------------------------------------------------------
                 folder = sep + self._configFolder['plots-{}'.format(self.__tipoGraficos[1])] + sep + self._configFolder['plots-subfolder-DadosEstimacao']+ sep + self._configFolder['plots-subfolder-grandezatendencia']+sep
                 Validacao_Diretorio(base_path, folder)
                 # -----------------------------------------------------------------------------------
-                # gráficos gerados para os dados experimentais
+                # created plots for the experimental data
                 if self.__flag.info['dadosestimacao'] == True:
                     self.x.Graficos(base_path, base_dir, ID=['estimacao'], fluxo=0, Fig=Fig)
                     self.y.Graficos(base_path, base_dir, ID=['estimacao'], fluxo=0, Fig=Fig)
 
-                    # Gráficos das grandezas y em função de x
+                    # Plots for y quantities by x quantities
                     for iy in range(self.y.NV):
                         for ix in range(self.x.NV):
-                            # Gráficos sem a incerteza
+                            # plots without uncertainty
                             Fig.grafico_dispersao_sem_incerteza(self.x.estimacao.matriz_estimativa[:,ix],
                                                                 self.y.estimacao.matriz_estimativa[:,iy],
                                                                 label_x=self.x.labelGraficos('observado')[ix],
                                                                 label_y=self.y.labelGraficos('observado')[iy],
                                                                 marker='o', linestyle='None')
                             Fig.salvar_e_fechar(base_path+folder+self.y.simbolos[iy]+'_em_funcao_de_'+self.x.simbolos[ix]+'_sem_incerteza')
-                            # Gráficos com a incerteza
+                            # plots with uncertainty
                             Fig.grafico_dispersao_com_incerteza(self.x.estimacao.matriz_estimativa[:,ix],
                                                                 self.y.estimacao.matriz_estimativa[:,iy],
                                                                 self.x.estimacao.matriz_incerteza[:,ix],
                                                                 self.y.estimacao.matriz_incerteza[:,iy],
                                                                 label_x=self.x.labelGraficos('observado')[ix],
                                                                 label_y=self.y.labelGraficos('observado')[iy],
-                                                                fator_abrangencia_x=2., fator_abrangencia_y=2., fmt='o')
+                                                                fator_abrangencia_x=[2.]*self.x.estimacao.NE,
+                                                                fator_abrangencia_y=[2.]*self.y.estimacao.NE, fmt='o')
                             Fig.salvar_e_fechar(base_path+folder+self.y.simbolos[iy]+'_em_funcao_de_'+' '+self.x.simbolos[ix]+'_com_incerteza')
-                # gráficos gerados para os dados de validação, apenas se estes forem diferentes dos experimentais,
-                # apesar dos atributos de validação sempre existirem
+
+                # If the validation data is different from the experimental data, graphics will be created for the validation data.
                 if self.__flag.info['dadospredicao'] == True:
-                    # Pastas internas
+                    # Internal folders
                     # ------------------------------------------------------------------------------------
                     if self.__controleFluxo.FLUXO_ID == 0:
                         folder = self._configFolder['plots{}'.format(self.__tipoGraficos[5])] +  sep +self._configFolder['plots-subfolder-DadosEstimacao']+ sep+ self._configFolder['plots-subfolder-grandezatendencia']+sep
@@ -2095,41 +2174,42 @@ class EstimacaoNaoLinear:
                     self.x.Graficos(base_path, base_dir, ID=['predicao'], fluxo=self.__controleFluxo.FLUXO_ID, Fig=Fig)
                     self.y.Graficos(base_path, base_dir, ID=['predicao'], fluxo=self.__controleFluxo.FLUXO_ID, Fig=Fig)
 
-                    # Gráficos das grandezas y em função de x
+                    # Plots for y quantities by x quantities
                     for iy in range(self.y.NV):
                         for ix in range(self.x.NV):
-                            # Gráficos sem a incerteza
+                            # plots without uncertainty
                             Fig.grafico_dispersao_sem_incerteza(self.x.predicao.matriz_estimativa[:,ix],
                                                                 self.y.predicao.matriz_estimativa[:,iy],
                                                                 label_x=self.x.labelGraficos('observado')[ix],
                                                                 label_y=self.y.labelGraficos('observado')[iy],
                                                                 marker='o', linestyle='None')
                             Fig.salvar_e_fechar(base_path+folder+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_sem_incerteza')
-                            # Gráficos com a incerteza
+                            # plots with uncertainty
                             Fig.grafico_dispersao_com_incerteza(self.x.predicao.matriz_estimativa[:,ix],
                                                                 self.y.predicao.matriz_estimativa[:,iy],
                                                                 self.x.predicao.matriz_incerteza[:,ix],
                                                                 self.y.predicao.matriz_incerteza[:,iy],
                                                                 label_x=self.x.labelGraficos('observado')[ix],
                                                                 label_y=self.y.labelGraficos('observado')[iy],
-                                                                fator_abrangencia_x=2., fator_abrangencia_y=2., fmt= 'o')
+                                                                fator_abrangencia_x=[2.]*self.x.predicao.NE,
+                                                                fator_abrangencia_y=[2.]*self.y.predicao.NE, fmt= 'o')
                             Fig.salvar_e_fechar(base_path+folder+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_com_incerteza')
             else:
                 warn('The input graphs could not be created because the setConjunto method was not executed.',UserWarning)
 
-        # Gráficos referentes aos dados de saída (calculados)
-        # grandezas-calculado
-        if self.__tipoGraficos[3] in tipos:
+        # created plots for the output data (calculated)
+        # quantities-calculated
+        if self.__tipoGraficos[3] in types:
             base_dir = sep + self._configFolder['plots-{}'.format(self.__tipoGraficos[3])] + sep
             Validacao_Diretorio(base_path, base_dir)
 
-            # a incerteza dos parâmetros foi alguma vez executada
+            # evaluates if the parametersUncertainty method was executed at any time
             if self.__controleFluxo.incertezaParametros:
                 self.parametros.Graficos(base_path, base_dir, ID=['parametro'], fluxo=self.__controleFluxo.FLUXO_ID)
             else:
-                warn('Graphs involving only calculated quantities (PARAMETERS) could not be created because the parametersUncertainty method was not executed.',UserWarning)
+                warn('The graphs involving only calculated quantities (X and Y) could not be created because the parametersUncertainty method was not executed.',UserWarning)
 
-            # Predição deve ter sido executada no fluxo de trabalho
+            # evaluates if the prediction method was executed at any time
             if self.__controleFluxo.predicao:
                 self.x.Graficos(base_path, base_dir, ID=['calculado'], fluxo=self.__controleFluxo.FLUXO_ID, Fig=Fig)
                 self.y.Graficos(base_path, base_dir, ID=['calculado'], fluxo=self.__controleFluxo.FLUXO_ID, Fig=Fig)
@@ -2137,40 +2217,38 @@ class EstimacaoNaoLinear:
             else:
                 warn('The graphs involving only the calculated quantities (X and Y) could not be created, because the prediction method was not executed.',UserWarning)
 
-        # regiaoAbrangencia
-        if self.__tipoGraficos[0] in tipos:
-            # os gráficos da região de abrangência só são executados se a matriz de covariância
-            # dos parâmetros existir.
+        # coverage region
+        if self.__tipoGraficos[0] in types:
+            # The plots of the coverage region will be created only if the covariance matrix of the parameters has been calculated.
             if self.__controleFluxo.incertezaParametros:
-                # Gráficos da estimação
+                # Estimation plots
                 if self.parametros.NV >1:
                     base_dir = sep + self._configFolder['plots-{}'.format(self.__tipoGraficos[0])] + sep
                     Validacao_Diretorio(base_path, base_dir)
-                # os gráficos só podem ser executado se o número de parâmetros for
-                # maior do que 1
+                # the plots can only be executed if the number of parameters is greater than 1
                 if self.parametros.NV != 1:
-                    # numéro de combinações não repetidas para os parâmetros
+                    # number of non-repeated combinations for the parameters
                     Combinacoes = int(factorial(self.parametros.NV)/(factorial(self.parametros.NV-2)*factorial(2)))
                     p1 = 0; p2 = 1; cont = 0; passo = 1 # inicialiação dos contadores (pi e p2 são indinces dos parâmetros
-                    # passo: contabiliza o número de parâmetros avaliados
-                    # cont: contador que contabiliza (param.NV - passo1)+(param.NV - passo2)
+                    # passo: counts the number of evaluated parameters
+                    # cont: compute (param.NV - step1)+(param.NV - step2)
 
                     for pos in range(Combinacoes):
                         if pos == (self.parametros.NV-1)+cont:
                             p1 +=1; p2 = p1+1; passo +=1
                             cont += self.parametros.NV-passo
 
-                        # PLOT de região de abrangência pelo método da verossimilhança
+                        # Plots the coverage region by likelihood method
                         if self.__controleFluxo.regiaoAbrangencia and self.parametros.regiao_abrangencia != []:
-                            aux1 = [] # lista auxiliar -> região de abrangência para o parâmetro p1
-                            aux2 = [] # lista auxiliar -> região de abrangência para o parâmetro p2
+                            aux1 = [] # auxiliary list -> coverage region for the parameter P1
+                            aux2 = [] # auxiliary list -> coverage region for the parameter P2
                             for it in range(int(size(self.parametros.regiao_abrangencia)/self.parametros.NV)):
                                 aux1.append(self.parametros.regiao_abrangencia[it][p1])
                                 aux2.append(self.parametros.regiao_abrangencia[it][p2])
                             Fig.grafico_dispersao_sem_incerteza(array(aux1), array(aux2),
                                                                 add_legenda=True, corrigir_limites=False,
                                                                 marker='o', linestyle='None', color='b', linewidth=2.0, zorder=1)
-                        # PLOT da região de abrangência pelo método da linearização (elipse)
+                        # Plots the coverage region by linearization (ellipse) method
                         fisher, ellipseComparacao = self.__criteriosAbrangencia()
 
                         cov = array([[self.parametros.matriz_covariancia[p1,p1], self.parametros.matriz_covariancia[p1,p2]],
@@ -2185,7 +2263,7 @@ class EstimacaoNaoLinear:
 
                         Fig.set_label(self.parametros.labelGraficos()[p1], self.parametros.labelGraficos()[p2])
 
-                        # SALVA O GRÁFICO
+                        # SAVE THE PLOT
                         Fig.salvar_e_fechar(base_path+base_dir+'regiao_verossimilhanca'+'_'+
                                     str(self.parametros.simbolos[p1])+'_'+str(self.parametros.simbolos[p2])+'.png',
                                             config_axes=True)
@@ -2196,11 +2274,11 @@ class EstimacaoNaoLinear:
             else:
                 warn('The coverage region graphs could not be created because the uncertaintyParameters method was not run OR in the SETparameter method the parameters variance was not defined',UserWarning)
 
-        # predição
-        if self.__tipoGraficos[2] in tipos:
-            # Predição deve ter sido executada neste fluxo
+        # prediction
+        if self.__tipoGraficos[2] in types:
+            # The execution of the prediction method is necessary for this flux
             if self.__controleFluxo.predicao:
-                # Pastas internas
+                # Internal folders
                 # ------------------------------------------------------------------------------------
                 if self.__controleFluxo.FLUXO_ID == 0:
                     folderone = self._configFolder['plots-{}'.format(self.__tipoGraficos[2])] + sep + self._configFolder['plots-subfolder-DadosEstimacao'] + sep + 'Saida calculada em funcao das entradas observadas' + sep
@@ -2217,10 +2295,10 @@ class EstimacaoNaoLinear:
                     foldertwo = self._configFolder['plots-{}'.format(self.__tipoGraficos[2])] + sep + self._configFolder['plots-subfolder-Dadosvalidacao'] + ' ' + str(self.__controleFluxo.FLUXO_ID) + sep + 'Saida calculada em funcao das saidas observadas' + sep
                     Validacao_Diretorio(base_path, foldertwo)
                 # ------------------------------------------------------------------------------------
-                #gráficos de y em função de y
+                # Plots for y quantities by y quantities
                 for iy in range(self.y.NV):
                     for ix in range(self.x.NV):
-                        # Gráficos sem a incerteza
+                        # Plots without uncertainty
                         x_plot = self.x.estimacao.matriz_estimativa[:,ix] if self.__controleFluxo.FLUXO_ID==0 else self.x.predicao.matriz_estimativa[:,ix]
                         Fig.grafico_dispersao_sem_incerteza(self.x.predicao.matriz_estimativa[:,ix],
                                                             self.y.calculado.matriz_estimativa[:,iy],
@@ -2236,13 +2314,14 @@ class EstimacaoNaoLinear:
                         Fig.salvar_e_fechar(base_path+folderone+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_sem_incerteza')
                         #Fig.salvar_e_fechar(base_path+folderone+'calculado' +'_'+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_sem_incerteza')
 
-                        # Gráficos com a incerteza
+                        # Plots with uncertainty
                         if self.y.calculado.matriz_correlacao is not None:
                             Fig.grafico_dispersao_com_incerteza(self.x.predicao.matriz_estimativa[:,ix],
                                                                 self.y.calculado.matriz_estimativa[:,iy],
                                                                 self.x.predicao.matriz_incerteza[:,ix],
                                                                 self.y.calculado.matriz_incerteza[:,iy],
-                                                                fator_abrangencia_x=2., fator_abrangencia_y=2., fmt='o',
+                                                                fator_abrangencia_x=[2.]*self.x.predicao.NE,
+                                                                fator_abrangencia_y=[2.]*self.y.calculado.NE, fmt='o',
                                                                 color='b',add_legenda=True)
                             Fig.grafico_dispersao_com_incerteza(self.x.predicao.matriz_estimativa[:,ix],
                                                                 self.y.predicao.matriz_estimativa[:,iy],
@@ -2250,31 +2329,29 @@ class EstimacaoNaoLinear:
                                                                 self.y.predicao.matriz_incerteza[:,iy],
                                                                 label_x=self.x.labelGraficos()[ix],
                                                                 label_y=self.y.labelGraficos()[iy],
-                                                                fator_abrangencia_x=2., fator_abrangencia_y=2., fmt='o',
+                                                                fator_abrangencia_x=[2.]*self.x.predicao.NE,
+                                                                fator_abrangencia_y=[2.]*self.y.predicao.NE, fmt='o',
                                                                 color='r',add_legenda=True)
                             Fig.set_legenda(['calculado','observado'],loc='best', fontsize=12)
                             Fig.salvar_e_fechar(base_path+folderone+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_com_incerteza')
                             #Fig.salvar_e_fechar(base_path+folderone+'calculado' +'_'+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_com_incerteza')
 
 
-                #incerteza_expandida_Yc=ones((self.y.calculado.NE,self.y.NV))
-                #incerteza_expandida_Ye=ones((self.y.validacao.NE,self.y.NV))
-                # Fatores de abrangência para y de validação e o y calculado
-                t_cal = -t.ppf((1-self.PA)/2, self.y.calculado.gL[0][0])
-                t_val = -t.ppf((1-self.PA)/2, self.y.predicao.gL[0][0])
-
                 for iy in range(self.y.NV):
                     y  = self.y.predicao.matriz_estimativa[:,iy]
                     ym = self.y.calculado.matriz_estimativa[:,iy]
+                    # Coverage factors for validation y and calculated
+                    t_cal = [-t.ppf((1 - self.PA) / 2, self.y.calculado.gL[iy][j]) for j in range(self.y.calculado.NE)]
+                    t_val = [-t.ppf((1 - self.PA) / 2, self.y.predicao.gL[iy][j]) for j in range(self.y.predicao.NE)]
                     amostras = arange(1,self.y.predicao.NE+1,1)
 
                     diagonal = linspace(min(y), max(y))
-                    # Gráfico comparativo entre valores experimentais e calculados pelo modelo, sem variância
+                    # Comparison between the experimental and calculated values by the model, without variance
                     Fig.grafico_dispersao_sem_incerteza(y, ym, marker='o', linestyle='None',
                                                         corrigir_limites=False, config_axes=False)
                     Fig.grafico_dispersao_sem_incerteza(diagonal, diagonal, linestyle='-', color='k', linewidth = 2.0,
                                                         corrigir_limites=True, config_axes=False)
-                    # Set_label possui o fontsize (tamanho das fontes nos eixos X x Y) definidos de acordo ao valor estabelecdo em Gráficos.
+                    # Set_label has the fontsize (font size on the X and Y axes) defined according to the value set in Plots.
                     Fig.set_label(self.y.labelGraficos('observado')[iy] \
                                   if self.__flag.info['dadospredicao'] else self.y.labelGraficos('observado')[iy],
                                   self.y.labelGraficos('calculado')[iy])
@@ -2283,8 +2360,8 @@ class EstimacaoNaoLinear:
                     Fig.salvar_e_fechar((base_path+foldertwo+'observado' if self.__flag.info['dadospredicao'] else base_path+foldertwo+'observado')+'_' + str(self.y.simbolos[iy])+'_funcao_'+str(self.y.simbolos[iy])+'_calculado_sem_incerteza.png',config_axes=True)
 
 
-                    # Gráfico comparativo entre valores experimentais e calculados pelo modelo, sem variância em função
-                    # das amostras
+                    # Comparison between the experimental and calculated values by the model, without variance,
+                    # by samples
                     Fig.grafico_dispersao_sem_incerteza(amostras, y, marker='o', linestyle='None', color='b', add_legenda=True)
                     Fig.grafico_dispersao_sem_incerteza(amostras, ym, marker='o', linestyle='None', color='r',
                                                         corrigir_limites=False, config_axes=False, add_legenda=True)
@@ -2298,14 +2375,14 @@ class EstimacaoNaoLinear:
                         config_axes=True
                         )
 
-                    # Gráfico comparativo entre valores experimentais e calculados pelo modelo, com variância
+                    # Comparison between the experimental and calculated values by the model, with variance
                     if self.y.calculado.matriz_incerteza is not None:
                         yerr_calculado = self.y.calculado.matriz_incerteza[:,iy]
 
                         yerr_validacao = self.y.predicao.matriz_incerteza[:,iy]
 
-                        # Gráfico comparativo entre valores experimentais (validação) e calculados pelo modelo, com variância
-                        # Em função do número da amostra
+                        # Comparison between the experimental (validation) and calculated values by the model, without variance,
+                        # by samples
                         Fig.grafico_dispersao_com_incerteza(amostras, y, None, yerr_validacao, fator_abrangencia_y=t_val,
                                                             fmt="o", color = 'b', config_axes=False, corrigir_limites=False,
                                                             add_legenda=True)
@@ -2315,7 +2392,7 @@ class EstimacaoNaoLinear:
                         Fig.set_legenda(['dados para predicao' if self.__flag.info['dadospredicao'] else 'dados para estimacao', 'calculado'],fontsize=12, loc='best')
                         Fig.salvar_e_fechar((base_path+foldertwo+'observado' if self.__flag.info['dadospredicao'] else base_path + foldertwo+'observado') + '_' + str(self.y.simbolos[iy]) +'_funcao_amostras_calculado_com_incerteza.png', config_axes=True)
 
-                        # ycalculado em função de yexperimental
+                        # calculated y by experimental y
                         Fig.grafico_dispersao_com_incerteza(y, ym, yerr_validacao, yerr_calculado,
                                                             fator_abrangencia_x=t_cal, fator_abrangencia_y=t_val,
                                                             fmt="o", corrigir_limites=True, config_axes=False)
@@ -2329,24 +2406,24 @@ class EstimacaoNaoLinear:
                                               '_' + str(self.y.simbolos[iy]) + \
                                             '_funcao_' + str(self.y.simbolos[iy]) + '_calculado_com_incerteza.png',
                                             config_axes=True,
-                                            reiniciar=(False if not self.__flag.info['dadospredicao'] else True)) # caso não tenha dados
-                                            # de validação é aplicado um teste baseado no teste F que usará este gráfico.
-                        # gráfico comparativo entre os valores experimentais (validação) e calculados pelo modelo, com variância
-                        # em função das amostras
+                                            reiniciar=(False if not self.__flag.info['dadospredicao'] else True))
+                                            # If there is no validation data, a test based on the F test is applied
 
-                        # gráficos do teste F
+                        # Comparison between the experimental (validation) and calculated values by the model, with variance,
+                        # by samples
+                        # plots based on test F
                         if not self.__flag.info['dadospredicao']:
-                            # Gráfico do Teste F
+                            # test F plot
                             ycalc_inferior_F = []
                             ycalc_superior_F = []
                             for iNE in range(self.y.calculado.NE):
 
                                 ycalc_inferior_F.append(self.y.calculado.matriz_estimativa[iNE,iy]+\
-                                            t_val\
+                                            t_val[iNE]\
                                             *(f.ppf((self.PA+(1-self.PA)/2),self.y.calculado.gL[iy][iNE],\
                                             self.y.predicao.gL[iy][iNE])*self.y.predicao.matriz_covariancia[iNE,iNE])**0.5)
 
-                                ycalc_superior_F.append(self.y.calculado.matriz_estimativa[iNE,iy]-t_val\
+                                ycalc_superior_F.append(self.y.calculado.matriz_estimativa[iNE,iy]-t_val[iNE]\
                                                *(f.ppf((self.PA+(1-self.PA)/2),self.y.calculado.gL[iy][iNE],\
                                             self.y.predicao.gL[iy][iNE])*self.y.predicao.matriz_covariancia[iNE,iNE])**0.5)
 
@@ -2361,23 +2438,22 @@ class EstimacaoNaoLinear:
             else:
                 warn('The graphs involving the estimation (prediction) could not be created because the prediction method was not executed.',UserWarning)
 
-        # AnáliseResiduos
-        if (self.__tipoGraficos[5] in tipos):
-            # o método análise de resíduos deve ter sido executado
+        # Residual analysis
+        if (self.__tipoGraficos[5] in types):
+            # the residualAnalysis method must been executed
             if self.__controleFluxo.analiseResiduos:
                 base_dir = sep + self._configFolder['plots-{}'.format(self.__tipoGraficos[5])] + sep
                 Validacao_Diretorio(base_path,base_dir)
-                # Gráficos relacionados aos resíduos das grandezas independentes, caso
-                # seja realizada a reconciliação
+                # Plots for the residues of the independent quantities (if the reconciliation was performed)
                 if self.__flag.info['reconciliacao'] == True:
                     self.x.Graficos(base_path, base_dir, ID=['residuo'], fluxo=self.__controleFluxo.FLUXO_ID, Fig=Fig)
 
-                # Gráficos relacionados aos resíduos das grandezas dependentes
+                # Plots for the residues of the dependent quantities
                 self.y.Graficos(base_path, base_dir, ID=['residuo'], fluxo=self.__controleFluxo.FLUXO_ID, Fig=Fig)
 
-                # Grafico dos resíduos em função dos dados de validação (ou experimentais) e calculados
+                # Plots for the residues by validation (or experimental) data and calculated data
                 for i,simb in enumerate(self.y.simbolos):
-                    # Pastas internas
+                    # Internal folders
                     # ------------------------------------------------------------------------------------
                     if self.__controleFluxo.FLUXO_ID == 0:
                         folder = self._configFolder['plots-{}'.format(self.__tipoGraficos[5])] +  sep +self._configFolder['plots-subfolder-DadosEstimacao']+ sep + self.y.simbolos[i] + sep
@@ -2386,7 +2462,7 @@ class EstimacaoNaoLinear:
                         folder = self._configFolder['plots-{}'.format(self.__tipoGraficos[5])] + sep + self._configFolder['plots-subfolder-Dadosvalidacao']+' '+str(self.__controleFluxo.FLUXO_ID)+ sep + self.y.simbolos[i] + sep
                         Validacao_Diretorio(base_path, folder)
                     # ------------------------------------------------------------------------------------
-                    # Resíduos vs ycalculado
+                    # Residues by y calculated
                     Fig.grafico_dispersao_sem_incerteza(array([min(self.y.calculado.matriz_estimativa[:, i]), max(self.y.calculado.matriz_estimativa[:, i])]),
                                                         array([mean(self.y.residuos.matriz_estimativa[:, i])] * 2),
                                                         linestyle='-.', color = 'r', linewidth = 2,
@@ -2400,7 +2476,7 @@ class EstimacaoNaoLinear:
                     Fig.salvar_e_fechar(base_path+folder+'residuos'+'_funcao_'\
                                         +self.y.simbolos[i]+'_calculado.png')
 
-                    # Resíduos vs yvalidacao
+                    # Residues by y validated
                     Fig.grafico_dispersao_sem_incerteza(array([min(self.y.predicao.matriz_estimativa[:, i]),
                                                                max(self.y.predicao.matriz_estimativa[:, i])]),
                                                         array([mean(self.y.residuos.matriz_estimativa[:, i])] * 2),
@@ -2418,7 +2494,7 @@ class EstimacaoNaoLinear:
                         self.y.simbolos[i] + '_' + ('observado' if self.__flag.info['dadospredicao'] else 'observado')+'.png')
 
                     for j, simbol in enumerate(self.x.simbolos):
-                        #Resíduos vs. X estimacao/validacao
+                        # Residues by estimation/validation
                         if self.__flag.info['dadospredicao']:
                             x = self.x.predicao.matriz_estimativa[:,j]
                         else:
@@ -2439,36 +2515,37 @@ class EstimacaoNaoLinear:
                                             ('observado' if self.__flag.info['dadospredicao'] else 'observado')+'.png')
 
             else:
-                warn('Graphs involving residue analysis could not be created because the residualAnalysis method was not executed.',UserWarning)
+                warn('Plots involving residue analysis could not be created because the residualAnalysis method was not executed.',UserWarning)
 
     def reports(self,**kwargs):
         u"""
-        Método para criação do(s) relatório(s) com os principais resultados.
+        reports(self,**kwargs):
 
-        ========
-        Keywords
-        ========
-        * Vide documentação de Relatorio.Predicao
+        ========================================================
+        Method for creating the report(s) with the main results.
+        ========================================================
+
+        - kwargs
+        --------
+
+        See documentation of Relatorio.Predicao
+
         """
-        # ---------------------------------------------------------------------
-        # DEFINIÇÃO DA CLASSE
-        # ---------------------------------------------------------------------
-        #out = Report(str(self.__controleFluxo.FLUXO_ID),self.__base_path,sep + self._configFolder['report']+ sep, **kwargs)
 
         # ---------------------------------------------------------------------
-        # RELATÓRIO DOS PARÂMETROS
+        # PARAMETERS REPORT
         # ---------------------------------------------------------------------
-        # Caso a otimização ou SETParametros tenha sido executado, pode-se fazer um relatório sobre os parâmetros
+        # Creating the parameters report if the optimization method or SETparameter methods was executed.
         if self.__controleFluxo.otimizacao or self.__controleFluxo.SETparametro:
             self._out.Parametros(self.parametros,self.FOotimo)
         else:
-            warn('The parameter report was not created because the optimize method or SETparameter method was not executed')
+            warn('The parameters report was not created because the optimize method or SETparameter method was not executed')
         # ---------------------------------------------------------------------
-        # RELATÓRIO DA PREDIÇÃO E ANÁLISE DE RESÍDUOS
+        # PREDICTION AND RESIDUAL ANALYSIS REPORT
         # ---------------------------------------------------------------------
-        # Caso a Predição tenha sido executada, pode-se fazer um relatório sobre a predição
+        # Creating the prediction report if the prediction method was executed.
         if self.__controleFluxo.predicao:
-            # Caso a Análise de resíduos tenha sido executada, pode-se fazer um relatório completo
+            # If the residualAnalysis has been performed, a complete report can be made
             kwargs['PA'] = self.PA
             if self.__controleFluxo.analiseResiduos:
                 self._out.Predicao(self.x,self.y,self.estatisticas,**kwargs)
