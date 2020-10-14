@@ -187,7 +187,7 @@ class Grafico:
             self.lista_graficos.append(dispersao_sem_incerteza)
 
     def grafico_dispersao_com_incerteza(self, x, y, ux, uy, label_x = None, label_y = None,
-                                        fator_abrangencia_x = 2., fator_abrangencia_y = 2.,
+                                        fator_abrangencia_x = None, fator_abrangencia_y = None,
                                         add_legenda = False, corrigir_limites = True, config_axes = True, **kwargs):
         u"""
         ========
@@ -208,10 +208,8 @@ class Grafico:
 
         :param **kwargs: keyword argumentos a serem passados para método self.matplotlib.pyplot.errorbar
         """
-        #if not isinstance(fator_abrangencia_x, float) or not isinstance(fator_abrangencia_y, float):
-         #   raise TypeError('Fatores de abrangência precisam ser floats.')
-
-        #if len()
+        if not isinstance(fator_abrangencia_x, list) or not isinstance(fator_abrangencia_y, list):
+            raise TypeError('The coverage factors must be informed in a form of lists.')
 
         # organizando os vetores
         y = y[argsort(x)]

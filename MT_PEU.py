@@ -2383,11 +2383,12 @@ class EstimacaoNaoLinear:
 
                         # Comparison between the experimental (validation) and calculated values by the model, without variance,
                         # by samples
-                        Fig.grafico_dispersao_com_incerteza(amostras, y, None, yerr_validacao, fator_abrangencia_y=t_val,
-                                                            fmt="o", color = 'b', config_axes=False, corrigir_limites=False,
+                        Fig.grafico_dispersao_com_incerteza(amostras, y, None, yerr_validacao, fator_abrangencia_x=[2.]*len(amostras),
+                                                            fator_abrangencia_y=t_val, fmt="o", color = 'b',
+                                                            config_axes=False, corrigir_limites=False,
                                                             add_legenda=True)
-                        Fig.grafico_dispersao_com_incerteza(amostras, ym, None, yerr_calculado, fator_abrangencia_y=t_cal,
-                                                            fmt="o", color = 'r', config_axes=False, add_legenda=True)
+                        Fig.grafico_dispersao_com_incerteza(amostras, ym, None, yerr_calculado,fator_abrangencia_x=[2.]*len(amostras),
+                                                            fator_abrangencia_y=t_cal, fmt="o", color = 'r', config_axes=False, add_legenda=True)
                         Fig.set_label('Amostras', self.y.labelGraficos()[iy])
                         Fig.set_legenda(['dados para predicao' if self.__flag.info['dadospredicao'] else 'dados para estimacao', 'calculado'],fontsize=12, loc='best')
                         Fig.salvar_e_fechar((base_path+foldertwo+'observado' if self.__flag.info['dadospredicao'] else base_path + foldertwo+'observado') + '_' + str(self.y.simbolos[iy]) +'_funcao_amostras_calculado_com_incerteza.png', config_axes=True)
