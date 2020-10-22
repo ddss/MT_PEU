@@ -1251,16 +1251,18 @@ class EstimacaoNaoLinear:
         if parametersReport is True:
             self._out.Parametros(self.parametros,self.FOotimo)
 
-        with open(self._out.optimization() +'Optimization_report.txt', 'r') as f:
-            n_linhas = len(f.readlines())
-        # lendo as linhas do arquivo
-        with open(self._out.optimization() +'Optimization_report.txt', 'r') as arquivo:
-            linhas = arquivo.readlines()  # cada linha é um elemento da lista linhas
-        for i in range(n_linhas):  # editando a segunda linha
-            linhas[i] = linhas[i] + '<p>'
-        # escrevendo de novo
-        with open(self._out.optimization() +'Optimization_report.html', 'w') as arquivo:
-            arquivo.writelines(linhas)
+         #Conversion of the optimization report to html
+        if optimizationReport is not False:
+            with open(self._out.optimization() +'Optimization_report.txt', 'r') as f:
+                n_linhas = len(f.readlines())
+            # lendo as linhas do arquivo
+            with open(self._out.optimization() +'Optimization_report.txt', 'r') as arquivo:
+                linhas = arquivo.readlines()  # cada linha é um elemento da lista linhas
+            for i in range(n_linhas):  # editando a segunda linha
+                linhas[i] = linhas[i] + '<p>'
+            # escrevendo de novo
+            with open(self._out.optimization() +'Optimization_report.html', 'w') as arquivo:
+                arquivo.writelines(linhas)
 
     def __Hessiana_FO_Param(self):
 
