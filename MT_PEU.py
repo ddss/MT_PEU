@@ -27,6 +27,7 @@ from os import getcwd, sep
 from casadi import MX,DM,vertcat,horzcat,nlpsol,sum1,jacobian,hessian,mtimes,inv as inv_cas, diag,Function
 # Exception Handling
 from warnings import warn
+import os
 
 # System
 #TODO: CORRIGIR ENCONDING
@@ -1261,7 +1262,6 @@ class EstimacaoNaoLinear:
                 options = {'print_time': False, 'bonmin': {}}
             elif algorithm == 'sqpmethod':
                 options = {'print_iteration': False, 'qpsol_options': {'printLevel': 'none'}}
-
         # optimization problem setup
         S = nlpsol('S', algorithm, nlp, options)
         # passing the arguments for the optimization problem
@@ -1290,6 +1290,19 @@ class EstimacaoNaoLinear:
         # parameters report creation
         if parametersReport is True:
             self._out.Parametros(self.parametros,self.FOotimo)
+
+         #Conversion of the optimization report to html
+        if optimizationReport is not False:
+            with open(self._out.optimization() +'Optimization_report.txt', 'r') as f:
+                n_linhas = len(f.readlines())
+            # lendo as linhas do arquivo
+            with open(self._out.optimization() +'Optimization_report.txt', 'r') as arquivo:
+                linhas = arquivo.readlines()  # cada linha é um elemento da lista linhas
+            for i in range(n_linhas):  # editando a segunda linha
+                linhas[i] = linhas[i] + '<p>'
+            # escrevendo de novo
+            with open(self._out.optimization() +'Optimization_report.html', 'w') as arquivo:
+                arquivo.writelines(linhas)
 
     def __Hessiana_FO_Param(self):
 
