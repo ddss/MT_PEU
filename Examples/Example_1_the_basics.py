@@ -57,7 +57,7 @@ Estime.optimize(initial_estimative=[0.5,25000])
 
 #%% Evaluating the parameters uncertainty and coverage region
 # using solely default options
-Estime.parametersUncertainty()
+Estime.parametersUncertainty(objectiveFunctionMapping= False)
 
 #%% Evaluating model predictions
 # using solely default options
@@ -69,7 +69,7 @@ Estime.residualAnalysis()
 
 #%% Plotting the main results
 # using solely default options
-Estime.plots()
+#Estime.plots()
 
 #%% Reference of this case study
 # SCHWAAB, M.M.;PINTO, J.C. Análise de Dados Experimentais I: Fundamentos da Estátistica e Estimação de Parâmetros. Rio de Janeiro: e-papers, 2007.
