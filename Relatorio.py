@@ -70,22 +70,22 @@ class Report:
             f.write('</center>')
             # Estimativa dos parâmetros
             f.write('<hr />')
-            f.write( '<table border = "1">\n')
+            f.write( '<table border rules = all>\n')
             f.write('<tr>\n')
-            f.write(('<td>Simbolos</td>'+ ' <td>{:^10}</td> '*parametros.NV).format(*parametros.simbolos)+self.__quebra)
+            f.write(('<td><b>Simbolos</b></td>'+ ' <td>{:^10}</td> '*parametros.NV).format(*parametros.simbolos)+self.__quebra)
             f.write('</tr>\n')
             f.write('<tr>\n')
-            f.write(('<td>Estimativa</td>'+ ' <td>{:^10.3e}</td> '*parametros.NV).format(*parametros.estimativa)+self.__quebra)
+            f.write(('<td><b>Estimativa</b></td>'+ ' <td>{:^10.3e}</td> '*parametros.NV).format(*parametros.estimativa)+self.__quebra)
             f.write('</tr>\n')
 
             if parametros.matriz_covariancia is not None:
                 # Matriz de covariância, incerteza e matriz de correlação
 
                 f.write('<tr>\n')
-                f.write(('<td>Variância</td>'+ '<td>{:^10.3e}</td> '*parametros.NV).format(*[parametros.matriz_covariancia[i,i] for i in range(parametros.NV)]) + self.__quebra)
+                f.write(('<td><b>Variância</b></td>'+ '<td>{:^10.3e}</td> '*parametros.NV).format(*[parametros.matriz_covariancia[i,i] for i in range(parametros.NV)]) + self.__quebra)
                 f.write('</tr>\n')
                 f.write('<tr>\n')
-                f.write(('<td>Incerteza</td>'+ '<td>{:^10.3e}</td> '*parametros.NV).format(*[parametros.matriz_incerteza[0,i] for i in range(parametros.NV)]) + self.__quebra)
+                f.write(('<td><b>Incerteza</b></td>'+ '<td>{:^10.3e}</td> '*parametros.NV).format(*[parametros.matriz_incerteza[0,i] for i in range(parametros.NV)]) + self.__quebra)
                 f.write('</tr>\n')
                 f.write('</table>\n')
                 f.write(self.__quebra)
@@ -96,7 +96,7 @@ class Report:
                 #a=len(parametros.matriz_covariancia)
                 #x=0
                 #todos os prints serão fwrite
-                f.write('<table >')
+                f.write('<table frame = "vsides">')
                 for id in range(parametros.NV):
                     f.write('<tr>')
                     for id2 in range(parametros.NV):
@@ -108,7 +108,7 @@ class Report:
                 f.write(self.__quebra)
                 
                 f.write('<h3>Matriz de correlação:</h3>'+self.__quebra)
-                f.write('<table >')
+                f.write('<table frame = "vsides">')
                 for id in  range(parametros.NV) :
                     f.write('<tr>')
                     for id2 in range(parametros.NV) :
@@ -131,9 +131,9 @@ class Report:
             # Valor da função objetivo no ponto ótimo
             f.write( '<p> Valor da função objetivo no ponto ótimo : {:.3g} </p>'  .format(pontoOtimo))
             f.write(self.__quebra)
-            f.write(('<p>{:-^'+str(max([70,parametros.NV*18]))+'}</p>'+self.__quebra).format('RESTRIÇÕES'))
+            f.write(('<h3>RESTRIÇÕES : </h3>'))
 
-            f.write('< table border = "5">\n')
+            f.write('<table border rules = all>\n')
             f.write('<tr>\n')
             f.write(('<td>Simbolos</td>'+ '<td>{:^10}</td>'*parametros.NV).format(*parametros.simbolos) + self.__quebra)
             f.write('</tr>\n')
@@ -162,6 +162,7 @@ class Report:
         ============================================================================
         Write the prediction and residual analysis results in the prediction report.
         ============================================================================
+                exports the covariance matrix of y.
 
         - Parameters
         ------------
@@ -249,7 +250,7 @@ class Report:
                 # Operator to format the values of R2 and R2 adjusted, because they are dictionaries.
                 construtor_formatacao_simbolos = ['{'+str(symb)+':^8.3f}' for symb in y.simbolos]
 
-                f.write('<table border = "1" > \n')
+                f.write('<table border rules = all > \n')
                 f.write('<tr>\n')
                 f.write('<td> Simbolos </td>\n')
                 f.write('<td> {} </td/>\n'.format(*y.simbolos))
@@ -267,29 +268,60 @@ class Report:
                 f.write(self.__quebra)
 
                 # Objective function
-                f.write('<h3>Função objetivo:</h3>'+self.__quebra)
-                f.write('</p>&nbsp;&nbsp;&nbsp;&nbsp;Info: a função objetivo deve estar entre &#935<sup>2</sup> min e &#935<sup>2</sup> max.'+self.__quebra)
+                f.write('<h3>Função objetivo (FO):</h3>'+self.__quebra)
+
                 # Operator to format the values of R2 and R2 adjusted, because they are dictionaries.
-                f.write('<table border = "1">\n')
-                f.write('<tr>\n')
-                f.write('<td> &#935<sup>2</sup> max</td><td> {:.3f}</td>'.format(estatisticas['FuncaoObjetivo']['chi2max'])+self.__quebra)
-                f.write('</tr>\n')
-                f.write('<td>FO     </td><td> {:.3f}</td>'.format(estatisticas['FuncaoObjetivo']['FO'])+self.__quebra)
-                f.write('</tr>\n')
-                f.write('<td>&#935<sup>2</sup> min</td><td> {:.3f}</td>'.format(estatisticas['FuncaoObjetivo']['chi2min'])+self.__quebra)
-                f.write('</tr>\n')
-                f.write('</table>\n')
+                if float(estatisticas['FuncaoObjetivo']['chi2max'])>float(estatisticas['FuncaoObjetivo']['FO']) and float(estatisticas['FuncaoObjetivo']['FO'])>float(estatisticas['FuncaoObjetivo']['chi2min']):
+                    f.write('<table border rules = all>\n')
+                    f.write('<tr>\n')
+                    f.write(' <td> &#935<sup>2</sup> max </td> <td> FO </td> <td> &#935<sup>2</sup> min</td> ')
+                    # &#935 ---> chi
+                    f.write('</tr>\n')
+                    f.write('<tr>\n')
+                    f.write('<td> {:.3f}</td>'.format(estatisticas['FuncaoObjetivo']['chi2max'])+self.__quebra)
+                   ## f.write('</tr>\n')
+                    f.write('<td> {:.3f}</td>'.format(estatisticas['FuncaoObjetivo']['FO'])+self.__quebra)
+                    ##f.write('</tr>\n')
+                    f.write('<td> {:.3f}</td>'.format(estatisticas['FuncaoObjetivo']['chi2min'])+self.__quebra)
+                    f.write('</tr>\n')
+                    f.write('</table>\n')
+
+                if float(estatisticas['FuncaoObjetivo']['FO'])<float(estatisticas['FuncaoObjetivo']['chi2min']):
+                    f.write('<table border rules = all>\n')
+                    f.write('<tr>\n')
+                    f.write('<td> &#935<sup>2</sup> max </td>  <td> &#935<sup>2</sup> min</td> <td> FO  </td>')
+                    f.write('</tr>\n')
+                    f.write('<tr>\n')
+                    f.write('<td> {:.3f}</td>'.format(estatisticas['FuncaoObjetivo']['chi2max'])+self.__quebra)
+                    f.write('<td> {:.3f}</td>'.format(estatisticas['FuncaoObjetivo']['chi2min'])+self.__quebra)
+                    f.write('<td> {:.3f}</td>'.format(estatisticas['FuncaoObjetivo']['FO']) + self.__quebra)
+                    f.write('</tr>\n')
+                    f.write('</table>\n')
+
+                if float(estatisticas['FuncaoObjetivo']['FO'])>float(estatisticas['FuncaoObjetivo']['chi2max']):
+                    f.write('<table border rules = all>\n')
+                    f.write('<tr>\n')
+                    f.write('<td> FO  </td> <td>  &#935<sup>2</sup> max </td>  <td> &#935<sup>2</sup> min</td> ')
+                    f.write('</tr>\n')
+                    f.write('<tr>\n')
+                    f.write('<td> {:.3f}</td>'.format(estatisticas['FuncaoObjetivo']['FO']) + self.__quebra)
+                    f.write('<td> {:.3f}</td>'.format(estatisticas['FuncaoObjetivo']['chi2max'])+self.__quebra)
+                    f.write('<td> {:.3f}</td>'.format(estatisticas['FuncaoObjetivo']['chi2min'])+self.__quebra)
+                    f.write('</tr>\n')
+                    f.write('</table>\n')
+                f.write( '</p>&nbsp;&nbsp;&nbsp;&nbsp;Info: a função objetivo deve estar entre &#935<sup>2</sup> min e &#935<sup>2</sup> max.' + self.__quebra)
                 f.write(self.__quebra)
 
                 # RESIDUAL ANALYSIS - Normality tests
-                f.write('<p>Análise de resíduos:</p>'+self.__quebra)
-                f.write('<p>&nbsp;&nbsp;&nbsp;&nbsp;Normalidade:</p>'+self.__quebra)
-                f.write('<p>{:-^45}</p>'.format('Testes com p-valores')+self.__quebra)
-                f.write('<p>&nbsp;&nbsp;&nbsp;&nbsp;Info: p-valores devem ser maiores do que o nível de significânca (1-PA)</p>'+self.__quebra+'<p>&nbsp;&nbsp;&nbsp;&nbsp;para não rejeitar a hipótese nula (Ho).</p>'+self.__quebra)
-                f.write(self.__quebra)
+                f.write('<h3>Análise de resíduos:</h3>'+self.__quebra)
+                f.write('<h4>&nbsp;&nbsp;&nbsp;&nbsp;Normalidade:</h4>'+self.__quebra)
+
+                f.write('<h4> Testes com p-valores </h4>')
                 f.write('<table border = "1">\n')
-                f.write('</tr>\n')
-                f.write('<th>{:<10} &nbsp;&nbsp;&nbsp;&nbsp;</th>'.format('Simbolos')+ ('<th colspan="1">{}</th>'*y.NV).format(*y.simbolos)+self.__quebra)
+                f.write('<tr>\n')
+
+
+                f.write(('<th>Simbolos</th>')+ ('<th> p-valores para {}</th>'*y.NV).format(*y.simbolos))
                 # semi-automated construction to fill in the values of the statistical normality tests.
                 for teste in y._Grandeza__nomesTestes['residuo-Normalidade'].keys():
                     break_line = False
@@ -308,6 +340,10 @@ class Report:
                     if break_line:
                         f.write(self.__quebra)
                 f.write('</table>\n')
+                f.write(self.__quebra)
+                f.write('<p>&nbsp;&nbsp;&nbsp;&nbsp;Info: p-valores devem ser maiores do que o nível de significânca (1-PA)</p>' + self.__quebra + '<p>&nbsp;&nbsp;&nbsp;&nbsp;para não rejeitar a hipótese nula (Ho).</p>' + self.__quebra)
+
+
                 f.write(self.__quebra)
                 # f.write('    {:-^45}'.format('Testes com valores críticos')+self.__quebra)
                 # f.write('    {:<}:                '.format('Simbolos')+ ('{:^37}'*y.NV).format(*y.simbolos)+self.__quebra)
@@ -329,7 +365,7 @@ class Report:
                 #         f.write(self.__quebra)
 
                 # RESIDUAL ANALYSIS - mean test
-                f.write('<p>    Média:</p>'+self.__quebra)
+                f.write('<h4>    Média:</h4>'+self.__quebra)
                 f.write('<p>    {:-^45}</p>'.format('Testes com p-valores')+self.__quebra)
                 f.write('<p>    Info: p-valores devem ser maiores do que o nível de significânca (1-PA)</p>'+self.__quebra+'    para não rejeitar a hipótese nula (Ho).</p>'+self.__quebra)
                 f.write(self.__quebra)
@@ -361,7 +397,7 @@ class Report:
 
                  # RESIDUAL ANALYSIS - autocorrelation tests
                 f.write(self.__quebra)
-                f.write('<p>    Autocorrelação:</p>'+self.__quebra)
+                f.write('<h4>    Autocorrelação:</h4>'+self.__quebra)
                 f.write('<p>    {:-^45}</p>'.format('Testes com p-valores')+self.__quebra)
                 f.write('<p>    Info: p-valores devem ser maiores do que o nível de significânca (1-PA)</p>\n   <p> para não rejeitar a hipótese nula (Ho).</p>'+self.__quebra)
                 f.write(self.__quebra)
