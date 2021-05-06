@@ -314,34 +314,67 @@ class Report:
 
                 # RESIDUAL ANALYSIS - Normality tests
                 f.write('<h3>Análise de resíduos:</h3>'+self.__quebra)
-                f.write('<h4>&nbsp;&nbsp;&nbsp;&nbsp;Normalidade:</h4>'+self.__quebra)
+                f.write('<h4>Normalidade:</h4>'+self.__quebra)
 
-                f.write('<h4> Testes com p-valores </h4>')
-                f.write('<table border = "1">\n')
+                f.write('<table border rules="all">')
                 f.write('<tr>\n')
-
-
-                f.write(('<th>Simbolos</th>')+ ('<th> p-valores para {}</th>'*y.NV).format(*y.simbolos))
+                f.write('<td colspan="3" align=center > <b> Testes com p-valores </b></td> \n')
+                f.write('</tr>\n')
+                f.write('<tr>\n')
+                f.write(('<td><b>Símbolos</b></td> <td> <b> P-valores para {} </b> </td> \n'*y.NV).format(*y.simbolos))
                 # semi-automated construction to fill in the values of the statistical normality tests.
+
+
                 for teste in y._Grandeza__nomesTestes['residuo-Normalidade'].keys():
                     break_line = False
                     if not isinstance(y._Grandeza__nomesTestes['residuo-Normalidade'][teste],dict):
+                        f.write('<td> Ho: {}</td>'.format(y._Grandeza__TestesInfo['residuo-Normalidade'][teste]['H0']))
                         f.write('</tr>\n')
-                        f.write('<td>{}:&nbsp;&nbsp;&nbsp;&nbsp;</p> '.format(teste))
+                    break
+               ## abrir esse for duas vezes pq necesssitava que h0 apenas uma vez aí usei o break para parar
+
+
+                #f.write(('<th>Simbolos</th>')+ ('<th> p-valores para {}</th>'*y.NV).format(*y.simbolos))
+                # semi-automated construction to fill in the values of the statistical normality tests.
+
+                for teste in y._Grandeza__nomesTestes['residuo-Normalidade'].keys():
+                    break_line = False
+
+
+
+                    if not isinstance(y._Grandeza__nomesTestes['residuo-Normalidade'][teste],dict):
+                        f.write('<tr>\n')
+                        f.write('<td>{}</td> '.format(teste))
                     for symb in y.simbolos:
                         if isinstance(y.estatisticas[symb]['residuo-Normalidade'][teste],float):
                             f.write('<td>{:^8.3f}</td>'.format(y.estatisticas[symb]['residuo-Normalidade'][teste])+' ')
+
+                            if float(1 - PA) < float(y.estatisticas[symb]['residuo-Normalidade'][teste]):
+                                f.write('<td> Aceita Ho </td>\n  ')
+                                f.write('</tr>')
+                            if float(1 - PA) > float(y.estatisticas[symb]['residuo-Normalidade'][teste]):
+                                f.write('<td> Rejeita Ho </td>\n ')
+                                f.write('</tr>')
                             break_line = True
+
+
                         elif y.estatisticas[symb]['residuo-Normalidade'][teste] is None:
                             f.write('<td>{:^8}</td>'.format('N/A')+' ')
+                            if float(1 - PA) < float(y.estatisticas[symb]['residuo-Normalidade'][teste]):
+                                f.write('<td> Aceita Ho </td>\n')
+                                f.write('</tr>')
+                            if float(1 - PA) > float(y.estatisticas[symb]['residuo-Normalidade'][teste]):
+                                f.write('<td> Rejeita Ho </td>\n')
+                                f.write('</tr>')
                             break_line = True
-                    if not isinstance(y._Grandeza__nomesTestes['residuo-Normalidade'][teste],dict):
-                        f.write('<td> Ho: {}</td>'.format(y._Grandeza__TestesInfo['residuo-Normalidade'][teste]['H0']))
+
+
+
                     if break_line:
+
                         f.write(self.__quebra)
                 f.write('</table>\n')
                 f.write(self.__quebra)
-                f.write('<p>&nbsp;&nbsp;&nbsp;&nbsp;Info: p-valores devem ser maiores do que o nível de significânca (1-PA)</p>' + self.__quebra + '<p>&nbsp;&nbsp;&nbsp;&nbsp;para não rejeitar a hipótese nula (Ho).</p>' + self.__quebra)
 
 
                 f.write(self.__quebra)
@@ -365,35 +398,66 @@ class Report:
                 #         f.write(self.__quebra)
 
                 # RESIDUAL ANALYSIS - mean test
-                f.write('<h4>    Média:</h4>'+self.__quebra)
-                f.write('<p>    {:-^45}</p>'.format('Testes com p-valores')+self.__quebra)
-                f.write('<p>    Info: p-valores devem ser maiores do que o nível de significânca (1-PA)</p>'+self.__quebra+'    para não rejeitar a hipótese nula (Ho).</p>'+self.__quebra)
-                f.write(self.__quebra)
-                f.write('<p>    {:<8}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:'.format('Simbolos') + ('{:^8}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'*y.NV).format(*y.simbolos) +'</p>'+ self.__quebra)
-                # construção semi-automatizada para preencher os valores dos testes estatísticos para média
+                f.write('<h4>    Média: </h4>'+self.__quebra)
+
+                f.write('<table border rules="all">')
+                f.write('<tr>\n')
+                f.write('<td colspan="3" align=center > <b> Testes com p-valores </b></td> \n')
+                f.write('</tr>\n')
+                f.write('<tr>\n')
+                f.write(
+                    ('<td><b>Símbolos</b></td> <td> <b> P-valores para {} </b> </td> \n' * y.NV).format(*y.simbolos))
+                # semi-automated construction to fill in the values of the statistical normality tests.
+
                 for teste in y._Grandeza__nomesTestes['residuo-Media'].keys():
-                     f.write('<p>    {:<8}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:'.format(teste))
-                     for symb in y.simbolos:
-                         if isinstance(y.estatisticas[symb]['residuo-Media'][teste],float):
-                             f.write('{:^8.3f}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'.format(y.estatisticas[symb]['residuo-Media'][teste])+' ')
-                         else:
-                             f.write('N/A')
-                             f.write(self.__quebra)
-               
-                     if not isinstance(y._Grandeza__nomesTestes['residuo-Media'][teste],dict):
-                        f.write(' | Ho: {}</p>'.format(y._Grandeza__TestesInfo['residuo-Media'][teste]['H0']))
-                        f.write(self.__quebra)
+                    break_line = False
+                    if not isinstance(y._Grandeza__nomesTestes['residuo-Media'][teste], dict):
+                        f.write('<td> Ho: {}</td>'.format(y._Grandeza__TestesInfo['residuo-Media'][teste]['H0']))
+                        f.write('</tr>\n')
+                    break
+                ## abrir esse for duas vezes pq necesssitava que h0 apenas uma vez aí usei o break para parar
 
-                     f.write('             ')
-                     for symb in y.simbolos:
+                # f.write(('<th>Simbolos</th>')+ ('<th> p-valores para {}</th>'*y.NV).format(*y.simbolos))
+                # semi-automated construction to fill in the values of the statistical normality tests.
+
+                for teste in y._Grandeza__nomesTestes['residuo-Media'].keys():
+                    break_line = False
+
+                    if not isinstance(y._Grandeza__nomesTestes['residuo-Media'][teste], dict):
+                        f.write('<tr>\n')
+                        f.write('<td>{}</td> '.format(teste))
+                    for symb in y.simbolos:
                         if isinstance(y.estatisticas[symb]['residuo-Media'][teste], float):
-                            f.write('&nbsp;&nbsp;&nbsp;&nbsp;Aceita H0</p>' if y.estatisticas[symb]['residuo-Media'][teste] >= 1-PA else '&nbsp;&nbsp;&nbsp;&nbsp;Rejeita H0</p>')
-                        else:
-                            f.write('N/A</p>')
-                            f.write(self.__quebra)
+                            f.write(
+                                '<td align=center>{:^8.3f}</td>'.format(y.estatisticas[symb]['residuo-Media'][teste]) + ' ')
 
-                     if break_line:
+                            if float(1 - PA) < float(y.estatisticas[symb]['residuo-Media'][teste]):
+                                f.write('<td align=center> Aceita Ho </td>\n  ')
+                                f.write('</tr>')
+                            if float(1 - PA) > float(y.estatisticas[symb]['residuo-Media'][teste]):
+                                f.write('<td align=center> Rejeita Ho </td>\n ')
+                                f.write('</tr>')
+                            break_line = True
+
+
+                        elif y.estatisticas[symb]['residuo-Media'][teste] is None:
+                            f.write('<td align=center>{:^8}</td>'.format('N/A') + ' ')
+                            if float(1 - PA) < float(y.estatisticas[symb]['residuo-Media'][teste]):
+                                f.write('<td align=center> Aceita Ho </td>\n')
+                                f.write('</tr>')
+                            if float(1 - PA) > float(y.estatisticas[symb]['residuo-Media'][teste]):
+                                f.write('<td align=center> Rejeita Ho </td>\n')
+                                f.write('</tr>')
+                            break_line = True
+
+                    if break_line:
                         f.write(self.__quebra)
+                f.write('</table>\n')
+                f.write(self.__quebra)
+
+
+
+
 
                  # RESIDUAL ANALYSIS - autocorrelation tests
                 f.write(self.__quebra)
