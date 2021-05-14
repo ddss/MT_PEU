@@ -247,21 +247,26 @@ class Report:
                 f.write('<h2> GRANDEZAS DEPENDENTES </h2 >\n')
                 # R2:
                 f.write('<h3>Coeficientes de correlação:</h3> \n'+self.__quebra)
+
                 # Operator to format the values of R2 and R2 adjusted, because they are dictionaries.
-                construtor_formatacao_simbolos = ['{'+str(symb)+':^8.3f}' for symb in y.simbolos]
+                #construtor_formatacao_simbolos = ['{'+str(symb)+':^8.3f}' for symb in y.simbolos]
 
                 f.write('<table border rules = all > \n')
                 f.write('<tr>\n')
-                f.write('<td> Simbolos </td>\n')
-                f.write('<td> {} </td/>\n'.format(*y.simbolos))
-                f.write('</tr>\n')
+                f.write('<td><b> Símbolos </b> </td>\n')
+                f.write(('<td><b> {} </b> </td/>\n'*y.NV).format(*y.simbolos))
+                ##escreve os símbolos na tabela 
                 f.write('<tr>\n')
                 f.write('<td> Coeficiente de determinação  </td> \n')
-                f.write( '<td> '+ ('' .join(construtor_formatacao_simbolos)).format(**estatisticas['R2'])+'</td>\n' )
+                for id3 in range(y.NV):
+                    ## id3 corresponde aos elementos da lista de simbolos usados para endereçar  os coeficientes no dicionário
+                    f.write(( '<td> {:.3f} </td>\n').format(estatisticas['R2'][y.simbolos[id3]]))
                 f.write('</tr>\n')
                 f.write('<tr>\n')
                 f.write('<td> Coeficiente de determinação ajustado </td>\n')
-                f.write('<td>' +  (''.join(construtor_formatacao_simbolos)).format(**estatisticas['R2ajustado']) + '</td>\n' )
+                for id3 in range(y.NV):
+                    ## id3 corresponde aos elementos da lista de simbolos usados para endereçar  os coeficientes no dicionário
+                    f.write(( '<td> {:.3f} </td>\n').format(estatisticas['R2ajustado'][y.simbolos[id3]]))
                 f.write('</tr>\n')
                 f.write('</table>')
 
@@ -270,7 +275,7 @@ class Report:
                 # Objective function
                 f.write('<h3>Função objetivo (FO):</h3>'+self.__quebra)
 
-                # Operator to format the values of R2 and R2 adjusted, because they are dictionaries.
+
                 if float(estatisticas['FuncaoObjetivo']['chi2max'])>float(estatisticas['FuncaoObjetivo']['FO']) and float(estatisticas['FuncaoObjetivo']['FO'])>float(estatisticas['FuncaoObjetivo']['chi2min']):
                     f.write('<table border rules = all>\n')
                     f.write('<tr>\n')
@@ -315,67 +320,70 @@ class Report:
                 # RESIDUAL ANALYSIS - Normality tests
                 f.write('<h3>Análise de resíduos:</h3>'+self.__quebra)
                 f.write('<h4>Normalidade:</h4>'+self.__quebra)
+                def writetable (nometeste):
+                    ##função escreve tabela automática , o objetivo dela é escrever automaticamente as tabelas com as informacões dos testes do resíduos
+                    f.write('<table border rules="all">')
+                    f.write('<tr>\n')
 
-                f.write('<table border rules="all">')
-                f.write('<tr>\n')
-                f.write('<td colspan="3" align=center > <b> Testes com p-valores </b></td> \n')
-                f.write('</tr>\n')
-                f.write('<tr>\n')
-                f.write(('<td><b>Símbolos</b></td> <td> <b> P-valores para {} </b> </td> \n'*y.NV).format(*y.simbolos))
-                # semi-automated construction to fill in the values of the statistical normality tests.
-
-
-                for teste in y._Grandeza__nomesTestes['residuo-Normalidade'].keys():
-                    break_line = False
-                    if not isinstance(y._Grandeza__nomesTestes['residuo-Normalidade'][teste],dict):
-                        f.write('<td> Ho: {}</td>'.format(y._Grandeza__TestesInfo['residuo-Normalidade'][teste]['H0']))
+                    for  teste in y._Grandeza__nomesTestes[nometeste].keys():
+                        break_line = False
+                    if not isinstance(y._Grandeza__nomesTestes[nometeste][teste], dict):
+                        f.write('<td colspan="{}" align=center> <b> Ho: {} </b> </td> \n'.format(int(2*int(y.NV)+1),y._Grandeza__TestesInfo[nometeste][teste]['H0']))
                         f.write('</tr>\n')
-                    break
-               ## abrir esse for duas vezes pq necesssitava que h0 apenas uma vez aí usei o break para parar
-
-
-                #f.write(('<th>Simbolos</th>')+ ('<th> p-valores para {}</th>'*y.NV).format(*y.simbolos))
-                # semi-automated construction to fill in the values of the statistical normality tests.
-
-                for teste in y._Grandeza__nomesTestes['residuo-Normalidade'].keys():
-                    break_line = False
+                   ## titulo automático para mesclar as células dependendo da quantidade de váriaveis
+                   ## f.write('<td colspan="3" align=center > <b> Testes com p-valores </b></td> \n')
 
 
 
-                    if not isinstance(y._Grandeza__nomesTestes['residuo-Normalidade'][teste],dict):
-                        f.write('<tr>\n')
-                        f.write('<td>{}</td> '.format(teste))
-                    for symb in y.simbolos:
-                        if isinstance(y.estatisticas[symb]['residuo-Normalidade'][teste],float):
-                            f.write('<td>{:^8.3f}</td>'.format(y.estatisticas[symb]['residuo-Normalidade'][teste])+' ')
-
-                            if float(1 - PA) < float(y.estatisticas[symb]['residuo-Normalidade'][teste]):
-                                f.write('<td> Aceita Ho </td>\n  ')
-                                f.write('</tr>')
-                            if float(1 - PA) > float(y.estatisticas[symb]['residuo-Normalidade'][teste]):
-                                f.write('<td> Rejeita Ho </td>\n ')
-                                f.write('</tr>')
-                            break_line = True
 
 
-                        elif y.estatisticas[symb]['residuo-Normalidade'][teste] is None:
-                            f.write('<td>{:^8}</td>'.format('N/A')+' ')
-                            if float(1 - PA) < float(y.estatisticas[symb]['residuo-Normalidade'][teste]):
-                                f.write('<td> Aceita Ho </td>\n')
-                                f.write('</tr>')
-                            if float(1 - PA) > float(y.estatisticas[symb]['residuo-Normalidade'][teste]):
-                                f.write('<td> Rejeita Ho </td>\n')
-                                f.write('</tr>')
-                            break_line = True
+                    f.write('<tr>\n')
+                    f.write('<td><b>Testes com p-valores </b></td> ')
+                    f.write(('<td> <b> Resíduos para {} </b> </td> <td> <b> Aceita Ho </b> </td> \n'*y.NV).format(*y.simbolos))
+                    f.write('<tr>\n')
+                    # cria 2 células para cada variável de saída e desloca para a direita
 
 
 
-                    if break_line:
 
-                        f.write(self.__quebra)
-                f.write('</table>\n')
-                f.write(self.__quebra)
 
+
+                    #f.write(('<th>Simbolos</th>')+ ('<th> p-valores para {}</th>'*y.NV).format(*y.simbolos))
+                    # semi-automated construction to fill in the values of the statistical normality tests.
+
+                    for teste in y._Grandeza__nomesTestes[nometeste].keys():
+                        break_line = False
+
+
+
+                        if not isinstance(y._Grandeza__nomesTestes[nometeste][teste],dict):
+                            f.write('<tr>\n')
+                            f.write('<td>{}</td> '.format(teste))
+                        for symb in y.simbolos:
+                            if isinstance(y.estatisticas[symb][nometeste][teste],float):
+                                f.write('<td>{:^8.3f}</td>'.format(y.estatisticas[symb][nometeste][teste])+' ')
+
+                                if float(1 - PA) < float(y.estatisticas[symb][nometeste][teste]):
+                                    f.write('<td> Sim </td>\n  ')
+
+                                if float(1 - PA) > float(y.estatisticas[symb][nometeste][teste]):
+                                    f.write('<td> Não </td>\n ')
+
+                                break_line = True
+
+                            elif y.estatisticas[symb][nometeste][teste] is None:
+                                f.write('<td>{:^8}</td>'.format('N/A')+' ')
+                                f.write('<td> - </td>\n ')
+
+                                break_line = True
+                        f.write('</tr>')
+
+
+
+                    f.write('</table>\n')
+                    f.write(self.__quebra)
+
+                writetable('residuo-Normalidade')
 
                 f.write(self.__quebra)
                 # f.write('    {:-^45}'.format('Testes com valores críticos')+self.__quebra)
@@ -399,67 +407,9 @@ class Report:
 
                 # RESIDUAL ANALYSIS - mean test
                 f.write('<h4>    Média: </h4>'+self.__quebra)
+                writetable('residuo-Media')
 
-                f.write('<table border rules="all">')
-                f.write('<tr>\n')
-                f.write('<td colspan="3" align=center > <b> Testes com p-valores </b></td> \n')
-                f.write('</tr>\n')
-                f.write('<tr>\n')
-                f.write(
-                    ('<td><b>Símbolos</b></td> <td> <b> P-valores para {} </b> </td> \n' * y.NV).format(*y.simbolos))
-                # semi-automated construction to fill in the values of the statistical normality tests.
-
-                for teste in y._Grandeza__nomesTestes['residuo-Media'].keys():
-                    break_line = False
-                    if not isinstance(y._Grandeza__nomesTestes['residuo-Media'][teste], dict):
-                        f.write('<td> Ho: {}</td>'.format(y._Grandeza__TestesInfo['residuo-Media'][teste]['H0']))
-                        f.write('</tr>\n')
-                    break
-                ## abrir esse for duas vezes pq necesssitava que h0 apenas uma vez aí usei o break para parar
-
-                # f.write(('<th>Simbolos</th>')+ ('<th> p-valores para {}</th>'*y.NV).format(*y.simbolos))
-                # semi-automated construction to fill in the values of the statistical normality tests.
-
-                for teste in y._Grandeza__nomesTestes['residuo-Media'].keys():
-                    break_line = False
-
-                    if not isinstance(y._Grandeza__nomesTestes['residuo-Media'][teste], dict):
-                        f.write('<tr>\n')
-                        f.write('<td>{}</td> '.format(teste))
-                    for symb in y.simbolos:
-                        if isinstance(y.estatisticas[symb]['residuo-Media'][teste], float):
-                            f.write(
-                                '<td align=center>{:^8.3f}</td>'.format(y.estatisticas[symb]['residuo-Media'][teste]) + ' ')
-
-                            if float(1 - PA) < float(y.estatisticas[symb]['residuo-Media'][teste]):
-                                f.write('<td align=center> Aceita Ho </td>\n  ')
-                                f.write('</tr>')
-                            if float(1 - PA) > float(y.estatisticas[symb]['residuo-Media'][teste]):
-                                f.write('<td align=center> Rejeita Ho </td>\n ')
-                                f.write('</tr>')
-                            break_line = True
-
-
-                        elif y.estatisticas[symb]['residuo-Media'][teste] is None:
-                            f.write('<td align=center>{:^8}</td>'.format('N/A') + ' ')
-                            if float(1 - PA) < float(y.estatisticas[symb]['residuo-Media'][teste]):
-                                f.write('<td align=center> Aceita Ho </td>\n')
-                                f.write('</tr>')
-                            if float(1 - PA) > float(y.estatisticas[symb]['residuo-Media'][teste]):
-                                f.write('<td align=center> Rejeita Ho </td>\n')
-                                f.write('</tr>')
-                            break_line = True
-
-                    if break_line:
-                        f.write(self.__quebra)
-                f.write('</table>\n')
-                f.write(self.__quebra)
-
-
-
-
-
-                 # RESIDUAL ANALYSIS - autocorrelation tests
+                # RESIDUAL ANALYSIS - autocorrelation tests
                 f.write(self.__quebra)
                 f.write('<h4>    Autocorrelação:</h4>'+self.__quebra)
                 f.write('<p>    {:-^45}</p>'.format('Testes com p-valores')+self.__quebra)
