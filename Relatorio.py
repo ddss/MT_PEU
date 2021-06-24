@@ -243,7 +243,6 @@ class Report:
                 f.write('</center>\n')
                 f.write('<hr />\n')
 
-
                 f.write('<h2> GRANDEZAS DEPENDENTES </h2 >\n')
                 # R2:
                 f.write('<h3>Coeficientes de correlação:</h3> \n'+self.__quebra)
@@ -268,13 +267,10 @@ class Report:
                     ## id3 corresponde aos elementos da lista de simbolos usados para endereçar  os coeficientes no dicionário
                     f.write(( '<td> {:.3f} </td>\n').format(estatisticas['R2ajustado'][y.simbolos[id3]]))
                 f.write('</tr>\n')
-                f.write('</table>')
-
-                f.write(self.__quebra)
+                f.write('</table>\n')
 
                 # Objective function
                 f.write('<h3>Função objetivo (FO):</h3>'+self.__quebra)
-
 
                 if float(estatisticas['FuncaoObjetivo']['chi2max'])>float(estatisticas['FuncaoObjetivo']['FO']) and float(estatisticas['FuncaoObjetivo']['FO'])>float(estatisticas['FuncaoObjetivo']['chi2min']):
                     f.write('<table border rules = all>\n')
@@ -298,8 +294,6 @@ class Report:
                     f.write('<td> {:.3f}</td>'.format(estatisticas['FuncaoObjetivo']['FO']) + self.__quebra)
                     f.write('<td> {:.3f}</td>'.format(estatisticas['FuncaoObjetivo']['chi2min']) + self.__quebra)
                     f.write('<td> {:.3f}</td>'.format(estatisticas['FuncaoObjetivo']['chi2max'])+self.__quebra)
-
-
                     f.write('</tr>\n')
                     f.write('</table>\n')
 
@@ -325,14 +319,12 @@ class Report:
                 def writetable (nometeste):
                     ##função escreve tabela automática , o objetivo dela é escrever automaticamente as tabelas com as informacões dos testes do resíduos
                     f.write('<table border rules="all">')
-
                     f.write('<tr>\n')
                     f.write('<td><b>Testes com p-valores </b></td> ')
                     f.write(('<td> <b> Resíduos para {} </b> </td> <td> <b> Aceita Ho </b> </td> \n'*y.NV).format(*y.simbolos))
                     f.write('<tr>\n')
                     # cria 2 células para cada variável de saída e desloca para a direita
                     for teste in y._Grandeza__nomesTestes[nometeste].keys():
-
                         if not isinstance(y._Grandeza__nomesTestes[nometeste][teste],dict):
                             f.write('<tr>\n')
                             f.write('<td>{}</td> '.format(teste))
@@ -346,21 +338,16 @@ class Report:
                             elif y.estatisticas[symb][nometeste][teste] is None:
                                 f.write('<td>{:^8}</td>'.format('N/A')+' ')
                                 f.write('<td> - </td>\n ')
-
-
                         f.write('</tr>')
                     f.write('</table>\n')
                     f.write('<ul>\n')
                     f.write('<li> <i> Ho( Hipótese nula ): </i> </b> {} </li> \n'.format(
                         y._Grandeza__TestesInfo[nometeste][teste]['H0']))
-
                     f.write(
                         '<li>   <p>  <i> Informação : </i>  p-valores devem ser maiores do que o nível de significânca (1-PA) </p> <p>    para não rejeitar a hipótese nula (Ho).</li>' + self.__quebra)
                     f.write('</ul>')
                 f.write('<h4>Normalidade:</h4>'+self.__quebra)
-
                 writetable('residuo-Normalidade')
-
 
                 # RESIDUAL ANALYSIS - mean test
                 f.write('<h4>    Média: </h4>'+self.__quebra)
