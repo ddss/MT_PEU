@@ -1,9 +1,0 @@
-diff a/Relatorio.py b/Relatorio.py	(rejected hunks)
-@@ -162,7 +162,6 @@
-         ============================================================================
-         Write the prediction and residual analysis results in the prediction report.
-         ============================================================================
--                exports the covariance matrix of y.
- 
-         - Parameters
-         ------------

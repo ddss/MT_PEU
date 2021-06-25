@@ -20,7 +20,7 @@ def Model(param,x,*args):
 # units_y: List of units of measurement for independent quantities;
 # Folder: Defines the name of the folder where the results will be saved.
 Estime = EstimacaoNaoLinear(Model,symbols_x=['x1','x2'],symbols_y=['y1','y2'],symbols_param=['alpha1','alpha2', 'beta1', 'beta2'],
-                          label_latex_param=[r'$\alpha_1$',r'$\alpha_2$',r'$\beta_1$',r'$\beta_2$'],units_y=['kg','kg'],Folder='Example4')
+                          label_latex_param=[r'$\alpha_1$',r'$\alpha_2$',r'$\beta_1$',r'$\beta_2$'],units_y=['kg','kg'],Folder='Exemple4')
 
 #%% Defining observed data
 # Input data
@@ -88,5 +88,5 @@ Estime.residualAnalysis(report=True)
 
 #%% Plotting the main results
 # using solely default options
-#Estime.plots()
+Estime.plots()
 Estime.reports()

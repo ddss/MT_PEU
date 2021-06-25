@@ -2,25 +2,25 @@
 from MT_PEU_Linear import EstimacaoLinear
 
 #%% Initialization of the class that performs the estimation.
-ER = EstimacaoLinear(['q'],['x'],['k'],folder='Example7')
+ER = EstimacaoLinear(['y'],['x'],['p1','p2'],folder='Exemple6')
 
 #%% Defining observed data
 # Input data
 # input 1
-x = [10, 20, 30, 40]
+x = [0,1,2,3,4,5]
 # input 1 uncertainty
-ux = [1, 1, 1, 1]
+ux = [1,1,1,1,1,1]
 # Output data
 # output 1
-q = [1050, 2000, 2950, 4000]
+y = [.1,.9,2.2,3.2,3.9,4.8]
 # output 1 uncertainty
-uq= [1, 1, 1, 1]
+uy = [1,1,1,1,1,1]
 
 #%% Setting the observed data set
 # inputs
 ER.setDados(0,(x,ux))
 # outputs
-ER.setDados(1,(q,uq))
+ER.setDados(1,(y,uy))
 
 # Defining the previous data set to be used to parameter estimation
 # dataType: Defines the purpose of the informed data set: estimacao, predicao.
@@ -30,12 +30,12 @@ ER.setConjunto(glx=[],gly=[],dataType='estimacao')
 
 #%% Optimization - estimating the parameters
 # parametersReport: Informs whether the parameters report should be created (True or False).
-ER.optimize(parametersReport=True)
+ER.optimize(parametersReport=False)
 
 #%% Evaluating the parameters uncertainty and coverage region
 # objectiveFunctionMapping: Deals with mapping the objective function (True or False);
 # parametersReport: Informs whether the parameters report should be created.
-ER.parametersUncertainty(uncertaintyMethod='2InvHessiana',objectiveFunctionMapping=False)
+ER.parametersUncertainty(objectiveFunctionMapping=True, parametersReport=True)
 
 #%% Evaluating model predictions
 # export_y: Exports the calculated data of y, its uncertainty, and degrees of freedom in a txt with comma separation (True or False);
@@ -46,7 +46,7 @@ ER.parametersUncertainty(uncertaintyMethod='2InvHessiana',objectiveFunctionMappi
 ER.prediction(export_y=True,export_y_xls=True, export_cov_y=True, export_x=True, export_cov_x=True)
 
 #%% Evaluating residuals and quality index
-ER.residualAnalysis(report=False)
+ER.residualAnalysis(report=True)
 
 #%% Plotting the main results
 # using solely default options
@@ -55,6 +55,6 @@ ER.reports()
 
 #%% Reference of this case study
 # SCHWAAB, M.M.;PINTO, J.C. Análise de Dados Experimentais I: Fundamentos da Estátistica e Estimação de Parâmetros. Rio de Janeiro: e-papers, 2007.
-# Avaliação de dados de medição — Guia para a expressão de incerteza de medição  http://www.inmetro.gov.br/noticias/conteudo/iso_gum_versao_site.pdf
+# Avaliação de dados de medição — Guia para a expressão de incerteza de medição http://www.inmetro.gov.br/noticias/conteudo/iso_gum_versao_site.pdf
 
 
