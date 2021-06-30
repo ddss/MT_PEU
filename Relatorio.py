@@ -375,9 +375,9 @@ class Report:
                                         if isinstance(y._Grandeza__nomesTestes[resíduo_nome][teste][key],
                                                       float):
                                             f.write('<td>{:^8.3f}</td>'.format(y.estatisticas[symb][resíduo_nome][teste][key]))
-                                            if float(1 - PA) < float(y._Grandeza__nomesTestes[resíduo_nome][teste][key]):
+                                            if float(1 - PA) < float(y.estatisticas[symb][resíduo_nome][teste][key]):
                                                 f.write('<td> Sim </td>\n  ')
-                                            if float(1 - PA) > float(y._Grandeza__nomesTestes[resíduo_nome][teste][key]):
+                                            if float(1 - PA) > float(y.estatisticas[symb][resíduo_nome][teste][key]):
                                                 f.write('<td> Não </td>\n ')
                                         else:
                                             f.write('<td> N/A </td>')
