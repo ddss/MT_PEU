@@ -57,7 +57,7 @@ Estime.optimize(initial_estimative=[0.5,25000])
 
 #%% Evaluating the parameters uncertainty and coverage region
 # using solely default options
-Estime.parametersUncertainty(objectiveFunctionMapping= False)
+Estime.parametersUncertainty()
 
 #%% Evaluating model predictions
 # using solely default options
