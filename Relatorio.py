@@ -244,17 +244,15 @@ class Report:
                 f.write('<hr />\n')
 
                 f.write('<h2> GRANDEZAS DEPENDENTES </h2 >\n')
-                # R2:
                 f.write('<h3>Coeficientes de correlação:</h3> \n'+self.__quebra)
 
                 # Operator to format the values of R2 and R2 adjusted, because they are dictionaries.
                 #construtor_formatacao_simbolos = ['{'+str(symb)+':^8.3f}' for symb in y.simbolos]
 
-                f.write('<table border rules = all > \n')
+                f.write('<table border rules = all > \n') #Inicia a tabela no HTML
                 f.write('<tr>\n')
                 f.write('<td><b> Símbolos </b> </td>\n')
-                f.write(('<td><b> {} </b> </td/>\n'*y.NV).format(*y.simbolos))
-                ##escreve os símbolos na tabela
+                f.write(('<td><b> {} </b> </td/>\n'*y.NV).format(*y.simbolos)) #Escreve os símbolos na tabela
                 f.write('<tr>\n')
                 f.write('<td> Coeficiente de determinação  </td> \n')
                 for id3 in range(y.NV):
@@ -271,6 +269,7 @@ class Report:
 
                 # Objective function
                 f.write('<h3>Função objetivo (FO):</h3>'+self.__quebra)
+                # O valor da função objetivo é selecionado para ficar na esquerda , na direita ou no centro dos valores de chi2min e chi2max
 
                 if float(estatisticas['FuncaoObjetivo']['chi2max'])>float(estatisticas['FuncaoObjetivo']['FO']) and float(estatisticas['FuncaoObjetivo']['FO'])>float(estatisticas['FuncaoObjetivo']['chi2min']):
                     f.write('<table border rules = all>\n')
@@ -285,7 +284,7 @@ class Report:
                     f.write('</tr>\n')
                     f.write('</table>\n')
 
-                if float(estatisticas['FuncaoObjetivo']['FO'])<float(estatisticas['FuncaoObjetivo']['chi2min']):
+                elif float(estatisticas['FuncaoObjetivo']['FO'])<float(estatisticas['FuncaoObjetivo']['chi2min']):
                     f.write('<table border rules = all>\n')
                     f.write('<tr>\n')
                     f.write('<td><b> FO  </b> </td> <td><b>  &#935<sup>2</sup> min </b> </td>  <td> <b>&#935<sup>2</sup> max </b></td> ')
@@ -297,7 +296,7 @@ class Report:
                     f.write('</tr>\n')
                     f.write('</table>\n')
 
-                if float(estatisticas['FuncaoObjetivo']['FO'])>float(estatisticas['FuncaoObjetivo']['chi2max']):
+                else :
                     f.write('<table border rules = all>\n')
                     f.write('<tr>\n')
                     f.write(' <td><b>  &#935<sup>2</sup> min </b> </td>  <td> <b>&#935<sup>2</sup> max </b></td> <td><b> FO  </b> </td>')
@@ -314,111 +313,122 @@ class Report:
                 f.write('</ul>')
                 f.write(self.__quebra)
 
-                # RESIDUAL ANALYSIS - Normality tests
-                f.write('<h3>Análise de resíduos:</h3>'+self.__quebra)
-                def writetable (nometeste):
-                    ##função escreve tabela automática , o objetivo dela é escrever automaticamente as tabelas com as informacões dos testes do resíduos
-                    f.write('<table border rules="all">')
-                    f.write('<tr>\n')
-                    f.write('<td><b>Testes com p-valores </b></td> ')
-                    f.write(('<td> <b> Resíduos para {} </b> </td> <td> <b> Aceita Ho </b> </td> \n'*y.NV).format(*y.simbolos))
-                    f.write('<tr>\n')
-                    # cria 2 células para cada variável de saída e desloca para a direita
-                    for teste in y._Grandeza__nomesTestes[nometeste].keys():
-                        if not isinstance(y._Grandeza__nomesTestes[nometeste][teste],dict):
-                            f.write('<tr>\n')
-                            f.write('<td>{}</td> '.format(teste))
-                        for symb in y.simbolos:
-                            if isinstance(y.estatisticas[symb][nometeste][teste],float):
-                                f.write('<td>{:^8.3f}</td>'.format(y.estatisticas[symb][nometeste][teste])+' ')
-                                if float(1 - PA) < float(y.estatisticas[symb][nometeste][teste]):
-                                    f.write('<td> Sim </td>\n  ')
-                                if float(1 - PA) > float(y.estatisticas[symb][nometeste][teste]):
-                                    f.write('<td> Não </td>\n ')
-                            elif y.estatisticas[symb][nometeste][teste] is None:
-                                f.write('<td>{:^8}</td>'.format('N/A')+' ')
-                                f.write('<td> - </td>\n ')
-                        f.write('</tr>')
-                    f.write('</table>\n')
-                    f.write('<ul>\n')
-                    f.write('<li> <i> Ho( Hipótese nula ): </i> </b> {} </li> \n'.format(
-                        y._Grandeza__TestesInfo[nometeste][teste]['H0']))
-                    f.write(
-                        '<li>   <p>  <i> Informação : </i>  p-valores devem ser maiores do que o nível de significânca (1-PA) </p> <p>    para não rejeitar a hipótese nula (Ho).</li>' + self.__quebra)
-                    f.write('</ul>')
+               # RESIDUAL ANALYSIS
+                def writetable (nome_teste,resíduo_nome=None):
+                    #Função escreve tabela automática , o objetivo dela é escrever automaticamente as tabelas com seus respectivos testes
+                    if resíduo_nome is None:
+                        # Parte I da função que escreve as tabelas em Normalidade (normaltest,shapiro,anderson,kstest) e Média(ttest,ztest).
+                        f.write('<table border rules="all">')
+                        f.write('<tr>\n')
+                        f.write('<td><b>Testes com p-valores </b></td> ')
+                        f.write(('<td> <b> Resíduos para {} </b> </td> <td> <b> Aceita Ho </b> </td> \n'*y.NV).format(*y.simbolos))
+                        f.write('<tr>\n')
+                        # Cria 2 células para cada variável de saída e desloca para a direita
+                        for teste in y._Grandeza__nomesTestes[nome_teste].keys():
+                            if not isinstance(y._Grandeza__nomesTestes[nome_teste][teste],dict):
+                                f.write('<tr>\n')
+                                f.write('<td>{}</td> '.format(teste))
+                            for symb in y.simbolos:
+                                if isinstance(y.estatisticas[symb][nome_teste][teste],float):
+                                    f.write('<td>{:^8.3f}</td>'.format(y.estatisticas[symb][nome_teste][teste])+' ')
+                                    if float(1 - PA) < float(y.estatisticas[symb][nome_teste][teste]):
+                                        f.write('<td> Sim </td>\n  ')
+                                    else:
+                                        f.write('<td> Não </td>\n ')
+                                elif y.estatisticas[symb][nome_teste][teste] is None:
+                                    f.write('<td>{:^8}</td>'.format('N/A')+' ')
+                                    f.write('<td> - </td>\n ')
+                            f.write('</tr>')
+                        f.write('</table>\n')
+                        f.write('<ul>\n')
+                        f.write('<li> <i> Ho( Hipótese nula ): </i> </b> {} </li> \n'.format(
+                            y._Grandeza__TestesInfo[nome_teste][teste]['H0']))
+                        f.write(
+                            '<li>   <p>  <i> Informação : </i>  p-valores devem ser maiores do que o nível de '
+                            'significânca (1-PA) </p> <p>    para não rejeitar a hipótese nula (Ho).</li>' + self.__quebra)
+                        f.write('</ul>')
+                    elif nome_teste == 'Durbin Watson':
+                        # Parte II da função , escreve as tabelas em Autocorrelação(Durbin Watson).
+                        f.write('<table border rules="all">')
+                        f.write('<tr>')
+                        f.write('<td>  <b>  {:<}:   </b> </td>'.format('Durbin Watson') + (
+                                    '<td> <b> Resíduos para {:^8} </b> ' * y.NV).format(
+                            *y.simbolos) + '</td> </tr>' + self.__quebra)
+                        if isinstance(y._Grandeza__nomesTestes[resíduo_nome][nome_teste], dict):
+                                f.write('<tr> <td> {:<33}</td>'.format('estatistica'))
+                                for symb in y.simbolos:
+                                    if isinstance(
+                                            y._Grandeza__nomesTestes[resíduo_nome][nome_teste]['estatistica'],
+                                            float):
+                                        f.write('<td>{:^8.3f}</td>'.format(
+                                            y.estatisticas[symb][resíduo_nome][nome_teste]['estatistica']))
+                                    else:
+                                        f.write('<td> N/A </td>')
+                                f.write('</tr>')
+                        f.write('</table >\n')
+                        f.write(
+                            '<ul>  <li> <i> Informação : </i> </b> <p>  \n <p> <b>'
+                            ' (i) </b> Se a estatística do teste estiver próxima de 0 indica autocorrelação positiva</p>\n         '
+                            ' <p><b> (ii) </b>  Se a estatística do teste estiver próxima de 4 indica autocorrelação negativa</p>\n         '
+                            ' <p><b> (iii) </b> Se a estatística do teste estiver próxima de 2 indica que não há autocorrelação.</li></ul>' + self.__quebra)
+                        f.write(self.__quebra)
+
+                    else:
+                        # Parte III da função , escreve as tabelas em Autocorrelação(Ljung-Box) e Homocedasticidade(white test,Bresh Pagan).
+                        f.write('<p><u><i> {} </u></i></p>\n'.format('Testes com p-valores'))
+                        f.write('<table border rules="all">')
+                        f.write('<tr>')
+                        f.write('<td>  <b>  {:<}:   </b> </td>'.format(nome_teste) + (
+                                '<td><b> Resíduos para {:^8} </b> <td><b> Aceita Ho </b></td>' * y.NV).format(
+                            *y.simbolos) + '</td> ')
+                        f.write('</tr>\n')
+                        for teste in y._Grandeza__nomesTestes[resíduo_nome].keys():
+
+                            if teste == nome_teste:
+                                if isinstance(y._Grandeza__nomesTestes[resíduo_nome][teste], dict):
+                                    for key in y._Grandeza__nomesTestes[resíduo_nome][teste].keys():
+                                        f.write('<tr> <td> {:<33}</td>'.format(key))
+                                        for symb in y.simbolos:
+                                            if isinstance(y._Grandeza__nomesTestes[resíduo_nome][teste][key],
+                                                          float):
+                                                f.write('<td>{:^8.3f}</td>'.format(
+                                                    y.estatisticas[symb][resíduo_nome][teste][key]))
+                                                if float(1 - PA) < float(
+                                                        y.estatisticas[symb][resíduo_nome][teste][key]):
+                                                    f.write('<td> Sim </td>\n  ')
+                                                if float(1 - PA) > float(
+                                                        y.estatisticas[symb][resíduo_nome][teste][key]):
+                                                    f.write('<td> Não </td>\n ')
+                                            else:
+                                                f.write('<td> N/A </td>')
+                                        f.write('</tr>')
+
+                        f.write('</table>\n')
+
+                        f.write('<ul>\n')
+                        f.write('<li> <i> Ho( Hipótese nula ): </i> </b> {} </li> \n'.format(
+                            y._Grandeza__TestesInfo[resíduo_nome][teste][key]['H0']))
+
+                        f.write(
+                            '<li>   <p>  <i> Informação : </i>  p-valores devem ser maiores do que o nível de significânca (1-PA) </p> <p>    para não rejeitar a hipótese nula (Ho).</li>' + self.__quebra)
+                        f.write('</ul>')
+                # RESIDUAL ANALYSIS
+                f.write('<h3>Análise de resíduos:</h3>' + self.__quebra)
+                # RESIDUAL ANALYSIS - normal
                 f.write('<h4>Normalidade:</h4>'+self.__quebra)
                 writetable('residuo-Normalidade')
-
                 # RESIDUAL ANALYSIS - mean test
                 f.write('<h4>    Média: </h4>'+self.__quebra)
                 writetable('residuo-Media')
                 f.write('\n')
                 # RESIDUAL ANALYSIS - autocorrelation tests
-
-                def writetable2(resíduo_nome, nome_teste):
-                    # função escreve tabela2, para teste que usam mais de uma maneira para testar resultados
-                    f.write('<p><u><i> {} </u></i></p>\n'.format('Testes com p-valores'))
-                    f.write('<table border rules="all">')
-                    f.write('<tr>')
-                    f.write('<td>  <b>  {:<}:   </b> </td>'.format(nome_teste) + (
-                            '<td><b> Resíduos para {:^8} </b>' * y.NV).format(
-                        *y.simbolos) + '</td> ' + (
-                            '<td><b> Aceita Ho </b></td> ' * y.NV) + self.__quebra)
-                    f.write('</tr>\n')
-                    for teste in y._Grandeza__nomesTestes[resíduo_nome].keys():
-
-                        if teste == nome_teste:
-                            if isinstance(y._Grandeza__nomesTestes[resíduo_nome][teste], dict):
-                                for key in y._Grandeza__nomesTestes[resíduo_nome][teste].keys():
-                                    f.write('<tr> <td> {:<33}</td>'.format(key))
-                                    for symb in y.simbolos:
-                                        if isinstance(y._Grandeza__nomesTestes[resíduo_nome][teste][key],
-                                                      float):
-                                            f.write('<td>{:^8.3f}</td>'.format(y.estatisticas[symb][resíduo_nome][teste][key]))
-                                            if float(1 - PA) < float(y.estatisticas[symb][resíduo_nome][teste][key]):
-                                                f.write('<td> Sim </td>\n  ')
-                                            if float(1 - PA) > float(y.estatisticas[symb][resíduo_nome][teste][key]):
-                                                f.write('<td> Não </td>\n ')
-                                        else:
-                                            f.write('<td> N/A </td>')
-                                    f.write('</tr>')
-
-                    f.write('</table>\n')
-
-                    f.write('<ul>\n')
-                    f.write('<li> <i> Ho( Hipótese nula ): </i> </b> {} </li> \n'.format(
-                        y._Grandeza__TestesInfo[resíduo_nome][teste][key]['H0']))
-
-                    f.write(
-                        '<li>   <p>  <i> Informação : </i>  p-valores devem ser maiores do que o nível de significânca (1-PA) </p> <p>    para não rejeitar a hipótese nula (Ho).</li>' + self.__quebra)
-                    f.write('</ul>')
                 f.write('<h4>    Autocorrelação:</h4>'+self.__quebra)
-                writetable2('residuo-Autocorrelacao','Ljung-Box')
-
-
-                f.write('<table border rules="all">')
-                f.write('<tr>')
-                f.write('<td>  <b>  {:<}:   </b> </td>'.format('Durbin Watson')+ ('<td> <b> Resíduos para {:^8} </b> '*y.NV).format(*y.simbolos)+'</td> </tr>'+self.__quebra)
-                for teste in y._Grandeza__nomesTestes['residuo-Autocorrelacao'].keys():
-
-                    if teste == 'Durbin Watson':
-                      if isinstance(y._Grandeza__nomesTestes['residuo-Autocorrelacao'][teste],dict):
-                          for key in y._Grandeza__nomesTestes['residuo-Autocorrelacao'][teste].keys():
-                              f.write('<tr> <td> {:<33}</td>'.format(key))
-                              for symb in y.simbolos:
-                                  if isinstance(y._Grandeza__nomesTestes['residuo-Autocorrelacao'][teste][key],float):
-                                      f.write('<td>{:^8.3f}</td>'.format(y.estatisticas[symb]['residuo-Autocorrelacao'][teste][key]))
-                                  else:
-                                      f.write('<td> N/A </td>')
-                              f.write('</tr>')
-                f.write('</table >\n')
-                f.write('<ul>  <li> <i> Informação : </i> </b> <p>  \n <p> <b> (i) </b> Se a estatística do teste estiver próxima de 0 indica autocorrelação positiva</p>\n          <p><b> (ii) </b>  Se a estatística do teste estiver próxima de 4 indica autocorrelação negativa</p>\n          <p><b> (iii) </b> Se a estatística do teste estiver próxima de 2 indica que não há autocorrelação.</li></ul>' + self.__quebra)
-                f.write(self.__quebra)
-
+                writetable('Ljung-Box','residuo-Autocorrelacao')
+                writetable('Durbin Watson', 'residuo-Autocorrelacao')
                 # RESIDUAL ANALYSIS - homocedasticity test
                 f.write('<h4> Homocedasticidade: </h4>'+self.__quebra)
-                writetable2('residuo-Homocedasticidade','white test')
-                writetable2('residuo-Homocedasticidade', 'Bresh Pagan')
+                writetable('white test','residuo-Homocedasticidade')
+                writetable( 'Bresh Pagan','residuo-Homocedasticidade')
 
             f.close()
         # ---------------------------------------------------------------------
