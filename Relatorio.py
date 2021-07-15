@@ -64,7 +64,7 @@ class Report:
         [2] https://docs.python.org/2/library/string.html#formatstrings
         '''
         with open(self.__base_path+'parameters-report.html','wt') as f:
-            # Criação do título: o tamanho dele será o máximo entre 65 e 18*NP (Apenas por estética)
+            # Criação do título
             f.write('<center>')
             f.write('<h1> PARÂMETROS </h1>')
             f.write('</center>')
@@ -92,13 +92,14 @@ class Report:
 
 
                 def constroi_matriz (matriz_nome):
-                   #construção de matriz com colchetes
+                   #construção de matriz com colchetes, cria uma borda  na tabela para que no interpretador do HTML
+                   #pareça com o  colchetes da matriz
                     f.write('<table>')
                     f.write('<tr><td> &#9484 </td>')
                     f.write('<td> </td>' * parametros.NV)
                     f.write('<td>  &#9488 </td> </tr>\n')
 
-                    for id in range(parametros.NV):
+                    for id in range(parametros.NV): #Construção da matriz génerica nxn
                         f.write(' <tr><td> &#9474 </td>')
                         for id2 in range(parametros.NV):
                             f.write('<td> {:^10.3e} </td> '.format(matriz_nome[id, id2]))
@@ -238,7 +239,7 @@ class Report:
             #with open(self.__base_path+folder+'prediction-report_fl'+self.__fluxo+'.txt','wt') as f:
             with open(self.__base_path+folder+'prediction-report'+'.html','wt') as f:
                 # TITLE:
-                f.write('<center>\n')
+                f.write('<center>\n') # Centraliza o objeto no HTML
                 f.write('<h1> PREDIÇÃO </h1>\n')
                 f.write('</center>\n')
                 f.write('<hr />\n')
@@ -246,12 +247,11 @@ class Report:
                 f.write('<h2> GRANDEZAS DEPENDENTES </h2 >\n')
                 f.write('<h3>Coeficientes de correlação:</h3> \n'+self.__quebra)
 
-                # Operator to format the values of R2 and R2 adjusted, because they are dictionaries.
-                #construtor_formatacao_simbolos = ['{'+str(symb)+':^8.3f}' for symb in y.simbolos]
+
 
                 f.write('<table border rules = all > \n') #Inicia a tabela no HTML
                 f.write('<tr>\n')
-                f.write('<td><b> Símbolos </b> </td>\n')
+                f.write('<td><b> Símbolos </b> </td>\n') #Escreve o nome símbolos apenas na primeira célula da  tabela
                 f.write(('<td><b> {} </b> </td/>\n'*y.NV).format(*y.simbolos)) #Escreve os símbolos na tabela
                 f.write('<tr>\n')
                 f.write('<td> Coeficiente de determinação  </td> \n')
@@ -269,13 +269,12 @@ class Report:
 
                 # Objective function
                 f.write('<h3>Função objetivo (FO):</h3>'+self.__quebra)
-                # O valor da função objetivo é selecionado para ficar na esquerda , na direita ou no centro dos valores de chi2min e chi2max
-
+                # O valor da função objetivo é selecionado para ficar na esquerda , na direita ou no centro dos valores de chi2min e chi2max .
+                # &#935 ---> chi : como o HTML escreve
                 if float(estatisticas['FuncaoObjetivo']['chi2max'])>float(estatisticas['FuncaoObjetivo']['FO']) and float(estatisticas['FuncaoObjetivo']['FO'])>float(estatisticas['FuncaoObjetivo']['chi2min']):
                     f.write('<table border rules = all>\n')
                     f.write('<tr>\n')
                     f.write(' <td><b> &#935<sup>2</sup> min</b> </td> <td> <b> FO </b></td> <td><b> &#935<sup>2</sup> max</b></td> ')
-                    # &#935 ---> chi : como o HTML escreve
                     f.write('</tr>\n')
                     f.write('<tr>\n')
                     f.write('<td> {:.3f}</td>'.format(estatisticas['FuncaoObjetivo']['chi2min']) + self.__quebra)
@@ -324,14 +323,14 @@ class Report:
                         f.write(('<td> <b> Resíduos para {} </b> </td> <td> <b> Aceita Ho </b> </td> \n'*y.NV).format(*y.simbolos))
                         f.write('<tr>\n')
                         # Cria 2 células para cada variável de saída e desloca para a direita
-                        for teste in y._Grandeza__nomesTestes[nome_teste].keys():
-                            if not isinstance(y._Grandeza__nomesTestes[nome_teste][teste],dict):
+                        for teste in y._Grandeza__nomesTestes[nome_teste].keys():# Roda uma vez para cada teste , algumas das análises tem mais de um teste por isso o for
+                            if not isinstance(y._Grandeza__nomesTestes[nome_teste][teste],dict):#testa se o determinado argumento é um diciónario
                                 f.write('<tr>\n')
                                 f.write('<td>{}</td> '.format(teste))
                             for symb in y.simbolos:
-                                if isinstance(y.estatisticas[symb][nome_teste][teste],float):
+                                if isinstance(y.estatisticas[symb][nome_teste][teste],float):# testa se o determinado argumento é um float
                                     f.write('<td>{:^8.3f}</td>'.format(y.estatisticas[symb][nome_teste][teste])+' ')
-                                    if float(1 - PA) < float(y.estatisticas[symb][nome_teste][teste]):
+                                    if float(1 - PA) < float(y.estatisticas[symb][nome_teste][teste]): #teste se aceita H0 ou não
                                         f.write('<td> Sim </td>\n  ')
                                     else:
                                         f.write('<td> Não </td>\n ')
@@ -383,7 +382,6 @@ class Report:
                             *y.simbolos) + '</td> ')
                         f.write('</tr>\n')
                         for teste in y._Grandeza__nomesTestes[resíduo_nome].keys():
-
                             if teste == nome_teste:
                                 if isinstance(y._Grandeza__nomesTestes[resíduo_nome][teste], dict):
                                     for key in y._Grandeza__nomesTestes[resíduo_nome][teste].keys():
@@ -396,8 +394,7 @@ class Report:
                                                 if float(1 - PA) < float(
                                                         y.estatisticas[symb][resíduo_nome][teste][key]):
                                                     f.write('<td> Sim </td>\n  ')
-                                                if float(1 - PA) > float(
-                                                        y.estatisticas[symb][resíduo_nome][teste][key]):
+                                                else:
                                                     f.write('<td> Não </td>\n ')
                                             else:
                                                 f.write('<td> N/A </td>')
@@ -420,7 +417,6 @@ class Report:
                 # RESIDUAL ANALYSIS - mean test
                 f.write('<h4>    Média: </h4>'+self.__quebra)
                 writetable('residuo-Media')
-                f.write('\n')
                 # RESIDUAL ANALYSIS - autocorrelation tests
                 f.write('<h4>    Autocorrelação:</h4>'+self.__quebra)
                 writetable('Ljung-Box','residuo-Autocorrelacao')
