@@ -13,6 +13,7 @@ from os import getcwd, sep
 from subrotinas import Validacao_Diretorio
 from numpy import inf
 import xlwt
+import math # usado no test de 'nan'
 from datetime import datetime
 # ---------------------------------------------------------------------
 # CLASSES
@@ -313,7 +314,7 @@ class Report:
                 f.write(self.__quebra)
 
                # RESIDUAL ANALYSIS
-                def writetable (nome_teste,resíduo_nome=None):
+                def Matriz_HTML (nome_teste,resíduo_nome=None):
                     #Função escreve tabela automática , o objetivo dela é escrever automaticamente as tabelas com seus respectivos testes
                     if resíduo_nome is None:
                         # Parte I da função que escreve as tabelas em Normalidade (normaltest,shapiro,anderson,kstest) e Média(ttest,ztest).
@@ -387,8 +388,8 @@ class Report:
                                     for key in y._Grandeza__nomesTestes[resíduo_nome][teste].keys():
                                         f.write('<tr> <td> {:<33}</td>'.format(key))
                                         for symb in y.simbolos:
-                                            if isinstance(y._Grandeza__nomesTestes[resíduo_nome][teste][key],
-                                                          float):
+                                            if isinstance(y.estatisticas[symb][resíduo_nome][teste][key],
+                                                          float) and not math.isnan(y.estatisticas[symb][resíduo_nome][teste][key]):
                                                 f.write('<td>{:^8.3f}</td>'.format(
                                                     y.estatisticas[symb][resíduo_nome][teste][key]))
                                                 if float(1 - PA) < float(
@@ -397,7 +398,8 @@ class Report:
                                                 else:
                                                     f.write('<td> Não </td>\n ')
                                             else:
-                                                f.write('<td> N/A </td>')
+                                                f.write('<td>{:^8}</td>'.format('N/A') + ' ')
+                                                f.write('<td> - </td>\n ')
                                         f.write('</tr>')
 
                         f.write('</table>\n')
@@ -413,18 +415,18 @@ class Report:
                 f.write('<h3>Análise de resíduos:</h3>' + self.__quebra)
                 # RESIDUAL ANALYSIS - normal
                 f.write('<h4>Normalidade:</h4>'+self.__quebra)
-                writetable('residuo-Normalidade')
+                Matriz_HTML('residuo-Normalidade')
                 # RESIDUAL ANALYSIS - mean test
                 f.write('<h4>    Média: </h4>'+self.__quebra)
-                writetable('residuo-Media')
+                Matriz_HTML('residuo-Media')
                 # RESIDUAL ANALYSIS - autocorrelation tests
                 f.write('<h4>    Autocorrelação:</h4>'+self.__quebra)
-                writetable('Ljung-Box','residuo-Autocorrelacao')
-                writetable('Durbin Watson', 'residuo-Autocorrelacao')
+                Matriz_HTML('Ljung-Box','residuo-Autocorrelacao')
+                Matriz_HTML('Durbin Watson', 'residuo-Autocorrelacao')
                 # RESIDUAL ANALYSIS - homocedasticity test
                 f.write('<h4> Homocedasticidade: </h4>'+self.__quebra)
-                writetable('white test','residuo-Homocedasticidade')
-                writetable( 'Bresh Pagan','residuo-Homocedasticidade')
+                Matriz_HTML('white test','residuo-Homocedasticidade')
+                Matriz_HTML( 'Bresh Pagan','residuo-Homocedasticidade')
 
             f.close()
         # ---------------------------------------------------------------------
