@@ -23,7 +23,7 @@ def Model (param,x, *args):
 # Folder: Defines the name of the folder where the results will be saved.
 Estime = EstimacaoNaoLinear(Model, symbols_x=['t','Tao'], units_x=['s','K'],
                             symbols_y=[r'y'], units_y=['adm'],
-                            symbols_param=['ko','E'], units_param=['adm','K'], Folder='Exemple2')
+                            symbols_param=['ko','E'], units_param=['adm','K'], Folder='Example2')
 
 #%% Defining observed data
 # Input data
@@ -74,7 +74,7 @@ Estime.parametersUncertainty(uncertaintyMethod='2InvHessiana',objectiveFunctionM
 
 #%%Running the charts without prediction.
 # using solely default options
-Estime.plots()
+#Estime.plots()
 
 #%% Evaluating model predictions
 # export_y: Exports the calculated data of y, its uncertainty, and degrees of freedom in a txt with comma separation (True or False);

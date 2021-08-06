@@ -69,7 +69,7 @@ Estime.residualAnalysis()
 
 #%% Plotting the main results
 # using solely default options
-Estime.plots()
+#Estime.plots()
 
 #%% Reference of this case study
 # SCHWAAB, M.M.;PINTO, J.C. Análise de Dados Experimentais I: Fundamentos da Estátistica e Estimação de Parâmetros. Rio de Janeiro: e-papers, 2007.

@@ -12,7 +12,7 @@ from numpy import arctan2, degrees, sqrt, sort, argsort, mean, std, nan, amin, a
 from numpy.linalg import eigh, inv
 
 from matplotlib.pyplot import figure, close, clf
-from matplotlib.ticker import FixedFormatter
+import matplotlib.ticker
 
 from matplotlib.patches import Ellipse
 
@@ -24,7 +24,7 @@ from subrotinas import eval_cov_ellipse
 
 class Grafico:
     def __init__(self, **kwargs):
-        u"""
+        """
         Classe para a criação e gerenciamento de gráficos
 
         =======
@@ -63,17 +63,15 @@ class Grafico:
             self.axes.tick_params(reset=True, axis='both', right=False, top=False, direction='out', labelsize=14)
 
         if formato_cientifico:
-            if not isinstance(self.axes.get_xaxis().get_major_formatter(), FixedFormatter):
-                # Definindo notação científica para os eixos
-                self.axes.get_xaxis().get_major_formatter().set_powerlimits((-2, 2))
-                # Definindo que offset nos eixos
-                self.axes.get_xaxis().get_major_formatter().set_useOffset(False)
+            if isinstance(self.axes.get_xaxis().get_major_formatter(), matplotlib.ticker.ScalarFormatter):
+                self.axes.ticklabel_format(axis='x', style='sci', scilimits=(-2, 2),
+                                     useMathText=True, useOffset=False)
 
-            if not isinstance(self.axes.get_yaxis().get_major_formatter(), FixedFormatter):
-                # Definindo notação científica para os eixos
-                self.axes.get_yaxis().get_major_formatter().set_powerlimits((-2, 2))
-                # Definindo que offset nos eixos
-                self.axes.get_yaxis().get_major_formatter().set_useOffset(False)
+            if isinstance(self.axes.get_yaxis().get_major_formatter(), matplotlib.ticker.ScalarFormatter):
+                self.axes.ticklabel_format(axis='y', style='sci', scilimits=(-2, 2),
+                                     useMathText=True, useOffset=False)
+
+
 
         if grid:
             # Definindo linhas de grade no major axes
