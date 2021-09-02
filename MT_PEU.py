@@ -661,7 +661,7 @@ class EstimacaoNaoLinear:
         if udados.shape[0]*self.y.NV-float(self.parametros.NV) <= 0: # Verificar se há graus de liberdade suficiente
             warn('Insufficient degrees of freedom. Your experimental data set is not enough to estimate the parameters!',UserWarning)
 
-    def setDados(self, type, *data):
+    def setDados(self, X1,uX1, Y1, uY1):
         u"""
         setDados(self, type, *data):
 
@@ -738,7 +738,7 @@ class EstimacaoNaoLinear:
         """
 
         # VALIDATION
-
+        """
         if len(data) == 0:
             raise TypeError('It is necessary to include at least data for one quantity: ([data],[uncertainty])')
 
@@ -752,30 +752,31 @@ class EstimacaoNaoLinear:
             for ele_i in ele:
                 if not (isinstance(ele, list) or isinstance(ele, tuple)):
                     raise TypeError('Each quantity pair (data and uncertainty) must be a tuple or list: ([data],[uncertainty]).')
-
+        """
         # EXECUTION
 
         self.__controleFluxo.SET_ETAPA('setDados')
 
-        if type == 0:
+        """if tipo == 0:
 
             X  = transpose(array([data[i][0] for i in range(len(data))], ndmin=2, dtype=float))
             uX = transpose(array([data[i][1] for i in range(len(data))], ndmin=2, dtype=float))
+             """
+        self.__validacaoDadosEntrada(X1, uX1, self.x.NV)
 
-            self.__validacaoDadosEntrada(X, uX, self.x.NV)
+        self.__xtemp   = X1
+        self.__uxtemp = uX1
 
-            self.__xtemp   = X
-            self.__uxtemp = uX
 
-        else:
+        """else:
 
             Y  = transpose(array([data[i][0] for i in range(len(data))], ndmin=2, dtype=float))
             uY = transpose(array([data[i][1] for i in range(len(data))], ndmin=2, dtype=float))
+            """
+        self.__validacaoDadosEntrada(Y1, uY1, self.y.NV)
 
-            self.__validacaoDadosEntrada(Y, uY, self.y.NV)
-
-            self.__ytemp = Y
-            self.__uytemp = uY
+        self.__ytemp = Y1
+        self.__uytemp = uY1
 
 
         # TODO:
