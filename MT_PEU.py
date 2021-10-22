@@ -2070,7 +2070,7 @@ class EstimacaoNaoLinear:
             self.x._testesEstatisticos(self.y.predicao.matriz_estimativa)
 
         # Dependent quantities
-        self.y._testesEstatisticos(self.x.predicao.matriz_estimativa)
+        self.y._testesEstatisticos(self.y.predicao.matriz_estimativa)
 
         # -----------------------------------------------------------------
         # VALIDATION OF THE VALUE OF THE OBJECTIVE FUNCTION AS A CHI-SQUARE
@@ -2125,6 +2125,16 @@ class EstimacaoNaoLinear:
             for fl_key in self.__graph_flux_association.keys():
                 if getattr(self.__controleFluxo, fl_key):
                     types.extend(self.__graph_flux_association[fl_key])
+        else:
+            types = kwargs.get('types')
+            # validando se os tipos de gráficos
+            if not isinstance(types, list):
+                raise TypeError('Os tipos de gráficos devem ser definidos em uma lista.')
+            # validando se os tipos de gráficos foram corretamente definidos
+            if not set(types).issubset(self.__tipoGraficos):
+                raise NameError('O(s) tipo(s) de gráfico(s) selecionado(s) não está(ão) disponível(is): ' + ', '.join(
+                    set(types).difference(self.__tipoGraficos)) + '. Tipos disponíveis: ' + ', '.join(
+                    self.__tipoGraficos) + '.')
 
         # Initialization of the Figure that will contain the graphs -> object
         Fig = Grafico(dpi=300)
