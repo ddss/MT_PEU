@@ -12,12 +12,13 @@ Main class of the PEU calculation engine
 # ---------------------------------------------------------------------
 # Scientific calculations
 from numpy import array, size, linspace, min, max, copy,\
-    mean, nanmax, nanmin, arange,inf, reshape
+    mean, nanmax, nanmin, arange,inf, reshape, asarray
 from numpy.core.multiarray import ndarray
 from numpy.random import uniform, triangular
 from scipy.stats import f, t, chi2
 from scipy.special import factorial
 from numpy.linalg import inv
+import pandas as pd #importação da biblioteca pandas para possibilitar trabalhar com o xlsx
 from math import floor, log10
 #from threading import Thread
 from scipy import transpose, dot, concatenate, matrix
@@ -661,203 +662,122 @@ class EstimacaoNaoLinear:
         if udados.shape[0]*self.y.NV-float(self.parametros.NV) <= 0: # Verificar se há graus de liberdade suficiente
             warn('Insufficient degrees of freedom. Your experimental data set is not enough to estimate the parameters!',UserWarning)
 
-    def setDados(self, X1,uX1, Y1, uY1):
+    def  setDados(self, data,worksheet=None , glx=[],gly=[]):
+
         u"""
-        setDados(self, type, *data):
+                setDados(self, no, *data):
+                ===================================================================================================================
+                Method to collect the input data of dependent and independent quantities and organize them in an appropriate format
+                ===================================================================================================================
+                - Parameters
+                ------------
 
-        ===================================================================================================================
-        Method to collect the input data of dependent and independent quantities and organize them in an appropriate format
-        ===================================================================================================================
+                name_file: str
+                    file directory or just the name if it is in the same folder
+                tipo:  bool
+                    must be 0 for independent quantity or 1 for dependent quantity.
 
-        - Parameters
-        ------------
-
-        type : bool
-            must be 0 for independent quantity or 1 for dependent quantity.
-        data : Tuples
-            Tuples that contain the experimental data and uncertainties of the quantities.
-            Each tuple must contain two lists: (i) one with the experimental data of a quantity and
-            (ii) another list containing the uncertainties associated with each data.
-
-            *Format: ([data quantity],[uncertainties quantity]).
-
-            *A tuple can be inserted for each quantity.
-
-        - Notes
-        -------
-
-        -This method must be performed for each group of quantities involved in the parameter estimation procedure:
-        (i) independent quantities and (ii) independent quantities.
-
-        -After including the groups of quantities it is necessary to execute the method setConjunto to define the type of application of each data set.
-        The possibilities are: (1) estimation (parameter evaluation) or (2) prediction (model validation).
-
-        -Converts pairs of data lists and their respective uncertainties into two-dimensional arrays
-
-        -These arrays are stored as temporary variables and can be consulted after the setSConjunto method has been executed.
-
-        ============
-        How to use
-        ============
-
-        Consider the data set:
-        ----------------------
-
-        Independent quantities
-            - x1 = [1,2,3] # experimental data of the quantity x1
-            - ux1 = [1,1,1] # uncertainty of the quantity x1
-            - x2 = [ 4,5,6 ] # experimental data of the quantity x2
-            - ux2 = [1,1,1] # uncertainty of the quantity x2
-
-        Dependent quantities
-            - y1 = [5,7,7] # experimental data of the quantity y1
-            - uy1 = [1,1,1] # uncertainty of the quantity y1
-
-        How to call the method in python code
-        ------------------------------------
-
-        - Estime = EstimacaoNaoLinear(Model,symbols_x=['x1','x2'], symbols_y=['y1'], symbols_param=['A','B'])
-        - Estime.setDados(0,(x1,ux1),(x2,ux2))
-        - Estime.setDados(1,(y1,uy1))
-
-        To consult variables, it is necessary to indicate that the data inserted constitute a set:
-        ------------------------------------------------------------------------------------------
-
-        - Estime.setConjunto()
-
-        The variables can then be consulted through:
-        --------------------------------------------
-
-        Independent quantities:
-            - Estime.x.estimacao.matriz_estimativa     #experimental data
-            - Estime.x.estimacao.matriz_covariancia    #Uncertainties were converted into a covariance matrix
-
-        Dependent quantities:
-            - Estime.y.estimacao.matriz_estimativa     #experimental data
-            - Estime.y.estimacao.matriz_covariancia    #Uncertainties were converted into a covariance matrix
         """
 
-        # VALIDATION
-        """
-        if len(data) == 0:
-            raise TypeError('It is necessary to include at least data for one quantity: ([data],[uncertainty])')
-
-        for ele in data:
-            if not (isinstance(ele, list) or isinstance(ele, tuple)):
-                raise TypeError('Each quantity pair (data and uncertainty) must be a tuple or list: ([data],[uncertainty]).')
-
-            if len(ele) != 2:
-                raise TypeError('Each tuple must contain only 2 lists: ([data],[uncertainty])')
-
-            for ele_i in ele:
-                if not (isinstance(ele, list) or isinstance(ele, tuple)):
-                    raise TypeError('Each quantity pair (data and uncertainty) must be a tuple or list: ([data],[uncertainty]).')
-        """
         # EXECUTION
-
         self.__controleFluxo.SET_ETAPA('setDados')
 
-        """if tipo == 0:
 
-            X  = transpose(array([data[i][0] for i in range(len(data))], ndmin=2, dtype=float))
-            uX = transpose(array([data[i][1] for i in range(len(data))], ndmin=2, dtype=float))
-             """
-        self.__validacaoDadosEntrada(X1, uX1, self.x.NV)
+        if type(data)==dict:
 
-        self.__xtemp   = X1
-        self.__uxtemp = uX1
+            # VALIDATION TO MANUAL DATA ENTRY
+
+            if len(data[0]) == 0 or len(data[1])==0:
+                raise TypeError('It is necessary to include at least data for one quantity: ([data],[uncertainty])')
+            for i in range(2):
+                for ele in data[i]:
+                    if not (isinstance(ele, list) or isinstance(ele, tuple)):
+                        raise TypeError(
+                            'Each quantity pair (data and uncertainty) must be a tuple or list: ([data],[uncertainty]).')
+
+                if len(ele) != 2:
+                    raise TypeError('Each tuple must contain only 2 lists: ([data],[uncertainty])')
+
+                for ele_i in ele:
+                    if not (isinstance(ele, list) or isinstance(ele, tuple)):
+                        raise TypeError(
+                            'Each quantity pair (data and uncertainty) must be a tuple or list: ([data],[uncertainty]).')
+
+            X = transpose(array([data[0][i][0] for i in range(len(data[0]))], ndmin=2, dtype=float))
+            uX = transpose(array([data[0][i][1] for i in range(len(data[0]))], ndmin=2, dtype=float))
+            Y = transpose(array([data[1][i][0] for i in range(len(data[1]))], ndmin=2, dtype=float))
+            uY = transpose(array([data[1][i][1] for i in range(len(data[1]))], ndmin=2, dtype=float))
+        elif type(data) == str:
+            if worksheet is None:
+                #VALIDATION SHEET NAME
+                # valida os nomes das planilhas , mostra o erro caso o usuário mudou os nomes padrões
+                if pd.ExcelFile(data).sheet_names[0] != "independent variable" or \
+                    pd.ExcelFile(data).sheet_names[1] != "dependent variable":
+                    raise TypeError(
+                        "Worksheet names can be default  (independent variable) and (dependent variable), or set your  worksheet")
+
+                data_dependent_variable = pd.read_excel(data, sheet_name="dependent variable")
+                data_independent_variable = pd.read_excel(data, sheet_name="independent variable")
+            else:
+                data_dependent_variable = pd.read_excel(data, sheet_name=worksheet[1])
+                data_independent_variable = pd.read_excel(data, sheet_name=worksheet[0])
+
+            #VALIDATION TO DATA USING  EXCEL
+            #Remove colunas sem títulos
+            data_independent_variable.drop([col for col in data_independent_variable.columns if "Unnamed" in col],
+            axis=1, inplace=True)
+            data_dependent_variable.drop([col for col in data_dependent_variable.columns if "Unnamed" in col], axis=1,
+            inplace=True)
+            #informa quais linhas forma removidas
+            if len(list(data_dependent_variable[data_dependent_variable.isnull().values.any(axis=1)].index.values)) !=0:
+                warn("the respective lines of dependent variable have been removed {} ".format(list(asarray(list(data_dependent_variable[data_dependent_variable.isnull().values.any(axis=1)].index.values))+2)),UserWarning)
+            if len(list(data_independent_variable[
+                            data_independent_variable.isnull().values.any(axis=1)].index.values)) != 0:
+                warn("the respective lines of independent variable have been removed {} ".format(list(asarray(list(
+                    data_independent_variable[
+                        data_independent_variable.isnull().values.any(axis=1)].index.values)) + 2)), UserWarning)
+
+            #remove as linhas
+            data_dependent_variable = data_dependent_variable.dropna()
+            data_independent_variable = data_independent_variable.dropna()
 
 
-        """else:
+            Y = data_dependent_variable[
+                {data_dependent_variable.columns[i] for i in range(0, data_dependent_variable.shape[1], 2)}].to_numpy()
+            uY = data_dependent_variable[
+                {data_dependent_variable.columns[i] for i in range(1, data_dependent_variable.shape[1], 2)}].to_numpy()
+            X = data_independent_variable[
+                {data_independent_variable.columns[i] for i in
+                 range(0, data_independent_variable.shape[1], 2)}].to_numpy()
+            uX = data_independent_variable[
+                {data_independent_variable.columns[i] for i in
+                 range(1, data_independent_variable.shape[1], 2)}].to_numpy()
 
-            Y  = transpose(array([data[i][0] for i in range(len(data))], ndmin=2, dtype=float))
-            uY = transpose(array([data[i][1] for i in range(len(data))], ndmin=2, dtype=float))
-            """
-        self.__validacaoDadosEntrada(Y1, uY1, self.y.NV)
+        else:
+            raise TypeError("The data input can be either in dictionary format or string ""excel file name"", check if the input follows any of these formats")
 
-        self.__ytemp = Y1
-        self.__uytemp = uY1
+        self.__validacaoDadosEntrada(X, uX, self.x.NV)
+        self.__validacaoDadosEntrada(Y, uY, self.y.NV)
 
-
-        # TODO:
-        # validação de args
-        # graus de liberdade devem ser passados por aqui
-
-
-    def setConjunto(self,glx=[],gly=[],dataType=None,uxy=None):
-        u"""
-        setConjunto(self,glx=[],gly=[],dataType=None,uxy=None)
-        
-        ===================================================================================
-        Method for including the estimation data. It must be run after the setDados method.
-        ===================================================================================
-
-        - Parameters
-        ----------
-
-        glx : list, optional
-            list with the freedom degrees for the input quantities.
-        gly : list, optional
-            list with the freedom degrees for the output quantities.
-        dataType : string, optionial
-            defines the purpose of the informed data set.
-
-            ============ =================================================================
-            dataType     purpose
-            ============ =================================================================
-            estimacao    dataset to perform the parameter estimation
-            predicao     dataset to perform the prediction of the output model estimates.
-                         In this case, the parameters are already known.
-            ============ =================================================================
-        uxy : not in use
-
-
-        - Notes
-        -------
-
-        -If the dataType argument was not defined the method defines automatically as 'estimacao' or 'predicao'.
-
-        -If the prediction data was not defined the method define dataType as 'estimacao'.
-
-        -If the quantities freedom degrees was not defined it will be assumed constant and equal to 100
-
-        """
-        # ---------------------------------------------------------------------
-        # FLUX
-        # ---------------------------------------------------------------------
         self.__controleFluxo.SET_ETAPA('setConjunto')
-        # ---------------------------------------------------------------------
-        # VALIDATON
-        # ---------------------------------------------------------------------
-        if (self.__xtemp is None) or (self.__ytemp is None) or (self.__uxtemp is None) or (self.__uytemp is None):
-            raise ValueError('It is necessary to run the setDados method to define data for dependent (y) and independent (x) quantities.')
-
-        # dataType validation
-        if dataType is not None:
-            if not set([dataType]).issubset(self.__tiposDisponiveisEntrada):
-                raise ValueError('The input(s) ' + ','.join(
-                    set([dataType]).difference(self.__tiposDisponiveisEntrada)) + ' are not available. You should use: ' + ','.join(
-                    self.__tiposDisponiveisEntrada) + '.')
 
         # validation of the amount of experimental data
 
-        if self.__xtemp.shape[0] != self.__ytemp.shape[0]:
+
+        if X.shape[0] != Y.shape[0]:
             raise ValueError('{:d} data were entered for dependent quantities, but {:d} for independent quantities'.format(self.__ytemp.shape[0],self.__xtemp.shape[0]))
 
-        # ---------------------------------------------------------------------
-        # EXECUTION
-        # ---------------------------------------------------------------------
-
-        if dataType is None:
-            if not self.__flag.info['dadosestimacao']:
-                dataType = self.__tiposDisponiveisEntrada[0]
-            else:
-                dataType = self.__tiposDisponiveisEntrada[1]
+        ######################################################EXECUTION#########################################################
+        #Automaticamente chamando dados a primeira vez vai para estimação, chamando dados pela segunda vez vai para validação (Predição).
+        if not self.__flag.info['dadosestimacao']:  # rodando a primeira vez (estimação)
+             dataType = self.__tiposDisponiveisEntrada[0]
+        else:  # rodando a segunda vez, vai agora para predição
+             dataType = self.__tiposDisponiveisEntrada[1]
 
         # experimental data
         if dataType == self.__tiposDisponiveisEntrada[0]:
             self.__flag.ToggleActive('dadosestimacao')
-
+            print("dadosestimacao")
             # if flux ID is equal to zero, so it's not necessary to restart, otherwise, restart.
             if self.__controleFluxo.FLUXO_ID != 0:
                 self.__controleFluxo.reiniciar()
@@ -868,33 +788,37 @@ class EstimacaoNaoLinear:
             # ---------------------------------------------------------------------
             # Saving the experimental data in the variables.
             try:
-                self.x._SETdadosestimacao(estimativa=self.__xtemp,matriz_incerteza=self.__uxtemp,gL=glx)
+                self.x._SETdadosestimacao(estimativa=X, matriz_incerteza=uX,gL=glx)
             except Exception as erro:
-                raise RuntimeError('Error in the creation of the estimation set of the quantity X: {}'.format(erro))
+                raise RuntimeError(
+                    'Error in the creation of the estimation set of the quantity X: {}'.format(erro))
 
             try:
-                self.y._SETdadosestimacao(estimativa=self.__ytemp,matriz_incerteza=self.__uytemp,gL=gly)
+                self.y._SETdadosestimacao(estimativa=Y, matriz_incerteza=uY,gL=glx)
             except Exception as erro:
-                raise RuntimeError('EError in the creation of the estimation set of the quantity Y: {}'.format(erro))
+                raise RuntimeError(
+                    'EError in the creation of the estimation set of the quantity Y: {}'.format(erro))
 
         # prediction data
         if dataType == self.__tiposDisponiveisEntrada[1]:
             self.__flag.ToggleActive('dadospredicao')
-
+            print('dados predição')
             self.__controleFluxo.reiniciarParcial()
             # ---------------------------------------------------------------------
             # ASSIGNMENT OF VALUES TO QUANTITIES
             # ---------------------------------------------------------------------
             # Saving the validation data.
             try:
-                self.x._SETdadosvalidacao(estimativa=self.__xtemp,matriz_incerteza=self.__uxtemp,gL=glx)
+                self.x._SETdadosvalidacao(estimativa=X, matriz_incerteza=uX,gL=glx)
             except Exception as error:
-                raise RuntimeError('Error in the creation of the validation set of the quantity X: {}'.format(error))
+                raise RuntimeError(
+                    'Error in the creation of the validation set of the quantity X: {}'.format(error))
 
             try:
-                self.y._SETdadosvalidacao(estimativa=self.__ytemp,matriz_incerteza=self.__uytemp,gL=gly)
+                self.y._SETdadosvalidacao(estimativa=Y, matriz_incerteza=uY,gL=gly)
             except Exception as error:
-                raise RuntimeError('Error in the creation of the validation set of the quantity Y: {}'.format(error))
+                raise RuntimeError(
+                    'Error in the creation of the validation set of the quantity Y: {}'.format(error))
 
         if not self.__flag.info['dadospredicao']:
             # If setConjunto method is only performed for experimental data,
@@ -905,23 +829,24 @@ class EstimacaoNaoLinear:
             # ---------------------------------------------------------------------
             # Saving validation data.
             try:
-                self.x._SETdadosvalidacao(estimativa=self.__xtemp,matriz_incerteza=self.__uxtemp,gL=glx)
+                self.x._SETdadosvalidacao(estimativa=X, matriz_incerteza=uX,gL=glx)
             except Exception as erro:
                 raise RuntimeError('Error in the creation of the validation set of the quantity X: {}'.format(erro))
 
             try:
-                self.y._SETdadosvalidacao(estimativa=self.__ytemp,matriz_incerteza=self.__uytemp,gL=gly)
+                self.y._SETdadosvalidacao(estimativa=Y, matriz_incerteza=uY,gL=gly)
             except Exception as erro:
                 raise RuntimeError('Error in the creation of the validation set of the quantity Y: {}'.format(erro))
 
-        # Transforming the temporary variables ( xtemp, uxtemp, ytemp, uytemp) in empty lists.
-        self.__xtemp = None
-        self.__uxtemp = None
-        self.__ytemp = None
-        self.__uytemp = None
+
+
 
         # initialization of casadi's variables
         self._constructionCasadiVariables()
+
+        # TODO:
+        # validação de args
+        # graus de liberdade devem ser passados por aqui
 
     def _constructionCasadiVariables(self): # construction of the casadi variables
         u"""

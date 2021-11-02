@@ -25,7 +25,7 @@ Estime = EstimacaoNaoLinear(Model, symbols_x=[r't', 'Tau'], units_x=['s', 'K'], 
                             symbols_y=[r'y'], units_y=['adm'],
                             symbols_param=['ko', 'E'], units_param=['adm','K'],
                             label_latex_param=[r'$k_o$', r'$E$'],
-                            Folder='Example5')
+                            Folder='Exemple5')
 
 #%% Defining observed data
 # Input data
@@ -52,16 +52,13 @@ uy1 = [1] * 29
 
 #%% Setting the observed data set
 
-# inputs
-Estime.setDados(0, (time, uxtime), (temperature, uxtemperature))
-# output
-Estime.setDados(1, (y, uy1))
+Estime.setDados(data={0:[(time,uxtime),(temperature,uxtemperature)],1:[(y,uy1)]})
 
 # Defining the previous data set to be used to parameter estimation
 # dataType: Defines the purpose of the informed data set: estimacao, predicao.
 # glx: Degrees of freedom of quantity x;
 # gly: Degrees of freedom of quantity y;
-Estime.setConjunto(dataType='estimacao', glx=[], gly=[])
+#Estime.setConjunto(dataType='estimacao', glx=[], gly=[])
 
 #%% Optimization - estimating the parameters
 # initial_estimative: List with the initial estimates for the parameters;
@@ -127,15 +124,13 @@ uy1 = [0.2]*12
 
 #%% Setting the observed data set
 # inputs
-Estime.setDados(0,(time,uxtime),(temperature,uxtemperature))
-# outputs
-Estime.setDados(1,(y,uy1))
+Estime.setDados(data={0:[(time,uxtime),(temperature,uxtemperature)],1:[(y,uy1)]})
 
 # Defining the previous data set to be used to validation
 # dataType: Defines the purpose of the informed data set: estimacao, predicao.
 # glx: Degrees of freedom of quantity x;
 # gly: Degrees of freedom of quantity y;
-Estime.setConjunto(dataType='predicao', glx=[], gly=[])
+#Estime.setConjunto(dataType='predicao', glx=[], gly=[])
 
 #%% Evaluating model predictions for the validation data
 # export_y: Exports the calculated data of y, its uncertainty, and degrees of freedom in a txt with comma separation (True or False);
