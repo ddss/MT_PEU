@@ -24,6 +24,8 @@ from warnings import warn
 # Rotinas Internas
 from MT_PEU import EstimacaoNaoLinear
 
+import pandas as pd #importação da biblioteca pandas para possibilitar trabalhar com o xlsx
+
 # Fim da importação
 
 def Model_1 (param,x, *args):
@@ -192,8 +194,8 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             self._EstimacaoNaoLinear__flag.ToggleActive('calc_termo_independente')
             self.__coluna_dumb = True
 
-
-    def setConjunto(self,glx=[],gly=[],dataType='estimacao',uxy=None):
+    def setDados(self, data, worksheet=None, glx=[], gly=[],dataType='estimacao',uxy=None):
+     # def setConjunto(self,glx=[],gly=[],dataType='estimacao',uxy=None):
         u'''
         Método para incluir os dados de entrada da estimação
         
@@ -209,6 +211,89 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         **Aviso**:
         Caso não definidos dados de validação, será assumido os valores experimentais                    
         '''
+
+         # EXECUTION
+
+        self._EstimacaoNaoLinear__controleFluxo.SET_ETAPA('setDados')
+
+        if type(data) == dict:
+
+            # VALIDATION TO MANUAL DATA ENTRY
+
+            if len(data[0]) == 0 or len(data[1]) == 0:
+                raise TypeError('It is necessary to include at least data for one quantity: ([data],[uncertainty])')
+            for i in range(2):
+                for ele in data[i]:
+                    if not (isinstance(ele, list) or isinstance(ele, tuple)):
+                        raise TypeError(
+                            'Each quantity pair (data and uncertainty) must be a tuple or list: ([data],[uncertainty]).')
+
+                if len(ele) != 2:
+                    raise TypeError('Each tuple must contain only 2 lists: ([data],[uncertainty])')
+
+                for ele_i in ele:
+                    if not (isinstance(ele, list) or isinstance(ele, tuple)):
+                        raise TypeError(
+                            'Each quantity pair (data and uncertainty) must be a tuple or list: ([data],[uncertainty]).')
+
+            X = transpose(array([data[0][i][0] for i in range(len(data[0]))], ndmin=2, dtype=float))
+            uX = transpose(array([data[0][i][1] for i in range(len(data[0]))], ndmin=2, dtype=float))
+            Y = transpose(array([data[1][i][0] for i in range(len(data[1]))], ndmin=2, dtype=float))
+            uY = transpose(array([data[1][i][1] for i in range(len(data[1]))], ndmin=2, dtype=float))
+        elif type(data) == str:
+            if worksheet is None:
+                # VALIDATION SHEET NAME
+                # valida os nomes das planilhas , mostra o erro caso o usuário mudou os nomes padrões
+                if pd.ExcelFile(data).sheet_names[0] != "independent variable" or \
+                        pd.ExcelFile(data).sheet_names[1] != "dependent variable":
+                    raise TypeError(
+                        "Worksheet names can be default  (independent variable) and (dependent variable), or set your  worksheet")
+
+                data_dependent_variable = pd.read_excel(data, sheet_name="dependent variable")
+                data_independent_variable = pd.read_excel(data, sheet_name="independent variable")
+            else:
+                data_dependent_variable = pd.read_excel(data, sheet_name=worksheet[1])
+                data_independent_variable = pd.read_excel(data, sheet_name=worksheet[0])
+
+            # VALIDATION TO DATA USING  EXCEL
+            # Remove colunas sem títulos
+            data_independent_variable.drop([col for col in data_independent_variable.columns if "Unnamed" in col],
+                                           axis=1, inplace=True)
+            data_dependent_variable.drop([col for col in data_dependent_variable.columns if "Unnamed" in col], axis=1,
+                                         inplace=True)
+            # informa quais linhas forma removidas
+            if len(list(data_dependent_variable[data_dependent_variable.isnull().values.any(axis=1)].index.values)) != 0:
+                warn("the respective lines of dependent variable have been removed {} ".format(list(asarray(
+                    list(data_dependent_variable[data_dependent_variable.isnull().values.any(axis=1)].index.values)) + 2)),
+                     UserWarning)
+            if len(list(data_independent_variable[
+                            data_independent_variable.isnull().values.any(axis=1)].index.values)) != 0:
+                warn("the respective lines of independent variable have been removed {} ".format(list(asarray(list(
+                    data_independent_variable[
+                        data_independent_variable.isnull().values.any(axis=1)].index.values)) + 2)), UserWarning)
+
+            # remove as linhas
+            data_dependent_variable = data_dependent_variable.dropna()
+            data_independent_variable = data_independent_variable.dropna()
+
+            Y = data_dependent_variable[
+                {data_dependent_variable.columns[i] for i in range(0, data_dependent_variable.shape[1], 2)}].to_numpy()
+            uY = data_dependent_variable[
+                {data_dependent_variable.columns[i] for i in range(1, data_dependent_variable.shape[1], 2)}].to_numpy()
+            X = data_independent_variable[
+                {data_independent_variable.columns[i] for i in
+                 range(0, data_independent_variable.shape[1], 2)}].to_numpy()
+            uX = data_independent_variable[
+                {data_independent_variable.columns[i] for i in
+                 range(1, data_independent_variable.shape[1], 2)}].to_numpy()
+
+        else:
+            raise TypeError(
+                "The data input can be either in dictionary format or string ""excel file name"", check if the input follows any of these formats")
+
+        self._EstimacaoNaoLinear__validacaoDadosEntrada(X, uX, self.x.NV)
+        self._EstimacaoNaoLinear__validacaoDadosEntrada(Y, uY, self.y.NV)
+
         # ---------------------------------------------------------------------
         # FLUXO
         # ---------------------------------------------------------------------
@@ -225,7 +310,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
                 self._EstimacaoNaoLinear__tiposDisponiveisEntrada) + '.')
 
         # Validação do número de dados experimentais
-        if self._EstimacaoNaoLinear__xtemp.shape[0] != self._EstimacaoNaoLinear__ytemp.shape[0]:
+        if X.shape[0] != Y.shape[0]:
             raise ValueError('{:d} data were entered for dependent quantities, but {:d} for independent quantities'.format(self.__ytemp.shape[0],self.__xtemp.shape[0]))
 
         # ---------------------------------------------------------------------
@@ -233,8 +318,8 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # ---------------------------------------------------------------------
         coluna_dumb = False
         if self._EstimacaoNaoLinear__flag.info['calc_termo_independente']:
-            self._EstimacaoNaoLinear__xtemp = hstack((self._EstimacaoNaoLinear__xtemp, ones((shape(self._EstimacaoNaoLinear__xtemp)[0], 1))))
-            self._EstimacaoNaoLinear__uxtemp = hstack((self._EstimacaoNaoLinear__uxtemp, ones((shape(self._EstimacaoNaoLinear__uxtemp)[0], 1))))
+            X = hstack((X, ones((shape(X)[0], 1))))
+            uX = hstack((uX, ones((shape(uX)[0], 1))))
             coluna_dumb = True
 
         if dataType == 'estimacao':
@@ -248,12 +333,12 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             # ---------------------------------------------------------------------
             # Salvando os dados experimentais nas variáveis.
             try:
-                self.x._SETdadosestimacao(estimativa=self._EstimacaoNaoLinear__xtemp,matriz_incerteza=self._EstimacaoNaoLinear__uxtemp,gL=glx,coluna_dumb=self.__coluna_dumb)
+                self.x._SETdadosestimacao(estimativa=X,matriz_incerteza= uX ,gL=glx,coluna_dumb=self.__coluna_dumb)
             except Exception as erro:
                 raise RuntimeError('Error in the creation of the estimation set of the quantity X: {}'.format(erro))
 
             try:
-                self.y._SETdadosestimacao(estimativa=self._EstimacaoNaoLinear__ytemp,matriz_incerteza=self._EstimacaoNaoLinear__uytemp,gL=gly)
+                self.y._SETdadosestimacao(estimativa=Y,matriz_incerteza=uY,gL=gly)
             except Exception as erro:
                 raise RuntimeError('Error in the creation of the estimation set of the quantity Y: {}'.format(erro))
 
@@ -266,12 +351,12 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             # ---------------------------------------------------------------------
             # Salvando os dados de validação.
             try:
-                self.x._SETdadosvalidacao(estimativa=self._EstimacaoNaoLinear__xtemp,matriz_incerteza=self._EstimacaoNaoLinear__uxtemp,gL=glx,coluna_dumb=coluna_dumb)
+                self.x._SETdadosvalidacao(estimativa=X,matriz_incerteza=uX,gL=glx,coluna_dumb=coluna_dumb)
             except Exception as erro:
                 raise RuntimeError('Error in the creation of the validation set of the quantity X: {}'.format(erro))
 
             try:
-                self.y._SETdadosvalidacao(estimativa=self._EstimacaoNaoLinear__ytemp,matriz_incerteza=self._EstimacaoNaoLinear__uytemp,gL=gly)
+                self.y._SETdadosvalidacao(estimativa=Y,matriz_incerteza=uY,gL=gly)
             except Exception as erro:
                 raise RuntimeError('Error in the creation of the validation set of the quantity Y: {}'.format(erro))
 
@@ -284,20 +369,16 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             # ---------------------------------------------------------------------
             # Salvando os dados de validação.
             try:
-                self.x._SETdadosvalidacao(estimativa=self._EstimacaoNaoLinear__xtemp,matriz_incerteza=self._EstimacaoNaoLinear__uxtemp,gL=glx,coluna_dumb=self.__coluna_dumb)
+                self.x._SETdadosvalidacao(estimativa=X,matriz_incerteza=uX,gL=glx,coluna_dumb=self.__coluna_dumb)
             except Exception as erro:
                 raise RuntimeError('Error in the creation of the validation set of the quantity X: {}'.format(erro))
 
             try:
-                self.y._SETdadosvalidacao(estimativa=self._EstimacaoNaoLinear__ytemp,matriz_incerteza=self._EstimacaoNaoLinear__uytemp,gL=gly)
+                self.y._SETdadosvalidacao(estimativa=Y,matriz_incerteza=uY,gL=gly)
             except Exception as erro:
                 raise RuntimeError('Error in the creation of the validation set of the quantity Y: {}'.format(erro))
 
-        # Transformando variáveis temporárias ( xtemp, uxtemp, ytemp, uytemp) em listas vazias
-        self.EstimacaoNaoLinear__xtemp = None
-        self.EstimacaoNaoLinear__uxtemp = None
-        self.EstimacaoNaoLinear__ytemp = None
-        self.EstimacaoNaoLinear__uytemp = None
+
 
 
     def optimize(self, parametersReport = True):
@@ -326,7 +407,6 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         y   = self.y.estimacao.vetor_estimativa
         variancia = inv(X.transpose().dot(inv(Uyy)).dot(X))
         parametros = variancia.dot(X.transpose().dot(inv(Uyy))).dot(y)
-
         # ---------------------------------------------------------------------
         # ATRIBUIÇÃO A GRANDEZA
         # ---------------------------------------------------------------------
