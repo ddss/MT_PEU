@@ -18,31 +18,16 @@ def Model(param, x, args):
 # Folder: Defines the name of the folder where the results will be saved.
 Estimation = EstimacaoNaoLinear(Model, symbols_x=[r'T'], symbols_y=[r'P'], symbols_param=['A','B'],  Folder='Exemple8' )
 
-#%% Defining observed data
-# Input data
-T = [297.1,298.2,299.3,301.2,304.2,307.2,310.2,314.1,316.2,317.8,318.2,320.2,
-     323.1,326.2,329.1,331.2,334.2,337.1,340.2,343.2,346.2,349.1,352.2]
-# Input data uncertainty
-uT = [0.1]*len(T)
-
-# Output data
-P = [2.93,3.21,3.49,4.22,5.60,7.31,9.12,13.07,14.98,17.63,18.02,22.08,26.95,34.61,
-     40.93,50.17,63.36,78.93,93.65,115.11,140.27,171.89,208.00]
-# Output data uncertainty
-uP = [0.08,0.09,0.09,0.11,0.17,0.21,0.25,0.35,0.40,0.47,0.48,0.58,
-      0.70,0.89,1.05,1.28,1.61,2.00,2.37,2.90,3.53,4.32,5.23]
 
 #%% Setting the observed data set
-# inputs
-Estimation.setDados(0,(T,uT))
-# outputs
-Estimation.setDados(1,(P,uP))
-
+#Estimation.setDados(data={0:[(T,uT)],1:[(P,uP)]},glx=[],gly=[])
+Estimation.setDados(data="data_exa8.xlsx",glx=[], gly=[])
 # Defining the previous data set to be used to parameter estimation
 # dataType: Defines the purpose of the informed data set: estimacao, predicao.
 # glx: Degrees of freedom of quantity x;
 # gly: Degrees of freedom of quantity y;
-Estimation.setConjunto(dataType='estimacao', glx=[], gly=[])
+
+
 
 #%% Optimization - estimating the parameters
 # initial_estimative: List with the initial estimates for the parameters;
@@ -83,7 +68,19 @@ from numpy import log, array
 # symbols_y: List of symbols for quantity y;
 # symbols_param: List of symbols for the parameters to be estimated;
 # Folder: Defines the name of the folder where the results will be saved.
-Estimation = EstimacaoLinear(symbols_x=[r'X1'], symbols_y=[r'Y1'], symbols_param=['A1','B1'],  folder='VapourpressuresLinearEX8')
+ER = EstimacaoLinear(symbols_x=[r'X1'], symbols_y=[r'Y1'], symbols_param=['A1','B1'],  folder='VapourpressuresLinearEX8')
+#%% Defining observed data
+# Input data
+T =Estimation.x.estimacao.matriz_estimativa.transpose()[0]
+# Input data uncertainty
+uT =Estimation.x.estimacao.matriz_incerteza.transpose()[0]
+
+# Output data
+P =Estimation.y.estimacao.matriz_estimativa.transpose()[0]
+# Output data uncertainty
+uP =Estimation.y.estimacao.matriz_incerteza.transpose()[0]
+
+
 #Input observed data
 X = 1./array(T)
 #Output observed data
@@ -97,24 +94,21 @@ uX = ((-1/(array(T)**2))**2*array(uT)**2)**0.5
 uY = ((1/array(P))**2*array(uP)**2 + (-1*-68.2/(8.31446*array(T)))**2*array(uT)**2)**0.5
 
 #%% Setting the observed data set
-# inputs
-Estimation.setDados(0, (X.tolist(), uX.tolist()))
-# outputs
-Estimation.setDados(1, (Y.tolist(), uY.tolist()))
+
 
 # Defining the previous data set to be used to parameter estimation
 # dataType: Defines the purpose of the informed data set: estimacao, predicao.
 # glx: Degrees of freedom of quantity x;
 # gly: Degrees of freedom of quantity y;
-Estimation.setConjunto(dataType='estimacao', glx=[], gly=[])
+ER.setDados(data={0:[(X,uX)],1:[(Y,uY)]},glx=[],gly=[])
 
 #%% Optimization - estimating the parameters
 # parametersReport: Informs whether the parameters report should be created (True or False).
-Estimation.optimize(parametersReport=True)
+ER.optimize(parametersReport=True)
 
 #%% Evaluating the parameters uncertainty and coverage region
 # objectiveFunctionMapping: Deals with mapping the objective function (True or False);
-Estimation.parametersUncertainty(objectiveFunctionMapping=True)
+ER.parametersUncertainty(objectiveFunctionMapping=True)
 
 #%% Evaluating model predictions
 # export_y: Exports the calculated data of y, its uncertainty, and degrees of freedom in a txt with comma separation (True or False);
@@ -122,11 +116,11 @@ Estimation.parametersUncertainty(objectiveFunctionMapping=True)
 # export_cov_y: Exports the covariance matrix of y (True or False);
 # export_x: Exports the calculated data of x, its uncertainty, and degrees of freedom in a txt with comma separation(True or False);
 # export_cov_x: Exports the covariance matrix of x (True or False).
-Estimation.prediction(export_y=True,export_y_xls=True, export_cov_y=True, export_x=True, export_cov_x=True)
+ER.prediction(export_y=True,export_y_xls=True, export_cov_y=True, export_x=True, export_cov_x=True)
 
 #%% Evaluating residuals and quality index
-Estimation.residualAnalysis(report=True)
+ER.residualAnalysis(report=True)
 
 #%% Plotting the main results
 # using solely default options
-Estimation.plots()
+ER.plots()

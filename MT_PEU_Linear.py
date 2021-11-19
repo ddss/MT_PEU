@@ -195,19 +195,17 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             self.__coluna_dumb = True
 
     def setDados(self, data, worksheet=None, glx=[], gly=[],dataType='estimacao',uxy=None):
-     # def setConjunto(self,glx=[],gly=[],dataType='estimacao',uxy=None):
+
         u'''
-        Método para incluir os dados de entrada da estimação
+        Método para incluir os dados de entrada da estimação e predição (quando chamado setDados pela segunda vez)
         
         =======================
         Entradas (Obrigatórias)
         =======================
         
-        * xe        : array com os dados experimentais das variáveis independentes na forma de colunas
-        * ux        : array com as incertezas das variáveis independentes na forma de colunas
-        * ye        : array com os dados experimentais das variáveis dependentes na forma de colunas
-        * uy        : array com as incertezas das variáveis dependentes na forma de colunas
-        * tipo      : string que define se os dados são experimentais ou de validação.
+        * data        : array com os dados experimentais das variáveis independentes na forma de colunas
+        * worksheet        : nome das planilhas
+
         **Aviso**:
         Caso não definidos dados de validação, será assumido os valores experimentais                    
         '''
@@ -278,6 +276,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
 
             Y = data_dependent_variable[
                 {data_dependent_variable.columns[i] for i in range(0, data_dependent_variable.shape[1], 2)}].to_numpy()
+
             uY = data_dependent_variable[
                 {data_dependent_variable.columns[i] for i in range(1, data_dependent_variable.shape[1], 2)}].to_numpy()
             X = data_independent_variable[
@@ -286,6 +285,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             uX = data_independent_variable[
                 {data_independent_variable.columns[i] for i in
                  range(1, data_independent_variable.shape[1], 2)}].to_numpy()
+
 
         else:
             raise TypeError(

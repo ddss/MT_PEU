@@ -25,9 +25,11 @@ Estime = EstimacaoNaoLinear(Model, symbols_x=['t','Tao'], units_x=['s','K'],
                             symbols_y=[r'y'], units_y=['adm'],
                             symbols_param=['ko','E'], units_param=['adm','K'], Folder='Example2')
 
+
 #%% Defining observed data
 # Input data
-# input 1
+# input 1"""
+""""
 time = [120.0,60.0,60.0,120.0,120.0,60.0,60.0,30.0,15.0,60.0,
 45.1,90.0,150.0,60.0,60.0,60.0,30.0,90.0,150.0,90.4,120.0,
 60.0,60.0,60.0,60.0,60.0,60.0,30.0,45.1,30.0,30.0,45.0,15.0,30.0,90.0,25.0,
@@ -49,17 +51,19 @@ y = [0.9,0.949,0.886,0.785,0.791,0.890,0.787,0.877,0.938,
 0.802,0.802,0.804,0.794,0.804,0.799,0.764,0.688,0.717,0.802,0.695,0.808,
 0.655,0.309,0.689,0.437,0.425,0.638,.659,0.449]
 # output uncertainty
-uy = [1]*41
+uy = [1]*41" """
 
 #%% Setting the observed data set
 
-# inputs
-Estime.setDados(0,(time,uxtime),(temperature,uxtemperature))
-# outputs
-Estime.setDados(1,(y,uy))
+#Data entry using template with arbitrary excel sheet names
+#Estime.setDados(data="data_exa.xlsx",worksheet= {0:"independente",1:"dependente"})
 
-# Defining the previous data set to be used to parameter estimation
-Estime.setConjunto()
+#Data entry using standard excel template
+Estime.setDados(data="data_exa1.xlsx")
+
+#Manual data entry
+#Estime.setDados(data={0:[(time,uxtime),(temperature,uxtemperature)],1:[(y,uy)]})
+
 
 #%% Optimization - estimating the parameters
 # initial_estimative: List with the initial estimates for the parameters;
@@ -74,7 +78,7 @@ Estime.parametersUncertainty(uncertaintyMethod='2InvHessiana',objectiveFunctionM
 
 #%%Running the charts without prediction.
 # using solely default options
-#Estime.plots()
+Estime.plots()
 
 #%% Evaluating model predictions
 # export_y: Exports the calculated data of y, its uncertainty, and degrees of freedom in a txt with comma separation (True or False);
@@ -87,7 +91,7 @@ Estime.prediction(export_y=True, export_y_xls=True, export_cov_y=True, )
 Estime.residualAnalysis()
 
 #%% Plotting the main results
-#Estime.plots()
+Estime.plots()
 
 #%% Reference of this case study
 # SCHWAAB, M.M.;PINTO, J.C. Análise de Dados Experimentais I: Fundamentos da Estátistica e Estimação de Parâmetros. Rio de Janeiro: e-papers, 2007.

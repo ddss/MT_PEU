@@ -82,7 +82,7 @@ class EstimacaoNaoLinear:
 
             """
             self.setDados = 0
-            self.setConjunto = 0
+            self.setConjunto = 0 
             self.otimizacao = 0
             self.SETparametro = 0
             self.GETFOotimo = 0
@@ -563,11 +563,8 @@ class EstimacaoNaoLinear:
                               'plots-subfolder-grandezatendencia': 'Tendencia observada',
                               'report':'Reports'}
 
-        # Auxiliary variables for data set definition
-        self.__xtemp = None
-        self.__uxtemp = None
-        self.__ytemp = None
-        self.__uytemp = None
+
+
 
         # Report class initialization
         self._out = Report(str(self.__controleFluxo.FLUXO_ID), self.__base_path, sep + self._configFolder['report'] + sep, **kwargs)
@@ -662,7 +659,7 @@ class EstimacaoNaoLinear:
         if udados.shape[0]*self.y.NV-float(self.parametros.NV) <= 0: # Verificar se há graus de liberdade suficiente
             warn('Insufficient degrees of freedom. Your experimental data set is not enough to estimate the parameters!',UserWarning)
 
-    def  setDados(self, data,worksheet=None , glx=[],gly=[]):
+    def  setDados(self,data,worksheet=None , glx=[],gly=[]):
 
         u"""
                 setDados(self, no, *data):
@@ -762,7 +759,6 @@ class EstimacaoNaoLinear:
         self.__controleFluxo.SET_ETAPA('setConjunto')
 
         # validation of the amount of experimental data
-
 
         if X.shape[0] != Y.shape[0]:
             raise ValueError('{:d} data were entered for dependent quantities, but {:d} for independent quantities'.format(self.__ytemp.shape[0],self.__xtemp.shape[0]))

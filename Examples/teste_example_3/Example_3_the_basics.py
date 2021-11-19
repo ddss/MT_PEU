@@ -34,13 +34,12 @@ uP = [0.08,0.09,0.09,0.11,0.17,0.21,0.25,0.35,0.40,0.47,0.48,0.58,
 
 #%% Setting the observed data set
 # inputs
-Estimation.setDados(0,(T,uxT))
-# outputs
-Estimation.setDados(1,(P,uP))
+Estimation.setDados(data={0:[(T,uxT)],1:[(P,uP)]})
+
 
 # Defining the previous data set to be used to parameter estimation.
 # dataType: Defines the purpose of the informed data set: estimacao, predicao.
-Estimation.setConjunto(dataType='estimacao')
+
 
 #%% Optimization - estimating the parameters,
 # initial_estimative: List with the initial estimates for the parameters;
@@ -72,5 +71,5 @@ Estimation.residualAnalysis()
 
 #%% Plotting the main results
 # using solely default options
-#Estimation.plots()
+Estimation.plots()
 

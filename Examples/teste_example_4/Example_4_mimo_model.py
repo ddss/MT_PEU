@@ -44,17 +44,13 @@ y2 = [1.66,6.07,7.55,9.72,15.24,18.79,19.33,22.38,24.27,25.51]
 uy2 = [1]*10
 
 #%% Setting the observed data set
-
-# inputs
-Estime.setDados(0, (x1, ux1), (x2, ux2))
-# outputs
-Estime.setDados(1, (y1, uy1), (y2, uy2))
-
+#Estime.setDados(data={0:[(x1, ux1),(x2, ux2)],1:[(y1,uy1),(y2,uy2)]},glx=[], gly=[])
+Estime.setDados(data="data_exa4.xlsx",glx=[], gly=[])
 # Defining the previous data set to be used to parameter estimation
 # dataType: Defines the purpose of the informed data set: estimacao, predicao.
 # glx: Degrees of freedom of quantity x;
 # gly: Degrees of freedom of quantity y;
-Estime.setConjunto(dataType='estimacao', glx=[], gly=[])
+
 
 #%% Optimization - estimating the parameters
 # initial_estimative: List with the initial estimates for the parameters;
