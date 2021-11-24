@@ -82,7 +82,6 @@ class EstimacaoNaoLinear:
 
             """
             self.setDados = 0
-            self.setConjunto = 0 
             self.otimizacao = 0
             self.SETparametro = 0
             self.GETFOotimo = 0
@@ -133,9 +132,9 @@ class EstimacaoNaoLinear:
             # Assigning the value 1 (executed) to the attribute related to the step being executed
             setattr(self, etapa, 1)
 
-        def reiniciar(self,manter='setConjunto'):
+        def reiniciar(self,manter='setDados'):
             u"""
-            reiniciar(self,manter='setConjunto')
+            reiniciar(self,manter='setDados')
 
             ====================================================
             Method used to restart the flux. (IMPACTS all steps)
@@ -204,12 +203,8 @@ class EstimacaoNaoLinear:
             return []
 
         @property
-        def _predecessora_setConjunto(self):
-            return ['setDados']
-
-        @property
         def _predecessora_otimizacao(self):
-            return ['setConjunto']
+            return ['setDados']
 
         @property
         def _predecessora_SETparametro(self):
@@ -237,7 +232,7 @@ class EstimacaoNaoLinear:
 
         @property
         def _predecessora_armazenarDicionario(self):
-            return ['setConjunto']
+            return ['setDados']
 
         @property
         def _predecessora_mapeamentoFO(self):
@@ -600,7 +595,7 @@ class EstimacaoNaoLinear:
 
     @property
     def __graph_flux_association(self):
-        return {'setConjunto':[self.__tipoGraficos[1]],'incertezaParametros':[self.__tipoGraficos[0],self.__tipoGraficos[3]],
+        return {'setDados':[self.__tipoGraficos[1]],'incertezaParametros':[self.__tipoGraficos[0],self.__tipoGraficos[3]],
                 'predicao':[self.__tipoGraficos[2],self.__tipoGraficos[3]],'analiseResiduos':[self.__tipoGraficos[5]]}
 
     @property
@@ -679,7 +674,6 @@ class EstimacaoNaoLinear:
         # EXECUTION
         self.__controleFluxo.SET_ETAPA('setDados')
 
-
         if type(data)==dict:
 
             # VALIDATION TO MANUAL DATA ENTRY
@@ -756,7 +750,7 @@ class EstimacaoNaoLinear:
         self.__validacaoDadosEntrada(X, uX, self.x.NV)
         self.__validacaoDadosEntrada(Y, uY, self.y.NV)
 
-        self.__controleFluxo.SET_ETAPA('setConjunto')
+
 
         # validation of the amount of experimental data
 
@@ -2060,8 +2054,8 @@ class EstimacaoNaoLinear:
         # PLOTS
         # ---------------------------------------------------------------------
         if (self.__tipoGraficos[1] in types):
-            # if setConjunto method was executed at any time:
-            if self.__controleFluxo.setConjunto:
+            # if setDados method was executed at any time:
+            if self.__controleFluxo.setDados:
                 base_dir = sep + self._configFolder['plots-{}'.format(self.__tipoGraficos[1])] + sep
                 Validacao_Diretorio(base_path,base_dir)
                 # Internal folders

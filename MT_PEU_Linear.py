@@ -194,7 +194,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             self._EstimacaoNaoLinear__flag.ToggleActive('calc_termo_independente')
             self.__coluna_dumb = True
 
-    def setDados(self, data, worksheet=None, glx=[], gly=[],dataType='estimacao',uxy=None):
+    def setDados(self, data, worksheet=None, glx=[], gly=[],uxy=None):
 
         u'''
         Método para incluir os dados de entrada da estimação e predição (quando chamado setDados pela segunda vez)
@@ -295,19 +295,8 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         self._EstimacaoNaoLinear__validacaoDadosEntrada(Y, uY, self.y.NV)
 
         # ---------------------------------------------------------------------
-        # FLUXO
-        # ---------------------------------------------------------------------
-        self._EstimacaoNaoLinear__controleFluxo.SET_ETAPA('setConjunto')
-
-        # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------
-
-        # Validação da sintaxe
-        if not set([dataType]).issubset(self._EstimacaoNaoLinear__tiposDisponiveisEntrada):
-            raise ValueError('The input(s) ' + ','.join(
-                set([dataType]).difference(self._EstimacaoNaoLinear__tiposDisponiveisEntrada)) + ' are not available. You should use: ' + ','.join(
-                self._EstimacaoNaoLinear__tiposDisponiveisEntrada) + '.')
 
         # Validação do número de dados experimentais
         if X.shape[0] != Y.shape[0]:
@@ -321,6 +310,14 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             X = hstack((X, ones((shape(X)[0], 1))))
             uX = hstack((uX, ones((shape(uX)[0], 1))))
             coluna_dumb = True
+
+       #Automatizando dataType para que o usuário não precise indicar na entrada de dados
+        if not self._EstimacaoNaoLinear__flag.info['dadosestimacao']:  # rodando a primeira vez (estimação)
+            dataType = self._EstimacaoNaoLinear__tiposDisponiveisEntrada[0]
+        else:  # rodando a segunda vez (predição)
+            dataType = self._EstimacaoNaoLinear__tiposDisponiveisEntrada[1]
+
+
 
         if dataType == 'estimacao':
             self._EstimacaoNaoLinear__flag.ToggleActive('dadosestimacao')
