@@ -657,24 +657,59 @@ class EstimacaoNaoLinear:
     def  setDados(self,data,worksheet=None , glx=[],gly=[]):
 
         u"""
-                setDados(self, no, *data):
+                setDados(self,data,worksheet=None , glx=[],gly=[]):
                 ===================================================================================================================
-                Method to collect the input data of dependent and independent quantities and organize them in an appropriate format
+                  Method for collecting input data from dependent and independent quantities and including estimating data
                 ===================================================================================================================
                 - Parameters
                 ------------
 
-                name_file: str
-                    file directory or just the name if it is in the same folder
-                tipo:  bool
-                    must be 0 for independent quantity or 1 for dependent quantity.
+                data: dict,list and  str
+
+                      dict: manual input format
+                      list: data entry type to excel CSV
+                      str: data entry type to excel format
+
+                worksheet:dict
+                     Nomes das planilhas do arquivo Excel
+
+                glx : list, optional
+                    list with the freedom degrees for the input quantities.
+                gly : list, optional
+                    list with the freedom degrees for the output quantities.
+
+
+                How to use each input format
+
+                    Dict is  manual input format
+
+                        Estime.setDados(data={0:[(time,uxtime),(temperature,uxtemperature)],1:[(y,uy)]})
+
+                    List is input format for CSV file
+                        Estime.setDados(data=["name_data_independent.csv","name_data_exa1_dependent.csv"])
+
+
+                    Str is input format for excel file:
+
+                        (i) If the user has changed the name of the standard worksheets.
+
+                        *Estime.setData(data="file_name.xlsx",worksheet= {0:"name_worksheet_independent-data",1:"name_worksheet_independent-data"})
+
+                        (ii) If the user has used default names for the excel worksheets, (independent variable) and (dependent variable ).
+
+                        *Estime.setData(date="file_name .xlsx")
+
+
+
+
+
 
         """
 
         # EXECUTION
         self.__controleFluxo.SET_ETAPA('setDados')
 
-        if type(data)==dict:
+        if type(data) == dict:
 
             # VALIDATION TO MANUAL DATA ENTRY
 
@@ -698,20 +733,26 @@ class EstimacaoNaoLinear:
             uX = transpose(array([data[0][i][1] for i in range(len(data[0]))], ndmin=2, dtype=float))
             Y = transpose(array([data[1][i][0] for i in range(len(data[1]))], ndmin=2, dtype=float))
             uY = transpose(array([data[1][i][1] for i in range(len(data[1]))], ndmin=2, dtype=float))
-        elif type(data) == str:
-            if worksheet is None:
-                #VALIDATION SHEET NAME
-                # valida os nomes das planilhas , mostra o erro caso o usuário mudou os nomes padrões
-                if pd.ExcelFile(data).sheet_names[0] != "independent variable" or \
-                    pd.ExcelFile(data).sheet_names[1] != "dependent variable":
-                    raise TypeError(
-                        "Worksheet names can be default  (independent variable) and (dependent variable), or set your  worksheet")
+        elif type(data) == str or list: # list for  csv and str for excel
+            if type(data) == str:
+                if worksheet is None:
+                    #VALIDATION SHEET NAME
+                    # valida os nomes das planilhas , mostra o erro caso o usuário mudou os nomes padrões
+                    if pd.ExcelFile(data).sheet_names[0] != "independent variable" or \
+                        pd.ExcelFile(data).sheet_names[1] != "dependent variable":
+                        raise TypeError(
+                            "Worksheet names can be the default ones (independent variable,dependent variable) , or you can set the worksheet argument (list) defining them   your  worksheet")
 
-                data_dependent_variable = pd.read_excel(data, sheet_name="dependent variable")
-                data_independent_variable = pd.read_excel(data, sheet_name="independent variable")
-            else:
-                data_dependent_variable = pd.read_excel(data, sheet_name=worksheet[1])
-                data_independent_variable = pd.read_excel(data, sheet_name=worksheet[0])
+                    data_dependent_variable = pd.read_excel(data, sheet_name="dependent variable")
+                    data_independent_variable = pd.read_excel(data, sheet_name="independent variable")
+                else:
+                    data_dependent_variable = pd.read_excel(data, sheet_name=worksheet[1])
+                    data_independent_variable = pd.read_excel(data, sheet_name=worksheet[0])
+            else: #data in format csv
+
+                data_dependent_variable = pd.read_csv(data[1],sep =';')
+                data_independent_variable = pd.read_csv(data[0],sep =';')
+
 
             #VALIDATION TO DATA USING  EXCEL
             #Remove colunas sem títulos
@@ -732,21 +773,34 @@ class EstimacaoNaoLinear:
             data_dependent_variable = data_dependent_variable.dropna()
             data_independent_variable = data_independent_variable.dropna()
 
+            #Construção das matrizes estimativa e incerteza
 
-            Y = data_dependent_variable[
-                {data_dependent_variable.columns[i] for i in range(0, data_dependent_variable.shape[1], 2)}].to_numpy()
-            uY = data_dependent_variable[
-                {data_dependent_variable.columns[i] for i in range(1, data_dependent_variable.shape[1], 2)}].to_numpy()
+
+            Y = data_dependent_variable[{data_dependent_variable.columns[i] for i in
+                 range(0, data_dependent_variable.shape[1], 2)}]
+            Y=Y.to_numpy(dtype=float)
+
             X = data_independent_variable[
                 {data_independent_variable.columns[i] for i in
-                 range(0, data_independent_variable.shape[1], 2)}].to_numpy()
+                 range(0, data_independent_variable.shape[1], 2)}]
+
+            X = X.to_numpy()
+
+
+            uY = data_dependent_variable[
+                {data_dependent_variable.columns[i] for i in
+                 range(1, data_dependent_variable.shape[1], 2)}]
+            uY=uY.to_numpy(dtype=float)
+
             uX = data_independent_variable[
                 {data_independent_variable.columns[i] for i in
-                 range(1, data_independent_variable.shape[1], 2)}].to_numpy()
-
+                 range(1, data_independent_variable.shape[1], 2)}]
+            uX= uX.to_numpy(dtype=float)
+        #caso não seja ou dict ou str
         else:
             raise TypeError("The data input can be either in dictionary format or string ""excel file name"", check if the input follows any of these formats")
 
+        # validation data
         self.__validacaoDadosEntrada(X, uX, self.x.NV)
         self.__validacaoDadosEntrada(Y, uY, self.y.NV)
 
@@ -767,7 +821,6 @@ class EstimacaoNaoLinear:
         # experimental data
         if dataType == self.__tiposDisponiveisEntrada[0]:
             self.__flag.ToggleActive('dadosestimacao')
-            print("dadosestimacao")
             # if flux ID is equal to zero, so it's not necessary to restart, otherwise, restart.
             if self.__controleFluxo.FLUXO_ID != 0:
                 self.__controleFluxo.reiniciar()

@@ -9,7 +9,7 @@ Principais classes do motor de cálculo do PEU
 
 # Importação de pacotes de terceiros
 from numpy import array, transpose, concatenate,size, ones, \
-hstack, shape, ndarray
+hstack, shape, ndarray, asarray
 from scipy.stats import t
 from threading import Thread
 from sys import exc_info
@@ -238,21 +238,25 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             uX = transpose(array([data[0][i][1] for i in range(len(data[0]))], ndmin=2, dtype=float))
             Y = transpose(array([data[1][i][0] for i in range(len(data[1]))], ndmin=2, dtype=float))
             uY = transpose(array([data[1][i][1] for i in range(len(data[1]))], ndmin=2, dtype=float))
-        elif type(data) == str:
-            if worksheet is None:
-                # VALIDATION SHEET NAME
-                # valida os nomes das planilhas , mostra o erro caso o usuário mudou os nomes padrões
-                if pd.ExcelFile(data).sheet_names[0] != "independent variable" or \
-                        pd.ExcelFile(data).sheet_names[1] != "dependent variable":
-                    raise TypeError(
-                        "Worksheet names can be default  (independent variable) and (dependent variable), or set your  worksheet")
+        elif type(data) == str or list:  # list for  csv and str for excelelif type(data) == str:
+            if type(data) == str:
+                if worksheet is None:
+                    # VALIDATION SHEET NAME
+                    # valida os nomes das planilhas , mostra o erro caso o usuário mudou os nomes padrões
+                    if pd.ExcelFile(data).sheet_names[0] != "independent variable" or \
+                            pd.ExcelFile(data).sheet_names[1] != "dependent variable":
+                        raise TypeError(
+                            "Worksheet names can be default  (independent variable) and (dependent variable), or set your  worksheet")
 
-                data_dependent_variable = pd.read_excel(data, sheet_name="dependent variable")
-                data_independent_variable = pd.read_excel(data, sheet_name="independent variable")
-            else:
-                data_dependent_variable = pd.read_excel(data, sheet_name=worksheet[1])
-                data_independent_variable = pd.read_excel(data, sheet_name=worksheet[0])
+                    data_dependent_variable = pd.read_excel(data, sheet_name="dependent variable")
+                    data_independent_variable = pd.read_excel(data, sheet_name="independent variable")
+                else:
+                    data_dependent_variable = pd.read_excel(data, sheet_name=worksheet[1])
+                    data_independent_variable = pd.read_excel(data, sheet_name=worksheet[0])
+            else:  # data in format csv
 
+                data_dependent_variable = pd.read_csv(data[1], sep=';')
+                data_independent_variable = pd.read_csv(data[0], sep=';')
             # VALIDATION TO DATA USING  EXCEL
             # Remove colunas sem títulos
             data_independent_variable.drop([col for col in data_independent_variable.columns if "Unnamed" in col],
