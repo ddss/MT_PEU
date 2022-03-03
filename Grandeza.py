@@ -31,7 +31,7 @@ from Graficos import Grafico
 
 class Grandeza:
 
-    def __init__(self,simbolos,nomes=None,unidades=None,label_latex=None):
+    def __init__(self,simbolos,simbolos_incertezas,nomes=None,unidades=None,label_latex=None):
         u'''
         Classe para organizar as características das Grandezas:
                 
@@ -45,7 +45,7 @@ class Grandeza:
 
         **OPCIONAL**:
         
-        * ``nomes``       (list) : deve ser uma lisra contendo o nome das variáveis
+        * ``nomes``       (list) : deve ser uma lista contendo o nome das variáveis
         * ``unidades``    (list) : deve ser uma lista contendo as unidades das variáveis
         * ``label_latex`` (list) : deve ser uma lista contendo os símbolos em formato LATEX
         
@@ -102,16 +102,19 @@ class Grandeza:
         # ------------------------------------------------------------------------------------
         # VALIDAÇÂO
         # -------------------------------------------------------------------------------------
-        if simbolos is None:
+        if simbolos  is None:
             raise NameError('You must insert te symbols of the quantities.')
 
-        self.__validacaoEntrada(simbolos,nomes,unidades,label_latex)
+
+
+        self.__validacaoEntrada(simbolos,simbolos_incertezas,nomes,unidades,label_latex)
 
         # ------------------------------------------------------------------------------------
         # CRIAÇÃO DE ATRIBUTOS
         # -------------------------------------------------------------------------------------
         # simbolos: usado como referência para a quantidade de variáveis da grandeza
-        self.simbolos    = simbolos
+        self.simbolos           = simbolos
+        self.simbolos_incertezas= simbolos_incertezas
 
         # nomes, unidades e label_latex: utilizados para plotagem
         # caso não definidos, eles serão uma lista de elementos None, para manter a consistência dimensional
@@ -142,18 +145,43 @@ class Grandeza:
     def __tipoGraficos(self):
         return ('regiaoAbrangencia', 'grandezas-entrada', 'predicao', 'grandezas-calculadas', 'otimizacao', 'analiseResiduos')
 
-    def __validacaoEntrada(self,simbolos,nomes,unidades,label_latex):
+    def __validacaoEntrada(self,simbolos,simbolos_incertezas,nomes,unidades,label_latex):
         u'''
         Validação:
         
-        * se os simbolos, nome, unidades e label_latex são Listas.
-        * se os elementos de simbolos, nome, unidades e label_latex são strings (ou caracteres unicode)
+        * se os simbolos,simbolos das  incertezas , nome, unidades e label_latex são Listas.
+        * se os elementos de simbolos,simbolos das  incertezas, nome, unidades e label_latex são strings (ou caracteres unicode)
         * se os elementos de simbolos possuem caracteres não permitidos (caracteres especiais)
         * se os simbolos são distintos
         * se os tamanhos dos atributos de simbologia, nome, unidades e label_latex são os mesmos.
         '''
+        if simbolos_incertezas is not  None :#Se simbolos_incertezas é nada não existe necessidade de validação
+            # Verificação se os símbolos das incertezas  possuem caracteres especiais
+            for simb1 in simbolos_incertezas:
+                if not simb1.isalnum():
+                    raise NameError(
+                        'The symbols of uncertainty cannot have special characters. Incorrect Symbol: ' + simb1)
+            # Verificação se os símbolos das incertezas são distintos
+            # set: conjunto de elementos distintos não ordenados (trabalha com teoria de conjuntos)
+            if len(set(simbolos_incertezas)) != len(simbolos_incertezas):
+                raise NameError('The symbols of each quantity must be different.')
+
+                # Verificação se os símbolos apenas diferenciados por maiúsculo ou minúsculo
+                # realização do teste
+                results = []
+                for sym in simbolos_incertezas:
+                    test = [sym.lower() == sym2.lower() or sym.upper() == sym2.upper() for sym2 in
+                            simbolos]  # Cria uma matriz com o resultados dos testes
+                    if sum(test) != 1:  # Diferente de 1 significa que há mais de um True naquela linha
+                        results.append(sym)  # busca o respectivo símbolo para aquele teste
+                if len(
+                        results) > 0:  # Maior que 0, pois, quando houver problemas, pelo menos um símbolo será identificado: maiúsculo e minúsculo
+                    raise NameError(
+                        'It is not possible to use the same symbols differentiated by upper or lower case. Please change these symbols: ' + str(
+                            results))
+
         # Verificação se nomes, unidade e label_latex são listas
-        for elemento in [simbolos,nomes,unidades,label_latex]:
+        for elemento in [simbolos,simbolos_incertezas,nomes,unidades,label_latex]:
             if elemento is not None:
                 if not isinstance(elemento,list):
                     raise TypeError('For a quantity, the symbols, names, units, and label_latex must be informed in the form of a list.')
@@ -184,7 +212,7 @@ class Grandeza:
             raise NameError('It is not possible to use the same symbols differentiated by upper or lower case. Please change these symbols: ' + str(results))
 
        # Verificação se nomes, unidade e label_latex possuem mesmo tamanho
-        for elemento in [nomes,unidades,label_latex]:
+        for elemento in [simbolos_incertezas,nomes,unidades,label_latex]:
             if elemento is not None:
                 if len(elemento) != len(simbolos):
                     raise ValueError('Symbols, names, units and label_latex must be lists of the same size.')
@@ -408,6 +436,7 @@ class Grandeza:
                 raise TypeError(u'The elements in the list must be the float type.')
 
         if len(estimativa) != self.NV:
+
             raise ValueError(u'It is necessary to inform estimates for all parameters that were defined.')
 
         # variância

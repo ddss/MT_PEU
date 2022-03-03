@@ -28,8 +28,8 @@ from os import getcwd, sep
 from casadi import MX,DM,vertcat,horzcat,nlpsol,sum1,jacobian,hessian,mtimes,inv as inv_cas, diag,Function
 # Exception Handling
 from warnings import warn
-import os
-
+from os import listdir
+from collections import Counter
 # System
 #TODO: CORRIGIR ENCONDING
 #import sys
@@ -254,7 +254,7 @@ class EstimacaoNaoLinear:
         def _sucessoresValidacao(self):
             return ['predicao', 'analiseResiduos', 'armazenarDicionario', 'Gy', 'S']
 
-    def __init__(self, Model, symbols_y, symbols_x, symbols_param, PA=0.95, Folder='Projeto', **kwargs):
+    def __init__(self, Model, symbols_y,symbols_uy, symbols_x,symbols_ux, symbols_param, PA=0.95, Folder='Projeto', **kwargs):
         u"""
         __init__(self, Model, symbols_y, symbols_x, symbols_param, PA=0.95, Folder='Projeto', **kwargs)
 
@@ -297,6 +297,8 @@ class EstimacaoNaoLinear:
         -statsmodels
 
         -casadi
+
+        -Pandas
 
         We recommend the use of Anaconda Python 3 distribution.
 
@@ -359,11 +361,9 @@ class EstimacaoNaoLinear:
         ------------
 
         **setDados**
-            method for entering the experimental data. It must be executed once for dependent quantities and once for
-            independent quantities. (See method documentation)
+            method for entering the experimental data and  defines the purpose of the experimental data included:
+            (i) parameter estimation or (ii) validation. (See method documentation)
 
-        **setConjunto**
-            defines the purpose of the experimental data included: (i) parameter estimation or (ii) validation. (See method documentation)
 
         **optimize**
             performs the optimization, based on the data set defined in setConjunto. (See method documentation)
@@ -458,6 +458,7 @@ class EstimacaoNaoLinear:
             (This is used in plotting of graphs, to prevent the use of successive validation data from overwriting the graphs)
 
         """
+
         # ---------------------------------------------------------------------
         # CONTROL OF THE INFORMATION FLUX OF THE ALGORITHM
         # ---------------------------------------------------------------------
@@ -498,10 +499,10 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # INITIALIZATION OF QUANTITIES
         # ---------------------------------------------------------------------
-        # Variable      = Grandeza(symbols      ,names                                ,units                                ,label_latex                          )
-        self.x          = Grandeza(symbols_x    ,kwargs.get(self.__keywordsEntrada[0]),kwargs.get(self.__keywordsEntrada[1]),kwargs.get(self.__keywordsEntrada[2]))
-        self.y          = Grandeza(symbols_y    ,kwargs.get(self.__keywordsEntrada[3]),kwargs.get(self.__keywordsEntrada[4]),kwargs.get(self.__keywordsEntrada[5]))
-        self.parametros = Grandeza(symbols_param,kwargs.get(self.__keywordsEntrada[6]),kwargs.get(self.__keywordsEntrada[7]),kwargs.get(self.__keywordsEntrada[8]))
+        # Variable      = Grandeza(symbols  ,symbols_uncertainty    , names                                ,units                                ,label_latex                          )
+        self.x          = Grandeza(symbols_x,symbols_ux             ,kwargs.get(self.__keywordsEntrada[0]),kwargs.get(self.__keywordsEntrada[1]),kwargs.get(self.__keywordsEntrada[2]))
+        self.y          = Grandeza(symbols_y,symbols_uy             ,kwargs.get(self.__keywordsEntrada[3]),kwargs.get(self.__keywordsEntrada[4]),kwargs.get(self.__keywordsEntrada[5]))
+        self.parametros = Grandeza(symbols_param,None               ,kwargs.get(self.__keywordsEntrada[6]),kwargs.get(self.__keywordsEntrada[7]),kwargs.get(self.__keywordsEntrada[8]))
 
         # Check if the symbols are different
         # set: set of distinct non-ordered elements (works with set theory)
@@ -531,7 +532,7 @@ class EstimacaoNaoLinear:
         self.__OFMapped = []
         # Base path for the files, if the base_path keyword is defined it will be used.
         if kwargs.get(self.__keywordsEntrada[9]) is None:
-            self.__base_path = getcwd()+ sep +str(Folder)+sep
+            self.__base_path = getcwd()+ sep +str(Folder)+sep ####
         else:
             self.__base_path = kwargs.get(self.__keywordsEntrada[9])
 
@@ -654,7 +655,7 @@ class EstimacaoNaoLinear:
         if udados.shape[0]*self.y.NV-float(self.parametros.NV) <= 0: # Verificar se há graus de liberdade suficiente
             warn('Insufficient degrees of freedom. Your experimental data set is not enough to estimate the parameters!',UserWarning)
 
-    def  setDados(self,data,worksheet=None , glx=[],gly=[]):
+    def  setDados(self, data,separador=';',decimal='.', glx=[], gly=[]):
 
         u"""
                 setDados(self,data,worksheet=None , glx=[],gly=[]):
@@ -668,10 +669,9 @@ class EstimacaoNaoLinear:
 
                       dict: manual input format
                       list: data entry type to excel CSV
-                      str: data entry type to excel format
+                      str: data entry type to excel format and CSV
 
-                worksheet:dict
-                     Nomes das planilhas do arquivo Excel
+
 
                 glx : list, optional
                     list with the freedom degrees for the input quantities.
@@ -700,103 +700,177 @@ class EstimacaoNaoLinear:
                         *Estime.setData(date="file_name .xlsx")
 
 
-
-
-
-
         """
 
         # EXECUTION
         self.__controleFluxo.SET_ETAPA('setDados')
-
-        if type(data) == dict:
-
-            # VALIDATION TO MANUAL DATA ENTRY
-
-            if len(data[0]) == 0 or len(data[1])==0:
-                raise TypeError('It is necessary to include at least data for one quantity: ([data],[uncertainty])')
-            for i in range(2):
-                for ele in data[i]:
-                    if not (isinstance(ele, list) or isinstance(ele, tuple)):
-                        raise TypeError(
-                            'Each quantity pair (data and uncertainty) must be a tuple or list: ([data],[uncertainty]).')
-
-                if len(ele) != 2:
-                    raise TypeError('Each tuple must contain only 2 lists: ([data],[uncertainty])')
-
-                for ele_i in ele:
-                    if not (isinstance(ele, list) or isinstance(ele, tuple)):
-                        raise TypeError(
-                            'Each quantity pair (data and uncertainty) must be a tuple or list: ([data],[uncertainty]).')
-
-            X = transpose(array([data[0][i][0] for i in range(len(data[0]))], ndmin=2, dtype=float))
-            uX = transpose(array([data[0][i][1] for i in range(len(data[0]))], ndmin=2, dtype=float))
-            Y = transpose(array([data[1][i][0] for i in range(len(data[1]))], ndmin=2, dtype=float))
-            uY = transpose(array([data[1][i][1] for i in range(len(data[1]))], ndmin=2, dtype=float))
-        elif type(data) == str or list: # list for  csv and str for excel
-            if type(data) == str:
-                if worksheet is None:
-                    #VALIDATION SHEET NAME
-                    # valida os nomes das planilhas , mostra o erro caso o usuário mudou os nomes padrões
-                    if pd.ExcelFile(data).sheet_names[0] != "independent variable" or \
-                        pd.ExcelFile(data).sheet_names[1] != "dependent variable":
-                        raise TypeError(
-                            "Worksheet names can be the default ones (independent variable,dependent variable) , or you can set the worksheet argument (list) defining them   your  worksheet")
-
-                    data_dependent_variable = pd.read_excel(data, sheet_name="dependent variable")
-                    data_independent_variable = pd.read_excel(data, sheet_name="independent variable")
+        #MANUAL DATA ENTRY
+        if isinstance(data,dict):
+        # VALIDATION TO MANUAL DATA ENTRY
+            # Tests if input data lists are the same size
+            for i in list(data.keys()):
+                if len(data[i]) != len(data[list(data.keys())[0]]):
+                    raise ValueError("The list {} differs in the amount of points from the first list".format(i))
+            #Test if the symbols passed in the object instantiation parameters of the MT_PEU class are all in the dataset
+            lista_nomes=self.x.simbolos + self.y.simbolos + self.y.simbolos_incertezas + self.x.simbolos_incertezas
+            lista_dados=data.keys()
+            if len(list(set(lista_dados) & set(lista_nomes))) != len(lista_nomes):
+                if len(list(set(lista_nomes) - set(lista_dados) & set(lista_nomes))) > 1:
+                    raise ValueError("The symbols {} differ from their counterparts in data entry ".format(
+                        set(lista_nomes) - set(lista_dados) & set(lista_nomes)))
                 else:
-                    data_dependent_variable = pd.read_excel(data, sheet_name=worksheet[1])
-                    data_independent_variable = pd.read_excel(data, sheet_name=worksheet[0])
-            else: #data in format csv
-
-                data_dependent_variable = pd.read_csv(data[1],sep =';')
-                data_independent_variable = pd.read_csv(data[0],sep =';')
-
-
-            #VALIDATION TO DATA USING  EXCEL
-            #Remove colunas sem títulos
-            data_independent_variable.drop([col for col in data_independent_variable.columns if "Unnamed" in col],
-            axis=1, inplace=True)
-            data_dependent_variable.drop([col for col in data_dependent_variable.columns if "Unnamed" in col], axis=1,
-            inplace=True)
-            #informa quais linhas forma removidas
-            if len(list(data_dependent_variable[data_dependent_variable.isnull().values.any(axis=1)].index.values)) !=0:
-                warn("the respective lines of dependent variable have been removed {} ".format(list(asarray(list(data_dependent_variable[data_dependent_variable.isnull().values.any(axis=1)].index.values))+2)),UserWarning)
-            if len(list(data_independent_variable[
-                            data_independent_variable.isnull().values.any(axis=1)].index.values)) != 0:
-                warn("the respective lines of independent variable have been removed {} ".format(list(asarray(list(
-                    data_independent_variable[
-                        data_independent_variable.isnull().values.any(axis=1)].index.values)) + 2)), UserWarning)
-
-            #remove as linhas
-            data_dependent_variable = data_dependent_variable.dropna()
-            data_independent_variable = data_independent_variable.dropna()
-
-            #Construção das matrizes estimativa e incerteza
+                    raise ValueError("The  symbol {} differs from its counterpart in data entry ".format(
+                        set(lista_nomes) - set(lista_dados) & set(lista_nomes)))
+            #Test if an empty list was passed
+            for listas in data:
+                if len(data[listas]) == 0:
+                    raise ValueError(f'Data list {listas} cannot be empty')
 
 
-            Y = data_dependent_variable[{data_dependent_variable.columns[i] for i in
-                 range(0, data_dependent_variable.shape[1], 2)}]
-            Y=Y.to_numpy(dtype=float)
+            X = transpose(array([data[i] for i in self.x.simbolos], ndmin=2, dtype=float))
+            uX = transpose(array([data[i] for i in self.x.simbolos_incertezas], ndmin=2, dtype=float))
+            Y = transpose(array([data[i] for i in self.y.simbolos], ndmin=2, dtype=float))
+            uY = transpose(array([data[i] for i in self.y.simbolos_incertezas], ndmin=2, dtype=float))
 
-            X = data_independent_variable[
-                {data_independent_variable.columns[i] for i in
-                 range(0, data_independent_variable.shape[1], 2)}]
+################################################################################################################################################
+        #ENTRADA DE DADOS QUE FAZ A IMPORTAÇÃO DE DADOS DE ARQUIVOS .CSV E .XLSX
 
-            X = X.to_numpy()
+        elif isinstance(data,list)  or isinstance(data,str): #Os nomes de arquivos pode ser uma string,
+            # no caso de de um arquivo único,ou lista de strings no caso de múltiplos arquivos
+            if  not isinstance(data,list):
+                data = [data]  #Espera-se os dados no formato de lista,mas caso seja uma string, a mesma é salva em uma
+                # lista
+
+            ###VALIDATION###
+            for indice_name_file in Counter(data).values(): #valida se foi passado nomes repetidos
+                if indice_name_file != 1:
+                    raise TypeError('Unformatted files cannot have the same name')
+
+            ###################sendo lista ou string usa essa rotina para importar dados de aquivos csv e excel###############################
+            lista_dataframe = []  # lista vazia  para fazer a concaternação de dataframes
+            for i in range(len(data)):
+                #####Caso que nomes de arquivos já possuem extenção#####
+                if '.csv'in data[i]  or '.xlsx' in data[i] :#busca o formato nos nomes passados
+                    #Caso sejam .xlsx usa essa rotina de chamada de dados
+                    if '.xlsx' in data[i]  :
+                        # nomes_planilhas é a lista com títulos das  planilhas do excel
+                        nomes_planilhas = pd.ExcelFile(data[i]).sheet_names
+                        if len(nomes_planilhas) > 1:
+                            #Caso o .xlsx tenha mais de uma planilha
+                            data_variable = pd.read_excel(data[i], sheet_name=nomes_planilhas)
+                                                          #data_variable armazena cada planilha do excel como um dataframe, em forma de dicionário
+                            for i2 in data_variable:
+                                lista_dataframe.append(data_variable[i2])  # cria uma lista de dataframes usando o dict de dataframes
+                        else:
+                            # Caso o .xlsx tenha apenas uma planilha de dados
+
+                            data_frame_xlsx = pd.read_excel(data[i])
+                            # VALIDATION TO DATA USING  EXCEL
+                            # Remove colunas sem títulos
+
+                            data_frame_xlsx.drop(
+                                [col for col in data_frame_xlsx.columns if "Unnamed" in col], axis=1,
+                                inplace=True)
+                            # informa quais linhas forma removidas
+                            if len(list(data_frame_xlsx[data_frame_xlsx.isnull().values.any(
+                                    axis=1)].index.values)) != 0:
+                                warn("the respective lines of data have been removed {} ".format(list(
+                                    asarray(list(data_frame_xlsx[
+                                                     data_frame_xlsx.isnull().values.any(
+                                                         axis=1)].index.values)) + 2)),
+                                    UserWarning)
+                            data_frame_xlsx = data_frame_xlsx.dropna()  # remove as linhas
+                            lista_dataframe.append(data_frame_xlsx)
+
+                    else:
+                        #Caso onde o formato é .csv
+                        lista_dataframe.append(pd.read_csv(data[i], sep=separador ,decimal=decimal))
+
+                else: #####Caso que nomes de arquivos não possuem extenção#####
+                    lista_arquivos_ini = listdir()  # importa lista de arquivos na mesma pasta
+                    lista_arquivos = sorted(lista_arquivos_ini,
+                                            key=len)  # organiza a lista em ordem crescente do tamanho das strings
+                    controle = True #variável responsável por limitar que em cada interação traga apenas um arquivo
+                    for j in range(len(lista_arquivos)):
+                        if controle :
+                            if data[i] in lista_arquivos[j]:#tras o arquivo que contenha o mesmo nome antes do ponto
+                                name1 = lista_arquivos[j]  # nome de arquivo com o seu formato
+                                #No entanto esses arquivos podem ser dados de planilha eletrônica ou csv
+                                if name1.replace(data[i],'') == '.xlsx'or name1.replace(data[i],'') == '.xls'or name1.replace(data[i],'') == '.xlsm' or name1.replace(data[i],'') == '.xlsb' or name1.replace(data[i],'') == '.odf':  # Supports xls, xlsx, xlsm, xlsb, odf, ods and odt file extensions
+                                    # função que trás a lista com títulos das  planilhas
+                                    nomes_planilhas = pd.ExcelFile(name1).sheet_names
+                                    if len(nomes_planilhas) > 1:
+                                        data_variable = pd.read_excel(name1, sheet_name=nomes_planilhas)
+                                        for i2 in data_variable:
+                                            lista_dataframe.append(data_variable[i2])  # cria uma lista de dataframes usando o dict de dataframes
+                                            controle = False
+                                    else:#caso que o arquivo xlsx possui apenas uma planilha
+
+                                        data_frame_xlsx=pd.read_excel(name1)
+                                        # VALIDATION TO DATA USING  EXCEL
+                                        # Remove colunas sem títulos
+
+                                        data_frame_xlsx.drop(
+                                            [col for col in data_frame_xlsx.columns if "Unnamed" in col], axis=1,
+                                            inplace=True)
+                                        # informa quais linhas forma removidas
+                                        if len(list(data_frame_xlsx[data_frame_xlsx.isnull().values.any(
+                                                axis=1)].index.values)) != 0:
+                                            warn("the respective lines of data have been removed {} ".format(list(
+                                                asarray(list(data_frame_xlsx[
+                                                                 data_frame_xlsx.isnull().values.any(
+                                                                     axis=1)].index.values)) + 2)),
+                                                UserWarning)
+                                        data_frame_xlsx = data_frame_xlsx.dropna()# remove as linhas
+                                        lista_dataframe.append(data_frame_xlsx)
+                                        controle = False
+                                elif name1.replace(data[i], '') == '.csv' :
+                                    data_frame_csv=pd.read_csv(name1, decimal=decimal, sep=separador)
+                                    lista_dataframe.append(data_frame_csv)
+                                    controle = False
+
+                    if controle == True:#se não houver nenhum arquivo com o nome passado pelo usuário
+                        raise TypeError('There is no file with the name {} in the file folder'.format(data[i]))
 
 
-            uY = data_dependent_variable[
-                {data_dependent_variable.columns[i] for i in
-                 range(1, data_dependent_variable.shape[1], 2)}]
-            uY=uY.to_numpy(dtype=float)
+            #testa se todos os dados tem a mesma quantidade de pontos
+            for i in lista_dataframe:
+              if   len(i.index) != len(lista_dataframe[0].index):
+                  raise ValueError("Input files  have data with different number of points")
 
-            uX = data_independent_variable[
-                {data_independent_variable.columns[i] for i in
-                 range(1, data_independent_variable.shape[1], 2)}]
-            uX= uX.to_numpy(dtype=float)
-        #caso não seja ou dict ou str
+
+            dataframe_geral = pd.concat(lista_dataframe, axis=1)# junta todos os dataframes em um único
+
+            if len(list( dataframe_geral[ dataframe_geral.isnull().values.any(
+                    axis=1)].index.values)) != 0:
+                warn("the respective lines of data have been removed {} ".format(list(
+                    asarray(list( dataframe_geral[
+                                      dataframe_geral.isnull().values.any(
+                                         axis=1)].index.values)) + 2)),
+                    UserWarning)
+
+            dataframe_geral = dataframe_geral.dropna()  # remove as linhas
+
+            # testa se tem not a number nos dados
+            if dataframe_geral.isnull().any().any() :
+                raise ValueError("Inconsistency in input data")
+            # Test if the symbols passed in the object instantiation parameters of the MT_PEU class are all in the dataset
+            lista_dados=list(dataframe_geral.columns)
+            lista_nomes = self.x.simbolos + self.y.simbolos + self.y.simbolos_incertezas + self.x.simbolos_incertezas
+            if len(list(set(lista_dados) & set(lista_nomes))) != len(lista_nomes):
+                if len(list(set(lista_nomes) - set(lista_dados) & set(lista_nomes))) > 1:
+                    raise ValueError("The symbols {} differ from their counterparts in data entry ".format(
+                        set(lista_nomes) - set(lista_dados) & set(lista_nomes)))
+                else:
+                    raise ValueError("The  symbol {} differs from its counterpart in data entry ".format(
+                        set(lista_nomes) - set(lista_dados) & set(lista_nomes)))
+
+            #Creation of estimation and uncertainty matrices
+            X = dataframe_geral[self.x.simbolos].to_numpy(dtype=float)
+            Y = dataframe_geral[self.y.simbolos].to_numpy(dtype=float)
+            uX = dataframe_geral[self.x.simbolos_incertezas].to_numpy(dtype=float)
+            uY = dataframe_geral[self.y.simbolos_incertezas].to_numpy(dtype=float)
+
         else:
             raise TypeError("The data input can be either in dictionary format or string ""excel file name"", check if the input follows any of these formats")
 
@@ -812,7 +886,7 @@ class EstimacaoNaoLinear:
             raise ValueError('{:d} data were entered for dependent quantities, but {:d} for independent quantities'.format(self.__ytemp.shape[0],self.__xtemp.shape[0]))
 
         ######################################################EXECUTION#########################################################
-        #Automaticamente chamando dados a primeira vez vai para estimação, chamando dados pela segunda vez vai para validação (Predição).
+        #Automaticamente chamando setdados a primeira vez vai para estimação, chamando dados pela segunda vez vai para validação (Predição).
         if not self.__flag.info['dadosestimacao']:  # rodando a primeira vez (estimação)
              dataType = self.__tiposDisponiveisEntrada[0]
         else:  # rodando a segunda vez, vai agora para predição
@@ -845,7 +919,6 @@ class EstimacaoNaoLinear:
         # prediction data
         if dataType == self.__tiposDisponiveisEntrada[1]:
             self.__flag.ToggleActive('dadospredicao')
-            print('dados predição')
             self.__controleFluxo.reiniciarParcial()
             # ---------------------------------------------------------------------
             # ASSIGNMENT OF VALUES TO QUANTITIES
