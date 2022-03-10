@@ -725,8 +725,6 @@ class EstimacaoNaoLinear:
             for listas in data:
                 if len(data[listas]) == 0:
                     raise ValueError(f'Data list {listas} cannot be empty')
-
-
             X = transpose(array([data[i] for i in self.x.simbolos], ndmin=2, dtype=float))
             uX = transpose(array([data[i] for i in self.x.simbolos_incertezas], ndmin=2, dtype=float))
             Y = transpose(array([data[i] for i in self.y.simbolos], ndmin=2, dtype=float))
@@ -790,6 +788,7 @@ class EstimacaoNaoLinear:
                     lista_arquivos_ini = listdir()  # importa lista de arquivos na mesma pasta
                     lista_arquivos = sorted(lista_arquivos_ini,
                                             key=len)  # organiza a lista em ordem crescente do tamanho das strings
+
                     controle = True #variável responsável por limitar que em cada interação traga apenas um arquivo
                     for j in range(len(lista_arquivos)):
                         if controle :
@@ -805,11 +804,9 @@ class EstimacaoNaoLinear:
                                             lista_dataframe.append(data_variable[i2])  # cria uma lista de dataframes usando o dict de dataframes
                                             controle = False
                                     else:#caso que o arquivo xlsx possui apenas uma planilha
-
                                         data_frame_xlsx=pd.read_excel(name1)
                                         # VALIDATION TO DATA USING  EXCEL
                                         # Remove colunas sem títulos
-
                                         data_frame_xlsx.drop(
                                             [col for col in data_frame_xlsx.columns if "Unnamed" in col], axis=1,
                                             inplace=True)
@@ -824,7 +821,7 @@ class EstimacaoNaoLinear:
                                         data_frame_xlsx = data_frame_xlsx.dropna()# remove as linhas
                                         lista_dataframe.append(data_frame_xlsx)
                                         controle = False
-                                elif name1.replace(data[i], '') == '.csv' :
+                                elif name1.replace(data[i], '') == '.csv' or name1.replace(data[i], '') == '.CSV'  :
                                     data_frame_csv=pd.read_csv(name1, decimal=decimal, sep=separador)
                                     lista_dataframe.append(data_frame_csv)
                                     controle = False
@@ -840,17 +837,6 @@ class EstimacaoNaoLinear:
 
 
             dataframe_geral = pd.concat(lista_dataframe, axis=1)# junta todos os dataframes em um único
-
-            if len(list( dataframe_geral[ dataframe_geral.isnull().values.any(
-                    axis=1)].index.values)) != 0:
-                warn("the respective lines of data have been removed {} ".format(list(
-                    asarray(list( dataframe_geral[
-                                      dataframe_geral.isnull().values.any(
-                                         axis=1)].index.values)) + 2)),
-                    UserWarning)
-
-            dataframe_geral = dataframe_geral.dropna()  # remove as linhas
-
             # testa se tem not a number nos dados
             if dataframe_geral.isnull().any().any() :
                 raise ValueError("Inconsistency in input data")
@@ -872,19 +858,11 @@ class EstimacaoNaoLinear:
             uY = dataframe_geral[self.y.simbolos_incertezas].to_numpy(dtype=float)
 
         else:
-            raise TypeError("The data input can be either in dictionary format or string ""excel file name"", check if the input follows any of these formats")
+            raise TypeError(" The data input can be in the form of a list, string and dictionary, check if the input follows any of these formats")
 
         # validation data
         self.__validacaoDadosEntrada(X, uX, self.x.NV)
         self.__validacaoDadosEntrada(Y, uY, self.y.NV)
-
-
-
-        # validation of the amount of experimental data
-
-        if X.shape[0] != Y.shape[0]:
-            raise ValueError('{:d} data were entered for dependent quantities, but {:d} for independent quantities'.format(self.__ytemp.shape[0],self.__xtemp.shape[0]))
-
         ######################################################EXECUTION#########################################################
         #Automaticamente chamando setdados a primeira vez vai para estimação, chamando dados pela segunda vez vai para validação (Predição).
         if not self.__flag.info['dadosestimacao']:  # rodando a primeira vez (estimação)
