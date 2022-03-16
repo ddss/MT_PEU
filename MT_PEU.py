@@ -740,9 +740,11 @@ class EstimacaoNaoLinear:
                 # lista
 
             ###VALIDATION###
-            for indice_name_file in Counter(data).values(): #valida se foi passado nomes repetidos
-                if indice_name_file != 1:
-                    raise TypeError('Unformatted files cannot have the same name')
+            for valor in Counter(data):
+                if Counter(data)[valor] != 1:
+                    warn('You passed filename {} repeated, it was considered only once'.format(valor), Warning)
+
+            data=(list(set(data)))
 
             ###################sendo lista ou string usa essa rotina para importar dados de aquivos csv e excel###############################
             lista_dataframe = []  # lista vazia  para fazer a concaternação de dataframes
@@ -761,38 +763,18 @@ class EstimacaoNaoLinear:
                                 lista_dataframe.append(data_variable[i2])  # cria uma lista de dataframes usando o dict de dataframes
                         else:
                             # Caso o .xlsx tenha apenas uma planilha de dados
-
-                            data_frame_xlsx = pd.read_excel(data[i])
-                            # VALIDATION TO DATA USING  EXCEL
-                            # Remove colunas sem títulos
-
-                            data_frame_xlsx.drop(
-                                [col for col in data_frame_xlsx.columns if "Unnamed" in col], axis=1,
-                                inplace=True)
-                            # informa quais linhas forma removidas
-                            if len(list(data_frame_xlsx[data_frame_xlsx.isnull().values.any(
-                                    axis=1)].index.values)) != 0:
-                                warn("the respective lines of data have been removed {} ".format(list(
-                                    asarray(list(data_frame_xlsx[
-                                                     data_frame_xlsx.isnull().values.any(
-                                                         axis=1)].index.values)) + 2)),
-                                    UserWarning)
-                            data_frame_xlsx = data_frame_xlsx.dropna()  # remove as linhas
-                            lista_dataframe.append(data_frame_xlsx)
-
+                            lista_dataframe.append(pd.read_excel(data[i]))
                     else:
                         #Caso onde o formato é .csv
                         lista_dataframe.append(pd.read_csv(data[i], sep=separador ,decimal=decimal))
-
                 else: #####Caso que nomes de arquivos não possuem extenção#####
                     lista_arquivos_ini = listdir()  # importa lista de arquivos na mesma pasta
                     lista_arquivos = sorted(lista_arquivos_ini,
                                             key=len)  # organiza a lista em ordem crescente do tamanho das strings
-
                     controle = True #variável responsável por limitar que em cada interação traga apenas um arquivo
                     for j in range(len(lista_arquivos)):
                         if controle :
-                            if data[i] in lista_arquivos[j]:#tras o arquivo que contenha o mesmo nome antes do ponto
+                            if data[i] in lista_arquivos[j]:#traz o arquivo que contenha o mesmo nome antes do ponto
                                 name1 = lista_arquivos[j]  # nome de arquivo com o seu formato
                                 #No entanto esses arquivos podem ser dados de planilha eletrônica ou csv
                                 if name1.replace(data[i],'') == '.xlsx'or name1.replace(data[i],'') == '.xls'or name1.replace(data[i],'') == '.xlsm' or name1.replace(data[i],'') == '.xlsb' or name1.replace(data[i],'') == '.odf':  # Supports xls, xlsx, xlsm, xlsb, odf, ods and odt file extensions
@@ -804,40 +786,27 @@ class EstimacaoNaoLinear:
                                             lista_dataframe.append(data_variable[i2])  # cria uma lista de dataframes usando o dict de dataframes
                                             controle = False
                                     else:#caso que o arquivo xlsx possui apenas uma planilha
-                                        data_frame_xlsx=pd.read_excel(name1)
-                                        # VALIDATION TO DATA USING  EXCEL
-                                        # Remove colunas sem títulos
-                                        data_frame_xlsx.drop(
-                                            [col for col in data_frame_xlsx.columns if "Unnamed" in col], axis=1,
-                                            inplace=True)
-                                        # informa quais linhas forma removidas
-                                        if len(list(data_frame_xlsx[data_frame_xlsx.isnull().values.any(
-                                                axis=1)].index.values)) != 0:
-                                            warn("the respective lines of data have been removed {} ".format(list(
-                                                asarray(list(data_frame_xlsx[
-                                                                 data_frame_xlsx.isnull().values.any(
-                                                                     axis=1)].index.values)) + 2)),
-                                                UserWarning)
-                                        data_frame_xlsx = data_frame_xlsx.dropna()# remove as linhas
-                                        lista_dataframe.append(data_frame_xlsx)
+                                        lista_dataframe.append(pd.read_excel(name1))
                                         controle = False
                                 elif name1.replace(data[i], '') == '.csv' or name1.replace(data[i], '') == '.CSV'  :
                                     data_frame_csv=pd.read_csv(name1, decimal=decimal, sep=separador)
                                     lista_dataframe.append(data_frame_csv)
                                     controle = False
-
                     if controle == True:#se não houver nenhum arquivo com o nome passado pelo usuário
                         raise TypeError('There is no file with the name {} in the file folder'.format(data[i]))
-
-
             #testa se todos os dados tem a mesma quantidade de pontos
             for i in lista_dataframe:
               if   len(i.index) != len(lista_dataframe[0].index):
                   raise ValueError("Input files  have data with different number of points")
 
-
-            dataframe_geral = pd.concat(lista_dataframe, axis=1)# junta todos os dataframes em um único
-            # testa se tem not a number nos dados
+            dataframe_geral = pd.concat(lista_dataframe, axis=1)# concaterna todos os dataframes em um único
+            print(dataframe_geral)
+            if len(list(dataframe_geral[dataframe_geral.isnull().values.any(
+                    axis=1)].index.values)) != 0:
+                raise ValueError("The respective rows of data are empty {} ".format(list(
+                    asarray(list(dataframe_geral[
+                                     dataframe_geral.isnull().values.any(
+                                         axis=1)].index.values)) + 2)))
             if dataframe_geral.isnull().any().any() :
                 raise ValueError("Inconsistency in input data")
             # Test if the symbols passed in the object instantiation parameters of the MT_PEU class are all in the dataset
@@ -892,7 +861,7 @@ class EstimacaoNaoLinear:
                 self.y._SETdadosestimacao(estimativa=Y, matriz_incerteza=uY,gL=glx)
             except Exception as erro:
                 raise RuntimeError(
-                    'EError in the creation of the estimation set of the quantity Y: {}'.format(erro))
+                    'Error in the creation of the estimation set of the quantity Y: {}'.format(erro))
 
         # prediction data
         if dataType == self.__tiposDisponiveisEntrada[1]:
