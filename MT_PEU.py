@@ -744,7 +744,7 @@ class EstimacaoNaoLinear:
                 if Counter(data)[valor] != 1:
                     warn('You passed filename {} repeated, it was considered only once'.format(valor), Warning)
 
-            data=(list(set(data)))
+            data=(list(set(data)))#remove nomes repetidos da lista de arquivos passada
 
             ###################sendo lista ou string usa essa rotina para importar dados de aquivos csv e excel###############################
             lista_dataframe = []  # lista vazia  para fazer a concaternação de dataframes
@@ -800,15 +800,10 @@ class EstimacaoNaoLinear:
                   raise ValueError("Input files  have data with different number of points")
 
             dataframe_geral = pd.concat(lista_dataframe, axis=1)# concaterna todos os dataframes em um único
-            print(dataframe_geral)
-            if len(list(dataframe_geral[dataframe_geral.isnull().values.any(
-                    axis=1)].index.values)) != 0:
-                raise ValueError("The respective rows of data are empty {} ".format(list(
-                    asarray(list(dataframe_geral[
-                                     dataframe_geral.isnull().values.any(
-                                         axis=1)].index.values)) + 2)))
-            if dataframe_geral.isnull().any().any() :
-                raise ValueError("Inconsistency in input data")
+            for nulos in dict(dataframe_geral.isnull().sum()):
+                if dict(dataframe_geral.isnull().sum())[nulos] != 0:
+                    raise ValueError('In quantity {} there are empty lines {} '.format(nulos,
+                            list(dataframe_geral[str(nulos)][dataframe_geral[str(nulos)].isnull().values].index.values)))
             # Test if the symbols passed in the object instantiation parameters of the MT_PEU class are all in the dataset
             lista_dados=list(dataframe_geral.columns)
             lista_nomes = self.x.simbolos + self.y.simbolos + self.y.simbolos_incertezas + self.x.simbolos_incertezas
