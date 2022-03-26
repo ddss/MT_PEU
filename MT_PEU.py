@@ -30,6 +30,7 @@ from casadi import MX,DM,vertcat,horzcat,nlpsol,sum1,jacobian,hessian,mtimes,inv
 from warnings import warn
 from os import listdir
 from collections import Counter
+
 # System
 #TODO: CORRIGIR ENCONDING
 #import sys
@@ -705,54 +706,71 @@ class EstimacaoNaoLinear:
         # EXECUTION
         self.__controleFluxo.SET_ETAPA('setDados')
         #MANUAL DATA ENTRY
+        error=False
+        aux_list=[]
         if isinstance(data,dict):
         # VALIDATION TO MANUAL DATA ENTRY
             # Tests if input data lists are the same size
             for i in list(data.keys()):
                 if len(data[i]) != len(data[list(data.keys())[0]]):
-                    raise ValueError("The list {} differs in the amount of points from the first list".format(i))
+                    aux_list.append(i)
+            if len(aux_list)==1:
+                raise ValueError(f"The list {i} differs in the amount of points from the first list")
+            if len(aux_list)>1:
+                raise ValueError(f"The list {i} differs in the amount of points from the first list")
+
+
+
             #Test if the symbols passed in the object instantiation parameters of the MT_PEU class are all in the dataset
             lista_nomes=self.x.simbolos + self.y.simbolos + self.y.simbolos_incertezas + self.x.simbolos_incertezas
             lista_dados=data.keys()
             if len(list(set(lista_dados) & set(lista_nomes))) != len(lista_nomes):
                 if len(list(set(lista_nomes) - set(lista_dados) & set(lista_nomes))) > 1:
-                    raise ValueError("The symbols {} differ from their counterparts in data entry ".format(
-                        set(lista_nomes) - set(lista_dados) & set(lista_nomes)))
+                    raise ValueError("The symbols {} were not passed in the dataset".format(
+                        list(set(lista_nomes) - set(lista_dados) & set(lista_nomes))))
                 else:
-                    raise ValueError("The  symbol {} differs from its counterpart in data entry ".format(
-                        set(lista_nomes) - set(lista_dados) & set(lista_nomes)))
+                    raise ValueError("The symbol {} was not passed in the dataset ".format(
+                        list(set(lista_nomes) - set(lista_dados) & set(lista_nomes))))
             #Test if an empty list was passed
             for listas in data:
                 if len(data[listas]) == 0:
-                    raise ValueError(f'Data list {listas} cannot be empty')
+                    aux_list.append(listas)
+            raise ValueError(f'Data list {aux_list} cannot be empty')
             X = transpose(array([data[i] for i in self.x.simbolos], ndmin=2, dtype=float))
             uX = transpose(array([data[i] for i in self.x.simbolos_incertezas], ndmin=2, dtype=float))
             Y = transpose(array([data[i] for i in self.y.simbolos], ndmin=2, dtype=float))
             uY = transpose(array([data[i] for i in self.y.simbolos_incertezas], ndmin=2, dtype=float))
+        #-----------------------------------------------------------------------------
+        # ROUTINE THAT IMPORTS AND VALIDATES DATA FROM .CSV AND .XLSX FILES
+        #-----------------------------------------------------------------------------
+        elif isinstance(data,list)  or isinstance(data,str): #Data input, in file import mode, accepts string or list of strings
 
-################################################################################################################################################
-        #ENTRADA DE DADOS QUE FAZ A IMPORTAÇÃO DE DADOS DE ARQUIVOS .CSV E .XLSX
-
-        elif isinstance(data,list)  or isinstance(data,str): #Os nomes de arquivos pode ser uma string,
-            # no caso de de um arquivo único,ou lista de strings no caso de múltiplos arquivos
             if  not isinstance(data,list):
-                data = [data]  #Espera-se os dados no formato de lista,mas caso seja uma string, a mesma é salva em uma
-                # lista
-
+                data = [data]  #The data is expected in list format, but if it is a string, it is added to a list
             ###VALIDATION###
-            for valor in Counter(data):
-                if Counter(data)[valor] != 1:
-                    warn('You passed filename {} repeated, it was considered only once'.format(valor), Warning)
 
-            data=(list(set(data)))#remove nomes repetidos da lista de arquivos passada
+            for nome_validação in data:
+                if not isinstance(nome_validação,str):
+                    error=True
+            if error:
+                raise ValueError('You passed an entry not accepted')
+            list_file_repeated=[]
+            for value in Counter(data):#warns that files with repeated names were passed
+                if Counter(data)[value] != 1:
+                    list_file_repeated.append(value)
+            if len(value) > 1:
+                warn(f"Your files with names {value} are repeated, they were only considered once", Warning)
+            elif len(value) == 1:
+                warn(f"Your file with name{value} is repeated, it was only considered once", Warning)
 
-            ###################sendo lista ou string usa essa rotina para importar dados de aquivos csv e excel###############################
-            lista_dataframe = []  # lista vazia  para fazer a concaternação de dataframes
-            for i in range(len(data)):
-                #####Caso que nomes de arquivos já possuem extenção#####
-                if '.csv'in data[i]  or '.xlsx' in data[i] :#busca o formato nos nomes passados
-                    #Caso sejam .xlsx usa essa rotina de chamada de dados
-                    if '.xlsx' in data[i]  :
+            data=(list(set(data)))#remove repeated names from past file list
+
+            lista_dataframe = []  #empty list to concatenate dataframes
+            for i in range(len(data)):#iterative loop with all filenames passed
+                #In case the filenames already have the extension
+                if '.csv' in data[i] or '.xlsx' in data[i]:#Fetch the format in the past names
+                    #Caso sejam o arquivo seja .xlsx usa essa rotina de chamada de dados
+                    if '.xlsx' in data[i]:
                         # nomes_planilhas é a lista com títulos das  planilhas do excel
                         nomes_planilhas = pd.ExcelFile(data[i]).sheet_names
                         if len(nomes_planilhas) > 1:
@@ -765,55 +783,73 @@ class EstimacaoNaoLinear:
                             # Caso o .xlsx tenha apenas uma planilha de dados
                             lista_dataframe.append(pd.read_excel(data[i]))
                     else:
-                        #Caso onde o formato é .csv
+                        #Caso onde a extensão é .csv
                         lista_dataframe.append(pd.read_csv(data[i], sep=separador ,decimal=decimal))
-                else: #####Caso que nomes de arquivos não possuem extenção#####
-                    lista_arquivos_ini = listdir()  # importa lista de arquivos na mesma pasta
+
+                # Caso que o usuário não passou extensão
+                else:
+                    lista_arquivos_ini = listdir()  #importa lista de arquivos na mesma pasta
                     lista_arquivos = sorted(lista_arquivos_ini,
                                             key=len)  # organiza a lista em ordem crescente do tamanho das strings
-                    controle = True #variável responsável por limitar que em cada interação traga apenas um arquivo
+
+                    controle = False #variável responsável por limitar que em cada iteração traga apenas um arquivo
                     for j in range(len(lista_arquivos)):
-                        if controle :
+                        if not controle :
                             if data[i] in lista_arquivos[j]:#traz o arquivo que contenha o mesmo nome antes do ponto
                                 name1 = lista_arquivos[j]  # nome de arquivo com o seu formato
                                 #No entanto esses arquivos podem ser dados de planilha eletrônica ou csv
                                 if name1.replace(data[i],'') == '.xlsx'or name1.replace(data[i],'') == '.xls'or name1.replace(data[i],'') == '.xlsm' or name1.replace(data[i],'') == '.xlsb' or name1.replace(data[i],'') == '.odf':  # Supports xls, xlsx, xlsm, xlsb, odf, ods and odt file extensions
-                                    # função que trás a lista com títulos das  planilhas
+                                    # função que traz a lista com títulos das  planilhas
                                     nomes_planilhas = pd.ExcelFile(name1).sheet_names
                                     if len(nomes_planilhas) > 1:
                                         data_variable = pd.read_excel(name1, sheet_name=nomes_planilhas)
                                         for i2 in data_variable:
                                             lista_dataframe.append(data_variable[i2])  # cria uma lista de dataframes usando o dict de dataframes
-                                            controle = False
+                                            controle = True
                                     else:#caso que o arquivo xlsx possui apenas uma planilha
                                         lista_dataframe.append(pd.read_excel(name1))
-                                        controle = False
-                                elif name1.replace(data[i], '') == '.csv' or name1.replace(data[i], '') == '.CSV'  :
+                                        controle = True
+                                elif name1.replace(data[i], '') == '.csv' or name1.replace(data[i], '') == '.CSV':
                                     data_frame_csv=pd.read_csv(name1, decimal=decimal, sep=separador)
                                     lista_dataframe.append(data_frame_csv)
-                                    controle = False
-                    if controle == True:#se não houver nenhum arquivo com o nome passado pelo usuário
+                                    controle = True
+                    if controle == False:#se não houver nenhum arquivo com o nome passado pelo usuário
                         raise TypeError('There is no file with the name {} in the file folder'.format(data[i]))
-            #testa se todos os dados tem a mesma quantidade de pontos
+            #test if all files have the same amount of points
             for i in lista_dataframe:
               if   len(i.index) != len(lista_dataframe[0].index):
                   raise ValueError("Input files  have data with different number of points")
 
-            dataframe_geral = pd.concat(lista_dataframe, axis=1)# concaterna todos os dataframes em um único
-            for nulos in dict(dataframe_geral.isnull().sum()):
-                if dict(dataframe_geral.isnull().sum())[nulos] != 0:
-                    raise ValueError('In quantity {} there are empty lines {} '.format(nulos,
-                            list(dataframe_geral[str(nulos)][dataframe_geral[str(nulos)].isnull().values].index.values)))
+            dataframe_geral = pd.concat(lista_dataframe, axis=1)# concatenates all dataframes into a single one
+
+
+            print(dict(dataframe_geral.isnull().sum()))
+
+            #for nulos in dict(dataframe_geral.isnull().sum()): #dictionary that brings the symbols as keys and the number of empty lines as values
+
+
+            #if dict(dataframe_geral.isnull().sum())[nulos] > 1:#Tests if there are empty rows in the columns of each symbol
+
+
+
+
+
+                   # raise ValueError('In quantity {} there are empty lines {} '.format(nulos,
+                            #list(dataframe_geral[str(nulos)][dataframe_geral[str(nulos)].isnull().values].index.values)))
+                #elif dict(dataframe_geral.isnull().sum())[nulos] == 1:#Tests if there are empty rows in the columns of each symbol
+                   # raise ValueError('In quantity {} there is empty line {} '.format(nulos,
+                            #list(dataframe_geral[str(nulos)][dataframe_geral[str(nulos)].isnull().values].index.values)))
+
             # Test if the symbols passed in the object instantiation parameters of the MT_PEU class are all in the dataset
             lista_dados=list(dataframe_geral.columns)
             lista_nomes = self.x.simbolos + self.y.simbolos + self.y.simbolos_incertezas + self.x.simbolos_incertezas
             if len(list(set(lista_dados) & set(lista_nomes))) != len(lista_nomes):
                 if len(list(set(lista_nomes) - set(lista_dados) & set(lista_nomes))) > 1:
-                    raise ValueError("The symbols {} differ from their counterparts in data entry ".format(
-                        set(lista_nomes) - set(lista_dados) & set(lista_nomes)))
+                    raise ValueError("The symbols {} were not passed in the dataset ".format(','.join(
+                        list(set(lista_nomes) - set(lista_dados) & set(lista_nomes)))))
                 else:
-                    raise ValueError("The  symbol {} differs from its counterpart in data entry ".format(
-                        set(lista_nomes) - set(lista_dados) & set(lista_nomes)))
+                    raise ValueError("The symbol {} was not passed in the dataset ".format(','.join(
+                        list(set(lista_nomes) - set(lista_dados) & set(lista_nomes)))))
 
             #Creation of estimation and uncertainty matrices
             X = dataframe_geral[self.x.simbolos].to_numpy(dtype=float)
@@ -822,7 +858,7 @@ class EstimacaoNaoLinear:
             uY = dataframe_geral[self.y.simbolos_incertezas].to_numpy(dtype=float)
 
         else:
-            raise TypeError(" The data input can be in the form of a list, string and dictionary, check if the input follows any of these formats")
+            raise TypeError(" The data input can be  a list or string or dictionary, check if the input follows any of these formats")
 
         # validation data
         self.__validacaoDadosEntrada(X, uX, self.x.NV)
@@ -896,9 +932,6 @@ class EstimacaoNaoLinear:
             except Exception as erro:
                 raise RuntimeError('Error in the creation of the validation set of the quantity Y: {}'.format(erro))
 
-
-
-
         # initialization of casadi's variables
         self._constructionCasadiVariables()
 
@@ -970,7 +1003,6 @@ class EstimacaoNaoLinear:
                                    self.y.estimacao.matriz_incerteza.reshape(self.y.estimacao.NE*self.y.NV,1))
 
             # Model definition
-
             self.__symModel = self.__modelo(self.__symParam, xmodel, self.y.estimacao.NE)  # Symbolic
             self.__excModel = Function('Model', [self.__symParam, self.__symVariables],[self.__symModel])  # Executable
 

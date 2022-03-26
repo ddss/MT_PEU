@@ -19,7 +19,7 @@ def Model(param,x,*args):
 # label_latex_param: List of ymbols for parameters written in LaTex;
 # units_y: List of units of measurement for independent quantities;
 # Folder: Defines the name of the folder where the results will be saved.
-Estime = EstimacaoNaoLinear(Model,symbols_x=['x1','x2'],symbols_y=['y1','y2'],symbols_param=['alpha1','alpha2', 'beta1', 'beta2'],
+Estime = EstimacaoNaoLinear(Model,symbols_x=['x1','x2'],symbols_ux=['ux1','ux2'],symbols_y=['y1','y2'],symbols_uy=['uy1','uy2'],symbols_param=['alpha1','alpha2', 'beta1', 'beta2'],
                           label_latex_param=[r'$\alpha_1$',r'$\alpha_2$',r'$\beta_1$',r'$\beta_2$'],units_y=['kg','kg'],Folder='Example4')
 
 #%% Defining observed data
@@ -45,7 +45,9 @@ uy2 = [1]*10
 
 #%% Setting the observed data set
 #Estime.setDados(data={0:[(x1, ux1),(x2, ux2)],1:[(y1,uy1),(y2,uy2)]},glx=[], gly=[])
-Estime.setDados(data="data_exa4.xlsx",glx=[], gly=[])
+#Estime.setDados(data="data_exa4.xlsx",glx=[], gly=[])
+Estime.setDados(data=["data_exa4_independent","data_exa4_dependent"])
+
 # Defining the previous data set to be used to parameter estimation
 # dataType: Defines the purpose of the informed data set: estimacao, predicao.
 # glx: Degrees of freedom of quantity x;

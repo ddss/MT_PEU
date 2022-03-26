@@ -344,7 +344,7 @@ class Report:
                             y._Grandeza__TestesInfo[nome_teste][teste]['H0']))
                         f.write(
                             '<li>   <p>  <i> Informação : </i>  p-valores devem ser maiores do que o nível de '
-                            'significânca (1-PA) </p> <p>    para não rejeitar a hipótese nula (Ho).</li>' + self.__quebra)
+                            'significância (1-PA) </p> <p>    para não rejeitar a hipótese nula (Ho).</li>' + self.__quebra)
                         f.write('</ul>')
                     elif nome_teste == 'Durbin Watson':
                         # Parte II da função , escreve as tabelas em Autocorrelação(Durbin Watson).
@@ -408,7 +408,7 @@ class Report:
                             y._Grandeza__TestesInfo[resíduo_nome][teste][key]['H0']))
 
                         f.write(
-                            '<li>   <p>  <i> Informação : </i>  p-valores devem ser maiores do que o nível de significânca (1-PA) </p> <p>    para não rejeitar a hipótese nula (Ho).</li>' + self.__quebra)
+                            '<li>   <p>  <i> Informação : </i>  p-valores devem ser maiores do que o nível de significância (1-PA) </p> <p>    para não rejeitar a hipótese nula (Ho).</li>' + self.__quebra)
                         f.write('</ul>')
                 # RESIDUAL ANALYSIS
                 f.write('<h3>Análise de resíduos:</h3>' + self.__quebra)
