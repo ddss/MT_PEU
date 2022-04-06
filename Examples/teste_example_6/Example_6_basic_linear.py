@@ -2,11 +2,10 @@
 from MT_PEU_Linear import EstimacaoLinear
 
 #%% Initialization of the class that performs the estimation.
-ER = EstimacaoLinear(['y'],['uy'],['x'],['ux'],['p1','p2'],folder='Exemple6')
+ER = EstimacaoLinear(['y'],['x'],['p1','p2'],folder='Exemple6')
 
-#%% Setting the observed data set to using Manual data entry
-
-
+#%% Defining observed data
+# Input data
 # input 1
 x = [0,1,2,3,4,5]
 # input 1 uncertainty
@@ -16,20 +15,17 @@ ux = [1,1,1,1,1,1]
 y = [.1,.9,2.2,3.2,3.9,4.8]
 # output 1 uncertainty
 uy = [1,1,1,1,1,1]
-#Manual data entry
-
-#ER.setDados(data={'x':x,'ux':ux,'y':y ,'uy':uy},glx=[],gly=[])
 
 #%% Setting the observed data set
 # inputs
-#ER.setDados(data="data_exa6.xlsx")
-
-ER.setDados(data=["data_exa6_independent.csv","data_exa6_dependent.csv"])
+ER.setDados(data="data_exa6.xlsx")
+#ER.setDados(data={0:[(x,ux)],1:[(y,uy)]},glx=[],gly=[])
 
 # Defining the previous data set to be used to parameter estimation
 # dataType: Defines the purpose of the informed data set: estimacao, predicao.
 # glx: Degrees of freedom of quantity x;
 # gly: Degrees of freedom of quantity y;
+
 
 #%% Optimization - estimating the parameters
 # parametersReport: Informs whether the parameters report should be created (True or False).

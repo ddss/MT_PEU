@@ -16,7 +16,7 @@ def Model(param, x, args):
 # symbols_y: List of ymbols for quantity y;
 # symbols_param: List of Symbols for the parameters to be estimated;
 # Folder: Defines the name of the folder where the results will be saved.
-Estimation = EstimacaoNaoLinear(Model, symbols_x=['T'],symbols_ux=['uT'], symbols_y=['P'],symbols_uy=['uP'], symbols_param=['A','B','C'],  Folder='Example3' )
+Estimation = EstimacaoNaoLinear(Model, symbols_x=[r'T'], symbols_y=[r'y'], symbols_param=['A','B','C'],  Folder='Example3' )
 
 #%% Defining observed data
 # Input data
@@ -34,11 +34,7 @@ uP = [0.08,0.09,0.09,0.11,0.17,0.21,0.25,0.35,0.40,0.47,0.48,0.58,
 
 #%% Setting the observed data set
 # inputs
-#Estimation.setDados(data={0:[(T,uxT)],1:[(P,uP)]})
-
-Estimation.setDados(data="data_exa3.1.xlsx")
-
-#Estimation.setDados(data=["data_exa3_independent","data_exa3_dependent.csv"])
+Estimation.setDados(data={0:[(T,uxT)],1:[(P,uP)]})
 
 
 # Defining the previous data set to be used to parameter estimation.
@@ -60,7 +56,7 @@ Estimation.optimize(initial_estimative = [1, 1.5, 0.009],algorithm='bonmin', opt
 # parametersReport: Informs whether the parameters report should be created (True or False).
 # iterations: Number of iterations to perform the mapping of the objective function. The higher the better mapping, but it
 # increases the execution time
-Estimation.parametersUncertainty(uncertaintyMethod='Geral', objectiveFunctionMapping=True, iterations=5000, parametersReport = True)
+Estimation.parametersUncertainty(uncertaintyMethod='Geral', objectiveFunctionMapping=True, iterations=5000, parametersReport = False)
 
 #%% Evaluating model predictions
 # export_y: Exports the calculated data of y, its uncertainty, and degrees of freedom in a txt with comma separation (True or False);

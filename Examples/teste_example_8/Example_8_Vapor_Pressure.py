@@ -16,7 +16,8 @@ def Model(param, x, args):
 # symbols_y: List of symbols for quantity y;
 # symbols_param: List of symbols for the parameters to be estimated;
 # Folder: Defines the name of the folder where the results will be saved.
-Estimation = EstimacaoNaoLinear(Model, symbols_x=[r'T'],symbols_ux=[r'uT'] ,symbols_y=[r'P'],symbols_uy=['uP'], symbols_param=['A','B'],  Folder='Example8' )
+Estimation = EstimacaoNaoLinear(Model, symbols_x=[r'T'], symbols_y=[r'P'], symbols_param=['A','B'],  Folder='Exemple8' )
+
 
 #%% Setting the observed data set
 #Estimation.setDados(data={0:[(T,uT)],1:[(P,uP)]},glx=[],gly=[])
@@ -25,6 +26,9 @@ Estimation.setDados(data="data_exa8.xlsx",glx=[], gly=[])
 # dataType: Defines the purpose of the informed data set: estimacao, predicao.
 # glx: Degrees of freedom of quantity x;
 # gly: Degrees of freedom of quantity y;
+
+
+
 #%% Optimization - estimating the parameters
 # initial_estimative: List with the initial estimates for the parameters;
 # lower_bound: List with the lower bounds for the parameters;
@@ -53,7 +57,7 @@ Estimation.residualAnalysis(report=True)
 #%% Plotting the main results
 Estimation.plots()
 
-#%% Model definition linear
+#%% Model definition liear
 
 #%% Packages importing
 from MT_PEU_Linear import EstimacaoLinear
@@ -64,7 +68,7 @@ from numpy import log, array
 # symbols_y: List of symbols for quantity y;
 # symbols_param: List of symbols for the parameters to be estimated;
 # Folder: Defines the name of the folder where the results will be saved.
-ER = EstimacaoLinear(symbols_x=[r'X1'],symbols_ux=[r'uX1'], symbols_y=[r'Y1'],symbols_uy=[r'uY1'] ,symbols_param=['A1','B1'],  folder='Example8Linear')
+ER = EstimacaoLinear(symbols_x=[r'X1'], symbols_y=[r'Y1'], symbols_param=['A1','B1'],  folder='VapourpressuresLinearEX8')
 #%% Defining observed data
 # Input data
 T =Estimation.x.estimacao.matriz_estimativa.transpose()[0]
@@ -78,16 +82,16 @@ uP =Estimation.y.estimacao.matriz_incerteza.transpose()[0]
 
 
 #Input observed data
-X = 1./T
+X = 1./array(T)
 #Output observed data
-Y = log(P) - (-68.2 / 8.31446)*log(T/298.15)
+Y = log(P) - (-68.2 / 8.31446)*log(array(T)/298.15)
 
 #Propagation of uncertainty
 #uncertainty of input observed data
-uX = ((-1/(T**2))**2*uT**2)**0.5
+uX = ((-1/(array(T)**2))**2*array(uT)**2)**0.5
 
 #uncertainty of output observed data
-uY = ((1/P)**2*uP**2 + (-1*-68.2/(8.31446*T))**2*uT**2)**0.5
+uY = ((1/array(P))**2*array(uP)**2 + (-1*-68.2/(8.31446*array(T)))**2*array(uT)**2)**0.5
 
 #%% Setting the observed data set
 
@@ -96,7 +100,7 @@ uY = ((1/P)**2*uP**2 + (-1*-68.2/(8.31446*T))**2*uT**2)**0.5
 # dataType: Defines the purpose of the informed data set: estimacao, predicao.
 # glx: Degrees of freedom of quantity x;
 # gly: Degrees of freedom of quantity y;
-ER.setDados(data={'X1':X,'uX1':uX,'Y1':Y,'uY1':uY},glx=[],gly=[])
+ER.setDados(data={0:[(X,uX)],1:[(Y,uY)]},glx=[],gly=[])
 
 #%% Optimization - estimating the parameters
 # parametersReport: Informs whether the parameters report should be created (True or False).

@@ -2,7 +2,7 @@
 from MT_PEU_Linear import EstimacaoLinear
 
 #%% Initialization of the class that performs the estimation.
-ER = EstimacaoLinear(['x'],['ux'],['q'],['uq'],['k'],folder='Exemple7')
+ER = EstimacaoLinear(['q'],['x'],['k'],folder='Exemple7')
 
 #%% Defining observed data
 # Input data
@@ -22,11 +22,7 @@ uq= [1, 1, 1, 1]
 # dataType: Defines the purpose of the informed data set: estimacao, predicao.
 # glx: Degrees of freedom of quantity x;
 # gly: Degrees of freedom of quantity y;
-ER.setDados(data={'x':x,'ux':ux,'q':q,'uq':uq},glx=[],gly=[])
-
-#ER.setDados(data="data_exa7.xlsx",glx=[],gly=[])
-
-#ER.setDados(data=["data_exa7_independent.csv","data_exa7_dependent.csv"])
+ER.setDados(data={0:[(x,ux)],1:[(q,uq)]},glx=[],gly=[])
 
 #%% Optimization - estimating the parameters
 # parametersReport: Informs whether the parameters report should be created (True or False).

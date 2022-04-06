@@ -2,6 +2,7 @@
 from MT_PEU import EstimacaoNaoLinear
 from numpy import exp,array
 
+
 #%% Model definition
 # def Model: The subroutine that specifies the equations with their respective parameters.
 def Model(param, x, *args):
@@ -14,16 +15,13 @@ def Model(param, x, *args):
 #%% Starting the MT_PEU main object
 # Model: Pass the model defined in def Model;
 # symbols_x: list of symbols for quantity x;
-# symbols_ux: list of symbols for uncertainty x;
 # symbols_y: list of symbols for quantity y;
-# symbols_uy: list of symbols for uncertainty y;
 # symbols_param: list of symbols for the parameters to be estimated;
 # Folder: string with the name of the folder where reports and charts will be saved;
-Estime = EstimacaoNaoLinear(Model, symbols_x=['Time','Temperature'],symbols_ux=['UxTime','Uxtemperature']\
-,symbols_y=['Y'] ,symbols_uy=['uY'], symbols_param=['ko','E'], Folder='Example1')
+Estime = EstimacaoNaoLinear(Model, symbols_x=['t','Tao'], symbols_y=['y'], symbols_param=['ko','E'], Folder='Example1')
 
 
-#%% Defining the observed data set
+#%% Defining observed data
 y = [0.9,0.949,0.886,0.785,0.791,0.890,0.787,0.877,0.938,
 0.782,0.827,0.696,0.582,0.795,0.800,0.790,0.883,0.712,0.576,0.715,0.673,
 0.802,0.802,0.804,0.794,0.804,0.799,0.764,0.688,0.717,0.802,0.695,0.808,
@@ -45,20 +43,20 @@ temperature = [600.0,600.0,612.0,612.0,612.0,612.0,620.0,620.0,620.0,
 # input 2 uncertainty
 uxtemperature = [1]*41
 
-#Setting manual data entry
+#Data entry using template with arbitrary excel sheet names
+#Estime.setDados(data="data_exa.xlsx",worksheet= {0:"independente",1:"dependente"})
 
-Estime.setDados(data={'Time':time,'UxTime':uxtime,'Temperature':temperature,'Uxtemperature':uxtemperature,'Y':y,'uY':uy})
+#Data entry using standard excel template
+Estime.setDados(data="data_exa2.xlsx")
 
-#Data entry using .XLSX
+#Manual data entry
+#Estime.setDados(data={0:[(time,uxtime),(temperature,uxtemperature)],1:[(y,uy)]})
 
-#Estime.setDados(data=['data_exa2.txt'])
 
-#Data entry using .CSV
-#Estime.setDados(data=["data_exa1_independent","data_exa1_dependent"])
 
 #%% Optimization - estimating the parameters
 # initial_estimate: list containing initial estimate for optimization algorithm
-Estime.optimize(initial_estimative=[0.5,250000])
+Estime.optimize(initial_estimative=[0.5,25000])
 
 #%% Evaluating the parameters uncertainty and coverage region
 # using solely default options
@@ -74,7 +72,7 @@ Estime.residualAnalysis()
 
 #%% Plotting the main results
 # using solely default options
-#Estime.plots()
+Estime.plots()
 
 #%% Reference of this case study
 # SCHWAAB, M.M.;PINTO, J.C. Análise de Dados Experimentais I: Fundamentos da Estátistica e Estimação de Parâmetros.

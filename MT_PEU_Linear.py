@@ -368,7 +368,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
                                          axis=1)].index.values)) + 2)),
                     UserWarning)
 
-            dataframe_geral = dataframe_geral.dropna(how='all')  # remove as linhas que tenham apenas not a number
+            dataframe_geral = dataframe_geral.dropna()  # remove as linhas
 
             # testa se tem not a number nos dados
             if dataframe_geral.isnull().any().any():
