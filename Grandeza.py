@@ -669,7 +669,7 @@ class Grandeza:
              
                 # Testes para a autocorrelação:
                 ljungbox = acorr_ljungbox(dados, lags=1, boxpierce=True)
-                pvalor[nome]['residuo-Autocorrelacao'] = {'Durbin Watson':{'estatistica':durbin_watson(dados)}, 'Ljung-Box':{'p-valor chi2':float(ljungbox[1]),'p-valor Box-Pierce':float(ljungbox[3])}}
+                pvalor[nome]['residuo-Autocorrelacao'] = {'Durbin Watson':{'estatistica':durbin_watson(dados)}, 'Ljung-Box':{'p-valor chi2':float(ljungbox['lb_pvalue'][1]),'p-valor Box-Pierce':float(ljungbox['bp_pvalue'][1])}}
                 
                 # Testes para a Homocedásticidade:
                 pheter = [het_white(dados,insert(Explic, 0, 1, axis=1)),het_breuschpagan(dados,Explic)]
