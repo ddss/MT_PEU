@@ -21,16 +21,17 @@ def Model(param, x, *args):
 # units_param: List of units of measurement of the parameters;
 # units_x: List of units of measurement of dependent quantities;
 # Folder: Defines the name of the folder where the results will be saved.
-Estime = EstimacaoNaoLinear(Model, symbols_x=[r't', 'Tau'], units_x=['s', 'K'], label_latex_x=[r'$t$', '$T$'],
-                            symbols_y=[r'y'], units_y=['adm'],
+Estime = EstimacaoNaoLinear(Model, symbols_x=['Time', 'Temperature'], symbols_ux=['UxTime','Uxtemperature'], units_x=['s', 'K'], label_latex_x=[r'$t$', '$T$'],
+                            symbols_y=[r'Y'],symbols_uy=[r'uY'], units_y=['adm'],
                             symbols_param=['ko', 'E'], units_param=['adm','K'],
                             label_latex_param=[r'$k_o$', r'$E$'],
                             Folder='Example5')
 
 
 #%% Setting the observed data set
-Estime.setDados(data="data_exa5.xlsx",glx=[], gly=[])
-#Estime.setDados(data={0:[(time,uxtime),(temperature,uxtemperature)],1:[(y,uy1)]},glx=[], gly=[])
+#Estime.setDados(data=["data_exa5_independent.csv","data_exa5_dependent.csv"])
+Estime.setDados(data="data_exa5",glx=[], gly=[])
+
 
 # Defining the previous data set to be used to parameter estimation
 # glx: Degrees of freedom of quantity x;
@@ -101,7 +102,7 @@ uy1 = [0.2]*12
 
 #%% Setting the observed data set
 # inputs
-Estime.setDados(data={0:[(time,uxtime),(temperature,uxtemperature)],1:[(y,uy1)]})
+Estime.setDados(data={'Time':time,'UxTime':uxtime,'Temperature':temperature,'Uxtemperature':uxtemperature,'Y':y,'uY':uy1})
 
 # Defining the previous data set to be used to validation
 # dataType: Defines the purpose of the informed data set: estimacao, predicao.
