@@ -817,7 +817,7 @@ class EstimacaoNaoLinear:
                                     controle = True
                     if controle == False:#se não houver nenhum arquivo com o nome passado pelo usuário
                         raise TypeError('There is no file with the name {} in the file folder'.format(data[i]))
-            for i in range(len(lista_dataframe)):#Removing columns with unnamed titles
+            for i in range(len(lista_dataframe)):#Removing columns with Unnamed titles
                 lista_dataframe[i].drop([col for col in lista_dataframe[i].columns if "Unnamed" in col], axis=1,
                               inplace=True)
             dataframe_geral = pd.concat(lista_dataframe, axis=1)  # concatenates all dataframes into a single one
