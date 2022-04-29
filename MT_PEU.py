@@ -817,11 +817,14 @@ class EstimacaoNaoLinear:
                                     controle = True
                     if controle == False:#se não houver nenhum arquivo com o nome passado pelo usuário
                         raise TypeError('There is no file with the name {} in the file folder'.format(data[i]))
+            for i in range(len(lista_dataframe)):#Removing columns with unnamed titles
+                lista_dataframe[i].drop([col for col in lista_dataframe[i].columns if "Unnamed" in col], axis=1,
+                              inplace=True)
             dataframe_geral = pd.concat(lista_dataframe, axis=1)  # concatenates all dataframes into a single one
             for nulos in dict(
                     dataframe_geral.isnull().sum()):  # dictionary that brings the symbols as keys and the number of empty lines as values
-                if dict(dataframe_geral.isnull().sum())[
-                    nulos] != 0:  # Tests if there are empty rows in the columns of each symbol
+                if dict(dataframe_geral.isnull().sum())[nulos] !=0:
+                    # Tests if there are empty rows in the columns of each symbol
                     aux_list.append(nulos)
             if len(aux_list) > 0:
                 raise ValueError(
