@@ -287,19 +287,19 @@ class EstimacaoNaoLinear:
         Required libraries
         -------------------
 
-        -Numpy
+        -Numpy 1.21.5
 
-        -Scipy
+        -Scipy 1.7.3
 
-        -Matplotlib
+        -Matplotlib 3.2.0
 
         -Math
 
-        -statsmodels
+        -statsmodels 0.13.2
 
-        -casadi
+        -Pandas 1.4.1
 
-        -Pandas
+        -casadi  3.5.5
 
         We recommend the use of Anaconda Python 3 distribution.
 
@@ -372,9 +372,6 @@ class EstimacaoNaoLinear:
         **parametersUncertainty**
             evaluates the uncertainty of the parameters. (See method documentation)
 
-        **SETparameter**
-            allows you to manually add the values of the parameter estimates and their covariance matrix.
-            It is assumed that the parameters were estimated for the data set provided for estimation.
 
         **prediction**
             evaluates the model prediction and its uncertainty or using the validation data.
@@ -391,11 +388,8 @@ class EstimacaoNaoLinear:
 
 
         **obs**: The sequence of execution of the methods is important. This class only allows the execution of methods,
-        if the predecessor steps have been executed. However, some methods have flexibility, for example:
+        if the predecessor steps have been executed.
 
-        -setConjunto method to define the estimation data should always be executed before optimize method.
-
-        -setConjunto method to define the validation data should always be executed before prediction method.
 
 
         - **Fluxes**
@@ -669,10 +663,8 @@ class EstimacaoNaoLinear:
                 data: dict,list and  str
 
                       dict: manual input format
-                      list: data entry type to excel CSV
-                      str: data entry type to excel format and CSV
-
-
+                      list: data entry to import one or more files
+                      str: data entry  to import one file
 
                 glx : list, optional
                     list with the freedom degrees for the input quantities.
@@ -680,25 +672,35 @@ class EstimacaoNaoLinear:
                     list with the freedom degrees for the output quantities.
 
 
+                separador:";" is default
+
+                decimal:"." is default
+
+
+
+
+
                 How to use each input format
 
                     Dict is  manual input format
 
-                        Estime.setDados(data={0:[(time,uxtime),(temperature,uxtemperature)],1:[(y,uy)]})
+                       Estime.setDados(data={'Time':time,'UxTime':uxtime,'Temperature':temperature,'Uxtemperature':uxtemperature,'Y':y,'uY':uy})
 
-                    List is input format for CSV file
+                       in manual input the user must pass a dictionary where the values are the variables referring to the past lists and
+                       the keys must be the same symbols passed in the parameters of the instantiation of the object EstimacaoNaoLinear and EstimacaoLinear.
+
+                    List is input format for import one or more files
+
                         Estime.setDados(data=["name_data_independent.csv","name_data_exa1_dependent.csv"])
 
+                        the file names (str)  are passed within a list, this case is necessary when the user wants to import more than one file
 
-                    Str is input format for excel file:
+                    Str is input format for import one file:
 
-                        (i) If the user has changed the name of the standard worksheets.
+                        Estime.setDados(data="data_exa1")
 
-                        *Estime.setData(data="file_name.xlsx",worksheet= {0:"name_worksheet_independent-data",1:"name_worksheet_independent-data"})
+                        when it is necessary to import only one data file the user can pass only the name (str)
 
-                        (ii) If the user has used default names for the excel worksheets, (independent variable) and (dependent variable ).
-
-                        *Estime.setData(date="file_name .xlsx")
 
 
         """
@@ -817,14 +819,12 @@ class EstimacaoNaoLinear:
                                     controle = True
                     if controle == False:#se não houver nenhum arquivo com o nome passado pelo usuário
                         raise TypeError('There is no file with the name {} in the file folder'.format(data[i]))
-            for i in range(len(lista_dataframe)):#Removing columns with Unnamed titles
-                lista_dataframe[i].drop([col for col in lista_dataframe[i].columns if "Unnamed" in col], axis=1,
-                              inplace=True)
             dataframe_geral = pd.concat(lista_dataframe, axis=1)  # concatenates all dataframes into a single one
+            print(dataframe_geral   )
             for nulos in dict(
                     dataframe_geral.isnull().sum()):  # dictionary that brings the symbols as keys and the number of empty lines as values
-                if dict(dataframe_geral.isnull().sum())[nulos] !=0:
-                    # Tests if there are empty rows in the columns of each symbol
+                if dict(dataframe_geral.isnull().sum())[
+                    nulos] != 0:  # Tests if there are empty rows in the columns of each symbol
                     aux_list.append(nulos)
             if len(aux_list) > 0:
                 raise ValueError(
@@ -1178,8 +1178,7 @@ class EstimacaoNaoLinear:
         - Notes
         -------
 
-        -Before executing the optimize method it's necessary to execute the "setConjunto" method
-         and define the estimation data.
+        -Before executing the optimize method it's necessary to  define the estimation data.
 
         -Every time the optimization method is run, the information about the parameters is lost.
         """
