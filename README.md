@@ -87,11 +87,12 @@ This calculation engine is based on Python programming language and builts on a 
 
 <p align="justify"> To use MT-PEU it's necessary to have <b>Python 3</b> installed with the following packages:
 
-* numpy - version 1.16.2 (available in **anaconda** distribution)
-* scipy - version 1.2.0 (available in **anaconda** distribution)
-* matplotlib - version 3.1.1 (available in **anaconda** distribution)
-* statsmodels - version 0.9.0 (available in **anaconda** distribution)
-* casadi - version 3.4.5 (may be installed by pip: **pip install casadi**)
+* numpy - version 1.21.5 (available in **anaconda** distribution)
+* scipy - version 1.7.3 (available in **anaconda** distribution)
+* matplotlib - version 3.2.0 (available in **anaconda** distribution)
+* statsmodels - version 0.13.2 (available in **anaconda** distribution)
+* pandas- version 1.4.1 (available in **anaconda** distribution)
+* casadi - version 3.5.5 (may be installed by pip: **pip install casadi**)
 
 *The easiest way to install the Python 3 and the referred packages is through the anaconda distribution*: https://www.anaconda.com/distribution/
 *After installing the Anaconda distribution, one can use the Anaconda Prompt and install casadi through the command: **pip install casadi**.*
@@ -114,7 +115,8 @@ To exemplify the usage of MT-PEU, let's reproduce the Example_1.py file:
 from MT_PEU import EstimacaoNaoLinear
 from numpy import exp
 
-# model definition
+# Model definition
+# def Model: The subroutine that specifies the equations with their respective parameters.
 def Modelo(param,x,*args):
 
     ko, E = param[0], param[1]
@@ -122,7 +124,14 @@ def Modelo(param,x,*args):
 
     return exp(-(ko*10**17)*tempo*exp(-E/T))
 
-# class initializing
+# Starting the MT_PEU main object
+# Model: Pass the model defined in def Model;
+# symbols_x: list of symbols for quantity x;
+# symbols_ux: list of symbols for uncertainty x;
+# symbols_y: list of symbols for quantity y;
+# symbols_uy: list of symbols for uncertainty y;
+# symbols_param: list of symbols for the parameters to be estimated;
+# Folder: string with the name of the folder where reports and charts will be saved;
 Estime = EstimacaoNaoLinear(Modelo, simbolos_x=['t','Tao'], simbolos_y=['y'], simbolos_param=['ko','E'], Folder='Exemplo1')
 
 # dependent quantity observed data
@@ -131,44 +140,53 @@ y = [0.9,0.949,0.886,0.785,0.791,0.890,0.787,0.877,0.938,
 0.802,0.802,0.804,0.794,0.804,0.799,0.764,0.688,0.717,0.802,0.695,0.808,
 0.655,0.309,0.689,0.437,0.425,0.638,.659,0.449]
 
+# uncertainty of y
+uy=[1]*41
+
 # independent quantity observed data
-tempo = [120.0,60.0,60.0,120.0,120.0,60.0,60.0,30.0,15.0,60.0,
+time = [120.0,60.0,60.0,120.0,120.0,60.0,60.0,30.0,15.0,60.0,
 45.1,90.0,150.0,60.0,60.0,60.0,30.0,90.0,150.0,90.4,120.0,
 60.0,60.0,60.0,60.0,60.0,60.0,30.0,45.1,30.0,30.0,45.0,15.0,30.0,90.0,25.0,
 60.1,60.0,30.0,30.0,60.0]
 
+# uncertainty of time
+uxtime=[1]*41
+
 # independent quantity observed data
-temperatura = [600.0,600.0,612.0,612.0,612.0,612.0,620.0,620.0,620.0,
+temperature = [600.0,600.0,612.0,612.0,612.0,612.0,620.0,620.0,620.0,
 620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,
 620.0,620.0,620.0,620.0,620.0,620.0,631.0,631.0,631.0,631.0,631.0,639.0,639.0,
 639.0,639.0,639.0,639.0,639.0,639.0,639.0]
 
-uy = [1]*41; uxtempo = [1]*41; uxtemperatura = [1]*41
+# uncertainty of temperature
+uxtemperature = [1]*41
 
-# passing data to the MT_PEU
-Estime.setDados(0,(tempo,uxtempo),(temperatura,uxtemperatura))
-Estime.setDados(1,(y,uy))
+# MT-PEU allows data to be entered in the following three ways.
 
-# setting the dataset
-Estime.setConjunto(tipo='estimacao')
+# Setting manual data entry
+Estime.setDados(data={'Time':time,'UxTime':uxtime,'Temperature':temperature,'Uxtemperature':uxtemperature,'Y':y,'uY':uy})
 
-# plotting a graph with observed data
-Estime.graficos()
+# Data entry using .XLSX
+Estime.setDados(data=["data_exa1"])
+
+# Data entry using .CSV
+Estime.setDados(data=["data_exa1_independent","data_exa1_dependent"])
+
 
 # executing the parameter estimation process
 Estime.optimize(initial_estimative=[0.5,25000], algoritmo='ipopt')
 
 # calculating parameters uncertainty
-Estime.incertezaParametros(metodoIncerteza='Geral')
+Estime.parametersUncertainty(metodoIncerteza='Geral')
 
 # model's predictions
-Estime.predicao()
+Estime.prediction()
 
 # residuals analysis
-Estime.analiseResiduos()
+Estime.residualAnalysis()
 
 # plotting graphs with residuals analysis and predicted data
-Estime.graficos()
+Estime.plots()
 ```
 
 # References
