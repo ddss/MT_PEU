@@ -4,7 +4,7 @@ path.append("../../modules")#passando o diretório da pasta raíz
 from modules.MT_PEU_Linear import EstimacaoLinear
 
 #%% Initialization of the class that performs the estimation.
-ER = EstimacaoLinear(['x'],['ux'],['q'],['uq'],['k'],folder='Exemple7')
+ER = EstimacaoLinear(['q'],['uq'],['x'],['ux'],['k'],folder='Exemple7')
 
 #%% Defining observed data
 # Input data
@@ -45,7 +45,7 @@ ER.parametersUncertainty(uncertaintyMethod='2InvHessiana',objectiveFunctionMappi
 ER.prediction(export_y=True,export_y_xls=True, export_cov_y=True, export_x=True, export_cov_x=True)
 
 #%% Evaluating residuals and quality index
-ER.residualAnalysis(report=False)
+ER.residualAnalysis(report=True)
 
 #%% Plotting the main results
 # using solely default options
