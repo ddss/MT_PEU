@@ -20,16 +20,15 @@ def Model(param, x, args):
 # Folder: Defines the name of the folder where the results will be saved.
 Estimation = EstimacaoNaoLinear(Model, symbols_x=['T'],symbols_ux=['uT'], symbols_y=['P'],symbols_uy=['uP'], symbols_param=['A','B','C'],  Folder='Example3' )
 
+#%% Defining observed data manually
+# Input data
+T = [297.1,298.2,299.3,301.2,304.2,307.2,310.2,314.1,316.2,317.8,318.2,320.2,
+     323.1,326.2,329.1,331.2,334.2,337.1,340.2,343.2,346.2,349.1,352.2]
+# Input data uncertainty
+uxT = [0.1]*len(T)
 
 #%% Setting the observed data set
-
-
-Estimation.setDados(data=["data_example3"])
-
-
-# Defining the previous data set to be used to parameter estimation.
-# dataType: Defines the purpose of the informed data set: estimacao, predicao.
-
+Estimation.setDados(data=["data_example3",{'T':T,'uT':uxT}])
 
 #%% Optimization - estimating the parameters,
 # initial_estimative: List with the initial estimates for the parameters;
