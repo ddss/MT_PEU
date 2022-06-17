@@ -6,7 +6,7 @@ Created on Mon Feb  2 11:05:02 2015
 """
 # Importação de pacotes de terceiros
 from numpy import array, size, diag, linspace, min, max, \
-    mean,  std, ndarray, insert, isfinite, arange, sqrt, concatenate
+    mean,  std, ndarray, insert, isfinite, arange, sqrt, zeros
 
 from numpy.linalg import cond
 
@@ -113,6 +113,7 @@ class Grandeza:
         # CRIAÇÃO DE ATRIBUTOS
         # -------------------------------------------------------------------------------------
         # simbolos: usado como referência para a quantidade de variáveis da grandeza
+
         self.simbolos           = simbolos
         self.simbolos_incertezas= simbolos_incertezas
 
@@ -129,6 +130,7 @@ class Grandeza:
         # VARIÁVEIS INTERNAS
         # ---------------------------------------------------------------------   
         self.__ID = [] # ID`s que a grandeza possui
+
 
     @property
     def __ID_disponivel(self):
@@ -287,14 +289,12 @@ class Grandeza:
             # ---------------------------------------------------------------------------
             # Indica se há uma coluna adicional na matriz de estimativas.
             self._coluna_dumb = kwargs.get('coluna_dumb') if kwargs.get('coluna_dumb') is not None else False
-
             # ---------------------------------------------------------------------------
             # CRIAÇÃO DA MATRIZ ESTIMATIVA E VETOR ESTIMATIVA (ARRAYS)
             # ---------------------------------------------------------------------------
             # Caso haja uma coluna_dumb, ao número de variáveis é somado 1, para lidar com essa coluna adicional
             if self._coluna_dumb:
                 NV += 1
-
             if estimativa.shape[1] == NV: # Foi informado a matriz estimativa (NE , NV)
                 self.matriz_estimativa = estimativa
                 self.vetor_estimativa = self.matriz_estimativa.reshape(
@@ -731,7 +731,7 @@ class Grandeza:
 
         #Gráfico Pcolor para auto correlação
 
-        #Variável local para alterl a cor do cmap
+        #Variável local para alterar a cor do cmap
         cores   = set(['b', 'g', 'r', 'c','m', 'y', 'k', 'w', '0.75'])
         setcmap = set(cmap)
         if not setcmap.issubset(cores):
@@ -749,11 +749,15 @@ class Grandeza:
                 folder = sep + 'Grandezas' + sep + self._configFolder['plots-subfolder-Dadosvalidacao']+' '+str(fluxo)+ sep + self._configFolder['plots-subfolder-matrizcorrelacao'] + sep if base_dir is None else sep + base_dir + sep + self._configFolder['plots-subfolder-Dadosvalidacao']+' '+str(fluxo) + sep + self._configFolder['plots-subfolder-matrizcorrelacao'] + sep
                 Validacao_Diretorio(base_path, folder)
             # --------------------------------------------------------------------------------------
-            listalabel=[]
+            listalabel = []
             for elemento in self.labelGraficos(printunit=False):
                 for i in range(self.estimacao.NE):
                     listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
-            plot_corr(self.estimacao.matriz_correlacao, xnames=listalabel,  ynames=listalabel, title=u'Matriz de correlação ' + self.__ID_disponivel[0],normcolor=True, cmap=cm1)
+
+
+            plot_corr(self.estimacao.matriz_correlacao[:self.estimacao.NE*self.NV,:self.estimacao.NE*self.NV,], xnames=listalabel, ynames=listalabel,
+                      title=u'Matriz de correlação ' + self.__ID_disponivel[0], normcolor=True, cmap=cm1)
+
             savefig(base_path+folder+'_'.join(self.simbolos))#+'_pcolor')_Matriz_de_correlacao')
             close()
 
@@ -772,7 +776,10 @@ class Grandeza:
                 for i in range(self.predicao.NE):
                     listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
 
-            plot_corr(self.predicao.matriz_correlacao, xnames=listalabel, ynames=listalabel, title=u'Matriz de correlação ' + self.__ID_disponivel[1],normcolor=True,cmap=cm1)
+            plot_corr(self.estimacao.matriz_correlacao[:self.estimacao.NE*self.NV,:self.estimacao.NE*self.NV,], xnames=listalabel, ynames=listalabel,
+                      title=u'Matriz de correlação ' + self.__ID_disponivel[1], normcolor=True, cmap=cm1)
+
+
             savefig(base_path+folder+'observado.png') # +'_'+'pcolor')_matriz-correlacao')
             close()
 
@@ -791,7 +798,10 @@ class Grandeza:
                 for i in range(self.calculado.NE):
                     listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
 
-            plot_corr(self.calculado.matriz_correlacao, xnames=listalabel, ynames=listalabel, title=u'Matriz de correlação ' + self.__ID_disponivel[2],normcolor=True,cmap=cm1)
+
+            plot_corr(self.estimacao.matriz_correlacao[:self.estimacao.NE*self.NV,:self.estimacao.NE*self.NV,], xnames=listalabel, ynames=listalabel,
+                      title=u'Matriz de correlação ' + self.__ID_disponivel[2], normcolor=True, cmap=cm1)
+
             savefig(base_path+folder+self.__ID_disponivel[2])#+'_'+'pcolor')#_matriz-correlacao')
             close()
 
