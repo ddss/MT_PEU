@@ -753,8 +753,6 @@ class Grandeza:
             for elemento in self.labelGraficos(printunit=False):
                 for i in range(self.estimacao.NE):
                     listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
-
-
             plot_corr(self.estimacao.matriz_correlacao[:self.estimacao.NE*self.NV,:self.estimacao.NE*self.NV,], xnames=listalabel, ynames=listalabel,
                       title=u'Matriz de correlação ' + self.__ID_disponivel[0], normcolor=True, cmap=cm1)
 
@@ -776,10 +774,8 @@ class Grandeza:
                 for i in range(self.predicao.NE):
                     listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
 
-            plot_corr(self.estimacao.matriz_correlacao[:self.estimacao.NE*self.NV,:self.estimacao.NE*self.NV,], xnames=listalabel, ynames=listalabel,
+            plot_corr(self.predicao.matriz_correlacao[:self.predicao.NE*self.NV,:self.predicao.NE*self.NV,], xnames=listalabel, ynames=listalabel,
                       title=u'Matriz de correlação ' + self.__ID_disponivel[1], normcolor=True, cmap=cm1)
-
-
             savefig(base_path+folder+'observado.png') # +'_'+'pcolor')_matriz-correlacao')
             close()
 
@@ -797,9 +793,7 @@ class Grandeza:
             for elemento in self.labelGraficos(printunit=False):
                 for i in range(self.calculado.NE):
                     listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
-
-
-            plot_corr(self.estimacao.matriz_correlacao[:self.estimacao.NE*self.NV,:self.estimacao.NE*self.NV,], xnames=listalabel, ynames=listalabel,
+            plot_corr(self.calculado.matriz_correlacao[:self.calculado.NE*self.NV,:self.calculado.NE*self.NV,], xnames=listalabel, ynames=listalabel,
                       title=u'Matriz de correlação ' + self.__ID_disponivel[2], normcolor=True, cmap=cm1)
 
             savefig(base_path+folder+self.__ID_disponivel[2])#+'_'+'pcolor')#_matriz-correlacao')
