@@ -8,14 +8,11 @@ Principais classes do motor de cálculo do PEU
 """
 
 # Importação de pacotes de terceiros
-from numpy import array, transpose, concatenate,size, ones, \
-hstack, shape, ndarray, asarray
-from scipy.stats import t
-from threading import Thread
-from sys import exc_info
+from numpy import array, ones, \
+hstack, shape
 
 from casadi import mtimes, vertcat, horzcat, MX
-
+from  pandas import ExcelFile,read_excel,read_csv,concat,DataFrame
 from numpy.linalg import inv
 
 # Exception Handling
@@ -220,29 +217,18 @@ class EstimacaoLinear(EstimacaoNaoLinear):
 
         self._EstimacaoNaoLinear__controleFluxo.SET_ETAPA('setDados')
         # MANUAL DATA ENTRY
-        aux_list = []  # list used for error
-        def manual_entrada(data):
-            # VALIDATION TO MANUAL DATA ENTRY
+        aux_list = []  # list auxiliary used for error
+
+        def manual_entry(data):  # VALIDATION TO MANUAL DATA ENTRY
             # Tests if input data lists are the same size
             for i in list(data.keys()):
                 if len(data[i]) != len(data[list(data.keys())[0]]):
                     aux_list.append(i)
             if len(aux_list) == 1:
-                raise ValueError(f"The list {','.join(i)} differs in the amount of points from the first list")
-            if len(aux_list) > 1:
-                raise ValueError(f"The list {','.join(i)} differs in the amount of points from the first list")
+                raise ValueError(f"The list {','.join(aux_list)} differs in the amount of points from the first list")
 
-            # Test if the symbols passed in the object instantiation parameters of the MT_PEU class are all in the dataset
-            lista_nomes = self.x.simbolos + self.y.simbolos + self.y.simbolos_incertezas + self.x.simbolos_incertezas
-            lista_dados = data.keys()
-            if len(list(set(lista_dados) & set(lista_nomes))) != len(lista_nomes):
-                if len(list(set(lista_nomes) - set(lista_dados) & set(lista_nomes))) > 1:
-                    raise ValueError("The symbols {} were not passed  in database".format(
-                        ','.join(list(set(lista_nomes) - set(lista_dados) & set(lista_nomes)))))
-                else:
-                    raise ValueError("The symbol {} was not passed  in database ".format(
-                        ','.join(list(set(lista_nomes) - set(lista_dados) & set(lista_nomes)))))
-            # Test if an empty list was passed
+            elif len(aux_list) > 1:
+                raise ValueError(f"The list {','.join(aux_list)} differs in the amount of points from the first list")
             for listas in data:
                 if len(data[listas]) == 0:
                     aux_list.append(listas)
@@ -251,27 +237,39 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             elif len(aux_list) > 1:
                 raise ValueError(f"Data lists {','.join(aux_list)} cannot be empty")
 
-        if isinstance(data, dict):
-            manual_entrada(data)
-            X = transpose(array([data[i] for i in self.x.simbolos], ndmin=2, dtype=float))
-            uX = transpose(array([data[i] for i in self.x.simbolos_incertezas], ndmin=2, dtype=float))
-            Y = transpose(array([data[i] for i in self.y.simbolos], ndmin=2, dtype=float))
-            uY = transpose(array([data[i] for i in self.y.simbolos_incertezas], ndmin=2, dtype=float))
+        if isinstance(data, dict):  # manual input mode case passed only one dictionary
+            manual_entry(data)  # VALIDATION
+            # Test if the symbols passed in the object instantiation parameters of the MT_PEU class are all in the database
+            list_names = self.x.simbolos + self.y.simbolos + self.y.simbolos_incertezas + self.x.simbolos_incertezas
+            for symb in list_names:
+                if symb not in list(data.keys()):
+                    raise ValueError("The symbol {} was not passed  in database".format(symb))
+
+            X = array([data[i] for i in self.x.simbolos], ndmin=2, dtype=float).transpose()
+            uX = array([data[i] for i in self.x.simbolos_incertezas], ndmin=2, dtype=float).transpose()
+            Y = array([data[i] for i in self.y.simbolos], ndmin=2, dtype=float).transpose()
+            uY = array([data[i] for i in self.y.simbolos_incertezas], ndmin=2, dtype=float).transpose()
 
         # -----------------------------------------------------------------------------
         # ROUTINE THAT IMPORTS AND VALIDATES DATA FROM .CSV AND .XLSX FILES
         # -----------------------------------------------------------------------------
-        elif isinstance(data, list) or isinstance(data,  str):  # Data input, in file import mode, accepts string or list of strings
-
+        elif isinstance(data, list) or isinstance(data,
+                                                  str):  # Data input, in file import mode, accepts string or list of strings and dictionary
             if not isinstance(data, list):
                 data = [data]  # The data is expected in list format, but if it is a string, it is added to a list
             ###VALIDATION###
             error = False
-            for nome_validação in data:
-                if not isinstance(nome_validação, str):
+            for name_validation in data:
+                if not (isinstance(name_validation, str) or isinstance(name_validation, dict)):
                     error = True
             if error:
-                raise ValueError(f"You must pass a strigs in list of setDados")
+                raise ValueError(f"You must pass a strig or dictionary in list of setDados")
+
+            aux_list1 = []  # Auxiliary list to separate dictionaries from strings and thus validate repeated strings
+            for element in data:
+                if isinstance(element, dict):
+                    aux_list1.append(element)
+                    data.remove(element)
 
             for value in Counter(data):  # warns that files with repeated names were passed
                 if Counter(data)[value] != 1:
@@ -281,88 +279,87 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             elif len(aux_list) == 1:
                 warn(f"File passed with same name: {','.join(aux_list)}.", Warning)
 
-            data = (list(set(data)))  # remove repeated names from past file list
+            data = list(set(data)) + aux_list1  # remove repeated names from past file list
 
-            lista_dataframe = []  # empty list to concatenate dataframes
+            lista_dataframe = []  # empty list to save the dataframes and then concatenate into one
             for i in range(len(data)):  # iterative loop with all filenames passed
-                # In case the filenames already have the extension
-                if '.csv' in data[i] or '.xlsx' in data[i]:  # Fetch the format in the past names
-                    # Caso sejam o arquivo seja .xlsx usa essa rotina de chamada de dados
-                    if '.xlsx' in data[i]:
-                        # nomes_planilhas é a lista com títulos das  planilhas do excel
-                        nomes_planilhas = pd.ExcelFile(data[i]).sheet_names
-                        if len(nomes_planilhas) > 1:
-                            # Caso o .xlsx tenha mais de uma planilha
-                            data_variable = pd.read_excel(data[i], sheet_name=nomes_planilhas)
-                            # data_variable armazena cada planilha do excel como um dataframe, em forma de dicionário
-                            for i2 in data_variable:
-                                lista_dataframe.append(
-                                    data_variable[i2])  # cria uma lista de dataframes usando o dict de dataframes
-                        else:
-                            # Caso o .xlsx tenha apenas uma planilha de dados
-                            lista_dataframe.append(pd.read_excel(data[i]))
-                    else:
-                        # Caso onde a extensão é .csv
-                        lista_dataframe.append(pd.read_csv(data[i], sep=separador, decimal=decimal))
 
-                # Caso que o usuário não passou extensão
+                if isinstance(data[i], dict):  # Adds manual data to imported data
+                    manual_entry(data[i])  # validation of manual input
+                    lista_dataframe.append(DataFrame(data[i]))  # creates dataframe with manual data
                 else:
-                    lista_arquivos_ini = listdir()  # importa lista de arquivos na mesma pasta
-                    lista_arquivos = sorted(lista_arquivos_ini,
-                                            key=len)  # organiza a lista em ordem crescente do tamanho das strings
+                    # In case the filenames already have the extension
+                    if '.csv' in data[i] or '.xlsx' in data[i]:  # Fetch the format in the past names
+                        if '.xlsx' in data[i]:  # Caso  onde a extensão é .xlsx
+                            # nomes_planilhas é a lista com títulos das  planilhas do excel
+                            nomes_planilhas = ExcelFile(data[i]).sheet_names
+                            if len(nomes_planilhas) > 1:  # Caso o .xlsx tenha mais de uma planilha de dados
+                                # Caso o .xlsx tenha mais de uma planilha
+                                data_variable = read_excel(data[i], sheet_name=nomes_planilhas)
+                                # data_variable armazena cada planilha do excel como um dataframe, em forma de dicionário
+                                for i2 in data_variable:
+                                    lista_dataframe.append(data_variable[
+                                                               i2])  # cria uma lista de dataframes usando o dicionário de dataframes
+                            else:
+                                # Caso o .xlsx tenha apenas uma planilha de dados
+                                lista_dataframe.append(read_excel(data[i]))
+                        else:  # Caso onde a extensão é.csv
+                            lista_dataframe.append(read_csv(data[i], sep=separador, decimal=decimal))
+                    else:
+                        # Caso que o usuário passou o nome de arquivo sem  extensão
+                        # O programa vai procurar na pasta um arquivo que possua essa extensão
+                        # Já que não é possível importar um arquivo sem saber sua extensão
+                        lista_arquivos_ini = listdir()  # importa lista de arquivos que esteja na mesma pasta
+                        lista_arquivos = sorted(lista_arquivos_ini,
+                                                key=len)  # organiza a lista em ordem crescente do tamanho das strings
 
-                    controle = False  # variável responsável por limitar que em cada iteração traga apenas um arquivo
-                    for j in range(len(lista_arquivos)):
-                        if not controle:
-                            if data[i] in lista_arquivos[j]:  # traz o arquivo que contenha o mesmo nome antes do ponto
-                                name1 = lista_arquivos[j]  # nome de arquivo com o seu formato
-                                # No entanto esses arquivos podem ser dados de planilha eletrônica ou csv
-                                if name1.replace(data[i], '') == '.xlsx' or name1.replace(data[i],
-                                                                                          '') == '.xls' or name1.replace(
-                                        data[i], '') == '.xlsm' or name1.replace(data[i],
-                                                                                 '') == '.xlsb' or name1.replace(
-                                        data[i],
-                                        '') == '.odf':  # Supports xls, xlsx, xlsm, xlsb, odf, ods and odt file extensions
-                                    # função que traz a lista com títulos das  planilhas
-                                    nomes_planilhas = pd.ExcelFile(name1).sheet_names
-                                    if len(nomes_planilhas) > 1:
-                                        data_variable = pd.read_excel(name1, sheet_name=nomes_planilhas)
-                                        for i2 in data_variable:
-                                            lista_dataframe.append(data_variable[
-                                                                       i2])  # cria uma lista de dataframes usando o dict de dataframes
+                        controle = False  # variável responsável por limitar que em cada iteração traga apenas um arquivo
+                        for j in range(len(lista_arquivos)):
+                            if not controle:
+                                if data[i] in lista_arquivos[
+                                    j]:  # traz o arquivo que contenha o mesmo nome antes do ponto
+                                    name1 = lista_arquivos[j]  # nome de arquivo com o seu formato
+                                    # No entanto esses arquivos podem ser dados de planilha eletrônica ou csv
+                                    if name1.replace(data[i],
+                                                     '') == '.xlsx':  # depois de encontrar o arquivo na pasta,a rotina agora tem nome e extensão para fazer a importação
+                                        nomes_planilhas = ExcelFile(
+                                            name1).sheet_names  # função que traz a lista com títulos das  planilhas
+                                        if len(nomes_planilhas) > 1:  # caso que o arquivo .xlsx tem mais de uma planilha,assim será gerado um dataframe por planilha
+                                            data_variable = read_excel(name1,
+                                                                       sheet_name=nomes_planilhas)  # dicionário com os dataframes das planilhas contida no arquivo .xlsx
+                                            for i2 in data_variable:
+                                                lista_dataframe.append(data_variable[
+                                                                           i2])  # adiciona todos os dataframes a lista de dataframes
+                                                controle = True
+                                        else:  # caso que o arquivo xlsx possui apenas uma planilha
+                                            lista_dataframe.append(read_excel(name1))
                                             controle = True
-                                    else:  # caso que o arquivo xlsx possui apenas uma planilha
-                                        lista_dataframe.append(pd.read_excel(name1))
+                                    elif name1.replace(data[i], '') == '.csv' or name1.replace(data[i],
+                                                                                               '') == '.CSV':  # caso que o arquivo é um .csv
+                                        data_frame_csv = read_csv(name1, decimal=decimal, sep=separador)
+                                        lista_dataframe.append(data_frame_csv)
                                         controle = True
-                                elif name1.replace(data[i], '') == '.csv' or name1.replace(data[i], '') == '.CSV':
-                                    data_frame_csv = pd.read_csv(name1, decimal=decimal, sep=separador)
-                                    lista_dataframe.append(data_frame_csv)
-                                    controle = True
-                    if controle == False:  # se não houver nenhum arquivo com o nome passado pelo usuário
-                        raise TypeError('There is no file with the name {} in the file folder'.format(data[i]))
-            for i in range(len(lista_dataframe)):#Removing columns with Unnamed titles
-                lista_dataframe[i].drop([col for col in lista_dataframe[i].columns if "Unnamed" in col], axis=1,
-                              inplace=True)
-            dataframe_geral = pd.concat(lista_dataframe, axis=1)  # concatenates all dataframes into a single one
+                        if controle == False:  # se não houver nenhum arquivo com o nome passado pelo usuário
+                            raise TypeError('There is no file with the name {} in the file folder'.format(data[i]))
+
+            dataframe_geral = concat(lista_dataframe, axis=1)  # concatenates all dataframes into a single one
+            dataframe_geral.drop([col for col in dataframe_geral.columns if "Unnamed" in col], axis=1,
+                                 inplace=True)  # removes columns with unnamed title
+
             for nulos in dict(
                     dataframe_geral.isnull().sum()):  # dictionary that brings the symbols as keys and the number of empty lines as values
-                if dict(dataframe_geral.isnull().sum())[
-                    nulos] != 0:  # Tests if there are empty rows in the columns of each symbol
+                if dict(dataframe_geral.isnull().sum())[nulos] != 0:
+                    # Tests if there are empty rows in the columns of each symbol
                     aux_list.append(nulos)
             if len(aux_list) > 0:
                 raise ValueError(
                     f"In quantity{'s'[:int(len(aux_list)) ^ 1]} {','.join(aux_list)} there are empty lines or the quantitity of data points are inconsistenty")
 
             # Test if the symbols passed in the object instantiation parameters of the MT_PEU class are all in the dataset
-            lista_dados = list(dataframe_geral.columns)
-            lista_nomes = self.x.simbolos + self.y.simbolos + self.y.simbolos_incertezas + self.x.simbolos_incertezas
-            if len(list(set(lista_dados) & set(lista_nomes))) != len(lista_nomes):
-                if len(list(set(lista_nomes) - set(lista_dados) & set(lista_nomes))) > 1:
-                    raise ValueError("The symbols {} were not passed in the dataset ".format(','.join(
-                        list(set(lista_nomes) - set(lista_dados) & set(lista_nomes)))))
-                else:
-                    raise ValueError("The symbol {} was not passed in the dataset ".format(','.join(
-                        list(set(lista_nomes) - set(lista_dados) & set(lista_nomes)))))
+            list_names = self.x.simbolos + self.y.simbolos + self.y.simbolos_incertezas + self.x.simbolos_incertezas
+            for symb in list_names:
+                if symb not in dataframe_geral.columns.tolist():
+                    raise ValueError("The symbol {} was not passed  in database".format(symb))
 
             # Creation of estimation and uncertainty matrices
             X = dataframe_geral[self.x.simbolos].to_numpy(dtype=float)
