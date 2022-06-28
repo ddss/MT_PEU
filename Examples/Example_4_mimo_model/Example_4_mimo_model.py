@@ -27,7 +27,8 @@ Estime = EstimacaoNaoLinear(Model,symbols_x=['x1','x2'],symbols_ux=['ux1','ux2']
 
 #%% Setting the observed data set
 
-Estime.setDados(data=["data_exa4_independent","data_exa4_dependent"])
+Estime.setDados(data=["data_exa4_independent.xlsx",
+                      "data_exa4_dependent.csv"])
 
 # Defining the previous data set to be used to parameter estimation
 # dataType: Defines the purpose of the informed data set: estimacao, predicao.

@@ -23,12 +23,12 @@ def Model (param,x, *args):
 # units_x: List of units of measurement of dependent quantities;
 # units_param: List of units of measurement of the parameters;
 # Folder: Defines the name of the folder where the results will be saved.
-Estime = EstimacaoNaoLinear(Model, symbols_x=['Time','Temperature'],symbols_ux=['UxTime','Uxtemperature'], units_x=['s','K'],
-                            symbols_y=[r'Y'],symbols_uy=['uY'], units_y=['adm'],
+Estime = EstimacaoNaoLinear(Model, symbols_x=['Time','Temperature'],symbols_ux=['UxTime','Uxtemperature'],
+                            units_x=['s','K'],symbols_y=[r'Y'],symbols_uy=['uY'], units_y=['adm'],
                             symbols_param=['ko','E'], units_param=['adm','K'], Folder='Example2')
 
 #%% Setting the observed data set
-#Data entry using standard excel template
+#Data entry using  .xlsx
 Estime.setDados(data="data_example2")
 
 #%% Optimization - estimating the parameters

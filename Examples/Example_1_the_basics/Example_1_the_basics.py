@@ -1,9 +1,8 @@
 #%% Packages importing
 from sys import path
 path.append("../../modules")#A list of strings that specifies the search path for modules
-from MT_PEU import EstimacaoNaoLinear
+from modules.MT_PEU import EstimacaoNaoLinear
 from numpy import exp
-
 
 #%% Model definition
 # def Model: The subroutine that specifies the equations with their respective parameters.
@@ -22,7 +21,7 @@ def Model(param, x, *args):
 # symbols_uy: list of symbols for uncertainty y;
 # symbols_param: list of symbols for the parameters to be estimated;
 # Folder: string with the name of the folder where reports and charts will be saved;
-Estime = EstimacaoNaoLinear(Model, symbols_x=['Time','Temperature'],symbols_ux=['UxTime','Uxtemperature']\
+Estime = EstimacaoNaoLinear(Model, symbols_x=['Time','Temperature'],symbols_ux=['UxTime','Uxtemperature']
 ,symbols_y=['Y'] ,symbols_uy=['uY'], symbols_param=['ko','E'], Folder='Example1')
 
 #%% Defining the observed data set
@@ -48,7 +47,8 @@ temperature = [600.0,600.0,612.0,612.0,612.0,612.0,620.0,620.0,620.0,
 uxtemperature = [1]*41
 
 #Data entry manual
-Estime.setDados(data=[{'Time':time,'UxTime':uxtime,'Temperature':temperature,'Uxtemperature':uxtemperature,'Y':y,'uY':uy}   ])
+Estime.setDados(data={'Time':time,'UxTime':uxtime,'Temperature':temperature,
+                      'Uxtemperature':uxtemperature,'Y':y,'uY':uy})
 
 
 #%% Optimization - estimating the parameters
