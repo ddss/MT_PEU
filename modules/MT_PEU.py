@@ -648,10 +648,10 @@ class EstimacaoNaoLinear:
         if udados.shape[0]*self.y.NV-float(self.parametros.NV) <= 0: # Verificar se há graus de liberdade suficiente
             warn('Insufficient degrees of freedom. Your experimental data set is not enough to estimate the parameters!',UserWarning)
 
-    def  setDados(self, data,separador=';',decimal='.', glx=[], gly=[]):
+    def  setDados(self, data,dataType= None,separador=';',decimal='.',glx=[], gly=[]):
 
         u"""
-                setDados(self,data,separador=';',decimal='.' , glx=[],gly=[]):
+                setDados(self,data,separador=';',decimal='.' ,dataType= None, glx=[],gly=[]):
                 ===================================================================================================================
                   Method for collecting input data from dependent and independent quantities and including estimating data
                 ===================================================================================================================
@@ -719,7 +719,6 @@ class EstimacaoNaoLinear:
             elif len(aux_list) >1:
                 raise ValueError(f"Data lists {','.join(aux_list)} cannot be empty")
 
-
         if isinstance(data, dict):#manual input mode case passed only one dictionary
             manual_entry(data)#VALIDATION
             # Test if the symbols passed in the object instantiation parameters of the MT_PEU class are all in the database
@@ -762,7 +761,6 @@ class EstimacaoNaoLinear:
                 warn(f"File passed with same name: {','.join(aux_list)}.", Warning)
 
             data=list(set(data))+aux_list1 #remove repeated names from past file list
-
 
             lista_dataframe = []  #empty list to save the dataframes and then concatenate into one
             for i in range(len(data)):#iterative loop with all filenames passed
@@ -836,7 +834,6 @@ class EstimacaoNaoLinear:
                 if symb not in dataframe_geral.columns.tolist():
                     raise ValueError("The symbol {} was not passed  in database".format(symb))
 
-
             #Creation of estimation and uncertainty matrices
             X = dataframe_geral[self.x.simbolos].to_numpy(dtype=float)
             Y = dataframe_geral[self.y.simbolos].to_numpy(dtype=float)
@@ -845,15 +842,16 @@ class EstimacaoNaoLinear:
 
         else:
             raise TypeError(" The data input can be  a list or string or dictionary, check if the input follows any of these formats")
-
-
+        self.__validacaoDadosEntrada(X, uX, self.x.NV)
+        self.__validacaoDadosEntrada(Y, uY, self.y.NV)
         ######################################################EXECUTION#########################################################
         #Automaticamente chamando o método  setdados a primeira vez é feito a  estimação, chamando setdados pela segunda é feito a validação (Predição).
         #Caso não tenha novos dados para a validação,os dados da estimação é usado.
-        if not self.__flag.info['dadosestimacao']:  # rodando a primeira vez (estimação)
-             dataType = self.__tiposDisponiveisEntrada[0]
-        else:  # rodando a segunda vez, vai agora para predição
-             dataType = self.__tiposDisponiveisEntrada[1]
+        if dataType is None:
+            if not self.__flag.info['dadosestimacao']:  # rodando a primeira vez (estimação)
+                 dataType = self.__tiposDisponiveisEntrada[0]
+            else:  # rodando a segunda vez, vai agora para predição
+                 dataType = self.__tiposDisponiveisEntrada[1]
 
         # experimental data
         if dataType == self.__tiposDisponiveisEntrada[0]:
