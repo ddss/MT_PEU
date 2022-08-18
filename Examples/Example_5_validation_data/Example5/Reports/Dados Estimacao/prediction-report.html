@@ -1,0 +1,96 @@
+<center>
+<h1> PREDIÇÃO </h1>
+</center>
+<hr />
+<h2> GRANDEZAS DEPENDENTES </h2 >
+<h3>Coeficientes de correlação:</h3> 
+
+<table border rules = all > 
+<tr>
+<td><b> Símbolos </b> </td>
+<td><b> Y </b> </td/>
+<tr>
+<td> Coeficiente de determinação  </td> 
+<td> 0.933 </td>
+</tr>
+<tr>
+<td> Coeficiente de determinação ajustado </td>
+<td> 0.926 </td>
+</tr>
+</table>
+<h3>Função objetivo (FO):</h3>
+<table border rules = all>
+<tr>
+<td><b> FO  </b> </td> <td><b>  &#935<sup>2</sup> min </b> </td>  <td> <b>&#935<sup>2</sup> max </b></td> </tr>
+<tr>
+<td> 0.005</td>
+<td> 14.573</td>
+<td> 43.195</td>
+</tr>
+</table>
+
+<ul><li> <i> Informação : </i>  a função objetivo deve estar entre &#935<sup>2</sup> min e &#935<sup>2</sup> max.</li>
+</ul>
+<h3>Análise de resíduos:</h3>
+<h4>Normalidade:</h4>
+<table border rules="all"><tr>
+<td><b>Testes com p-valores </b></td> <td> <b> Resíduos para Y </b> </td> <td> <b> Aceita Ho </b> </td> 
+<tr>
+<tr>
+<td>normaltest</td> <td>  N/A   </td> <td> - </td>
+ </tr><tr>
+<td>shapiro</td> <td> 0.001  </td> <td> Não </td>
+ </tr><tr>
+<td>anderson</td> <td> 0.001  </td> <td> Não </td>
+ </tr><tr>
+<td>kstest</td> <td> 0.162  </td> <td> Sim </td>
+  </tr></table>
+<ul>
+<li> <i> Ho( Hipótese nula ): </i> </b> resíduos normais </li> 
+<li>   <p>  <i> Informação : </i>  p-valores devem ser maiores do que o nível de significância (1-PA) </p> <p>    para não rejeitar a hipótese nula (Ho).</li>
+</ul><h4>    Média: </h4>
+<table border rules="all"><tr>
+<td><b>Testes com p-valores </b></td> <td> <b> Resíduos para Y </b> </td> <td> <b> Aceita Ho </b> </td> 
+<tr>
+<tr>
+<td>ttest</td> <td> 0.139  </td> <td> Sim </td>
+  </tr><tr>
+<td>ztest</td> <td> 0.111  </td> <td> Sim </td>
+  </tr></table>
+<ul>
+<li> <i> Ho( Hipótese nula ): </i> </b> resíduos com média zero </li> 
+<li>   <p>  <i> Informação : </i>  p-valores devem ser maiores do que o nível de significância (1-PA) </p> <p>    para não rejeitar a hipótese nula (Ho).</li>
+</ul><h4>    Autocorrelação:</h4>
+<p><u><i> Testes com p-valores </u></i></p>
+<table border rules="all"><tr><td>  <b>  Ljung-Box:   </b> </td><td><b> Resíduos para    Y     </b> <td><b> Aceita Ho </b></td></td> </tr>
+<tr> <td> p-valor chi2                     </td><td> 0.941  </td><td> Sim </td>
+  </tr><tr> <td> p-valor Box-Pierce               </td><td> 0.948  </td><td> Sim </td>
+  </tr></table>
+<ul>
+<li> <i> Ho( Hipótese nula ): </i> </b> resíduos não são autocorrelacionados </li> 
+<li>   <p>  <i> Informação : </i>  p-valores devem ser maiores do que o nível de significância (1-PA) </p> <p>    para não rejeitar a hipótese nula (Ho).</li>
+</ul><table border rules="all"><tr><td>  <b>  Durbin Watson:   </b> </td><td> <b> Resíduos para    Y     </b> </td> </tr>
+<tr> <td> estatistica                      </td><td> 0.970  </td></tr></table >
+<ul>  <li> <i> Informação : </i> </b> <p>  
+ <p> <b> (i) </b> Se a estatística do teste estiver próxima de 0 indica autocorrelação positiva</p>
+          <p><b> (ii) </b>  Se a estatística do teste estiver próxima de 4 indica autocorrelação negativa</p>
+          <p><b> (iii) </b> Se a estatística do teste estiver próxima de 2 indica que não há autocorrelação.</li></ul>
+
+<h4> Homocedasticidade: </h4>
+<p><u><i> Testes com p-valores </u></i></p>
+<table border rules="all"><tr><td>  <b>  white test:   </b> </td><td><b> Resíduos para    Y     </b> <td><b> Aceita Ho </b></td></td> </tr>
+<tr> <td> p-valor multiplicador de Lagrange</td><td> 0.037  </td><td> Não </td>
+ </tr><tr> <td> p-valor Teste F                  </td><td> 0.000  </td><td> Não </td>
+ </tr></table>
+<ul>
+<li> <i> Ho( Hipótese nula ): </i> </b> resíduos são homocedásticos </li> 
+<li>   <p>  <i> Informação : </i>  p-valores devem ser maiores do que o nível de significância (1-PA) </p> <p>    para não rejeitar a hipótese nula (Ho).</li>
+</ul><p><u><i> Testes com p-valores </u></i></p>
+<table border rules="all"><tr><td>  <b>  Bresh Pagan:   </b> </td><td><b> Resíduos para    Y     </b> <td><b> Aceita Ho </b></td></td> </tr>
+<tr> <td> p-valor multiplicador de Lagrange</td><td> 0.071  </td><td> Sim </td>
+  </tr><tr> <td> p-valor Teste F                  </td><td> 0.206  </td><td> Sim </td>
+  </tr></table>
+<ul>
+<li> <i> Ho( Hipótese nula ): </i> </b> resíduos são homocedásticos </li> 
+<li>   <p>  <i> Informação : </i>  p-valores devem ser maiores do que o nível de significância (1-PA) </p> <p>    para não rejeitar a hipótese nula (Ho).</li>
+</ul>
