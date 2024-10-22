@@ -648,7 +648,7 @@ class EstimacaoNaoLinear:
         if udados.shape[0]*self.y.NV-float(self.parametros.NV) <= 0: # Verificar se há graus de liberdade suficiente
             warn('Insufficient degrees of freedom. Your experimental data set is not enough to estimate the parameters!',UserWarning)
 
-    def  setDados(self, data,dataType= None,separador=';',decimal='.',glx=[], gly=[]):
+    def  setDados(self, data, dataType= None, separador=';', decimal='.', glx=[], gly=[]):
 
         u"""
                 setDados(self,data,separador=';',decimal='.' ,dataType= None, glx=[],gly=[]):
@@ -701,7 +701,7 @@ class EstimacaoNaoLinear:
         #MANUAL DATA ENTRY
         aux_list=[]#list auxiliary used for error
 
-        def manual_entry(data):# VALIDATION TO MANUAL DATA ENTRY
+        def manual_entry(data): # VALIDATION TO MANUAL DATA ENTRY
             # Tests if input data lists are the same size
             for i in list(data.keys()):
                 if len(data[i]) != len(data[list(data.keys())[0]]):
@@ -746,13 +746,13 @@ class EstimacaoNaoLinear:
             if error:
                 raise ValueError(f"You must pass a strig or dictionary in list of setDados")
 
-            aux_list1 = []#Auxiliary list to separate dictionaries from strings and thus validate repeated strings
+            aux_list1 = [] #Auxiliary list to separate dictionaries from strings and thus validate repeated strings
             for element in data:
                 if isinstance(element, dict):
                     aux_list1.append(element)
                     data.remove(element)
 
-            for value in Counter(data):#warns that files with repeated names were passed
+            for value in Counter(data): # warns that files with repeated names were passed
                if Counter(data)[value] != 1:
                  aux_list.append(value)
             if len(aux_list) > 1:
@@ -906,12 +906,12 @@ class EstimacaoNaoLinear:
             # ---------------------------------------------------------------------
             # Saving validation data.
             try:
-                self.x._SETdadosvalidacao(estimativa=X, matriz_incerteza=uX,gL=glx)
+                self.x._SETdadosvalidacao(estimativa=X, matriz_incerteza=uX, gL=glx)
             except Exception as erro:
                 raise RuntimeError('Error in the creation of the validation set of the quantity X: {}'.format(erro))
 
             try:
-                self.y._SETdadosvalidacao(estimativa=Y, matriz_incerteza=uY,gL=gly)
+                self.y._SETdadosvalidacao(estimativa=Y, matriz_incerteza=uY, gL=gly)
             except Exception as erro:
                 raise RuntimeError('Error in the creation of the validation set of the quantity Y: {}'.format(erro))
 
@@ -1818,7 +1818,7 @@ class EstimacaoNaoLinear:
         index_test_bounds = [i for i, ele in enumerate(test_bounds) if ele]
 
         if any(test_bounds):
-            raise TypeError(('The parameter estimate of '+'{} '*len(index_test_bounds)+' ​​must be between the lower_limit and the upper_limit. Parameter estimate: {}').format(*[self.parametros.simbolos[i] for i in index_test_bounds],self.parametros.estimativa))
+            raise TypeError(('The parameter estimate of '+'{} '*len(index_test_bounds)+' must be between the lower_limit and the upper_limit. Parameter estimate: {}').format(*[self.parametros.simbolos[i] for i in index_test_bounds],self.parametros.estimativa))
 
         # ---------------------------------------------------------------------
         # MONTE CARLO METHOD

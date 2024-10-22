@@ -1,7 +1,7 @@
 #%% Packages importing
 from sys import path #para buscar os arquivos em um diretório
 path.append("../../modules")#passando o diretório da pasta raíz
-from MT_PEU import EstimacaoNaoLinear
+from modules.MT_PEU import EstimacaoNaoLinear
 from casadi import exp
 
 #%% Model definition
@@ -35,7 +35,7 @@ Estimation.setDados(data=["data_example3",{'T':T,'uT':uxT}])
 # algorithm: Informs the optimization algorithm that will be used. Each algorithm has its own keywords;
 # optimizationReport: Informs whether the optimization report should be created (True or False);
 # parametersReport: Informs whether the parameters report should be created (True or False).
-Estimation.optimize(initial_estimative = [1, 1.5, 0.009],algorithm='bonmin', optimizationReport = True, parametersReport = False)
+Estimation.optimize(initial_estimative = [1, 1.5, 0.009],algorithm='ipopt', optimizationReport = True, parametersReport = False)
 
 #%% Evaluating the parameters uncertainty and coverage region
 # uncertaintyMethod: method for calculating the covariance matrix of the parameters: 2InvHessian, Geral, SensibilidadeModelo

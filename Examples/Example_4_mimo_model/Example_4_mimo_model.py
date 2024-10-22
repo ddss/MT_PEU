@@ -1,7 +1,7 @@
 #%% Packages importing
 from sys import path #para buscar os arquivos em um diretório
 path.append("../../modules")#passando o diretório da pasta raíz
-from MT_PEU import EstimacaoNaoLinear
+from modules.MT_PEU import EstimacaoNaoLinear
 from casadi import vertcat
 
 #%% Model definition
@@ -52,7 +52,7 @@ Estime.optimize(initial_estimative=[3,0.1,5,0.4], algorithm='ipopt', lower_bound
 # lower_bound: Lower limit of parameters;
 # upper_bound: Upper limit of the parameters.
 # parametersReport: Informs whether the parameters report should be created.
-Estime.parametersUncertainty(uncertaintyMethod='2InvHessiana', objectiveFunctionMapping=True, lower_bound=[1,0.04,1.75,0.175], upper_bound=[4.5,0.16,6.75,1],
+Estime.parametersUncertainty(uncertaintyMethod='Geral', objectiveFunctionMapping=True, lower_bound=[1,0.04,1.75,0.175], upper_bound=[4.5,0.16,6.75,1],
                              parametersReport = True)
 
 #%% Evaluating model predictions

@@ -71,12 +71,9 @@ class Grafico:
                 self.axes.ticklabel_format(axis='y', style='sci', scilimits=(-2, 2),
                                      useMathText=True, useOffset=False)
 
-
-
         if grid:
             # Definindo linhas de grade no major axes
-            self.axes.grid(b=True, which='major', axis='both', linestyle='dashed', color='gray', zorder=1)
-
+            self.axes.grid(visible=True, which='major', axis='both', linestyle='dashed', color='gray', zorder=1)
     def get_step_tick(self):
         u"""
         Método para avaliar o tamanho do passo dos ticks dos eixos dos gráficos

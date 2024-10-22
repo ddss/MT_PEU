@@ -4,7 +4,7 @@ path.append("../../modules")#passando o diretório da pasta raíz
 from modules.MT_PEU_Linear import EstimacaoLinear
 
 #%% Initialization of the class that performs the estimation.
-ER = EstimacaoLinear(['q'],['uq'],['x'],['ux'],['k'],folder='Exemple7')
+ER = EstimacaoLinear(['q'],['uq'],['x'],['ux'],['k'],folder='Example7')
 
 #%% Defining observed data
 # Input data

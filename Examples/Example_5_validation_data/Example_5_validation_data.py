@@ -24,7 +24,7 @@ def Model(param, x, *args):
 # units_x: List of units of measurement of dependent quantities;
 # Folder: Defines the name of the folder where the results will be saved.
 Estime = EstimacaoNaoLinear(Model, symbols_x=['Time', 'Temperature'], symbols_ux=['UxTime','Uxtemperature'], units_x=['s', 'K'], label_latex_x=[r'$t$', '$T$'],
-                            symbols_y=[r'Y'],symbols_uy=[r'uY'], units_y=['adm'],
+                            symbols_y=['Y'],symbols_uy=['uY'], units_y=['adm'],
                             symbols_param=['ko', 'E'], units_param=['adm','K'],
                             label_latex_param=[r'$k_o$', r'$E$'],
                             Folder='Example5')
@@ -32,12 +32,6 @@ Estime = EstimacaoNaoLinear(Model, symbols_x=['Time', 'Temperature'], symbols_ux
 
 #%% Setting the observed data set
 Estime.setDados(data="data_exa5",glx=[], gly=[])
-
-
-# Defining the previous data set to be used to parameter estimation
-Estime.setDados(data="data_exa5",glx=[], gly=[])
-
-
 
 #%% Optimization - estimating the parameters
 # initial_estimative: List with the initial estimates for the parameters;
@@ -57,6 +51,7 @@ Estime.optimize(initial_estimative=[0.005, 20000.000], algorithm='ipopt', lower_
 # iterations: Number of iterations to perform the mapping of the objective function. The higher the better mapping, but it
 # increases the execution time
 # parametersReport: Informs whether the parameters report should be created.
+
 Estime.parametersUncertainty(uncertaintyMethod='Geral',objectiveFunctionMapping=True, lower_bound=[7.2e-3,26400], upper_bound=[7.7e-3,28600],
                              parametersReport = True, iterations=200)
 
@@ -66,6 +61,7 @@ Estime.parametersUncertainty(uncertaintyMethod='Geral',objectiveFunctionMapping=
 # export_cov_y: Exports the covariance matrix of y (True or False);
 # export_x: Exports the calculated data of x, its uncertainty, and degrees of freedom in a txt with comma separation(True or False);
 # export_cov_x: Exports the covariance matrix of x (True or False).
+
 Estime.prediction(export_y=True,export_y_xls=True, export_cov_y=True, export_x=True, export_cov_x=True)
 
 #%% Evaluating residuals and quality index

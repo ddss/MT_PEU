@@ -66,7 +66,7 @@ from numpy import log
 # symbols_y: List of symbols for quantity y;
 # symbols_param: List of symbols for the parameters to be estimated;
 # Folder: Defines the name of the folder where the results will be saved.
-ER = EstimacaoLinear(symbols_x=[r'X1'],symbols_ux=[r'uX1'], symbols_y=[r'Y1'],symbols_uy=[r'uY1'] ,symbols_param=['A1','B1'],  folder='Example8Linear')
+ER = EstimacaoLinear(symbols_x=[r'X1'],symbols_ux=[r'uX1'], symbols_y=[r'Y1'],symbols_uy=[r'uY1'] ,symbols_param=['A1','B1'],  folder='Ex8Linear')
 #%% Defining observed data
 # Input data
 T =Estimation.x.estimacao.matriz_estimativa.transpose()[0]
@@ -92,7 +92,6 @@ uX = ((-1/(T**2))**2*uT**2)**0.5
 uY = ((1/P)**2*uP**2 + (-1*-68.2/(8.31446*T))**2*uT**2)**0.5
 
 #%% Setting the observed data set
-
 
 # Defining the previous data set to be used to parameter estimation
 # dataType: Defines the purpose of the informed data set: estimacao, predicao.

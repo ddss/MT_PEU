@@ -672,7 +672,7 @@ class Grandeza:
                 pvalor[nome]['residuo-Autocorrelacao'] = {'Durbin Watson':{'estatistica':durbin_watson(dados)}, 'Ljung-Box':{'p-valor chi2':float(ljungbox['lb_pvalue'][1]),'p-valor Box-Pierce':float(ljungbox['bp_pvalue'][1])}}
                 
                 # Testes para a Homocedásticidade:
-                pheter = [het_white(dados,insert(Explic, 0, 1, axis=1)),het_breuschpagan(dados,Explic)]
+                pheter = [het_white(dados,insert(Explic, 0, 1, axis=1)),het_breuschpagan(dados,insert(Explic, 0, 1, axis=1))]
                 pvalor[nome]['residuo-Homocedasticidade'] = {'white test':{'p-valor multiplicador de Lagrange':pheter[0][1], 'p-valor Teste F':pheter[0][3]},'Bresh Pagan':{'p-valor multiplicador de Lagrange':pheter[1][1],'p-valor Teste F':pheter[1][3]}}
         else:
             raise NameError(u'Statistical tests should be applied for residues only')
