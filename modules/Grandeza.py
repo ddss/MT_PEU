@@ -379,7 +379,7 @@ class Grandeza:
                 if not isfinite(cond(self.matriz_covariancia)):
                     raise TypeError('The covariance matrix of the quantity is singular.')
 
-    def _SETdadosestimacao(self,estimativa,matriz_incerteza=None,matriz_covariancia=None,gL=[],NE=None,**kwargs):
+    def _SETdadosestimacao(self,estimativa, matriz_incerteza=None, matriz_covariancia=None, gL=[], NE=None, **kwargs):
 
         self.__ID.append(self.__ID_disponivel[0]) #estimacao
 
