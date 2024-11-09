@@ -12,12 +12,12 @@ Main class of the PEU calculation engine
 # ---------------------------------------------------------------------
 # Scientific calculations
 from numpy import array, size, linspace, min, max,\
-    mean, nanmax, nanmin, arange,inf
+    mean, nanmax, nanmin, arange, inf, hstack, vstack, zeros
 from numpy.random import uniform, triangular
 from scipy.stats import f, t, chi2
 from scipy.special import factorial
 from numpy.linalg import inv
-from  pandas import ExcelFile,read_excel,read_csv,concat,DataFrame
+from pandas import ExcelFile,read_excel,read_csv,concat,DataFrame
 # Operating System Packages
 from os import getcwd, sep
 from casadi import MX,vertcat,horzcat,nlpsol,sum1,jacobian,hessian,mtimes,inv as inv_cas, diag,Function
@@ -34,7 +34,7 @@ from collections import Counter
 # ----------------------------------------------------------------
 # IMPORT OF OWN SUBROUTINES AND ADAPTATIONS (DEVELOPED BY GI-UFBA)
 # ----------------------------------------------------------------
-from Grandeza import Grandeza
+from Grandeza import Grandeza, Grandeza_simplificada
 from subrotinas import Validacao_Diretorio, eval_cov_ellipse, WLS
 from Graficos import Grafico
 from Relatorio import Report
@@ -79,9 +79,8 @@ class EstimacaoNaoLinear:
             """
             self.setDados = 0
             self.otimizacao = 0
-            self.SETparametro = 0
             self.GETFOotimo = 0
-            self.incertezaParametros = 0
+            self.incerteza = 0
             self.regiaoAbrangencia = 0
             self.predicao = 0
             self.analiseResiduos = 0
@@ -203,16 +202,12 @@ class EstimacaoNaoLinear:
             return ['setDados']
 
         @property
-        def _predecessora_SETparametro(self):
-            return []
-
-        @property
         def _predecessora_GETFOotimo(self):
-            return ['otimizacao', 'SETparametro']
+            return ['otimizacao']
 
         @property
-        def _predecessora_incertezaParametros(self):
-            return ['otimizacao','SETparametro']
+        def _predecessora_incerteza(self):
+            return ['otimizacao']
 
         @property
         def _predecessora_regiaoAbrangencia(self):
@@ -220,7 +215,7 @@ class EstimacaoNaoLinear:
 
         @property
         def _predecessora_predicao(self):
-            return ['otimizacao','SETparametro']
+            return ['otimizacao','incerteza']
 
         @property
         def _predecessora_analiseResiduos(self):
@@ -232,27 +227,27 @@ class EstimacaoNaoLinear:
 
         @property
         def _predecessora_mapeamentoFO(self):
-            return ['incertezaParametros']
+            return ['incerteza']
 
         @property
         def _predecessora_Hessiana(self):
-            return ['otimizacao', 'SETparametro']
+            return ['otimizacao']
 
         @property
         def _predecessora_Gy(self):
-            return ['otimizacao', 'SETparametro']
+            return ['otimizacao']
 
         @property
         def _predecessora_S(self):
-            return ['otimizacao', 'SETparametro']
+            return ['otimizacao']
 
         @property
         def _sucessoresValidacao(self):
             return ['predicao', 'analiseResiduos', 'armazenarDicionario', 'Gy', 'S']
 
-    def __init__(self, Model, symbols_y, symbols_uy, symbols_x, symbols_ux, symbols_param, PA=0.95, Folder='Projeto', **kwargs):
+    def __init__(self, model, symbols_y, symbols_uy, symbols_param, symbols_x=None, PA=0.95, Folder='Projeto', **kwargs):
         u"""
-        __init__(self, Model, symbols_y, symbols_x, symbols_param, PA=0.95, Folder='Projeto', **kwargs)
+        __init__(self, model, symbols_y, symbols_uy, symbols_param, symbols_x=None, PA=0.95, Folder='Projeto', **kwargs)
 
         ====================================================
         Class for estimating parameters of nonlinear models.
@@ -262,11 +257,9 @@ class EstimacaoNaoLinear:
         ------------------
 
         This class has a set of methods for performing the following main functions:
-        (1) obtaining the optimal point of the optimization problem, using the objective function WLS (weighted least squares);
-        (2) evaluation of the uncertainty of the parameters (with evaluation of the coverage region);
-        (3) estimation of the prediction;
-        (4) calculation of the uncertainty of the prediction;
-        and (5) residual analysis.
+        (1) obtaining the parameters and prediction estimates of the optimization problem, using the objective function WLS (weighted least squares);
+        (2) evaluation of the uncertainty of the parameters and prediction (with evaluation of the coverage region - in explicit formulation);
+        (3) residual analysis.
 
         Auxiliary classes
         ------------------
@@ -305,20 +298,20 @@ class EstimacaoNaoLinear:
             The model must return an array with the number of columns equal to the number of dependent quantities.
             It must have the following structure:
 
-                def Model(param, x):
+                def Model(param, y, x, *args):
                     .
                     .
                     .
-                return y
+                return [g1,g2,...,gn]
 
-            Where y is the mathematical expression of the model.
+            Where gi is the mathematical expression of the model, formulated as (gi=0)
 
             -The definition of the variables of the model must be in accordance with the order in which
             the experimental data are informed in the "setDados" method.
         **symbols_y : list**
-            list with the symbols of the dependent quantities (No special characters allowed).
+            list with the symbols of the quantities in uncertainties (No special characters allowed).
         **symbols_x : list**
-            list with the symbols of the independent quantities (No special characters allowed).
+            list with the symbols of the quantities with irrelavant uncertainties (No special characters allowed).
         **symbols_param : list**
             list with the symbols of the parameters (No special characters allowed).
         **PA : float, optional**
@@ -328,19 +321,12 @@ class EstimacaoNaoLinear:
 
         - **kwargs**
         ------------
-
-        **names_x : list**
-            list with the names of the independent quantities.
-        **units_x : list**
-            list with the units of the independent quantities (Latex format is accepted).
-        **label_latex_x : list**
-            list with the symbols of the independent quantities in latex format.
         **names_y : list**
-            list with the names of the dependent quantities.
+            list with the names of the quantities y.
         **units_y : list**
-            list with the units of the dependent quantities (Latex format is accepted).
+            list with the units of the quantities y (Latex format is accepted).
         **label_latex_y : list**
-            list with the symbols of the dependent quantities in latex format.
+            list with the symbols of the quantities y in latex format.
         **names_param : list**
             list with the names of the parameters.
         **units_param : list**
@@ -359,7 +345,6 @@ class EstimacaoNaoLinear:
         **setDados**
             method for entering the experimental data and  defines the purpose of the experimental data included:
             (i) parameter estimation or (ii) validation. (See method documentation)
-
 
         **optimize**
             performs the optimization, based on the data set defined in setConjunto. (See method documentation)
@@ -387,8 +372,6 @@ class EstimacaoNaoLinear:
 
         **obs**: The sequence of execution of the methods is important. This class only allows the execution of methods,
         if the predecessor steps have been executed.
-
-
 
         - **Fluxes**
         -------------
@@ -461,10 +444,6 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # GENERAL KEYWORD VALIDATIONS
         # ---------------------------------------------------------------------
-        # Available Keywords for the input method
-        self.__keywordsEntrada = ('names_x', 'units_x', 'label_latex_x', 'names_y', 'units_y', 'label_latex_y',
-                                  'names_param','units_param', 'label_latex_param', 'base_path')
-
         # Validation to check if keywords were typed incorrectly:
         keyincorreta = [key for key in kwargs.keys() if not key in self.__keywordsEntrada]
 
@@ -493,9 +472,11 @@ class EstimacaoNaoLinear:
         # INITIALIZATION OF QUANTITIES
         # ---------------------------------------------------------------------
         # Variable      = Grandeza(symbols  ,symbols_uncertainty    , names                                ,units                                ,label_latex                          )
-        self.x          = Grandeza(symbols_x,symbols_ux             ,kwargs.get(self.__keywordsEntrada[0]),kwargs.get(self.__keywordsEntrada[1]),kwargs.get(self.__keywordsEntrada[2]))
-        self.y          = Grandeza(symbols_y,symbols_uy             ,kwargs.get(self.__keywordsEntrada[3]),kwargs.get(self.__keywordsEntrada[4]),kwargs.get(self.__keywordsEntrada[5]))
-        self.parametros = Grandeza(symbols_param,None               ,kwargs.get(self.__keywordsEntrada[6]),kwargs.get(self.__keywordsEntrada[7]),kwargs.get(self.__keywordsEntrada[8]))
+        self.x          = Grandeza_simplificada(symbols_x)
+
+        # Variable      = Grandeza(symbols  ,symbols_uncertainty    , names                                ,units                                ,label_latex                          )
+        self.y          = Grandeza(symbols_y, symbols_uy       , kwargs.get(self.__keywordsEntrada[3]),kwargs.get(self.__keywordsEntrada[4]),kwargs.get(self.__keywordsEntrada[5]))
+        self.parametros = Grandeza(symbols_param,None,kwargs.get(self.__keywordsEntrada[6]),kwargs.get(self.__keywordsEntrada[7]),kwargs.get(self.__keywordsEntrada[8]))
 
         # Check if the symbols are different
         # set: set of distinct non-ordered elements (works with set theory)
@@ -517,7 +498,7 @@ class EstimacaoNaoLinear:
         # INTERNAL VARIABLES CREATION
         # ---------------------------------------------------------------------
         # Model
-        self.__modelo    = Model
+        self.__modelo    = model
         # Optimization algorithm position history (parameters) (used in optimizes and / or objective function mapping
         self.__decisonVariablesMapped = []
         # Fitness history (objective function value) of the optimization algorithm (used in optimizing and / or objective function mapping)
@@ -530,9 +511,10 @@ class EstimacaoNaoLinear:
 
         # Flags for information control
         self.__flag = flag()
-        self.__flag.setCaracteristica(['dadosestimacao','dadospredicao',
-                                       'reconciliacao','mapeamentoFO',
-                                       'graficootimizacao','relatoriootimizacao','Linear'])
+        self.__flag.setCaracteristica(['dadosestimacao', 'dadospredicao',
+                                       'mapeamentoFO',
+                                       'graficootimizacao','relatoriootimizacao',
+                                       'Linear'])
         # use of the characteristics:
         # dadosestimacao: indicates if estimation data was entered
         # dadospredicao: indicates if prediction data was entered
@@ -554,6 +536,12 @@ class EstimacaoNaoLinear:
         # Report class initialization
         self._out = Report(str(self.__controleFluxo.FLUXO_ID), self.__base_path, sep + self._configFolder['report'] + sep, **kwargs)
 
+
+    @property
+    def __keywordsEntrada(self):
+        # Available Keywords for the input method
+        return ('names_x', 'units_x', 'label_latex_x', 'names_y', 'units_y', 'label_latex_y',
+                              'names_param', 'units_param', 'label_latex_param', 'base_path')
     @property
     def __tiposDisponiveisEntrada(self):
         # Available data set
@@ -569,11 +557,6 @@ class EstimacaoNaoLinear:
         return ('regiaoAbrangencia', 'grandezas-entrada', 'predicao', 'grandezas-calculadas', 'otimizacao', 'analiseResiduos')
 
     @property
-    def __metodosIncerteza(self):
-        # methods for uncertainty evaluation
-        return ('2InvHessiana', 'Geral', 'SensibilidadeModelo')
-
-    @property
     def __keywordsDerivadas(self):
         # available keywords to evaluate the derivatives
         return ('deltaHess', 'deltaGy', 'deltaS', 'delta')
@@ -585,26 +568,10 @@ class EstimacaoNaoLinear:
 
     @property
     def __graph_flux_association(self):
-        return {'setDados':[self.__tipoGraficos[1]],'incertezaParametros':[self.__tipoGraficos[0],self.__tipoGraficos[3]],
+        return {'setDados':[self.__tipoGraficos[1]],'incerteza':[self.__tipoGraficos[0],self.__tipoGraficos[3]],
                 'predicao':[self.__tipoGraficos[2],self.__tipoGraficos[3]],'analiseResiduos':[self.__tipoGraficos[5]]}
 
-    @property
-    def _args_model(self):
-        """
-        _args_model(self)
-
-        ==============================================================
-        Method that returns extra arguments to be passed to the model.
-        ==============================================================
-
-        """
-        # ---------------------------------------------------------------------
-        # LIST OF ATTRIBUTES TO INSERT IN THE MODEL
-        # ---------------------------------------------------------------------
-
-        return [self.__args_user,self.x.simbolos,self.y.simbolos,self.parametros.simbolos]
-
-    def __validacaoDadosEntrada(self,dados,udados,NV):
+    def __validacaoDadosEntrada(self, dados, udados, NV):
         u"""
         __validacaoDadosEntrada(self,dados,udados,NV):
 
@@ -644,7 +611,7 @@ class EstimacaoNaoLinear:
         if udados.shape[0]*self.y.NV-float(self.parametros.NV) <= 0: # Verificar se há graus de liberdade suficiente
             warn('Insufficient degrees of freedom. Your experimental data set is not enough to estimate the parameters!',UserWarning)
 
-    def  setDados(self, data, dataType= None, separador=';', decimal='.', glx=[], gly=[]):
+    def  setDados(self, data, dataType= None, separador=';', decimal='.', gly=[]):
 
         u"""
                 setDados(self,data,separador=';',decimal='.' ,dataType= None, glx=[],gly=[]):
@@ -660,8 +627,6 @@ class EstimacaoNaoLinear:
                       list: data entry to import one or more files
                       str: data entry  to import one file
 
-                glx : list, optional
-                    list with the freedom degrees for the input quantities.
                 gly : list, optional
                     list with the freedom degrees for the output quantities.
 
@@ -674,14 +639,14 @@ class EstimacaoNaoLinear:
 
                     Dict is  manual input format
 
-                       Estime.setDados(data={'Time':time,'UxTime':uxtime,'Temperature':temperature,'Uxtemperature':uxtemperature,'Y':y,'uY':uy})
+                       Estime.setDados(data={'time':time,'uTime':utime,'temperature':temperature,'utemperature':utemperature,'frac':frac,'ufrac':ufrac})
 
                        in manual input the user must pass a dictionary where the values are the variables referring to the past lists and
                        the keys must be the same symbols passed in the parameters of the instantiation of the object EstimacaoNaoLinear and EstimacaoLinear.
 
                     List is input format for import one or more files
 
-                        Estime.setDados(data=["name_data_independent.csv","name_data_exa1_dependent.csv"])
+                        Estime.setDados(data=["name_data_exa1.csv","name_data_exa2.csv"])
 
                         the file names (str)  are passed within a list, this case is necessary when the user wants to import more than one file
 
@@ -702,7 +667,7 @@ class EstimacaoNaoLinear:
             for i in list(data.keys()):
                 if len(data[i]) != len(data[list(data.keys())[0]]):
                     aux_list.append(i)
-            if len(aux_list)==1:
+            if len(aux_list) == 1:
                 raise ValueError(f"The list {','.join(aux_list)} differs in the amount of points from the first list")
 
             elif len(aux_list)>1:
@@ -718,13 +683,11 @@ class EstimacaoNaoLinear:
         if isinstance(data, dict):#manual input mode case passed only one dictionary
             manual_entry(data)#VALIDATION
             # Test if the symbols passed in the object instantiation parameters of the MT_PEU class are all in the database
-            list_names = self.x.simbolos + self.y.simbolos + self.y.simbolos_incertezas + self.x.simbolos_incertezas
+            list_names = self.y.simbolos + self.y.simbolos_incertezas
             for symb in list_names :
                 if symb not in list(data.keys()):
                     raise ValueError("The symbol {} was not passed  in database".format(symb))
 
-            X = array([data[i] for i in self.x.simbolos], ndmin=2, dtype=float).transpose()
-            uX = array([data[i] for i in self.x.simbolos_incertezas], ndmin=2, dtype=float).transpose()
             Y = array([data[i] for i in self.y.simbolos], ndmin=2, dtype=float).transpose()
             uY = array([data[i] for i in self.y.simbolos_incertezas], ndmin=2, dtype=float).transpose()
 
@@ -825,20 +788,18 @@ class EstimacaoNaoLinear:
                     f"In quantity{'s'[:int(len(aux_list)) ^ 1]} {','.join(aux_list)} there are empty lines or the quantitity of data points are inconsistenty")
 
             # Test if the symbols passed in the object instantiation parameters of the MT_PEU class are all in the dataset
-            list_names = self.x.simbolos + self.y.simbolos + self.y.simbolos_incertezas + self.x.simbolos_incertezas
+            list_names = self.y.simbolos + self.y.simbolos_incertezas
             for symb in list_names:
                 if symb not in dataframe_geral.columns.tolist():
                     raise ValueError("The symbol {} was not passed  in database".format(symb))
 
             #Creation of estimation and uncertainty matrices
-            X = dataframe_geral[self.x.simbolos].to_numpy(dtype=float)
             Y = dataframe_geral[self.y.simbolos].to_numpy(dtype=float)
-            uX = dataframe_geral[self.x.simbolos_incertezas].to_numpy(dtype=float)
             uY = dataframe_geral[self.y.simbolos_incertezas].to_numpy(dtype=float)
 
         else:
             raise TypeError(" The data input can be  a list or string or dictionary, check if the input follows any of these formats")
-        self.__validacaoDadosEntrada(X, uX, self.x.NV)
+
         self.__validacaoDadosEntrada(Y, uY, self.y.NV)
         ######################################################EXECUTION#########################################################
         #Automaticamente chamando o método  setdados a primeira vez é feito a  estimação, chamando setdados pela segunda é feito a validação (Predição).
@@ -862,13 +823,7 @@ class EstimacaoNaoLinear:
             # ---------------------------------------------------------------------
             # Saving the experimental data in the variables.
             try:
-                self.x._SETdadosestimacao(estimativa=X, matriz_incerteza=uX, gL=glx)
-            except Exception as erro:
-                raise RuntimeError(
-                    'Error in the creation of the estimation set of the quantity X: {}'.format(erro))
-
-            try:
-                self.y._SETdadosestimacao(estimativa=Y, matriz_incerteza=uY, gL=glx)
+                self.y._SETdadosestimacao(estimativa=Y, matriz_incerteza=uY, gL=gly)
             except Exception as erro:
                 raise RuntimeError(
                     'Error in the creation of the estimation set of the quantity Y: {}'.format(erro))
@@ -880,13 +835,6 @@ class EstimacaoNaoLinear:
             # ---------------------------------------------------------------------
             # ASSIGNMENT OF VALUES TO QUANTITIES
             # ---------------------------------------------------------------------
-            # Saving the validation data.
-            try:
-                self.x._SETdadosvalidacao(estimativa=X, matriz_incerteza=uX,gL=glx)
-            except Exception as error:
-                raise RuntimeError(
-                    'Error in the creation of the validation set of the quantity X: {}'.format(error))
-
             try:
                 self.y._SETdadosvalidacao(estimativa=Y, matriz_incerteza=uY,gL=gly)
             except Exception as error:
@@ -901,11 +849,6 @@ class EstimacaoNaoLinear:
             # ASSIGNMENT OF VALUES TO QUANTITIES
             # ---------------------------------------------------------------------
             # Saving validation data.
-            try:
-                self.x._SETdadosvalidacao(estimativa=X, matriz_incerteza=uX, gL=glx)
-            except Exception as erro:
-                raise RuntimeError('Error in the creation of the validation set of the quantity X: {}'.format(erro))
-
             try:
                 self.y._SETdadosvalidacao(estimativa=Y, matriz_incerteza=uY, gL=gly)
             except Exception as erro:
@@ -934,54 +877,55 @@ class EstimacaoNaoLinear:
 
         # if no prediction data were entered, then estimation is being performed and
         # estimation data should be used
-
-        self.__symXr    = []; self.__symUxo = [] # x
-        self.__symYo    = []; self.__symYest = []; self.__symUyo = []
-        self.__symParam = []; self.__symXo = []
+        self.__symYr  = []
+        self.__symYest = []
+        self.__symYo = []
+        self.__symParam = []
+        self.__symXo = []
 
         self.__symVariables  = []
-        self._values         = []
 
         # Creation of parameters in casadi's format
         for i in range(self.parametros.NV):
             self.__symParam = vertcat(self.__symParam, MX.sym(self.parametros.simbolos[i]))
 
-        # Creation of independent variables in casadi's format
-        xmodel = []
-        for j in range(self.x.NV):
-            symXo = MX.sym('{}{}0'.format(self.x.simbolos[j], j), self.x.estimacao.NE, 1)
-            self.__symXo = vertcat(self.__symXo,symXo)
-            self.__symXr = vertcat(self.__symXr,MX.sym('{}{}r'.format(self.x.simbolos[j],j), self.x.estimacao.NE, 1))
-            xmodel = horzcat(xmodel,symXo)
-        self.__symVariables = vertcat(self.__symVariables, self.__symXo)
+        self.__symVariables = vertcat(self.__symVariables, self.__symParam)
 
-        if self._EstimacaoNaoLinear__flag.info['Linear']:
-            if self._EstimacaoNaoLinear__flag.info['calc_termo_independente']: # Testing if it's a linear case with independent term calculation
-                self._values = vertcat(self._values, self.x.estimacao.vetor_estimativa[
-                                                     :self.x.estimacao.NE])  # para não trazer a coluna de '1' como dado de entrada
-            else:
-                self._values = vertcat(self._values, self.x.estimacao.vetor_estimativa)
-        else:
-            self._values = vertcat(self._values, self.x.estimacao.vetor_estimativa)
+        # Creation of fixed quantities in casadi's format
+        for j in range(self.x.NV):
+            symXo = MX.sym('{}'.format(self.x.simbolos[j]), 1, 1)
+            self.__symXo = vertcat(self.__symXo, symXo)
+
+        # if self._EstimacaoNaoLinear__flag.info['Linear']:
+        #     if self._EstimacaoNaoLinear__flag.info['calc_termo_independente']: # Testing if it's a linear case with independent term calculation
+        #         self._values = vertcat(self._values, self.x.estimacao.vetor_estimativa[
+        #                                              :self.x.estimacao.NE])  # para não trazer a coluna de '1' como dado de entrada
 
         # Creation of dependent variables in casadi's format
+        ymodel = []
         for j in range(self.y.NV):
             self.__symYo   = vertcat(self.__symYo,MX.sym('{}{}o'.format(self.y.simbolos[j],j), self.y.estimacao.NE,1))
+            symYr = MX.sym('{}{}r'.format(self.y.simbolos[j], j), self.y.estimacao.NE, 1)
+            self.__symYr = vertcat(self.__symYr, symYr)
             self.__symYest = vertcat(self.__symYest,MX.sym('{}{}'.format(self.y.simbolos[j],j), self.y.estimacao.NE,1))
+            ymodel.append(symYr)
 
-        self.__symVariables = vertcat(self.__symVariables, self.__symYo)
-
-        self._values = vertcat(self._values, self.y.estimacao.vetor_estimativa)
+        self.__symVariables = vertcat(self.__symVariables, self.__symYr)
 
         # Model definition
-        self.__symModel = self.__modelo(self.__symParam, xmodel, self.y.estimacao.NE)  # Symbolic
-        self.__excModel = Function('Model', [self.__symParam, self.__symVariables],[self.__symModel])  # Executable
+        self.__symModel = vertcat(*self.__modelo(self.__symParam, ymodel, self.__symXo, self.y.estimacao.NE))
+        self.__excModel = Function('Model', [self.__symVariables, self.__symXo],[self.__symModel])  # Executable
 
         # Objective function definition
-        self.__symObjectiveFunction = (self.__symYo - self.__symModel).T @ inv(self.y.estimacao.matriz_covariancia) @ (self.__symYo - self.__symModel)
+        self.__symObjectiveFunction = (self.__symYo - self.__symYr).T @ inv(self.y.estimacao.matriz_covariancia) @ (self.__symYo - self.__symYr)
         self._excObjectiveFunction = Function('Objective_Function',
-                                              [self.__symParam, self.__symVariables],
+                                              [self.__symVariables, self.__symYo],
                                               [self.__symObjectiveFunction])  # Executable
+
+        self.__symmu = MX.sym('mu',self.__symModel.size()[0])
+
+        self.__symLagrangeana = self.__symObjectiveFunction + self.__symmu.T @ self.__symModel
+        self.__excLagrangeana = Function('Lagrangeana', [self.__symVariables, self.__symYo, self.__symmu, self.__symXo],[self.__symLagrangeana])
 
     def _armazenarDicionario(self):
         u"""
@@ -1072,7 +1016,7 @@ class EstimacaoNaoLinear:
 
         return grandeza
 
-    def optimize(self, initial_estimative, lower_bound=-inf, upper_bound=inf, algorithm ='ipopt', optimizationReport = True, parametersReport = False):
+    def optimize(self, initial_estimative, lower_bound, upper_bound, algorithm ='ipopt', optimizationReport = True, parametersReport = False):
         u"""
         optimize(self, initial_estimative, lower_bound=-inf, upper_bound=inf, algorithm ='ipopt', optimizationReport = True, parametersReport = False)
 
@@ -1141,16 +1085,14 @@ class EstimacaoNaoLinear:
         # validation of the initial estimative:
         if initial_estimative is None:
             raise SyntaxError('To execute the optimize method it is necessary to give an initial estimative')
-        if not isinstance(initial_estimative, list) or len(initial_estimative) != self.parametros.NV:
+        if not isinstance(initial_estimative, list) or len(initial_estimative) != self.parametros.NV+self.y.NV*self.y.estimacao.NE:
             raise TypeError(
-                'The initial estimative must be a list with the size of the number of parameters, defined in the symbols. Number of parameters: {}'.format(
-                    self.parametros.NV))
+                'The initial estimative must be a list with the size of the number of parameters plus all data points of every variable: {}'.format(
+                    self.parametros.NV+self.y.NV*self.y.estimacao.NE))
 
         # ---------------------------------------------------------------------
         # EXECUTION
         # ---------------------------------------------------------------------
-        # EstimacaoNaoLinear only performs estimation WITHOUT data reconciliation
-        self.__flag.ToggleInactive('reconciliacao')
         # indicates that this algorithm has performance reporting.
         self.__flag.ToggleActive('relatoriootimizacao')
 
@@ -1161,11 +1103,11 @@ class EstimacaoNaoLinear:
         # Check if the model is executable in the search boundaries.
         try:  # Validates the informed upper and lower limits. The initial estimative of parameters is required.
             if upper_bound is not None:
-                aux = self.__excModel(upper_bound, self._values)
+                self.__excModel(upper_bound, self.x.estimativas)
             if lower_bound is not None:
-                aux = self.__excModel(lower_bound, self._values)
+                self.__excModel(lower_bound, self.x.estimativas)
             if initial_estimative is None:
-                aux = self.__excModel(initial_estimative, self._values)
+                self.__excModel(initial_estimative, self.x.estimativas)
 
         except Exception as erro:
             raise SyntaxError(
@@ -1175,7 +1117,9 @@ class EstimacaoNaoLinear:
         # PEFORMS THE OPTIMIZATION
         # ---------------------------------------------------------------------
         # define the optimization problem
-        nlp = {'x': self.__symParam, 'p': self.__symVariables, 'f': self.__symObjectiveFunction}
+        nlp = {'x': self.__symVariables,
+               'f': self._excObjectiveFunction(self.__symVariables, self.y.estimacao.vetor_estimativa),
+               'g': self.__excModel(self.__symVariables,self.x.estimativas)}
 
         # options for printing the optimization information
         if optimizationReport is True:
@@ -1200,21 +1144,25 @@ class EstimacaoNaoLinear:
         # optimization problem setup
         S = nlpsol('S', algorithm, nlp, options)
         # passing the arguments for the optimization problem
-        self.Otimizacao = S(x0=initial_estimative, p=self._values, lbx=lower_bound, ubx=upper_bound)
+        self.otimizacao = S(x0=initial_estimative,
+                            lbx=lower_bound, ubx=upper_bound,
+                            lbg = [0]*nlp['g'].size()[0], ubg=[0]*nlp['g'].size()[0])
 
         # ASSIGNMENT OF VALUES TO QUANTITIES
 
         # ---------------------------------------------------------------------
         # OPTIMAL POINT OF THE OBJECTIVE FUNCTION
         # ---------------------------------------------------------------------
-        self.FOotimo = float(self.Otimizacao['f'])
+        self.FOotimo = float(self.otimizacao['f'])
         # ---------------------------------------------------------------------
         # OPTIMAL VALUE OF THE PARAMETERS
         # ---------------------------------------------------------------------
-        self.__opt_param = [float(self.Otimizacao['x'][i]) for i in range(self.parametros.NV)] # converts DM type in float type
+        self.__opt_param = [float(self.otimizacao['x'][i]) for i in range(self.parametros.NV)] # converts DM type in float type
 
         # every time optimization is run all previous information about parameters is lost
-        self.parametros._SETparametro(self.__opt_param, None, None, limite_superior=upper_bound,limite_inferior=lower_bound)
+        self.parametros._SETparametro(self.__opt_param, None, None,
+                                      limite_superior=upper_bound[0:self.parametros.NV],
+                                      limite_inferior=lower_bound[0:self.parametros.NV])
 
         # check if the parameters estimative is equal to the informed boundaries
         if lower_bound != -inf and upper_bound != inf:
@@ -1239,154 +1187,36 @@ class EstimacaoNaoLinear:
             with open(self._out.optimization() +'Optimization_report.html', 'w') as arquivo:
                 arquivo.writelines(linhas)
 
-    def __Hessiana_FO_Param(self):
+    def __Hessiana_Lagran_VarDecisao(self):
 
-        aux = Function('Hessiana', [self.__symParam, self.__symVariables],
-                                 [hessian(self.__symObjectiveFunction,self.__symParam)[0]]) #function
+        aux = Function('Hessiana', [self.__symVariables, self.__symmu, self.__symYo, self.__symXo],
+                                 [hessian(self.__symLagrangeana,vertcat(self.__symVariables,self.__symmu))[0]]) #function
 
-        self.Hessiana = array(aux(self.parametros.estimativa, self._values)) #numeric
+        self.Hessiana = array(aux(self.otimizacao['x'], self.otimizacao['lam_g'], self.y.estimacao.vetor_estimativa, self.x.estimativas)) #numeric
 
         return self.Hessiana
 
     def __Matriz_Gy(self):
 
-        aux = Function('Gy', [self.__symParam, self.__symVariables],
-                       [jacobian(jacobian(self.__symObjectiveFunction, self.__symParam), self.__symYo)]) # function
+        aux = Function('Gy', [self.__symVariables, self.__symmu, self.__symYo, self.__symXo],
+                       [jacobian(jacobian(self.__symLagrangeana, vertcat(self.__symVariables,self.__symmu)), vertcat(self.__symYo, self.__symXo))]) # function
 
-        self.Gy = array(aux(self.parametros.estimativa, self._values))
+        self.Gy = array(aux(self.otimizacao['x'], self.otimizacao['lam_g'], self.y.estimacao.vetor_estimativa, self.x.estimativas))
 
         return self.Gy
 
-    def __Matriz_S(self):
+    def uncertainty(self, report = True, objectiveFunctionMapping=False, **kwargs):
         u"""
-               Method for calvulate the array S(first derivatives of the model function in relation to the parameters)."""
-
-        aux = Function('S', [self.__symParam, self.__symVariables], [jacobian(self.__symModel,self.__symParam)])
-
-        #if not self.__flag.info['dadospredicao']:
-
-        self.S = array(aux(self.parametros.estimativa, self._values))
-
-        return self.S
-
-
-    def SETparameter(self,estimative,variance=None,region=None,parametersReport=True,**kwargs):
-        u"""
-        SETparameter(self,estimative,variance=None,region=None,parametersReport=True,**kwargs)
-
-        =============================================================================================================================================
-        Method for assigning an estimate to parameters. An estimate can also be defined for the parameters covariance matrix and the coverage region.
-        =============================================================================================================================================
-
-        - Parameters
-        ------------
-
-        estimative : list
-            list with the estimation of parameters
-        variance : array, ndmin=2
-            covariance matrix of the parameters
-        region : list
-            list containing lists with the parameters belonging to the coverage region
-        parametersReport : bool
-            informs whether the parameters report should be created.
-
-        - Kwargs
-        --------
-
-        limite_superior : list
-            upper bound of the paramaters
-        limite_inferior : list
-            lower_bound of the parameters
-        args : dict
-            extra arguments to be passed to the model.
-
-        - Notes
-        -------
-
-        -Inclusion of parameter estimation: will replace the optimization method. You will need to execute the uncertaintyParameter method.
-
-        -Inclusion of parameter estimation and variance: will replace the optimization method and a part of the uncertainty method.
-        For objective Function Mapping the region by the likelihood method, the uncertaintyParameter method must be performed (will override the uncertainty inseparated).
-
-        -Inclusion of parameter estimation, variance and region: will replace optimization and uncertaintyParameter method.
-
-        """
-        # ---------------------------------------------------------------------
-        # FLUX
-        # ---------------------------------------------------------------------
-        self.__controleFluxo.SET_ETAPA('SETparametro')
-        # ---------------------------------------------------------------------
-        # VALIDATION
-        # ---------------------------------------------------------------------
-        # If there is no estimation data -> error
-        if not self.__flag.info['dadosestimacao']:
-            raise SyntaxError('It is necessary to add estimation data.')
-
-        # SETparameter cannot run in conjunction with the optimize method.
-        if self.__controleFluxo.otimizacao:
-            raise SyntaxError('The SETparameter method cannot be executed with optimize method')
-
-        # ---------------------------------------------------------------------
-        # EXTRA ARGUMENTS TO BE PASSED TO THE MODEL
-        # ---------------------------------------------------------------------
-        # Obtaining args_user
-        if kwargs.get('args') is not None:
-            self.__args_user = kwargs.pop('args')
-
-        # ---------------------------------------------------------------------
-        # ATTRIBUTION TO QUANTITIES
-        # ---------------------------------------------------------------------
-        #Assigning the values to the estimation of the parameters and their
-        # covariance matrix
-        self.parametros._SETparametro(estimative, variance, region, **kwargs)
-
-        # ---------------------------------------------------------------------
-        # MODEL EVALUATION
-        # ---------------------------------------------------------------------
-        # Evaluation of the model at the optimal point informed
-        try:
-            aux = self.__excModel(self.parametros.estimativa,self._values)
-        except Exception as erro:
-            raise SyntaxError(u'Error in the model when evaluated in the informed parameters estimative. Error identified: "{}"'.format(erro))
-
-        # ---------------------------------------------------------------------
-        # OBTAINING THE OPTIMAL POINT
-        # ---------------------------------------------------------------------
-
-        self.FOotimo = float(self._excObjectiveFunction(self.parametros.estimativa, self._values))
-
-        # ---------------------------------------------------------------------
-        # INTERNAL VARIABLES
-        # ---------------------------------------------------------------------
-
-        # If variance is defined, it is assumed that the parametersUncertainty method.
-        # has been executed, even if the inclusion of scope is optional.
-        if variance is not None:
-            self.__controleFluxo.SET_ETAPA('incertezaParametros')
-
-        # If the region is defined, it is assumed that the regiaoAbrangencia method has been executed.
-        if region is not None:
-            self.__controleFluxo.SET_ETAPA('regiaoAbrangencia', ignoreValidacao=True)
-
-        # Parameters report creation
-        if parametersReport is True:
-            self._out.Parametros(self.parametros, self.FOotimo)
-
-    def parametersUncertainty(self,uncertaintyMethod ='Geral', parametersReport = True, objectiveFunctionMapping=True, **kwargs):
-        u"""
-        parametersUncertainty(self,uncertaintyMethod ='Geral', parametersReport = True, objectiveFunctionMapping=True, **kwargs)
+        Uncertainty(self, Report = True, objectiveFunctionMapping=True, **kwargs)
 
         ===================================================================================
-        Method to evaluate the covariance matrix of the parameters and the coverage region.
+        Method to evaluate the covariance matrix of the decision variable and the coverage region.
         ===================================================================================
 
         - Parameters
         ------------
 
-        uncertaintyMethod : string
-            method for calculating the covariance matrix of the parameters.
-            available methods: 2InvHessian, Geral, SensibilidadeModelo
-        parametersReport : bool
+        Report : bool
             informs whether the parameters report should be created.
         objectivefunctionMapping : bool
             Indicates whether the algorithm to map the coverage region should be executed
@@ -1408,15 +1238,10 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # FLUX
         # ---------------------------------------------------------------------
-        self.__controleFluxo.SET_ETAPA('incertezaParametros')
+        self.__controleFluxo.SET_ETAPA('incerteza')
         # ---------------------------------------------------------------------
         # VALIDATION
-        # ---------------------------------------------------------------------         
-
-        if uncertaintyMethod not in self.__metodosIncerteza:
-            raise NameError('The method requested to calculate the uncertainty of the parameters {}'.format(uncertaintyMethod)
-                            + ' is not available. Available methods ' + ', '.join(self.__metodosIncerteza) + '.')
-
+        # ---------------------------------------------------------------------
         if not isinstance(objectiveFunctionMapping, bool):
             raise TypeError('The argument objectiveFunctionMapping must be boolean (True ou False).')
 
@@ -1427,43 +1252,38 @@ class EstimacaoNaoLinear:
         # Evaluation of the auxiliary matrices
         # Hessian matrix of the objective function
         # Only evaluated if the chosen method is 2InvHess or Geral
-        if uncertaintyMethod == self.__metodosIncerteza[0] or uncertaintyMethod == self.__metodosIncerteza[1]:
-            self.__Hessiana_FO_Param()
+        self.__Hessiana_Lagran_VarDecisao()
 
-            # Inverse of the Hessian matrix of the objective function in relation to the parameters
-            invHess = inv(self.Hessiana)
+        # Inverse of the Hessian matrix of the objective function in relation to the parameters
+        invHess = inv(self.Hessiana)
 
         # Gy: second partial derivatives of the objective function in relation to parameters and experimental data
-        # Only evaluated if the chosen method is: Geral
-        if uncertaintyMethod == self.__metodosIncerteza[1]:
-            self.__Matriz_Gy()
-
-        # Model sensitivity matrix relative to parameters
-        # Only evaluated if the method is: simplificado
-        if uncertaintyMethod == self.__metodosIncerteza[2]:
-            self.__Matriz_S()
+        self.__Matriz_Gy()
 
         # ---------------------------------------------------------------------
         # ASSESSMENT OF THE UNCERTAINTY OF THE PARAMETERS
         # ---------------------------------------------------------------------
+        if self.x.NV > 0:
+            Uxx = diag(self.x.incertezas**2)
+            U_exp_1 = hstack((self.y.estimacao.matriz_covariancia,zeros((self.y.NV,self.x.NV))))
+            U_exp_2 = hstack((zeros((self.x.NV, self.y.NV)),Uxx))
+            U_exp = vstack((U_exp_1,U_exp_2))
+        else:
+            U_exp = self.y.estimacao.matriz_covariancia
 
         # COVARIANCE MATRIX
-        # Method: 2InvHessiana ->  2*inv(Hess)
-        if uncertaintyMethod == self.__metodosIncerteza[0]:
-            matriz_covariancia = 2*invHess
-
         # Method: geral - > inv(H)*Gy*Uyy*GyT*inv(H)
-        elif uncertaintyMethod == self.__metodosIncerteza[1]:
-            matriz_covariancia  = invHess.dot(self.Gy).dot(self.y.estimacao.matriz_covariancia).dot(self.Gy.transpose()).dot(invHess)
-
-        # Method: simplificado -> inv(trans(S)*inv(Uyy)*S)
-        elif uncertaintyMethod == self.__metodosIncerteza[2]:
-            matriz_covariancia = inv(self.S.transpose().dot(inv(self.y.estimacao.matriz_covariancia)).dot(self.S))
+        matriz_covariancia  = invHess.dot(self.Gy).dot(U_exp).dot(self.Gy.transpose()).dot(invHess)
 
         # ---------------------------------------------------------------------
         # ATTRIBUTION TO THE QUANTITIES
         # ---------------------------------------------------------------------
-        self.parametros._updateParametro(matriz_covariancia=matriz_covariancia)
+        self.parametros._updateParametro(matriz_covariancia=matriz_covariancia[0:self.parametros.NV,0:self.parametros.NV])
+
+        self.y._SETcalculado(estimativa=array(self.otimizacao['x'][self.parametros.NV:]),
+                             matriz_covariancia=matriz_covariancia[self.parametros.NV:self.parametros.NV+self.y.NV*self.y.estimacao.NE,self.parametros.NV:self.parametros.NV+self.y.NV*self.y.estimacao.NE],
+                             gL=[[self.y.estimacao.NE * self.y.NV - self.parametros.NV] * self.y.estimacao.NE] * self.y.NV,
+                             NE=self.y.predicao.NE)
 
         # ---------------------------------------------------------------------
         # COVERAGE REGION
@@ -1481,134 +1301,9 @@ class EstimacaoNaoLinear:
             self.parametros._updateParametro(regiao_abrangencia=regiao)
 
         # parameters report creation
-        if parametersReport is True:
+        if Report is True:
             self._out.Parametros(self.parametros,self.FOotimo)
-
-    def prediction(self,predictionReport = True, **kwargs):
-        u"""
-        prediction(self,predictionReport = True, **kwargs)
-
-        ==============================
-        Performs the model prediction.
-        ==============================
-
-        - Parameters
-        ------------
-
-        predictionReport : bool, optional
-            informs whether the prediction report should be created. If is true the prediction report is created without statistical tests.\
-            The statistical tests could be included in the 'residualAnalysis' method.
-
-        - Keywords
-        -----------
-
-        See documentation of Relatorio.Predicao.
-
-        - Notes
-        ----------
-
-        Before executing the prediction method it's necessary to execute the optimize and parametersUncertainty methods./
-        Other option is to include the parameters value and the parameters uncertainty through the SETparameter method.
-        """
-        # ---------------------------------------------------------------------
-        # FLUX
-        # ---------------------------------------------------------------------
-        self.__controleFluxo.SET_ETAPA('predicao')
-
-        # ---------------------------------------------------------------------
-        # EVALUATION OF AUXILIARY MATRICES
-        # ---------------------------------------------------------------------
-
-        # Hessian matrix of the objective function
-        # Only revaluated if the method that evaluates it has not been performed AND has no validation data
-        if not self.__controleFluxo.Hessiana and not self.__flag.info['dadospredicao']:
-            self.__Hessiana_FO_Param()
-
-        # The inverse of the Hessian matrix of the objective function
-        # Only revaluated if the method that evaluates it has not been performed AND has no validation data
-        if self.__controleFluxo.Hessiana:
-            invHess = inv(self.Hessiana)
-
-        # Gy: partial second derivatives of the objective function concerning the parameters and experimental data
-        # Only revaluated if the method that evaluates it has not been performed AND has no validation data
-        if not self.__controleFluxo.Gy and not self.__flag.info['dadospredicao']:
-            self.__Matriz_Gy()
-
-        # S: Matrix of the sensitivity of the model concerning the parameters
-        # Only revaluated if the method that evaluates it has not been performed AND has no validation data
-        if not self.__controleFluxo.S or self.__flag.info['dadospredicao']:
-            self.__Matriz_S()
-
-        # ---------------------------------------------------------------------
-        # PREDICTION
-        # ---------------------------------------------------------------------
-        aux = array(self.__excModel(self.parametros.estimativa,self._values))
-
-        # ---------------------------------------------------------------------
-        # PREDICTION EVALUATION (Y CALCULATED BY THE MODEL)
-        # ---------------------------------------------------------------------    
-        # COVARIANCE MATRIX OF Y
-        # If the validation data are different from the experimental data, the covariance between the parameters
-        # and experimental data will be disregarded.
-
-        if not self.__controleFluxo.incertezaParametros:
-
-            Uyycalculado = None
-
-        else:
-
-            if self.__flag.info['dadospredicao']:
-
-                Uyycalculado = self.S.dot(self.parametros.matriz_covariancia).dot(self.S.transpose()) + self.y.predicao.matriz_covariancia
-
-            else:
-                # In this case, the validation data are the experimental data and the covariance between the parameters
-                # and the experimental data will be considered.
-                # COVARIANCE BETWEEN PARAMETERS AND EXPERIMENTAL DATA
-                Covar_param_y_experimental = -inv(self.Hessiana).dot(self.Gy).dot(self.y.predicao.matriz_covariancia)
-                # FIRST PART
-                Uyycalculado_1 = self.S.dot(self.parametros.matriz_covariancia).dot(self.S.transpose())
-                # SECOND PART
-                Uyycalculado_2 = self.S.dot(Covar_param_y_experimental)
-                # THIRD PART
-                Uyycalculado_3 = Covar_param_y_experimental.transpose().dot(self.S.transpose())
-                # COVARIANCE MATRIX OF Y
-                Uyycalculado   = Uyycalculado_1 + Uyycalculado_2 + Uyycalculado_3 + self.y.estimacao.matriz_covariancia
-
-        # --------------------------------------------------------------------
-        # ASSIGNMENT OF VALUES TO QUANTITIES
-        # -------------------------------------------------------------------
-        self.y._SETcalculado(estimativa=aux,matriz_covariancia=Uyycalculado,
-                             gL=[[self.y.estimacao.NE*self.y.NV-self.parametros.NV]*self.y.predicao.NE]*self.y.NV,
-                             NE=self.y.predicao.NE)
-        self.x._SETcalculado(estimativa=self.x.predicao.matriz_estimativa,matriz_covariancia=self.x.predicao.matriz_covariancia,
-                             gL=[[self.x.estimacao.NE*self.x.NV-self.parametros.NV]*self.x.predicao.NE]*self.x.NV,
-                             NE=self.x.predicao.NE)
-
-        # prediction report creation
-        if predictionReport is True:
             self._out.Predicao(self.x, self.y, None, **kwargs)
-
-
-    def __Matriz_Sx(self,delta=1e-5):
-        u"""
-        Método para calcular a matriz Sx(derivadas primeiras da função do modelo em relação as grandezas de entrada x).
-
-        Método de derivada central de primeira ordem em relação aos parâmetros(considera os parâmetros como variáveis do modelo).
-
-        ========
-        Entradas
-        ========
-
-        * delta(float): valor do incremento relativo para o cálculo da derivada. Incremento relativo à ordem de grandeza do parâmetro.
-
-        =====
-        Saída
-        =====
-
-        Retorna a matriz Sx(array).
-        """
-        pass
 
     def __objectiveFunctionMapping(self,**kwargs):
         u"""
@@ -1963,13 +1658,11 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------          
         # Residues calculation (or deviations) - are based on the validation data
         residuo_y = self.y.predicao.matriz_estimativa - self.y.calculado.matriz_estimativa
-        residuo_x = self.x.predicao.matriz_estimativa - self.x.calculado.matriz_estimativa
 
         # ---------------------------------------------------------------------
         # ATTRIBUTION TO QUANTITIES
         # ---------------------------------------------------------------------       
         # Attribution of values on objects
-        self.x._SETresiduos(estimativa=residuo_x)
         self.y._SETresiduos(estimativa=residuo_y)
 
         # ---------------------------------------------------------------------
@@ -1984,25 +1677,10 @@ class EstimacaoNaoLinear:
             self.estatisticas['R2'][symb]         = 1 - SSE/SST
             self.estatisticas['R2ajustado'][symb] = 1 - (SSE/(self.y.predicao.NE-self.parametros.NV))\
                                        /(SST/(self.y.predicao.NE - 1))
-        # For x:
-        for i,symb in enumerate(self.x.simbolos):
-            if self.__flag.info['reconciliacao']:
-                SSEx = sum(self.x.residuos.matriz_estimativa[:,i]**2)
-                SSTx = sum((self.x.predicao.matriz_estimativa[:,i]-\
-                      mean(self.x.predicao.matriz_estimativa[:,i]))**2)
-                self.estatisticas['R2'][symb]         = 1 - SSEx/SSTx
-                self.estatisticas['R2ajustado'][symb] = 1 - (SSEx/(self.x.predicao.NE-self.parametros.NV))\
-                                           /(SSTx/(self.x.predicao.NE - 1))
-            else:
-                self.estatisticas['R2'][symb]         = None
-                self.estatisticas['R2ajustado'][symb] = None
 
         # ---------------------------------------------------------------------
         # EXECUTION OF STATISTICAL TESTS
         # ---------------------------------------------------------------------             
-        # Independent quantities
-        if self.__flag.info['reconciliacao']:
-            self.x._testesEstatisticos(self.y.predicao.matriz_estimativa)
 
         # Dependent quantities
         self.y._testesEstatisticos(self.y.predicao.matriz_estimativa)

@@ -31,7 +31,7 @@ from Graficos import Grafico
 
 class Grandeza:
 
-    def __init__(self,simbolos,simbolos_incertezas,nomes=None,unidades=None,label_latex=None):
+    def __init__(self,simbolos, simbolos_incertezas, nomes=None, unidades=None, label_latex=None):
         u'''
         Classe para organizar as características das Grandezas:
                 
@@ -102,9 +102,8 @@ class Grandeza:
         # ------------------------------------------------------------------------------------
         # VALIDAÇÂO
         # -------------------------------------------------------------------------------------
-        if simbolos  is None:
+        if simbolos is None:
             raise NameError('You must insert te symbols of the quantities.')
-
 
 
         self.__validacaoEntrada(simbolos,simbolos_incertezas,nomes,unidades,label_latex)
@@ -131,11 +130,10 @@ class Grandeza:
         # ---------------------------------------------------------------------   
         self.__ID = [] # ID`s que a grandeza possui
 
-
     @property
     def __ID_disponivel(self):
         # Todos os ID's disponíveis
-        return ['estimacao','predicao','calculado','parametro','residuo']
+        return ['estimacao', 'predicao', 'calculado', 'parametro', 'residuo']
 
     @property
     def __configLabel(self):
@@ -147,7 +145,7 @@ class Grandeza:
     def __tipoGraficos(self):
         return ('regiaoAbrangencia', 'grandezas-entrada', 'predicao', 'grandezas-calculadas', 'otimizacao', 'analiseResiduos')
 
-    def __validacaoEntrada(self,simbolos,simbolos_incertezas,nomes,unidades,label_latex):
+    def __validacaoEntrada(self, simbolos, simbolos_incertezas, nomes,unidades, label_latex):
         u'''
         Validação:
         
@@ -157,7 +155,7 @@ class Grandeza:
         * se os simbolos são distintos
         * se os tamanhos dos atributos de simbologia, nome, unidades e label_latex são os mesmos.
         '''
-        if simbolos_incertezas is not  None :#Se simbolos_incertezas é nada não existe necessidade de validação
+        if simbolos_incertezas is not None :#Se simbolos_incertezas é nada não existe necessidade de validação
             # Verificação se os símbolos das incertezas  possuem caracteres especiais
             for simb1 in simbolos_incertezas:
                 if not simb1.isalnum():
@@ -183,7 +181,7 @@ class Grandeza:
                             results))
 
         # Verificação se nomes, unidade e label_latex são listas
-        for elemento in [simbolos,simbolos_incertezas,nomes,unidades,label_latex]:
+        for elemento in [simbolos, simbolos_incertezas, nomes, unidades, label_latex]:
             if elemento is not None:
                 if not isinstance(elemento,list):
                     raise TypeError('For a quantity, the symbols, names, units, and label_latex must be informed in the form of a list.')
@@ -221,7 +219,7 @@ class Grandeza:
 
     class Dados:
 
-        def __init__(self,estimativa,NV,matriz_incerteza=None,matriz_covariancia=None,symbols=None,gL=[],NE=None,**kwargs):
+        def __init__(self,estimativa, NV, matriz_incerteza=None, matriz_covariancia=None, symbols=None, gL=[], NE=None, **kwargs):
             """
             Classe interna para organizar os dados das estimativas e suas respectivas incertezas, disponibilizando-os na forma de matriz, vetores e listas.
             ========
@@ -944,3 +942,22 @@ class Grandeza:
                                  label_y=u'Autocorrelação de {}'.format(self.labelGraficos(printunit=False)[i]),
                                  normed=True, maxlags=None)
                     Fig.salvar_e_fechar(base_path + folder + 'autocorrelacao_' + 'observado.png')
+
+class Grandeza_simplificada:
+
+    def __init__(self, simbolos=None, estimativas=[], incertezas=[]):
+        u'''
+
+        '''
+
+        # ------------------------------------------------------------------------------------
+        # CRIAÇÃO DE ATRIBUTOS
+        # -------------------------------------------------------------------------------------
+        # simbolos: usado como referência para a quantidade de variáveis da grandeza
+
+        self.simbolos = simbolos if simbolos is not None else [None]
+        self.estimativas = estimativas
+        self.incertezas = incertezas
+
+        # Número de grandezas
+        self.NV = 0 if simbolos is None else len(self.simbolos)
