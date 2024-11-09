@@ -6,11 +6,11 @@ from casadi import exp
 
 #%% Model definition
 # def Model: The def model specifies the equations with their respective parameters.
-def Model(param, x, args):
-    T = x[:, 0]
+def Model(param, y, x, args):
+    P, T = y[0], y[1]
     A, B, C = param[0], param[1], param[2]
 
-    return exp(A - (B / (T + C)))  # Pvp calculation - vectorized
+    return [P-exp(A - (B / (T + C)))]  # Pvp calculation - vectorized
 
 #%% Starting the MT_PEU main object
 # Model: Pass the model defined in def Model;
@@ -18,7 +18,10 @@ def Model(param, x, args):
 # symbols_y: List of symbols for quantity y;
 # symbols_param: List of Symbols for the parameters to be estimated;
 # Folder: Defines the name of the folder where the results will be saved.
-Estimation = EstimacaoNaoLinear(Model, symbols_x=['T'],symbols_ux=['uT'], symbols_y=['P'],symbols_uy=['uP'], symbols_param=['A','B','C'],  Folder='Example3' )
+Estimation = EstimacaoNaoLinear(Model, symbols_y=['P', 'T'],
+                                symbols_uy=['uP','uT'],
+                                symbols_param=['A','B','C'],
+                                Folder='resultadoimplicito')
 
 #%% Defining observed data manually
 # Input data
@@ -34,25 +37,20 @@ Estimation.setDados(data=["data_example3",{'T':T,'uT':uxT}])
 # initial_estimative: List with the initial estimates for the parameters;
 # algorithm: Informs the optimization algorithm that will be used. Each algorithm has its own keywords;
 # optimizationReport: Informs whether the optimization report should be created (True or False);
-# parametersReport: Informs whether the parameters report should be created (True or False).
-Estimation.optimize(initial_estimative = [1, 1.5, 0.009],algorithm='ipopt', optimizationReport = True, parametersReport = False)
+# report: Informs whether the parameters report should be created (True or False).
+Estimation.optimize(initial_estimative = [1, 1.5, 0.009]+Estimation.y.observado.lista_estimativa,
+                    lower_bound=[-50,-1e4,-50]+[0]*len(T)+[200]*len(T),
+                    upper_bound=[50,1e4,50]+[300]*len(T)+[400]*len(T),
+                    algorithm='ipopt',
+                    optimizationReport = True,
+                    report= False)
 
 #%% Evaluating the parameters uncertainty and coverage region
-# uncertaintyMethod: method for calculating the covariance matrix of the parameters: 2InvHessian, Geral, SensibilidadeModelo
-# Geral obtains the parameters uncertainty matrix without approximations (most accurate), while 2InvHessian and SensibilidadeModelo involves
-# some approximations.
 # objectiveFunctionMapping: Deals with mapping the objective function (True or False);
-# parametersReport: Informs whether the parameters report should be created (True or False).
+# report: Informs whether the parameters report should be created (True or False).
 # iterations: Number of iterations to perform the mapping of the objective function. The higher the better mapping, but it
 # increases the execution time
-Estimation.parametersUncertainty(uncertaintyMethod='Geral', objectiveFunctionMapping=True, iterations=5000, parametersReport = True)
-
-#%% Evaluating model predictions
-# export_y: Exports the calculated data of y, its uncertainty, and degrees of freedom in a txt with comma separation (True or False);
-# export_y_xls: Exports the calculated data of y, its uncertainty, and degrees of freedom in a xls (True or False);
-# export_cov_y: Exports the covariance matrix of y (True or False);
-# export_x: Exports the calculated data of x, its uncertainty, and degrees of freedom in a txt with comma separation(True or False);
-Estimation.prediction(export_y=True, export_y_xls=True, export_cov_y=True, export_x=True)
+Estimation.uncertainty()#uncertaintyMethod='Geral' objectiveFunctionMapping=True, iterations=5000, report = True)
 
 #%% Evaluating residuals and quality index
 # using solely default options

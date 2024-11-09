@@ -20,7 +20,7 @@ from datetime import datetime
 # ---------------------------------------------------------------------
 class Report:
 
-    def __init__(self,fluxo,base_path=None,base_dir=None,**kwargs):
+    def __init__(self,base_path=None, base_dir=None,**kwargs):
         '''
         Classe para escrita de relatórios sobre estimação de parãmetros
 
@@ -33,7 +33,6 @@ class Report:
         '''
         self.__quebra = kwargs.get('quebra') if kwargs.get('quebra') is not None else "\n"
 
-        # TODO: permitir fluxos
         if base_path is None:
             base_path = getcwd()
 
@@ -45,10 +44,7 @@ class Report:
 
         self.__base_path = base_path + base_dir
 
-        self.__fluxo = fluxo
-
-
-    def Parametros(self,parametros,pontoOtimo):
+    def Parametros(self,parametros, pontoOtimo):
         '''
         Escrita sobre a etapa a estimativa dos parâmetros e sua incerteza
 
@@ -81,7 +77,6 @@ class Report:
 
             if parametros.matriz_covariancia is not None:
                 # Matriz de covariância, incerteza e matriz de correlação
-
                 f.write('<tr>\n')
                 f.write(('<td><b>Variância</b></td>'+ '<td>{:^10.3e}</td> '*parametros.NV).format(*[parametros.matriz_covariancia[i,i] for i in range(parametros.NV)]) + self.__quebra)
                 f.write('</tr>\n')
@@ -115,11 +110,11 @@ class Report:
                 f.write('<h3>Matriz de covariância:</h3>'+self.__quebra)
                 constroi_matriz(parametros.matriz_covariancia)
 
-
                 f.write('<h3>Matriz de correlação:</h3>'+self.__quebra)
                 constroi_matriz(parametros.matriz_correlacao)
 
             else:
+                f.write('</table>\n')
                 f.write('Variância : não avaliada '+self.__quebra)
                 f.write('Incerteza : não avaliada '+self.__quebra)
                 f.write('FObj ótima : '+ '{:.3g} '.format(pontoOtimo)+'- {:<} '.format('Valor da função objetivo no ponto ótimo')+self.__quebra)
@@ -127,7 +122,6 @@ class Report:
                 f.write('Matriz de covariância: não avaliada')
                 f.write(self.__quebra)
                 f.write('Matriz de correlação: não avaliada')
-
 
             f.write(self.__quebra)
             # Valor da função objetivo no ponto ótimo
@@ -156,10 +150,9 @@ class Report:
                 f.write(('<td>Limite inferior</td>'+ '<td>{:^10}</td>'*parametros.NV).format(*['N/A']*parametros.NV) + self.__quebra)
                 f.write('</table>\n')
             f.close()
-
-    def Predicao(self,x,y,estatisticas,**kwargs):
+    def Grandezas(self, y, estatisticas, **kwargs):
         u'''
-        Predicao(self,x,y,estatisticas,**kwargs)
+        Grandezas(self, y, estatisticas,**kwargs)
 
         ============================================================================
         Write the prediction and residual analysis results in the prediction report.
@@ -167,11 +160,8 @@ class Report:
 
         - Parameters
         ------------
-
-        x : grandeza class instance
-            instance containing the information relating to the independent variables.
         y : grandeza class instance
-            instance containing the information relating to the dependent variables.
+            instance containing the information relating to the variables.
         estatisticas : dict
             dictionary with the R2, adjusted R2, and FO (objective function) values.
 
@@ -184,11 +174,6 @@ class Report:
             exports the calculated data of y, its uncertainty, and degrees of freedom in a xls.
         export_cov_y : bool
             exports the covariance matrix of y.
-        export_x : bool
-            exports the calculated data of x, its uncertainty, and degrees of freedom in a txt with comma separation.
-        export_cov_x : bool
-            exports the covariance matrix of x.
-
         - References
         -------------
 
@@ -196,10 +181,6 @@ class Report:
 
         [2] https://docs.python.org/2/library/string.html#formatstrings
         '''
-
-        self._configFolder={'graficos-subfolder-Dadosvalidacao': 'Dados Validacao',
-                            'graficos-subfolder-DadosEstimacao': 'Dados Estimacao'}
-
         # ---------------------------------------------------------------------
         # VALIDATION
         # ---------------------------------------------------------------------
@@ -226,29 +207,18 @@ class Report:
         # ---------------------------------------------------------------------
         # REPORT FILE WRITING
         # ---------------------------------------------------------------------
-        # Internal folders
-        #------------------------------------------------------------
-        if int(self.__fluxo) > 0:
-            folder = sep + self._configFolder['graficos-subfolder-Dadosvalidacao']+' '+self.__fluxo + sep
-            Validacao_Diretorio(self.__base_path, folder)
-        else:
-            folder = sep + self._configFolder['graficos-subfolder-DadosEstimacao'] + sep
-            Validacao_Diretorio(self.__base_path, folder)
+
         #------------------------------------------------------------
         if estatisticas is not None:
-            #with open(self.__base_path+folder+'prediction-report_fl'+self.__fluxo+'.txt','wt') as f:
-            with open(self.__base_path+folder+'prediction-report'+'.html','wt') as f:
+            with open(self.__base_path+'grandezas-report'+'.html','wt') as f:
                 # TITLE:
                 f.write('<center>\n') # Centraliza o objeto no HTML
                 f.write('<h1> PREDIÇÃO </h1>\n')
                 f.write('</center>\n')
                 f.write('<hr />\n')
 
-                f.write('<h2> GRANDEZAS DEPENDENTES </h2 >\n')
+                f.write('<h2> GRANDEZAS </h2 >\n')
                 f.write('<h3>Coeficientes de correlação:</h3> \n'+self.__quebra)
-
-
-
                 f.write('<table border rules = all > \n') #Inicia a tabela no HTML
                 f.write('<tr>\n')
                 f.write('<td><b> Símbolos </b> </td>\n') #Escreve o nome símbolos apenas na primeira célula da  tabela
@@ -435,8 +405,7 @@ class Report:
         if export_y: # txt format
             cont = 0
             for symb in y.simbolos:
-                # with open(self.__base_path+folder+symb+'-calculado-predicao_fl'+self.__fluxo+'.txt','wt') as f:
-                with open(self.__base_path+folder+symb+'-calculado-predicao'+'.txt','wt') as f:
+                with open(self.__base_path+symb+'-calculado-predicao'+'.txt','wt') as f:
                     for i in range(y.calculado.NE):
                         f.write('{:.5g},{:.5g},{:.5g}'.format(y.calculado.matriz_estimativa[i,cont],y.calculado.matriz_incerteza[i,cont],y.calculado.gL[cont][i])+self.__quebra)
                 f.close()
@@ -448,11 +417,11 @@ class Report:
             for i in range(y.calculado.NE):
                  ws.write(i, 0, y.calculado.matriz_estimativa[i, cont]), ws.write(i, 1, y.calculado.matriz_incerteza[i, cont]), ws.write(i, 2, y.calculado.gL[cont][i])
             for symb in y.simbolos:
-                wb.save(self.__base_path+folder+symb+'-calculado-predicao'+'.xls')
+                wb.save(self.__base_path+symb+'-calculado-predicao'+'.xls')
         # covariance matrix
         if export_cov_y:
-            # with open(self.__base_path+folder+'y-calculado-matriz-covariancia_fl'+self.__fluxo+'.txt','wt') as f:
-            with open(self.__base_path+folder+'y-calculado-matriz-covariancia'+'.txt','wt') as f:
+            # with open(self.__base_path+'y-calculado-matriz-covariancia_fl'+self.__fluxo+'.txt','wt') as f:
+            with open(self.__base_path+'y-calculado-matriz-covariancia'+'.txt','wt') as f:
                 for i in range(y.NV*y.calculado.NE):
                     for j in range(y.NV*y.calculado.NE):
                         f.write('{:.5g} '.format(y.calculado.matriz_covariancia[i,j]))

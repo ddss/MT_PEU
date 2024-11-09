@@ -6,12 +6,12 @@ from numpy import exp
 
 #%% Model definition
 # def Model: The def model specifies the equations with their respective parameters.
-def Model (param,x, *args):
+def model(param, y, x, *args):
 
     ko, E = param[0], param[1]
-    time, T = x[:,0], x[:,1]
+    reacfrac, time, T = y[0], y[1], y[2]
 
-    return exp(-time*exp(ko-E/T))
+    return [reacfrac - exp(-time*exp(ko-E/T))]
 
 #%% Starting the MT_PEU main object
 # Model: Pass the model defined in def Model;
@@ -23,34 +23,29 @@ def Model (param,x, *args):
 # units_x: List of units of measurement of dependent quantities;
 # units_param: List of units of measurement of the parameters;
 # Folder: Defines the name of the folder where the results will be saved.
-Estime = EstimacaoNaoLinear(Model, symbols_x=['Time','Temperature'],symbols_ux=['UxTime','Uxtemperature'],
-                            units_x=['s','K'],symbols_y=[r'Y'],symbols_uy=['uY'], units_y=['adm'],
-                            symbols_param=['ko','E'], units_param=['adm','K'], Folder='Example2')
+Estime = EstimacaoNaoLinear(model, symbols_y=['frac', 'time', 'temperature'],symbols_uy=['ufrac', 'utime', 'utemperature'],
+                            symbols_param=['ko','E'], Folder='resultadoimplicito')
 
 #%% Setting the observed data set
 #Data entry using  .xlsx
-Estime.setDados(data="data_example2")
+Estime.setDados(data="data_example2-2")
 
 #%% Optimization - estimating the parameters
 # initial_estimative: List with the initial estimates for the parameters;
 # algorithm: Informs the optimization algorithm that will be used. Each algorithm has its own keywords;
 # optimizationReport: Informs whether the optimization report should be created (True or False);
-Estime.optimize(initial_estimative=[18, 20000.000],optimizationReport=False, algorithm='ipopt')
+Estime.optimize(initial_estimative=[18,20000]+Estime.y.observado.lista_estimativa,
+                lower_bound=[0,10000]+[0]*41+[0]*41+[500]*41,
+                upper_bound=[100,30000]+[1]*41+[200]*41+[700]*41)
 
 #%% Evaluating the parameters uncertainty and coverage region
 # uncertaintyMethod: method for calculating the covariance matrix of the parameters;
 # objectiveFunctionMapping: Deals with mapping the objective function (True or False);
-Estime.parametersUncertainty(uncertaintyMethod='2InvHessiana',objectiveFunctionMapping=True)
+Estime.uncertainty(objectiveFunctionMapping=False)
 
 #%%Running the charts without prediction.
 # using solely default options
 Estime.plots()
-
-#%% Evaluating model predictions
-# export_y: Exports the calculated data of y, its uncertainty, and degrees of freedom in a txt with comma separation (True or False);
-# export_y_xls: Exports the calculated data of y, its uncertainty, and degrees of freedom in a xls (True or False);
-# export_cov_y: Exports the covariance matrix of y (True or False);
-Estime.prediction(export_y=True, export_y_xls=True, export_cov_y=True )
 
 #%% Evaluating residuals and quality index
 # using solely default options

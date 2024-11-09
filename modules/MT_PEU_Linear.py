@@ -399,7 +399,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
 
 
 
-        if dataType == 'estimacao':
+        if dataType == 'observado':
             self._EstimacaoNaoLinear__flag.ToggleActive('dadosestimacao')
             if self._EstimacaoNaoLinear__controleFluxo.FLUXO_ID != 0:
                 self._EstimacaoNaoLinear__controleFluxo.reiniciar()
@@ -458,7 +458,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
 
 
 
-    def optimize(self, parametersReport = True):
+    def optimize(self, report = True):
         u'''
         Método para obtenção da estimativa dos parâmetros e sua matriz de covariância.
         '''
@@ -479,9 +479,9 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # ---------------------------------------------------------------------
         # RESOLUÇÃO
         # ---------------------------------------------------------------------
-        X   = self.x.estimacao.matriz_estimativa
-        Uyy = self.y.estimacao.matriz_covariancia
-        y   = self.y.estimacao.vetor_estimativa
+        X   = self.x.observado.matriz_estimativa
+        Uyy = self.y.observado.matriz_covariancia
+        y   = self.y.observado.vetor_estimativa
         variancia = inv(X.transpose().dot(inv(Uyy)).dot(X))
         parametros = variancia.dot(X.transpose().dot(inv(Uyy))).dot(y)
         # ---------------------------------------------------------------------
@@ -498,7 +498,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         self.FOotimo = float(self._excObjectiveFunction(self.parametros.estimativa,self._values))
 
         # parameters report creation
-        if parametersReport:
+        if report:
             self._out.Parametros(self.parametros, self.FOotimo)
 
     def parametersUncertainty(self, objectiveFunctionMapping=True, parametersReport = True, **kwargs):
@@ -524,8 +524,8 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # CÁLCULO DA MATRIZ DE COVARIÂNCIA
         # ---------------------------------------------------------------------
         # Caso a matriz de covariância não seja calculada, ela será aqui calculada
-        X   = self.x.estimacao.matriz_estimativa
-        Uyy = self.y.estimacao.matriz_covariancia
+        X   = self.x.observado.matriz_estimativa
+        Uyy = self.y.observado.matriz_covariancia
         variancia = inv(X.transpose().dot(inv(Uyy)).dot(X))
         self.parametros._updateParametro(matriz_covariancia=variancia)
 

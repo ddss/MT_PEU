@@ -39,11 +39,11 @@ class flag:
         Exemplo: ::
 
         >>> Fl = flag()
-        >>> Fl.setCaracteristica(['estimacao','reconciliacao'])
+        >>> Fl.setCaracteristica(['observado','reconciliacao'])
         >>> Fl.info
-        >>> Fl.ToggleActive('estimacao')
+        >>> Fl.ToggleActive('observado')
         >>> Fl.info
-        >>> Fl.ToggleInactive('estimacao')
+        >>> Fl.ToggleInactive('observado')
         >>> Fl.info
         >>> Fl.setCaracteristica(['validacao'])
         >>> Fl.info
@@ -83,8 +83,6 @@ class flag:
         # Definição do status para o valor default de falso.
         for elemento in caracteristica:
             self.info[elemento] = False
-
-
     def __validacao(self,caracteristica):
         u'''Validação das entradas
         '''
@@ -127,8 +125,7 @@ class flag:
         '''
 
         for elemento in self.__caracteristica:
-            self.info[elemento]    = self.__togglestatus
-
+            self.info[elemento] = self.__togglestatus
     def ToggleActive(self,caracteristica):
         '''
         Irá marcar a flag como TRUE

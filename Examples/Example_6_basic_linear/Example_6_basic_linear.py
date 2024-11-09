@@ -24,17 +24,17 @@ ER.setDados(data={'x':x,'ux':ux,'y':y ,'uy':uy},glx=[],gly=[])
 
 
 # Defining the previous data set to be used to parameter estimation
-# dataType: Defines the purpose of the informed data set: estimacao, predicao.
+# dataType: Defines the purpose of the informed data set: observado, predicao.
 # glx: Degrees of freedom of quantity x;
 # gly: Degrees of freedom of quantity y;
 
 #%% Optimization - estimating the parameters
-# parametersReport: Informs whether the parameters report should be created (True or False).
-ER.optimize(parametersReport=False)
+# report: Informs whether the parameters report should be created (True or False).
+ER.optimize(report=False)
 
 #%% Evaluating the parameters uncertainty and coverage region
 # objectiveFunctionMapping: Deals with mapping the objective function (True or False);
-# parametersReport: Informs whether the parameters report should be created.
+# report: Informs whether the parameters report should be created.
 ER.parametersUncertainty(objectiveFunctionMapping=True, parametersReport=True)
 
 #%% Evaluating model predictions

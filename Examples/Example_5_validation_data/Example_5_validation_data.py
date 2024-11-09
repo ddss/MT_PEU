@@ -39,9 +39,9 @@ Estime.setDados(data="data_exa5",glx=[], gly=[])
 # upper_bound: List with the upper bounds for the parameters;
 # algorithm: Informs the optimization algorithm that will be used. Each algorithm has its own keywords;
 # optimizationReport: Informs whether the optimization report should be created (True or False);
-# parametersReport: Informs whether the parameters report should be created (True or False).
+# report: Informs whether the parameters report should be created (True or False).
 Estime.optimize(initial_estimative=[0.005, 20000.000], algorithm='ipopt', lower_bound=[0.006,15000], upper_bound=[100,30000],
-                optimizationReport = True, parametersReport = False)
+                optimizationReport = True, report= False)
 
 #%% Evaluating the parameters uncertainty and coverage region
 # uncertaintyMethod: method for calculating the covariance matrix of the parameters;
@@ -50,7 +50,7 @@ Estime.optimize(initial_estimative=[0.005, 20000.000], algorithm='ipopt', lower_
 # limite_superior: Upper limit of the parameters;
 # iterations: Number of iterations to perform the mapping of the objective function. The higher the better mapping, but it
 # increases the execution time
-# parametersReport: Informs whether the parameters report should be created.
+# report: Informs whether the parameters report should be created.
 
 Estime.parametersUncertainty(uncertaintyMethod='Geral',objectiveFunctionMapping=True, lower_bound=[7.2e-3,26400], upper_bound=[7.7e-3,28600],
                              parametersReport = True, iterations=200)
@@ -77,7 +77,7 @@ Estime.plots()
 u"""
 If the user wishes, it is possible to do the same analysis as before with the prediction data. 
 The procedure to be followed is similar to the one previously carried out. The only difference is in the argument inserted in the setConjunto method.
-Instead of "type = estimacao" it becomes "type = predicao". It is necessary to enter at least 4 data for each prediction variable. 
+Instead of "type = observado" it becomes "type = predicao". It is necessary to enter at least 4 data for each prediction variable. 
 """
 
 #%% Setting the validation data set
@@ -102,7 +102,7 @@ uy1 = [0.2]*12
 Estime.setDados(data={'Time':time,'UxTime':uxtime,'Temperature':temperature,'Uxtemperature':uxtemperature,'Y':y,'uY':uy1})
 
 # Defining the previous data set to be used to validation
-# dataType: Defines the purpose of the informed data set: estimacao, predicao.
+# dataType: Defines the purpose of the informed data set: observado, predicao.
 # glx: Degrees of freedom of quantity x;
 # gly: Degrees of freedom of quantity y;
 

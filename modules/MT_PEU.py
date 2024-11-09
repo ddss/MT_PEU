@@ -67,10 +67,6 @@ class EstimacaoNaoLinear:
             -SET_ETAPA: This method indicates which step of the estimation procedure is running.\
             To execute a step, the method evaluates if the predecessor step was executed.
 
-            -reiniciar: restarts the flux. Assigns the value 0 to all the attributes.
-
-            -reiniciarParcial: partially restarts the flux, for example, when entering validation data.
-
             - Properties
             ------------
 
@@ -79,20 +75,14 @@ class EstimacaoNaoLinear:
             """
             self.setDados = 0
             self.otimizacao = 0
-            self.GETFOotimo = 0
             self.incerteza = 0
             self.regiaoAbrangencia = 0
-            self.predicao = 0
             self.analiseResiduos = 0
-            self.armazenarDicionario = 0
             self.mapeamentoFO = 0
             self.Hessiana = 0
             self.Gy = 0
-            self.S = 0
 
-            self.__fluxoID = 0
-
-        def SET_ETAPA(self,etapa,ignoreValidacao=False):
+        def SET_ETAPA(self,etapa, ignoreValidacao=False):
             u"""
             SET_ETAPA(self,etapa,ignoreValidacao=False)
 
@@ -127,72 +117,6 @@ class EstimacaoNaoLinear:
             # Assigning the value 1 (executed) to the attribute related to the step being executed
             setattr(self, etapa, 1)
 
-        def reiniciar(self,manter='setDados'):
-            u"""
-            reiniciar(self,manter='setDados')
-
-            ====================================================
-            Method used to restart the flux. (IMPACTS all steps)
-            ====================================================
-
-            - Parameters
-            ------------
-
-            manter : string
-                step that will be maintained with the value 1.
-
-            - Notes
-            --------
-
-            -By flow reset we mean assigning the value of all attributes to zero,
-            i.e. as if the EstimacaoNaoLinear methods had not been executed.
-
-            -Every time experimental data is added, the flux restarts and defines that no validation data has been entered
-
-            """
-            for atributo in vars(self).keys():
-                if atributo != '_Fluxo__fluxo':
-                    setattr(self, atributo, 0)
-
-            self.__fluxoID = 0
-            setattr(self, manter, 1)
-
-        def reiniciarParcial(self, etapas=None):
-            u"""
-            reiniciarParcial(self, etapas=None)
-
-            ==========================================
-            Method used to restart only specific steps
-            ==========================================
-
-            - Parameters
-            _____________
-
-            etapas : list
-                list with the steps that will be restarted.
-
-            - Notes
-            -------
-
-            Every time validation data is added a new workflow begins. The objective is to correctly
-            perform the prediction and residual analysis and generate the graphs and reports exclusive to this step.
-
-            """
-
-            etapas = etapas if etapas is not None else self._sucessoresValidacao
-
-            for atributo in etapas:
-                setattr(self, atributo, 0)
-
-            self.__fluxoID += 1
-
-        @property
-        def FLUXO_ID(self):
-            u"""
-            Obtains the flux identification number
-            """
-            return self.__fluxoID
-
         @property
         def _predecessora_setDados(self):
             return []
@@ -200,10 +124,6 @@ class EstimacaoNaoLinear:
         @property
         def _predecessora_otimizacao(self):
             return ['setDados']
-
-        @property
-        def _predecessora_GETFOotimo(self):
-            return ['otimizacao']
 
         @property
         def _predecessora_incerteza(self):
@@ -214,16 +134,8 @@ class EstimacaoNaoLinear:
             return ['mapeamentoFO']
 
         @property
-        def _predecessora_predicao(self):
-            return ['otimizacao','incerteza']
-
-        @property
         def _predecessora_analiseResiduos(self):
-            return ['predicao']
-
-        @property
-        def _predecessora_armazenarDicionario(self):
-            return ['setDados']
+            return ['incerteza']
 
         @property
         def _predecessora_mapeamentoFO(self):
@@ -238,12 +150,8 @@ class EstimacaoNaoLinear:
             return ['otimizacao']
 
         @property
-        def _predecessora_S(self):
-            return ['otimizacao']
-
-        @property
         def _sucessoresValidacao(self):
-            return ['predicao', 'analiseResiduos', 'armazenarDicionario', 'Gy', 'S']
+            return ['predicao', 'analiseResiduos', 'armazenarDicionario', 'Gy']
 
     def __init__(self, model, symbols_y, symbols_uy, symbols_param, symbols_x=None, PA=0.95, Folder='Projeto', **kwargs):
         u"""
@@ -311,7 +219,7 @@ class EstimacaoNaoLinear:
         **symbols_y : list**
             list with the symbols of the quantities in uncertainties (No special characters allowed).
         **symbols_x : list**
-            list with the symbols of the quantities with irrelavant uncertainties (No special characters allowed).
+            list with the symbols of the quantities not associated with experimental data (No special characters allowed).
         **symbols_param : list**
             list with the symbols of the parameters (No special characters allowed).
         **PA : float, optional**
@@ -343,22 +251,13 @@ class EstimacaoNaoLinear:
         ------------
 
         **setDados**
-            method for entering the experimental data and  defines the purpose of the experimental data included:
-            (i) parameter estimation or (ii) validation. (See method documentation)
+            method for entering the experimental data
 
         **optimize**
-            performs the optimization, based on the data set defined in setConjunto. (See method documentation)
+            performs the optimization, based on the data. (See method documentation)
 
-        **parametersUncertainty**
-            evaluates the uncertainty of the parameters. (See method documentation)
-
-        **SETparameter**
-            allows you to manually add the values of the parameter estimates and their covariance matrix.
-            It is assumed that the parameters were estimated for the data set provided for estimation.
-
-        **prediction**
-            evaluates the model prediction and its uncertainty or using the validation data.
-            If these are not available, the same estimation data will be used (See method documentation)
+        **uncertainty**
+            evaluates the uncertainty of the estimated quantities. (See method documentation)
 
         **residualAnalysis**
             performs the residue analysis. (see method documentation)
@@ -369,7 +268,6 @@ class EstimacaoNaoLinear:
         **report**
             create the reports containing the main results. (see method documentation)
 
-
         **obs**: The sequence of execution of the methods is important. This class only allows the execution of methods,
         if the predecessor steps have been executed.
 
@@ -377,15 +275,6 @@ class EstimacaoNaoLinear:
         -------------
 
         The EstimacaoNaoLinear class has an internal class called 'Fluxo' which validates the correct order of execution of the methods.
-        It is important to note that each time the setConjunto method is uxecuted, two possibilities can occur:
-
-        - **(1)**: Inserting validation data starts new fluxes.
-
-        - **(2)**: Entering new estimation data deletes the flux history and restarts the procedure.
-
-        This feature allows the evaluation of different validation data consecutively
-        (through Prediction, residualAnalysis and plots methods),
-        after the estimation of parameters (optimize, parametersUncertainty)
 
          - **Outputs**
         ---------------
@@ -395,11 +284,9 @@ class EstimacaoNaoLinear:
 
         - **x**: object of the 'Grandeza' class that contains all the information concerning the independent quantities in the form of attributes:
 
-            -**estimacao**: it contains information from the experimental data. Main attributes: `matriz_estimativa`, `matriz_covariancia`
+            -**observado**: it contains information from the experimental data. Main attributes: `matriz_estimativa`, `matriz_covariancia`
 
             -**calculado**: it contains information from the data calculated by the model. Main attributes: `matriz_estimativa`, `matriz_covariancia`
-
-            -**predicao**: it contains information from the estimation residues. Main attributes: `matriz_estimativa`, `estatisticas`
 
         - **y**: object of the 'Grandeza' class that contains all the information concerning the dependent quantities in the form of attributes: **The attributes are the same as "x" object**
 
@@ -464,9 +351,9 @@ class EstimacaoNaoLinear:
             raise NameError('The folder name must not contain special characters')
 
         # Check if base_path is a string
-        if kwargs.get(self.__keywordsEntrada[9]) is not None and not isinstance(kwargs.get(self.__keywordsEntrada[9]),
+        if kwargs.get(self.__keywordsEntrada[6]) is not None and not isinstance(kwargs.get(self.__keywordsEntrada[6]),
                                                                                   str):
-            raise TypeError('The keyword {} must be a string.'.format(self.__keywordsEntrada[9]))
+            raise TypeError('The keyword {} must be a string.'.format(self.__keywordsEntrada[6]))
 
         # ---------------------------------------------------------------------
         # INITIALIZATION OF QUANTITIES
@@ -475,8 +362,8 @@ class EstimacaoNaoLinear:
         self.x          = Grandeza_simplificada(symbols_x)
 
         # Variable      = Grandeza(symbols  ,symbols_uncertainty    , names                                ,units                                ,label_latex                          )
-        self.y          = Grandeza(symbols_y, symbols_uy       , kwargs.get(self.__keywordsEntrada[3]),kwargs.get(self.__keywordsEntrada[4]),kwargs.get(self.__keywordsEntrada[5]))
-        self.parametros = Grandeza(symbols_param,None,kwargs.get(self.__keywordsEntrada[6]),kwargs.get(self.__keywordsEntrada[7]),kwargs.get(self.__keywordsEntrada[8]))
+        self.y          = Grandeza(symbols_y, symbols_uy       , kwargs.get(self.__keywordsEntrada[0]),kwargs.get(self.__keywordsEntrada[1]),kwargs.get(self.__keywordsEntrada[2]))
+        self.parametros = Grandeza(symbols_param,None,kwargs.get(self.__keywordsEntrada[3]),kwargs.get(self.__keywordsEntrada[4]),kwargs.get(self.__keywordsEntrada[5]))
 
         # Check if the symbols are different
         # set: set of distinct non-ordered elements (works with set theory)
@@ -504,16 +391,14 @@ class EstimacaoNaoLinear:
         # Fitness history (objective function value) of the optimization algorithm (used in optimizing and / or objective function mapping)
         self.__OFMapped = []
         # Base path for the files, if the base_path keyword is defined it will be used.
-        if kwargs.get(self.__keywordsEntrada[9]) is None:
-            self.__base_path = getcwd()+ sep +str(Folder)+sep
+        if kwargs.get(self.__keywordsEntrada[6]) is None:
+            self.__base_path = getcwd() + sep + str(Folder) + sep
         else:
-            self.__base_path = kwargs.get(self.__keywordsEntrada[9])
+            self.__base_path = kwargs.get(self.__keywordsEntrada[6])
 
         # Flags for information control
         self.__flag = flag()
-        self.__flag.setCaracteristica(['dadosestimacao', 'dadospredicao',
-                                       'mapeamentoFO',
-                                       'graficootimizacao','relatoriootimizacao',
+        self.__flag.setCaracteristica(['graficootimizacao','relatoriootimizacao',
                                        'Linear'])
         # use of the characteristics:
         # dadosestimacao: indicates if estimation data was entered
@@ -521,31 +406,23 @@ class EstimacaoNaoLinear:
 
         # Variable that controls the name of the folders created by the graphic methods and reports
         self._configFolder = {'plots':'Graficos',
-                              'plots-{}'.format(self.__tipoGraficos[0]): 'Regiao',
-                              'plots-{}'.format(self.__tipoGraficos[1]): 'Grandezas',
-                              'plots-{}'.format(self.__tipoGraficos[2]): 'Predicao',
-                              'plots-{}'.format(self.__tipoGraficos[3]):'Grandezas',
-                              'plots-{}'.format(self.__tipoGraficos[4]):'Otimizacao',
-                              'plots-{}'.format(self.__tipoGraficos[5]):'Grandezas',
-                              'plots-subfolder-DadosEstimacao': 'Dados Estimacao',
-                              'plots-subfolder-Dadosvalidacao': 'Dados Validacao',
-                              'plots-subfolder-matrizcorrelacao': 'Matrizes Correlacao',
+                              'plots-{}'.format(self.__tipoGraficos[0]):'Regiao',
+                              'plots-{}'.format(self.__tipoGraficos[1]):'Grandezas',
+                              'plots-{}'.format(self.__tipoGraficos[2]):'Grandezas',
+                              'plots-{}'.format(self.__tipoGraficos[3]):'Otimizacao',
+                              'plots-{}'.format(self.__tipoGraficos[4]):'Grandezas',
                               'plots-subfolder-grandezatendencia': 'Tendencia observada',
+                              'plots-subfolder-DadosEstimacao': 'Dados Estimacao',
+                              'plots-subfolder-matrizcorrelacao': 'Matrizes Correlacao',
                               'report':'Reports'}
 
         # Report class initialization
-        self._out = Report(str(self.__controleFluxo.FLUXO_ID), self.__base_path, sep + self._configFolder['report'] + sep, **kwargs)
-
+        self._out = Report(self.__base_path, sep + self._configFolder['report'] + sep, **kwargs)
 
     @property
     def __keywordsEntrada(self):
         # Available Keywords for the input method
-        return ('names_x', 'units_x', 'label_latex_x', 'names_y', 'units_y', 'label_latex_y',
-                              'names_param', 'units_param', 'label_latex_param', 'base_path')
-    @property
-    def __tiposDisponiveisEntrada(self):
-        # Available data set
-        return ('estimacao', 'predicao')
+        return ('names_y', 'units_y', 'label_latex_y', 'names_param', 'units_param', 'label_latex_param', 'base_path')
 
     @property
     def __AlgoritmosOtimizacao(self):
@@ -554,12 +431,7 @@ class EstimacaoNaoLinear:
 
     @property
     def __tipoGraficos(self):
-        return ('regiaoAbrangencia', 'grandezas-entrada', 'predicao', 'grandezas-calculadas', 'otimizacao', 'analiseResiduos')
-
-    @property
-    def __keywordsDerivadas(self):
-        # available keywords to evaluate the derivatives
-        return ('deltaHess', 'deltaGy', 'deltaS', 'delta')
+        return ('regiaoAbrangencia', 'grandezas-entrada', 'grandezas-calculadas', 'otimizacao', 'analiseResiduos')
 
     @property
     def __tipoObjectiveFunctionMapping(self):
@@ -568,8 +440,8 @@ class EstimacaoNaoLinear:
 
     @property
     def __graph_flux_association(self):
-        return {'setDados':[self.__tipoGraficos[1]],'incerteza':[self.__tipoGraficos[0],self.__tipoGraficos[3]],
-                'predicao':[self.__tipoGraficos[2],self.__tipoGraficos[3]],'analiseResiduos':[self.__tipoGraficos[5]]}
+        return {'setDados':[self.__tipoGraficos[1]],'incerteza':[self.__tipoGraficos[0],self.__tipoGraficos[2]],
+                'otimizacao':[self.__tipoGraficos[2],self.__tipoGraficos[3]],'analiseResiduos':[self.__tipoGraficos[4]]}
 
     def __validacaoDadosEntrada(self, dados, udados, NV):
         u"""
@@ -611,8 +483,7 @@ class EstimacaoNaoLinear:
         if udados.shape[0]*self.y.NV-float(self.parametros.NV) <= 0: # Verificar se há graus de liberdade suficiente
             warn('Insufficient degrees of freedom. Your experimental data set is not enough to estimate the parameters!',UserWarning)
 
-    def  setDados(self, data, dataType= None, separador=';', decimal='.', gly=[]):
-
+    def setDados(self, data, separador=';', decimal='.', gly=[]):
         u"""
                 setDados(self,data,separador=';',decimal='.' ,dataType= None, glx=[],gly=[]):
                 ===================================================================================================================
@@ -695,7 +566,7 @@ class EstimacaoNaoLinear:
         # ROUTINE THAT IMPORTS AND VALIDATES DATA FROM .CSV AND .XLSX FILES
         #-----------------------------------------------------------------------------
         elif isinstance(data,list)  or isinstance(data,str): #Data input, in file import mode, accepts string or list of strings and dictionary
-            if  not isinstance(data,list):
+            if not isinstance(data,list):
                 data = [data]  #The data is expected in list format, but if it is a string, it is added to a list
             ###VALIDATION###
             error = False
@@ -801,58 +672,16 @@ class EstimacaoNaoLinear:
             raise TypeError(" The data input can be  a list or string or dictionary, check if the input follows any of these formats")
 
         self.__validacaoDadosEntrada(Y, uY, self.y.NV)
-        ######################################################EXECUTION#########################################################
-        #Automaticamente chamando o método  setdados a primeira vez é feito a  estimação, chamando setdados pela segunda é feito a validação (Predição).
-        #Caso não tenha novos dados para a validação,os dados da estimação é usado.
-        if dataType is None:
-            if not self.__flag.info['dadosestimacao']:  # rodando a primeira vez (estimação)
-                 dataType = self.__tiposDisponiveisEntrada[0]
-            else:  # rodando a segunda vez, vai agora para predição
-                 dataType = self.__tiposDisponiveisEntrada[1]
 
-        # experimental data
-        if dataType == self.__tiposDisponiveisEntrada[0]:
-            self.__flag.ToggleActive('dadosestimacao')
-            # if flux ID is equal to zero, so it's not necessary to restart, otherwise, restart.
-            if self.__controleFluxo.FLUXO_ID != 0:
-                self.__controleFluxo.reiniciar()
-                if self.__flag.info['dadospredicao']:
-                    warn('The flux was restarted, so new validation data has to be included.', UserWarning)
-            # ---------------------------------------------------------------------
-            # ASSIGNMENT OF VALUES TO QUANTITIES
-            # ---------------------------------------------------------------------
-            # Saving the experimental data in the variables.
-            try:
-                self.y._SETdadosestimacao(estimativa=Y, matriz_incerteza=uY, gL=gly)
-            except Exception as erro:
-                raise RuntimeError(
-                    'Error in the creation of the estimation set of the quantity Y: {}'.format(erro))
-
-        # prediction data
-        if dataType == self.__tiposDisponiveisEntrada[1]:
-            self.__flag.ToggleActive('dadospredicao')
-            self.__controleFluxo.reiniciarParcial()
-            # ---------------------------------------------------------------------
-            # ASSIGNMENT OF VALUES TO QUANTITIES
-            # ---------------------------------------------------------------------
-            try:
-                self.y._SETdadosvalidacao(estimativa=Y, matriz_incerteza=uY,gL=gly)
-            except Exception as error:
-                raise RuntimeError(
-                    'Error in the creation of the validation set of the quantity Y: {}'.format(error))
-
-        if not self.__flag.info['dadospredicao']:
-            # If setConjunto method is only performed for experimental data,
-            # it will be assumed that also are validation data because all prediction
-            # calculation is performed to the validation data.
-            # ---------------------------------------------------------------------
-            # ASSIGNMENT OF VALUES TO QUANTITIES
-            # ---------------------------------------------------------------------
-            # Saving validation data.
-            try:
-                self.y._SETdadosvalidacao(estimativa=Y, matriz_incerteza=uY, gL=gly)
-            except Exception as erro:
-                raise RuntimeError('Error in the creation of the validation set of the quantity Y: {}'.format(erro))
+        # ---------------------------------------------------------------------
+        # ASSIGNMENT OF VALUES TO QUANTITIES
+        # ---------------------------------------------------------------------
+        # Saving the experimental data in the variables.
+        try:
+            self.y._SETdadosestimacao(estimativa=Y, matriz_incerteza=uY, gL=gly)
+        except Exception as erro:
+            raise RuntimeError(
+                'Error in the creation of the estimation set of the quantity Y: {}'.format(erro))
 
         # initialization of casadi's variables
         self._constructionCasadiVariables()
@@ -898,26 +727,26 @@ class EstimacaoNaoLinear:
 
         # if self._EstimacaoNaoLinear__flag.info['Linear']:
         #     if self._EstimacaoNaoLinear__flag.info['calc_termo_independente']: # Testing if it's a linear case with independent term calculation
-        #         self._values = vertcat(self._values, self.x.estimacao.vetor_estimativa[
-        #                                              :self.x.estimacao.NE])  # para não trazer a coluna de '1' como dado de entrada
+        #         self._values = vertcat(self._values, self.x.observado.vetor_estimativa[
+        #                                              :self.x.observado.NE])  # para não trazer a coluna de '1' como dado de entrada
 
         # Creation of dependent variables in casadi's format
         ymodel = []
         for j in range(self.y.NV):
-            self.__symYo   = vertcat(self.__symYo,MX.sym('{}{}o'.format(self.y.simbolos[j],j), self.y.estimacao.NE,1))
-            symYr = MX.sym('{}{}r'.format(self.y.simbolos[j], j), self.y.estimacao.NE, 1)
+            self.__symYo   = vertcat(self.__symYo, MX.sym('{}{}o'.format(self.y.simbolos[j],j), self.y.observado.NE, 1))
+            symYr = MX.sym('{}{}r'.format(self.y.simbolos[j], j), self.y.observado.NE, 1)
             self.__symYr = vertcat(self.__symYr, symYr)
-            self.__symYest = vertcat(self.__symYest,MX.sym('{}{}'.format(self.y.simbolos[j],j), self.y.estimacao.NE,1))
+            self.__symYest = vertcat(self.__symYest, MX.sym('{}{}'.format(self.y.simbolos[j],j), self.y.observado.NE, 1))
             ymodel.append(symYr)
 
         self.__symVariables = vertcat(self.__symVariables, self.__symYr)
 
         # Model definition
-        self.__symModel = vertcat(*self.__modelo(self.__symParam, ymodel, self.__symXo, self.y.estimacao.NE))
+        self.__symModel = vertcat(*self.__modelo(self.__symParam, ymodel, self.__symXo, self.y.observado.NE))
         self.__excModel = Function('Model', [self.__symVariables, self.__symXo],[self.__symModel])  # Executable
 
         # Objective function definition
-        self.__symObjectiveFunction = (self.__symYo - self.__symYr).T @ inv(self.y.estimacao.matriz_covariancia) @ (self.__symYo - self.__symYr)
+        self.__symObjectiveFunction = (self.__symYo - self.__symYr).T @ inv(self.y.observado.matriz_covariancia) @ (self.__symYo - self.__symYr)
         self._excObjectiveFunction = Function('Objective_Function',
                                               [self.__symVariables, self.__symYo],
                                               [self.__symObjectiveFunction])  # Executable
@@ -927,98 +756,9 @@ class EstimacaoNaoLinear:
         self.__symLagrangeana = self.__symObjectiveFunction + self.__symmu.T @ self.__symModel
         self.__excLagrangeana = Function('Lagrangeana', [self.__symVariables, self.__symYo, self.__symmu, self.__symXo],[self.__symLagrangeana])
 
-    def _armazenarDicionario(self):
+    def optimize(self, initial_estimative, lower_bound, upper_bound, algorithm ='ipopt', optimizationReport = True, report = True):
         u"""
-        Método opcional para armazenar as Grandezas (x,y e parâmetros) na
-        forma de um dicionário, cujas chaves são os símbolos.
-
-        ======
-        Saídas
-        ======
-
-        * grandeza: dicionário cujas chaves são os símbolos das grandezas e respectivos
-        conteúdos objetos da classe Grandezas.
-        """
-        # ---------------------------------------------------------------------
-        # FLUXO
-        # ---------------------------------------------------------------------
-        self.__controleFluxo.SET_ETAPA('armazenarDicionario')
-
-        # ---------------------------------------------------------------------
-        # GERANDO O DICIONÁRIO
-        # ---------------------------------------------------------------------    
-
-        grandeza = {}
-
-        # GRANDEZAS DEPENDENTES (y)
-        for j, simbolo in enumerate(self.y.simbolos):
-            grandeza[simbolo] = Grandeza([simbolo],[self.y.nomes[j]],[self.y.unidades[j]],[self.y.label_latex[j]])
-
-            # Salvando os dados estimação
-            if self.__flag.info['dadosestimacao']:
-                # Salvando dados experimentais
-                grandeza[simbolo]._SETdadosestimacao(estimativa=self.y.estimacao.matriz_estimativa[:,j:j+1],
-                                                   matriz_incerteza=self.y.estimacao.matriz_incerteza[:,j:j+1],
-                                                   gL=self.y.estimacao.gL[j])
-
-            # Salvando os dados predição
-            if self.__flag.info['dadospredicao']:
-                # Salvando dados estimação
-                grandeza[simbolo]._SETdadosvalidacao(estimativa=self.y.predicao.matriz_estimativa[:,j:j+1],
-                                                matriz_incerteza=self.y.predicao.matriz_incerteza[:,j:j+1],
-                                                gL=self.y.predicao.gL[j])
-
-            # Salvando os dados calculados
-            if self.__controleFluxo.predicao:
-                grandeza[simbolo]._SETcalculado(estimativa=self.y.calculado.matriz_estimativa[:,j:j+1],
-                                                matriz_incerteza=self.y.calculado.matriz_incerteza[:,j:j+1],
-                                                gL=self.y.calculado.gL[j])
-
-            # Salvando os resíduos
-            if self.__controleFluxo.analiseResiduos:
-                grandeza[simbolo]._SETresiduos(estimativa=self.y.residuos.matriz_estimativa[:,j:j+1])
-
-        # GRANDEZAS INDEPENDENTES (x)
-        for j, simbolo in enumerate(self.x.simbolos):
-            grandeza[simbolo] = Grandeza([simbolo],[self.x.nomes[j]],[self.x.unidades[j]],[self.x.label_latex[j]])
-
-            # Salvando dados estimação
-            if self.__flag.info['dadosestimacao']:
-                grandeza[simbolo]._SETdadosestimacao(estimativa=self.x.estimacao.matriz_estimativa[:,j:j+1],
-                                                   matriz_incerteza=self.x.estimacao.matriz_incerteza[:,j:j+1],
-                                                   gL=self.x.estimacao.gL[j])
-
-            # Salvando dados de predição
-            if self.__flag.info['dadospredicao']:
-                grandeza[simbolo]._SETdadosvalidacao(estimativa=self.x.predicao.matriz_estimativa[:,j:j+1],
-                                                matriz_incerteza=self.x.predicao.matriz_incerteza[:,j:j+1],
-                                                gL=self.x.predicao.gL[j])
-
-            # Salvando dados calculados
-            if self.__controleFluxo.predicao:
-                grandeza[simbolo]._SETcalculado(estimativa=self.x.calculado.matriz_estimativa[:,j:j+1],
-                                                matriz_incerteza=self.x.calculado.matriz_incerteza[:,j:j+1],
-                                                gL=self.x.calculado.gL[j])
-
-            # Salvando os resíduos
-            if self.__controleFluxo.analiseResiduos:
-                grandeza[simbolo]._SETresiduos(estimativa=self.x.residuos.matriz_estimativa[:,j:j+1])
-
-        # PARÂMETROS
-        for j,simbolo in enumerate(self.parametros.simbolos):
-            grandeza[simbolo] = Grandeza([simbolo],[self.parametros.nomes[j]],[self.parametros.unidades[j]],[self.parametros.label_latex[j]])
-            if self.__controleFluxo.otimizacao or self.__controleFluxo.SETparametro:
-                # Salvando as informações dos parâmetros
-                if self.parametros.matriz_covariancia is None:
-                    grandeza[simbolo]._SETparametro([self.parametros.estimativa[j]],None,None)
-                else:
-                    grandeza[simbolo]._SETparametro([self.parametros.estimativa[j]],array([self.parametros.matriz_covariancia[j,j]],ndmin=2),None)
-
-        return grandeza
-
-    def optimize(self, initial_estimative, lower_bound, upper_bound, algorithm ='ipopt', optimizationReport = True, parametersReport = False):
-        u"""
-        optimize(self, initial_estimative, lower_bound=-inf, upper_bound=inf, algorithm ='ipopt', optimizationReport = True, parametersReport = False)
+        optimize(self, initial_estimative, lower_bound=-inf, upper_bound=inf, algorithm ='ipopt', optimizationReport = True, report = False)
 
         ==============================
         Solve the optimization problem.
@@ -1046,7 +786,7 @@ class EstimacaoNaoLinear:
 
         optimizationReport : bool, optional
             informs whether the optimization report should be created.
-        parametersReport : bool, optional
+        report : bool, optional
             informs whether the parameters report should be created.
 
         - Notes
@@ -1064,14 +804,6 @@ class EstimacaoNaoLinear:
         # VALIDATION
         # ---------------------------------------------------------------------
 
-        # if don't have experimental data -> error
-        if not self.__flag.info['dadosestimacao']:
-            raise SyntaxError('To execute the optimize method is necessary to input the estimation data.')
-
-        # the SETparameter method must not be executed before the optimize method.
-        if self.__controleFluxo.SETparametro:
-            raise SyntaxError('The method {} cannot be executed before {}'.format('optimize', 'SETparameter'))
-
         # check if the algorithm argument has string type
         if not isinstance(algorithm, str):
             raise TypeError('The algorithm name must be a string.')
@@ -1085,11 +817,23 @@ class EstimacaoNaoLinear:
         # validation of the initial estimative:
         if initial_estimative is None:
             raise SyntaxError('To execute the optimize method it is necessary to give an initial estimative')
-        if not isinstance(initial_estimative, list) or len(initial_estimative) != self.parametros.NV+self.y.NV*self.y.estimacao.NE:
+        if not isinstance(initial_estimative, list) or len(initial_estimative) != self.parametros.NV+self.y.NV*self.y.observado.NE:
             raise TypeError(
                 'The initial estimative must be a list with the size of the number of parameters plus all data points of every variable: {}'.format(
-                    self.parametros.NV+self.y.NV*self.y.estimacao.NE))
+                    self.parametros.NV+self.y.NV*self.y.observado.NE))
 
+        if lower_bound is None or upper_bound is None:
+            raise SyntaxError('To execute the optimize method it is necessary to give the lower and upper bounds')
+
+        if not isinstance(lower_bound, list) or len(lower_bound) != self.parametros.NV+self.y.NV*self.y.observado.NE:
+            raise TypeError(
+                'The lower_bound must be a list with the size of the number of parameters plus all data points of every variable: {}'.format(
+                    self.parametros.NV + self.y.NV * self.y.observado.NE))
+
+        if not isinstance(upper_bound, list) or len(upper_bound) != self.parametros.NV+self.y.NV*self.y.observado.NE:
+            raise TypeError(
+                'The lower_bound must be a list with the size of the number of parameters plus all data points of every variable: {}'.format(
+                    self.parametros.NV + self.y.NV * self.y.observado.NE))
         # ---------------------------------------------------------------------
         # EXECUTION
         # ---------------------------------------------------------------------
@@ -1118,7 +862,7 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # define the optimization problem
         nlp = {'x': self.__symVariables,
-               'f': self._excObjectiveFunction(self.__symVariables, self.y.estimacao.vetor_estimativa),
+               'f': self._excObjectiveFunction(self.__symVariables, self.y.observado.vetor_estimativa),
                'g': self.__excModel(self.__symVariables,self.x.estimativas)}
 
         # options for printing the optimization information
@@ -1164,6 +908,8 @@ class EstimacaoNaoLinear:
                                       limite_superior=upper_bound[0:self.parametros.NV],
                                       limite_inferior=lower_bound[0:self.parametros.NV])
 
+        self.y._SETcalculado(estimativa=array(self.otimizacao['x'][self.parametros.NV:]), NE=self.y.observado.NE)
+
         # check if the parameters estimative is equal to the informed boundaries
         if lower_bound != -inf and upper_bound != inf:
             for i in range(self.parametros.NV):
@@ -1171,8 +917,9 @@ class EstimacaoNaoLinear:
                     warn('Estimated parameters equal to the upper or lower limit.')
 
         # parameters report creation
-        if parametersReport is True:
-            self._out.Parametros(self.parametros,self.FOotimo)
+        if report is True:
+            self._out.Parametros(self.parametros, self.FOotimo)
+            self._out.Grandezas(self.y, None)
 
          #Conversion of the optimization report to html
         if optimizationReport is not False:
@@ -1192,7 +939,7 @@ class EstimacaoNaoLinear:
         aux = Function('Hessiana', [self.__symVariables, self.__symmu, self.__symYo, self.__symXo],
                                  [hessian(self.__symLagrangeana,vertcat(self.__symVariables,self.__symmu))[0]]) #function
 
-        self.Hessiana = array(aux(self.otimizacao['x'], self.otimizacao['lam_g'], self.y.estimacao.vetor_estimativa, self.x.estimativas)) #numeric
+        self.Hessiana = array(aux(self.otimizacao['x'], self.otimizacao['lam_g'], self.y.observado.vetor_estimativa, self.x.estimativas)) #numeric
 
         return self.Hessiana
 
@@ -1201,7 +948,7 @@ class EstimacaoNaoLinear:
         aux = Function('Gy', [self.__symVariables, self.__symmu, self.__symYo, self.__symXo],
                        [jacobian(jacobian(self.__symLagrangeana, vertcat(self.__symVariables,self.__symmu)), vertcat(self.__symYo, self.__symXo))]) # function
 
-        self.Gy = array(aux(self.otimizacao['x'], self.otimizacao['lam_g'], self.y.estimacao.vetor_estimativa, self.x.estimativas))
+        self.Gy = array(aux(self.otimizacao['x'], self.otimizacao['lam_g'], self.y.observado.vetor_estimativa, self.x.estimativas))
 
         return self.Gy
 
@@ -1265,11 +1012,11 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         if self.x.NV > 0:
             Uxx = diag(self.x.incertezas**2)
-            U_exp_1 = hstack((self.y.estimacao.matriz_covariancia,zeros((self.y.NV,self.x.NV))))
+            U_exp_1 = hstack((self.y.observado.matriz_covariancia, zeros((self.y.NV, self.x.NV))))
             U_exp_2 = hstack((zeros((self.x.NV, self.y.NV)),Uxx))
             U_exp = vstack((U_exp_1,U_exp_2))
         else:
-            U_exp = self.y.estimacao.matriz_covariancia
+            U_exp = self.y.observado.matriz_covariancia
 
         # COVARIANCE MATRIX
         # Method: geral - > inv(H)*Gy*Uyy*GyT*inv(H)
@@ -1281,9 +1028,9 @@ class EstimacaoNaoLinear:
         self.parametros._updateParametro(matriz_covariancia=matriz_covariancia[0:self.parametros.NV,0:self.parametros.NV])
 
         self.y._SETcalculado(estimativa=array(self.otimizacao['x'][self.parametros.NV:]),
-                             matriz_covariancia=matriz_covariancia[self.parametros.NV:self.parametros.NV+self.y.NV*self.y.estimacao.NE,self.parametros.NV:self.parametros.NV+self.y.NV*self.y.estimacao.NE],
-                             gL=[[self.y.estimacao.NE * self.y.NV - self.parametros.NV] * self.y.estimacao.NE] * self.y.NV,
-                             NE=self.y.predicao.NE)
+                             matriz_covariancia=matriz_covariancia[self.parametros.NV:self.parametros.NV+self.y.NV*self.y.observado.NE, self.parametros.NV:self.parametros.NV + self.y.NV * self.y.observado.NE],
+                             gL=[[self.y.observado.NE * self.y.NV - self.parametros.NV] * self.y.observado.NE] * self.y.NV,
+                             NE=self.y.observado.NE)
 
         # ---------------------------------------------------------------------
         # COVERAGE REGION
@@ -1301,9 +1048,9 @@ class EstimacaoNaoLinear:
             self.parametros._updateParametro(regiao_abrangencia=regiao)
 
         # parameters report creation
-        if Report is True:
-            self._out.Parametros(self.parametros,self.FOotimo)
-            self._out.Predicao(self.x, self.y, None, **kwargs)
+        if report is True:
+            self._out.Parametros(self.parametros, self.FOotimo)
+            self._out.Grandezas(self.y, None, **kwargs)
 
     def __objectiveFunctionMapping(self,**kwargs):
         u"""
@@ -1569,10 +1316,10 @@ class EstimacaoNaoLinear:
         """
 
         # F test = F(PA,NP,NE*NY-NP)
-        fisher = f.ppf(self.PA,self.parametros.NV,(self.y.estimacao.NE*self.y.NV-self.parametros.NV))
+        fisher = f.ppf(self.PA, self.parametros.NV, (self.y.observado.NE * self.y.NV - self.parametros.NV))
 
         # Value for the coverage ellipse:
-        ellipseComparacao = self.FOotimo*(float(self.parametros.NV)/(self.y.estimacao.NE*self.y.NV-float(self.parametros.NV))*fisher)
+        ellipseComparacao = self.FOotimo*(float(self.parametros.NV) / (self.y.observado.NE * self.y.NV - float(self.parametros.NV)) * fisher)
 
         return fisher, ellipseComparacao
 
@@ -1646,18 +1393,12 @@ class EstimacaoNaoLinear:
         # FLUX
         # ---------------------------------------------------------------------
         self.__controleFluxo.SET_ETAPA('analiseResiduos')
-        # ---------------------------------------------------------------------
-        # VALIDATION
-        # ---------------------------------------------------------------------         
 
-        # Size of the vectors:
-        if self.y.predicao.NE != self.y.calculado.NE:
-            raise TypeError(u'The length of the validation and calculated vectors are not consistent. Evaluate the need to perform the prediction method.')
         # ---------------------------------------------------------------------
         # RESIDUES CALCULATION
         # ---------------------------------------------------------------------          
         # Residues calculation (or deviations) - are based on the validation data
-        residuo_y = self.y.predicao.matriz_estimativa - self.y.calculado.matriz_estimativa
+        residuo_y = self.y.observado.matriz_estimativa - self.y.calculado.matriz_estimativa
 
         # ---------------------------------------------------------------------
         # ATTRIBUTION TO QUANTITIES
@@ -1672,24 +1413,23 @@ class EstimacaoNaoLinear:
         # For y:
         for i,symb in enumerate(self.y.simbolos):
             SSE = sum(self.y.residuos.matriz_estimativa[:,i]**2)
-            SST = sum((self.y.predicao.matriz_estimativa[:,i]-\
-                  mean(self.y.predicao.matriz_estimativa[:,i]))**2)
+            SST = sum((self.y.observado.matriz_estimativa[:,i]-\
+                  mean(self.y.observado.matriz_estimativa[:,i]))**2)
             self.estatisticas['R2'][symb]         = 1 - SSE/SST
-            self.estatisticas['R2ajustado'][symb] = 1 - (SSE/(self.y.predicao.NE-self.parametros.NV))\
-                                       /(SST/(self.y.predicao.NE - 1))
+            self.estatisticas['R2ajustado'][symb] = 1 - (SSE/(self.y.observado.NE-self.parametros.NV))\
+                                       /(SST/(self.y.observado.NE - 1))
 
         # ---------------------------------------------------------------------
         # EXECUTION OF STATISTICAL TESTS
         # ---------------------------------------------------------------------             
 
         # Dependent quantities
-        self.y._testesEstatisticos(self.y.predicao.matriz_estimativa)
+        self.y._testesEstatisticos(self.y.observado.matriz_estimativa)
 
         # -----------------------------------------------------------------
         # VALIDATION OF THE VALUE OF THE OBJECTIVE FUNCTION AS A CHI-SQUARE
         # -----------------------------------------------------------------
-        # TODO: substituir pelo grau de liberdade dos parâmetros, após merge com IncertezaParametros
-        gL = self.y.estimacao.NE*self.y.NV - self.parametros.NV
+        gL = self.y.observado.NE * self.y.NV - self.parametros.NV
 
         chi2max = chi2.ppf(self.PA+(1-self.PA)/2,gL)
         chi2min = chi2.ppf((1-self.PA)/2,gL)
@@ -1699,9 +1439,9 @@ class EstimacaoNaoLinear:
         # prediction report creation
         if report is True:
             kwargs['PA'] = self.PA
-            self._out.Predicao(self.x, self.y, self.estatisticas, **kwargs)
+            self._out.Grandezas(self.y, self.estatisticas, **kwargs)
 
-    def plots(self,**kwargs):
+    def plots(self, **kwargs):
         u"""
         plots(self,**kwargs)
 
@@ -1724,9 +1464,7 @@ class EstimacaoNaoLinear:
         Available plots:
             'regiaoAbrangencia': plots the coverage region of the parameters
 
-            'grandezas-entrada': plots for input and validation data
-
-            'predicao": plots for the prediction results
+            'grandezas-entrada': plots for input data
 
             'grandezas-calculadas': plots for the calculated values of each quantity
             
@@ -1750,7 +1488,7 @@ class EstimacaoNaoLinear:
                     self.__tipoGraficos) + '.')
 
         # Initialization of the Figure that will contain the graphs -> object
-        Fig = Grafico(dpi=300)
+        Fig = Grafico(dpi=600)
 
         # ---------------------------------------------------------------------
         # BASE PATH
@@ -1771,94 +1509,57 @@ class EstimacaoNaoLinear:
                 Validacao_Diretorio(base_path, folder)
                 # -----------------------------------------------------------------------------------
                 # created plots for the experimental data
-                if self.__flag.info['dadosestimacao'] == True:
-                    self.x.Graficos(base_path, base_dir, ID=['estimacao'], fluxo=0, Fig=Fig)
-                    self.y.Graficos(base_path, base_dir, ID=['estimacao'], fluxo=0, Fig=Fig)
+                self.y.Graficos(base_path, base_dir, ID=['observado'], Fig=Fig)
 
-                    # Plots for y quantities by x quantities
-                    for iy in range(self.y.NV):
-                        for ix in range(self.x.NV):
-                            # plots without uncertainty
-                            Fig.grafico_dispersao_sem_incerteza(self.x.estimacao.matriz_estimativa[:,ix],
-                                                                self.y.estimacao.matriz_estimativa[:,iy],
-                                                                label_x=self.x.labelGraficos('observado')[ix],
-                                                                label_y=self.y.labelGraficos('observado')[iy],
-                                                                marker='o', linestyle='None')
-                            Fig.salvar_e_fechar(base_path+folder+self.y.simbolos[iy]+'_em_funcao_de_'+self.x.simbolos[ix]+'_sem_incerteza')
-                            # plots with uncertainty
-                            Fig.grafico_dispersao_com_incerteza(self.x.estimacao.matriz_estimativa[:,ix],
-                                                                self.y.estimacao.matriz_estimativa[:,iy],
-                                                                self.x.estimacao.matriz_incerteza[:,ix],
-                                                                self.y.estimacao.matriz_incerteza[:,iy],
-                                                                label_x=self.x.labelGraficos('observado')[ix],
-                                                                label_y=self.y.labelGraficos('observado')[iy],
-                                                                fator_abrangencia_x=[2.]*self.x.estimacao.NE,
-                                                                fator_abrangencia_y=[2.]*self.y.estimacao.NE, fmt='o')
-                            Fig.salvar_e_fechar(base_path+folder+self.y.simbolos[iy]+'_em_funcao_de_'+' '+self.x.simbolos[ix]+'_com_incerteza')
-
-                # If the validation data is different from the experimental data, graphics will be created for the validation data.
-                if self.__flag.info['dadospredicao'] == True:
-                    # Internal folders
-                    # ------------------------------------------------------------------------------------
-                    if self.__controleFluxo.FLUXO_ID == 0:
-                        folder = self._configFolder['plots{}'.format(self.__tipoGraficos[5])] +  sep +self._configFolder['plots-subfolder-DadosEstimacao']+ sep+ self._configFolder['plots-subfolder-grandezatendencia']+sep
-                        Validacao_Diretorio(base_path, folder)
-                    else:
-                        folder = self._configFolder['plots-{}'.format(self.__tipoGraficos[5])] + sep + self._configFolder['plots-subfolder-Dadosvalidacao']+' '+str(self.__controleFluxo.FLUXO_ID)+ sep+ self._configFolder['plots-subfolder-grandezatendencia']+sep
-                        Validacao_Diretorio(base_path, folder)
-                    # ------------------------------------------------------------------------------------
-                    self.x.Graficos(base_path, base_dir, ID=['predicao'], fluxo=self.__controleFluxo.FLUXO_ID, Fig=Fig)
-                    self.y.Graficos(base_path, base_dir, ID=['predicao'], fluxo=self.__controleFluxo.FLUXO_ID, Fig=Fig)
-
-                    # Plots for y quantities by x quantities
-                    for iy in range(self.y.NV):
-                        for ix in range(self.x.NV):
-                            # plots without uncertainty
-                            Fig.grafico_dispersao_sem_incerteza(self.x.predicao.matriz_estimativa[:,ix],
-                                                                self.y.predicao.matriz_estimativa[:,iy],
-                                                                label_x=self.x.labelGraficos('observado')[ix],
-                                                                label_y=self.y.labelGraficos('observado')[iy],
-                                                                marker='o', linestyle='None')
-                            Fig.salvar_e_fechar(base_path+folder+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_sem_incerteza')
-                            # plots with uncertainty
-                            Fig.grafico_dispersao_com_incerteza(self.x.predicao.matriz_estimativa[:,ix],
-                                                                self.y.predicao.matriz_estimativa[:,iy],
-                                                                self.x.predicao.matriz_incerteza[:,ix],
-                                                                self.y.predicao.matriz_incerteza[:,iy],
-                                                                label_x=self.x.labelGraficos('observado')[ix],
-                                                                label_y=self.y.labelGraficos('observado')[iy],
-                                                                fator_abrangencia_x=[2.]*self.x.predicao.NE,
-                                                                fator_abrangencia_y=[2.]*self.y.predicao.NE, fmt= 'o')
-                            Fig.salvar_e_fechar(base_path+folder+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_com_incerteza')
+                # Plots for y quantities by x quantities
+                for iy in range(self.y.NV):
+                    for ix in range(self.y.NV):
+                        # plots without uncertainty
+                        Fig.grafico_dispersao_sem_incerteza(self.y.observado.matriz_estimativa[:,ix],
+                                                            self.y.observado.matriz_estimativa[:, iy],
+                                                            label_x=self.y.labelGraficos('observado')[ix],
+                                                            label_y=self.y.labelGraficos('observado')[iy],
+                                                            marker='o', linestyle='None')
+                        Fig.salvar_e_fechar(base_path+folder+self.y.simbolos[iy]+'_em_funcao_de_'+self.y.simbolos[ix]+'_sem_incerteza')
+                        # plots with uncertainty
+                        Fig.grafico_dispersao_com_incerteza(self.y.observado.matriz_estimativa[:,ix],
+                                                            self.y.observado.matriz_estimativa[:, iy],
+                                                            self.y.observado.matriz_incerteza[:,ix],
+                                                            self.y.observado.matriz_incerteza[:, iy],
+                                                            label_x=self.y.labelGraficos('observado')[ix],
+                                                            label_y=self.y.labelGraficos('observado')[iy],
+                                                            fator_abrangencia_x=[2.]*self.y.observado.NE,
+                                                            fator_abrangencia_y=[2.]*self.y.observado.NE, fmt='o')
+                        Fig.salvar_e_fechar(base_path+folder+self.y.simbolos[iy]+'_em_funcao_de_'+' '+self.y.simbolos[ix]+'_com_incerteza')
             else:
-                warn('The input graphs could not be created because the setConjunto method was not executed.',UserWarning)
+                warn('The input graphs could not be created because the setDados method was not executed.',UserWarning)
 
         # created plots for the output data (calculated)
         # quantities-calculated
-        if self.__tipoGraficos[3] in types:
+        if self.__tipoGraficos[2] in types:
             base_dir = sep + self._configFolder['plots-{}'.format(self.__tipoGraficos[3])] + sep
             Validacao_Diretorio(base_path, base_dir)
 
             # evaluates if the parametersUncertainty method was executed at any time
-            if self.__controleFluxo.incertezaParametros:
-                self.parametros.Graficos(base_path, base_dir, ID=['parametro'], fluxo=self.__controleFluxo.FLUXO_ID)
+            if self.__controleFluxo.incerteza:
+                self.parametros.Graficos(base_path, base_dir, ID=['parametros'])
             else:
-                warn('The graphs involving only calculated quantities (X and Y) could not be created because the parametersUncertainty method was not executed.',UserWarning)
+                warn('The graphs involving parameters could not be created because the uncertainty method was not executed.',UserWarning)
 
-            # evaluates if the prediction method was executed at any time
-            if self.__controleFluxo.predicao:
-                self.x.Graficos(base_path, base_dir, ID=['calculado'], fluxo=self.__controleFluxo.FLUXO_ID, Fig=Fig)
-                self.y.Graficos(base_path, base_dir, ID=['calculado'], fluxo=self.__controleFluxo.FLUXO_ID, Fig=Fig)
-
+            # evaluates if optimization method was executed at any time
+            if self.__controleFluxo.otimizacao:
+                self.y.Graficos(base_path, base_dir, ID=['calculado'], Fig=Fig)
             else:
-                warn('The graphs involving only the calculated quantities (X and Y) could not be created, because the prediction method was not executed.',UserWarning)
+                warn(
+                    'The graphs involving the quantities could not be created because the optimization method was not executed.',
+                    UserWarning)
 
         # coverage region
         if self.__tipoGraficos[0] in types:
             # The plots of the coverage region will be created only if the covariance matrix of the parameters has been calculated.
-            if self.__controleFluxo.incertezaParametros:
+            if self.__controleFluxo.incerteza:
                 # Estimation plots
-                if self.parametros.NV >1:
+                if self.parametros.NV > 1:
                     base_dir = sep + self._configFolder['plots-{}'.format(self.__tipoGraficos[0])] + sep
                     Validacao_Diretorio(base_path, base_dir)
                 # the plots can only be executed if the number of parameters is greater than 1
@@ -1910,76 +1611,69 @@ class EstimacaoNaoLinear:
             else:
                 warn('The coverage region graphs could not be created because the uncertaintyParameters method was not run OR in the SETparameter method the parameters variance was not defined',UserWarning)
 
-        # prediction
+        # calculated
         if self.__tipoGraficos[2] in types:
             # The execution of the prediction method is necessary for this flux
-            if self.__controleFluxo.predicao:
+            if self.__controleFluxo.otimizacao:
                 # Internal folders
                 # ------------------------------------------------------------------------------------
-                if self.__controleFluxo.FLUXO_ID == 0:
-                    folderone = self._configFolder['plots-{}'.format(self.__tipoGraficos[2])] + sep + self._configFolder['plots-subfolder-DadosEstimacao'] + sep + 'Saida calculada em funcao das entradas observadas' + sep
-                    Validacao_Diretorio(base_path, folderone)
-                else:
-                    folderone = self._configFolder['plots-{}'.format(self.__tipoGraficos[2])] + sep + self._configFolder['plots-subfolder-Dadosvalidacao'] + ' ' + str(self.__controleFluxo.FLUXO_ID) + sep+ 'Saida calculada em funcao das entradas observadas' + sep
-                    Validacao_Diretorio(base_path, folderone)
+                folderone = self._configFolder['plots-{}'.format(self.__tipoGraficos[2])] + sep + self._configFolder['plots-subfolder-DadosEstimacao'] + sep + 'grandezas_calculadas_observadas' + sep
+                Validacao_Diretorio(base_path, folderone)
+
                 # ------------------------------------------------------------------------------------
                 # ------------------------------------------------------------------------------------
-                if self.__controleFluxo.FLUXO_ID == 0:
-                    foldertwo = self._configFolder['plots-{}'.format(self.__tipoGraficos[2])] + sep + self._configFolder['plots-subfolder-DadosEstimacao'] + sep + 'Saida calculada em funcao das saidas observadas' + sep
-                    Validacao_Diretorio(base_path, foldertwo)
-                else:
-                    foldertwo = self._configFolder['plots-{}'.format(self.__tipoGraficos[2])] + sep + self._configFolder['plots-subfolder-Dadosvalidacao'] + ' ' + str(self.__controleFluxo.FLUXO_ID) + sep + 'Saida calculada em funcao das saidas observadas' + sep
-                    Validacao_Diretorio(base_path, foldertwo)
+                foldertwo = self._configFolder['plots-{}'.format(self.__tipoGraficos[2])] + sep + self._configFolder['plots-subfolder-DadosEstimacao'] + sep + 'grandezas_calculadas_observadas' + sep
+                Validacao_Diretorio(base_path, foldertwo)
+
                 # ------------------------------------------------------------------------------------
                 # Plots for y quantities by y quantities
                 for iy in range(self.y.NV):
-                    for ix in range(self.x.NV):
+                    for ix in range(self.y.NV):
                         # Plots without uncertainty
-                        x_plot = self.x.estimacao.matriz_estimativa[:,ix] if self.__controleFluxo.FLUXO_ID==0 else self.x.predicao.matriz_estimativa[:,ix]
-                        Fig.grafico_dispersao_sem_incerteza(self.x.predicao.matriz_estimativa[:,ix],
+                        Fig.grafico_dispersao_sem_incerteza(self.y.observado.matriz_estimativa[:,ix],
                                                             self.y.calculado.matriz_estimativa[:,iy],
                                                             marker='o', linestyle='None', color = 'b',
                                                             config_axes=True,add_legenda=True)
-                        Fig.grafico_dispersao_sem_incerteza(self.x.predicao.matriz_estimativa[:,ix],
-                                                            self.y.predicao.matriz_estimativa[:,iy],
-                                                            label_x=self.x.labelGraficos()[ix],
+                        Fig.grafico_dispersao_sem_incerteza(self.y.observado.matriz_estimativa[:,ix],
+                                                            self.y.calculado.matriz_estimativa[:,iy],
+                                                            label_x=self.y.labelGraficos()[ix],
                                                             label_y=self.y.labelGraficos()[iy],
                                                             marker='o', linestyle='None', color = 'r',
                                                             config_axes=True, add_legenda=True)
                         Fig.set_legenda(['calculado','observado'],loc='best', fontsize=12)
-                        Fig.salvar_e_fechar(base_path+folderone+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_sem_incerteza')
+                        Fig.salvar_e_fechar(base_path+folderone+self.y.simbolos[iy]+'_funcao_'+self.y.simbolos[ix]+'_sem_incerteza')
                         #Fig.salvar_e_fechar(base_path+folderone+'calculado' +'_'+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_sem_incerteza')
 
                         # Plots with uncertainty
                         if self.y.calculado.matriz_correlacao is not None:
-                            Fig.grafico_dispersao_com_incerteza(self.x.predicao.matriz_estimativa[:,ix],
+                            Fig.grafico_dispersao_com_incerteza(self.y.observado.matriz_estimativa[:,ix],
                                                                 self.y.calculado.matriz_estimativa[:,iy],
-                                                                self.x.predicao.matriz_incerteza[:,ix],
+                                                                self.y.observado.matriz_incerteza[:,ix],
                                                                 self.y.calculado.matriz_incerteza[:,iy],
-                                                                fator_abrangencia_x=[2.]*self.x.predicao.NE,
+                                                                fator_abrangencia_x=[2.]*self.y.observado.NE,
                                                                 fator_abrangencia_y=[2.]*self.y.calculado.NE, fmt='o',
                                                                 color='b',add_legenda=True)
-                            Fig.grafico_dispersao_com_incerteza(self.x.predicao.matriz_estimativa[:,ix],
-                                                                self.y.predicao.matriz_estimativa[:,iy],
-                                                                self.x.predicao.matriz_incerteza[:,ix],
-                                                                self.y.predicao.matriz_incerteza[:,iy],
-                                                                label_x=self.x.labelGraficos()[ix],
+                            Fig.grafico_dispersao_com_incerteza(self.y.observado.matriz_estimativa[:,ix],
+                                                                self.y.observado.matriz_estimativa[:,iy],
+                                                                self.y.observado.matriz_incerteza[:,ix],
+                                                                self.y.observado.matriz_incerteza[:,iy],
+                                                                label_x=self.y.labelGraficos()[ix],
                                                                 label_y=self.y.labelGraficos()[iy],
-                                                                fator_abrangencia_x=[2.]*self.x.predicao.NE,
-                                                                fator_abrangencia_y=[2.]*self.y.predicao.NE, fmt='o',
+                                                                fator_abrangencia_x=[2.]*self.y.observado.NE,
+                                                                fator_abrangencia_y=[2.]*self.y.observado.NE, fmt='o',
                                                                 color='r',add_legenda=True)
-                            Fig.set_legenda(['calculado','observado'],loc='best', fontsize=12)
-                            Fig.salvar_e_fechar(base_path+folderone+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_com_incerteza')
+                            Fig.set_legenda(['observado','calculado'],loc='best', fontsize=12)
+                            Fig.salvar_e_fechar(base_path+folderone+self.y.simbolos[iy]+'_funcao_'+self.y.simbolos[ix]+'_com_incerteza')
                             #Fig.salvar_e_fechar(base_path+folderone+'calculado' +'_'+self.y.simbolos[iy]+'_funcao_'+self.x.simbolos[ix]+'_com_incerteza')
 
 
                 for iy in range(self.y.NV):
-                    y  = self.y.predicao.matriz_estimativa[:,iy]
+                    y  = self.y.observado.matriz_estimativa[:,iy]
                     ym = self.y.calculado.matriz_estimativa[:,iy]
                     # Coverage factors for validation y and calculated
                     t_cal = [-t.ppf((1 - self.PA) / 2, self.y.calculado.gL[iy][j]) for j in range(self.y.calculado.NE)]
-                    t_val = [-t.ppf((1 - self.PA) / 2, self.y.predicao.gL[iy][j]) for j in range(self.y.predicao.NE)]
-                    amostras = arange(1,self.y.predicao.NE+1,1)
+                    t_val = [-t.ppf((1 - self.PA) / 2, self.y.observado.gL[iy][j]) for j in range(self.y.observado.NE)]
+                    amostras = arange(1,self.y.observado.NE+1,1)
 
                     diagonal = linspace(min(y), max(y))
                     # Comparison between the experimental and calculated values by the model, without variance
@@ -1988,12 +1682,11 @@ class EstimacaoNaoLinear:
                     Fig.grafico_dispersao_sem_incerteza(diagonal, diagonal, linestyle='-', color='k', linewidth = 2.0,
                                                         corrigir_limites=True, config_axes=False)
                     # Set_label has the fontsize (font size on the X and Y axes) defined according to the value set in Plots.
-                    Fig.set_label(self.y.labelGraficos('observado')[iy] \
-                                  if self.__flag.info['dadospredicao'] else self.y.labelGraficos('observado')[iy],
+                    Fig.set_label(self.y.labelGraficos('observado')[iy],
                                   self.y.labelGraficos('calculado')[iy])
 
 
-                    Fig.salvar_e_fechar((base_path+foldertwo+'observado' if self.__flag.info['dadospredicao'] else base_path+foldertwo+'observado')+'_' + str(self.y.simbolos[iy])+'_funcao_'+str(self.y.simbolos[iy])+'_calculado_sem_incerteza.png',config_axes=True)
+                    Fig.salvar_e_fechar(base_path+foldertwo+'observado'+'_' + str(self.y.simbolos[iy])+'_funcao_'+str(self.y.simbolos[iy])+'_calculado_sem_incerteza.png',config_axes=True)
 
 
                     # Comparison between the experimental and calculated values by the model, without variance,
@@ -2002,20 +1695,16 @@ class EstimacaoNaoLinear:
                     Fig.grafico_dispersao_sem_incerteza(amostras, ym, marker='o', linestyle='None', color='r',
                                                         corrigir_limites=False, config_axes=False, add_legenda=True)
                     Fig.set_label('Amostras', self.y.labelGraficos()[iy])
-                    Fig.set_legenda(['dados para predicao' if self.__flag.info['dadospredicao'] else 'dados para estimacao','calculado'],
+                    Fig.set_legenda(['dados observados','calculado'],
                                     fontsize=12, loc='best')
-                    Fig.salvar_e_fechar(
-                        (base_path + foldertwo +'observado' if self.__flag.info['dadospredicao'] else base_path+foldertwo+'observado') + \
-                         '_' + str(self.y.simbolos[iy]) + \
-                        '_funcao_amostras_calculado_sem_incerteza.png',
-                        config_axes=True
+                    Fig.salvar_e_fechar(base_path + foldertwo + 'observado' + '_' + str(self.y.simbolos[iy]) + '_funcao_amostras_calculado_sem_incerteza.png',config_axes=True
                         )
 
                     # Comparison between the experimental and calculated values by the model, with variance
                     if self.y.calculado.matriz_incerteza is not None:
                         yerr_calculado = self.y.calculado.matriz_incerteza[:,iy]
 
-                        yerr_validacao = self.y.predicao.matriz_incerteza[:,iy]
+                        yerr_validacao = self.y.observado.matriz_incerteza[:,iy]
 
                         # Comparison between the experimental (validation) and calculated values by the model, without variance,
                         # by samples
@@ -2026,8 +1715,8 @@ class EstimacaoNaoLinear:
                         Fig.grafico_dispersao_com_incerteza(amostras, ym, None, yerr_calculado,fator_abrangencia_x=[2.]*len(amostras),
                                                             fator_abrangencia_y=t_cal, fmt="o", color = 'r', config_axes=False, add_legenda=True)
                         Fig.set_label('Amostras', self.y.labelGraficos()[iy])
-                        Fig.set_legenda(['dados para predicao' if self.__flag.info['dadospredicao'] else 'dados para estimacao', 'calculado'],fontsize=12, loc='best')
-                        Fig.salvar_e_fechar((base_path+foldertwo+'observado' if self.__flag.info['dadospredicao'] else base_path + foldertwo+'observado') + '_' + str(self.y.simbolos[iy]) +'_funcao_amostras_calculado_com_incerteza.png', config_axes=True)
+                        Fig.set_legenda(['dados observados', 'calculado'],fontsize=12, loc='best')
+                        Fig.salvar_e_fechar(base_path+foldertwo+'observado' + '_' + str(self.y.simbolos[iy]) +'_funcao_amostras_calculado_com_incerteza.png', config_axes=True)
 
                         # calculated y by experimental y
                         Fig.grafico_dispersao_com_incerteza(y, ym, yerr_validacao, yerr_calculado,
@@ -2035,69 +1724,58 @@ class EstimacaoNaoLinear:
                                                             fmt="o", corrigir_limites=True, config_axes=False)
                         Fig.grafico_dispersao_sem_incerteza(diagonal, diagonal, linestyle='-', color='k', linewidth=2.0,
                                                              corrigir_limites=False, config_axes=False)
-                        Fig.set_label(self.y.labelGraficos('observado')[iy] \
-                                      if self.__flag.info['dadospredicao'] else
-                                      self.y.labelGraficos('observado')[iy],
+                        Fig.set_label(self.y.labelGraficos('observado')[iy],
                                       self.y.labelGraficos('calculado')[iy])
-                        Fig.salvar_e_fechar((base_path+foldertwo+'observado' if self.__flag.info['dadospredicao'] else base_path+foldertwo+'observado' )+ \
+                        Fig.salvar_e_fechar(base_path+foldertwo+'observado' + \
                                               '_' + str(self.y.simbolos[iy]) + \
                                             '_funcao_' + str(self.y.simbolos[iy]) + '_calculado_com_incerteza.png',
                                             config_axes=True,
-                                            reiniciar=(False if not self.__flag.info['dadospredicao'] else True))
+                                            reiniciar=False)
                                             # If there is no validation data, a test based on the F test is applied
 
                         # Comparison between the experimental (validation) and calculated values by the model, with variance,
                         # by samples
                         # plots based on test F
-                        if not self.__flag.info['dadospredicao']:
-                            # test F plot
-                            ycalc_inferior_F = []
-                            ycalc_superior_F = []
-                            for iNE in range(self.y.calculado.NE):
+                        # test F plot
+                        ycalc_inferior_F = []
+                        ycalc_superior_F = []
+                        for iNE in range(self.y.calculado.NE):
 
-                                ycalc_inferior_F.append(self.y.calculado.matriz_estimativa[iNE,iy]+\
-                                            t_val[iNE]\
-                                            *(f.ppf((self.PA+(1-self.PA)/2),self.y.calculado.gL[iy][iNE],\
-                                            self.y.predicao.gL[iy][iNE])*self.y.predicao.matriz_covariancia[iNE,iNE])**0.5)
+                            ycalc_inferior_F.append(self.y.calculado.matriz_estimativa[iNE,iy]+\
+                                        t_val[iNE]\
+                                        *(f.ppf((self.PA+(1-self.PA)/2),self.y.calculado.gL[iy][iNE],\
+                                        self.y.calculado.gL[iy][iNE])*self.y.calculado.matriz_covariancia[iNE,iNE])**0.5)
 
-                                ycalc_superior_F.append(self.y.calculado.matriz_estimativa[iNE,iy]-t_val[iNE]\
-                                               *(f.ppf((self.PA+(1-self.PA)/2),self.y.calculado.gL[iy][iNE],\
-                                            self.y.predicao.gL[iy][iNE])*self.y.predicao.matriz_covariancia[iNE,iNE])**0.5)
+                            ycalc_superior_F.append(self.y.calculado.matriz_estimativa[iNE,iy]-t_val[iNE]\
+                                           *(f.ppf((self.PA+(1-self.PA)/2),self.y.calculado.gL[iy][iNE],\
+                                        self.y.calculado.gL[iy][iNE])*self.y.calculado.matriz_covariancia[iNE,iNE])**0.5)
 
-                            Fig.grafico_dispersao_sem_incerteza(y, array(ycalc_inferior_F),
-                                                                color='r', corrigir_limites=False, config_axes=False)
-                            Fig.grafico_dispersao_sem_incerteza(y, array(ycalc_superior_F), color='r',
-                                                                corrigir_limites=True, config_axes=False, add_legenda=True)
-                            Fig.set_legenda(['Limites baseados no teste F'], fontsize = 12, loc='best')
-                            Fig.salvar_e_fechar(base_path + foldertwo + 'observado' + '_' + str(self.y.simbolos[iy]) + '_funcao_' + str(self.y.simbolos[iy]) + '_calculado_com_incerteza.png',
-                                                config_axes=False)
-
-            else:
-                warn('The graphs involving the estimation (prediction) could not be created because the prediction method was not executed.',UserWarning)
+                        Fig.grafico_dispersao_sem_incerteza(y, array(ycalc_inferior_F),
+                                                            color='r', corrigir_limites=False, config_axes=False)
+                        Fig.grafico_dispersao_sem_incerteza(y, array(ycalc_superior_F), color='r',
+                                                            corrigir_limites=True, config_axes=False, add_legenda=True)
+                        Fig.set_legenda(['Limites baseados no teste F'], fontsize = 12, loc='best')
+                        Fig.salvar_e_fechar(base_path + foldertwo + 'observado' + '_' + str(self.y.simbolos[iy]) + '_funcao_' + str(self.y.simbolos[iy]) + '_calculado_com_incerteza.png',
+                                            config_axes=False)
 
         # Residual analysis
-        if (self.__tipoGraficos[5] in types):
+        if (self.__tipoGraficos[4] in types):
             # the residualAnalysis method must been executed
             if self.__controleFluxo.analiseResiduos:
-                base_dir = sep + self._configFolder['plots-{}'.format(self.__tipoGraficos[5])] + sep
+                base_dir = sep + self._configFolder['plots-{}'.format(self.__tipoGraficos[4])] + sep
                 Validacao_Diretorio(base_path,base_dir)
-                # Plots for the residues of the independent quantities (if the reconciliation was performed)
-                if self.__flag.info['reconciliacao'] == True:
-                    self.x.Graficos(base_path, base_dir, ID=['residuo'], fluxo=self.__controleFluxo.FLUXO_ID, Fig=Fig)
 
                 # Plots for the residues of the dependent quantities
-                self.y.Graficos(base_path, base_dir, ID=['residuo'], fluxo=self.__controleFluxo.FLUXO_ID, Fig=Fig)
+                self.y.Graficos(base_path, base_dir, ID=['residuo'], Fig=Fig)
 
                 # Plots for the residues by validation (or experimental) data and calculated data
                 for i,simb in enumerate(self.y.simbolos):
                     # Internal folders
                     # ------------------------------------------------------------------------------------
-                    if self.__controleFluxo.FLUXO_ID == 0:
-                        folder = self._configFolder['plots-{}'.format(self.__tipoGraficos[5])] +  sep +self._configFolder['plots-subfolder-DadosEstimacao']+ sep + self.y.simbolos[i] + sep
-                        Validacao_Diretorio(base_path, folder)
-                    else:
-                        folder = self._configFolder['plots-{}'.format(self.__tipoGraficos[5])] + sep + self._configFolder['plots-subfolder-Dadosvalidacao']+' '+str(self.__controleFluxo.FLUXO_ID)+ sep + self.y.simbolos[i] + sep
-                        Validacao_Diretorio(base_path, folder)
+
+                    folder = self._configFolder['plots-{}'.format(self.__tipoGraficos[4])] +  sep +self._configFolder['plots-subfolder-DadosEstimacao']+ sep + self.y.simbolos[i] + sep
+                    Validacao_Diretorio(base_path, folder)
+
                     # ------------------------------------------------------------------------------------
                     # Residues by y calculated
                     Fig.grafico_dispersao_sem_incerteza(array([min(self.y.calculado.matriz_estimativa[:, i]), max(self.y.calculado.matriz_estimativa[:, i])]),
@@ -2114,43 +1792,21 @@ class EstimacaoNaoLinear:
                                         +self.y.simbolos[i]+'_calculado.png')
 
                     # Residues by y validated
-                    Fig.grafico_dispersao_sem_incerteza(array([min(self.y.predicao.matriz_estimativa[:, i]),
-                                                               max(self.y.predicao.matriz_estimativa[:, i])]),
+                    Fig.grafico_dispersao_sem_incerteza(array([min(self.y.observado.matriz_estimativa[:, i]),
+                                                               max(self.y.observado.matriz_estimativa[:, i])]),
                                                         array([mean(self.y.residuos.matriz_estimativa[:, i])] * 2),
                                                         linestyle='-.', color='r', linewidth=2,
                                                         add_legenda=True, corrigir_limites=False, config_axes=False)
-                    Fig.grafico_dispersao_sem_incerteza(self.y.predicao.matriz_estimativa[:, i],
+                    Fig.grafico_dispersao_sem_incerteza(self.y.observado.matriz_estimativa[:, i],
                                                         self.y.residuos.matriz_estimativa[:, i],
                                                         marker='o', linestyle='none')
-                    Fig.set_label(label_x=self.y.labelGraficos()[i]+' '+(u'validação' if self.__flag.info['dadospredicao'] else u'observado'),
+                    Fig.set_label(label_x=self.y.labelGraficos()[i]+' '+u'observado',
                                   label_y=u'Resíduos ' + self.y.labelGraficos()[i])
                     Fig.set_legenda([u'Média resíduos ' + self.y.simbolos[i]], fontsize=12, loc='best')
                     Fig.axes.axhline(0, color='black', lw=1, zorder=1)
                     Fig.salvar_e_fechar(
                         base_path + folder + 'residuos_' + '_funcao_' +
-                        self.y.simbolos[i] + '_' + ('observado' if self.__flag.info['dadospredicao'] else 'observado')+'.png')
-
-                    for j, simbol in enumerate(self.x.simbolos):
-                        # Residues by estimation/validation
-                        if self.__flag.info['dadospredicao']:
-                            x = self.x.predicao.matriz_estimativa[:,j]
-                        else:
-                            x = self.x.estimacao.matriz_estimativa[:,j]
-
-                        Fig.grafico_dispersao_sem_incerteza(array([min(x), max(x)]),
-                                                            array([mean(self.y.residuos.matriz_estimativa[:, i])] * 2),
-                                                            linestyle='-.', color='r', linewidth=2,
-                                                            add_legenda=True, corrigir_limites=False, config_axes=False)
-                        Fig.grafico_dispersao_sem_incerteza(x, self.y.residuos.matriz_estimativa[:, i],
-                                                        marker='o', linestyle='none')
-                        Fig.set_label(label_x= self.x.labelGraficos()[j] +' '+ (u'observado' if self.__flag.info['dadospredicao'] else u'observado'),
-                                  label_y=u'Resíduos ' + self.y.labelGraficos()[i])
-                        Fig.set_legenda([u'Média resíduos ' + self.y.simbolos[i]], fontsize=12, loc='best')
-                        Fig.axes.axhline(0, color='black', lw=1, zorder=1)
-                        Fig.salvar_e_fechar(base_path+folder+'residuos'+ '_funcao_' \
-                                            +self.x.simbolos[j]+'_'+ \
-                                            ('observado' if self.__flag.info['dadospredicao'] else 'observado')+'.png')
-
+                        self.y.simbolos[i] + '_' + 'observado'+'.png')
             else:
                 warn('Plots involving residue analysis could not be created because the residualAnalysis method was not executed.',UserWarning)
 
@@ -2173,21 +1829,20 @@ class EstimacaoNaoLinear:
         # PARAMETERS REPORT
         # ---------------------------------------------------------------------
         # Creating the parameters report if the optimization method or SETparameter methods was executed.
-        if self.__controleFluxo.otimizacao or self.__controleFluxo.SETparametro:
+        if self.__controleFluxo.otimizacao:
             self._out.Parametros(self.parametros,self.FOotimo)
         else:
             warn('The parameters report was not created because the optimize method or SETparameter method was not executed')
         # ---------------------------------------------------------------------
         # PREDICTION AND RESIDUAL ANALYSIS REPORT
         # ---------------------------------------------------------------------
-        # Creating the prediction report if the prediction method was executed.
-        if self.__controleFluxo.predicao:
+        if self.__controleFluxo.incerteza:
             # If the residualAnalysis has been performed, a complete report can be made
             kwargs['PA'] = self.PA
             if self.__controleFluxo.analiseResiduos:
-                self._out.Predicao(self.x,self.y,self.estatisticas,**kwargs)
+                self._out.Grandezas(self.y,self.estatisticas,**kwargs)
             else:
-                self._out.Predicao(self.x,self.y,None,**kwargs)
+                self._out.Grandezas(self.y,None,**kwargs)
                 warn('The residue analysis report has not been created because the residualAnalysis method has not been carried out. However, you can still export the prediction')
         else:
             warn('The report on the prediction and residual analysis was not created because the prediction method was not executed')

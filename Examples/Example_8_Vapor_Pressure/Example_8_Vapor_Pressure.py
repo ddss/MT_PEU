@@ -24,7 +24,7 @@ Estimation = EstimacaoNaoLinear(Model, symbols_x=[r'T'],symbols_ux=[r'uT'] ,symb
 
 Estimation.setDados(data="data_exa8.xlsx",glx=[], gly=[])
 # Defining the previous data set to be used to parameter estimation
-# dataType: Defines the purpose of the informed data set: estimacao, predicao.
+# dataType: Defines the purpose of the informed data set: observado, predicao.
 # glx: Degrees of freedom of quantity x;
 # gly: Degrees of freedom of quantity y;
 #%% Optimization - estimating the parameters
@@ -32,13 +32,13 @@ Estimation.setDados(data="data_exa8.xlsx",glx=[], gly=[])
 # lower_bound: List with the lower bounds for the parameters;
 # algorithm: Informs the optimization algorithm that will be used. Each algorithm has its own keywords;
 # optimizationReport: Informs whether the optimization report should be created (True or False);
-# parametersReport: Informs whether the parameters report should be created (True or False).
-Estimation.optimize(initial_estimative = [200, -80680.1], algorithm='ipopt', optimizationReport = True, parametersReport = False)
+# report: Informs whether the parameters report should be created (True or False).
+Estimation.optimize(initial_estimative = [200, -80680.1], algorithm='ipopt', optimizationReport = True, report= False)
 
 #%% Evaluating the parameters uncertainty and coverage region
 # uncertaintyMethod: method for calculating the covariance matrix of the parameters;
 # objectiveFunctionMapping: Deals with mapping the objective function (True or False);
-# parametersReport: Informs whether the parameters report should be created.
+# report: Informs whether the parameters report should be created.
 Estimation.parametersUncertainty(uncertaintyMethod='SensibilidadeModelo', objectiveFunctionMapping=True, parametersReport = True)
 
 #%% Evaluating model predictions
@@ -69,14 +69,14 @@ from numpy import log
 ER = EstimacaoLinear(symbols_x=[r'X1'],symbols_ux=[r'uX1'], symbols_y=[r'Y1'],symbols_uy=[r'uY1'] ,symbols_param=['A1','B1'],  folder='Ex8Linear')
 #%% Defining observed data
 # Input data
-T =Estimation.x.estimacao.matriz_estimativa.transpose()[0]
+T =Estimation.x.observado.matriz_estimativa.transpose()[0]
 # Input data uncertainty
-uT =Estimation.x.estimacao.matriz_incerteza.transpose()[0]
+uT =Estimation.x.observado.matriz_incerteza.transpose()[0]
 
 # Output data
-P =Estimation.y.estimacao.matriz_estimativa.transpose()[0]
+P =Estimation.y.observado.matriz_estimativa.transpose()[0]
 # Output data uncertainty
-uP =Estimation.y.estimacao.matriz_incerteza.transpose()[0]
+uP =Estimation.y.observado.matriz_incerteza.transpose()[0]
 
 
 #Input observed data
@@ -94,14 +94,14 @@ uY = ((1/P)**2*uP**2 + (-1*-68.2/(8.31446*T))**2*uT**2)**0.5
 #%% Setting the observed data set
 
 # Defining the previous data set to be used to parameter estimation
-# dataType: Defines the purpose of the informed data set: estimacao, predicao.
+# dataType: Defines the purpose of the informed data set: observado, predicao.
 # glx: Degrees of freedom of quantity x;
 # gly: Degrees of freedom of quantity y;
 ER.setDados(data={'X1':X,'uX1':uX,'Y1':Y,'uY1':uY},glx=[],gly=[])
 
 #%% Optimization - estimating the parameters
-# parametersReport: Informs whether the parameters report should be created (True or False).
-ER.optimize(parametersReport=True)
+# report: Informs whether the parameters report should be created (True or False).
+ER.optimize(report=True)
 
 #%% Evaluating the parameters uncertainty and coverage region
 # objectiveFunctionMapping: Deals with mapping the objective function (True or False);

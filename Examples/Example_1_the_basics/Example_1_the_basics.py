@@ -15,14 +15,12 @@ def model(param, y, x, *args):
 
 #%% Starting the MT_PEU main object
 # Model: Pass the model defined in def Model;
-# symbols_x: list of symbols for quantity x;
-# symbols_ux: list of symbols for uncertainty x;
 # symbols_y: list of symbols for quantity y;
 # symbols_uy: list of symbols for uncertainty y;
 # symbols_param: list of symbols for the parameters to be estimated;
 # Folder: string with the name of the folder where reports and charts will be saved;
 Estime = EstimacaoNaoLinear(model, symbols_y=['frac', 'time', 'temperature'],symbols_uy=['ufrac', 'utime', 'utemperature'],
-                            symbols_param=['ko','E'], Folder='Example1')
+                            symbols_param=['ko','E'], Folder='resultadoimplicito')
 
 #%% Defining the observed data set
 Frac = [0.9,0.949,0.886,0.785,0.791,0.890,0.787,0.877,0.938,
@@ -60,10 +58,6 @@ Estime.optimize(initial_estimative=[0.5,25000]+Frac+time+temperature,
 #%% Evaluating the parameters uncertainty and coverage region
 # using solely default options
 Estime.uncertainty()
-
-#%% Evaluating model predictions
-# using solely default options
-Estime.prediction()
 
 #%% Evaluating residuals and quality index
 # using solely default options
