@@ -28,7 +28,6 @@ from subrotinas import Validacao_Diretorio, matrizcorrelacao
 
 from Graficos import Grafico
 
-
 class Grandeza:
 
     def __init__(self,simbolos, simbolos_incertezas, nomes=None, unidades=None, label_latex=None):
@@ -50,7 +49,7 @@ class Grandeza:
         * ``label_latex`` (list) : deve ser uma lista contendo os símbolos em formato LATEX
         
         =======
-        Métodos        
+        Métodos
         =======
 
         **DEFINICIONAIS** - Usado para criação de atributos:
@@ -59,7 +58,7 @@ class Grandeza:
         * ``_SETmodelo``       : irá criar o atributo modelo. Deve ser usado se se tratar de dados do modelo
         * ``_SETvalidacao``    : irá criar o atributo validacao. Deve ser usado se se tratar de dados de validação
         * ``_SETparametro``    : irá criar os atributos estimativa, matriz_covariancia, regiao_abrangencia. Deve ser usado para os parâmetros
-        * ``_SETresiduos``     : irá criar o atributo resíduos. Deve ser usado para os resíduos de x
+        * ``_SETresiduos``     : irá criar o atributo resíduos. Deve ser usado para os resíduos de gamma
 
         **OUTROS**:
         
@@ -85,9 +84,9 @@ class Grandeza:
         (vide documentação do mesmo). **só exitirá após execução do método _SETexperimental**
         * ``.validacao``    (objeto): objeto Organizador que armazena os valores e incertezas dos dados de validação \
         (vide documentação do mesmo). **só exitirá após execução do método _SETvalidacao**
-        * ``.calculado``    (objeto): objeto Organizador que armazena os valores e incertezas dos dados calculado pelo modelo \
+        * ``.evaluated``    (objeto): objeto Organizador que armazena os valores e incertezas dos dados evaluated pelo modelo \
         (vide documentação do mesmo). **só exitirá após execução do método _SETcalculado**
-        * ``.residuos``     (objeto): objeto Organizador que armazena os valores e incertezas dos resíduos \
+        * ``.residual``     (objeto): objeto Organizador que armazena os valores e incertezas dos resíduos \
         (vide documentação do mesmo). **só exitirá após execução do método _SETcalculado**
 
         **PARÂMETROS**
@@ -131,19 +130,23 @@ class Grandeza:
         self.__ID = [] # ID`s que a grandeza possui
 
     @property
-    def __ID_disponivel(self):
+    def __ID_available(self):
         # Todos os ID's disponíveis
-        return ['observado', 'calculado', 'parametros', 'residuo']
+        return ['observed', 'evaluated', 'parametros', 'residuo']
+
+    @property
+    def _available_dataType(self):
+        return ['estimation','validation']
 
     @property
     def __configLabel(self):
         # Label para gráficos:
-        #       observado                            calculado
-        return {self.__ID_disponivel[0]:'observado',self.__ID_disponivel[1]:'calculado'}
+        #       observed                            evaluated
+        return {self.__ID_available[0]: 'observed', self.__ID_available[1]: 'evaluated'}
 
     @property
     def __tipoGraficos(self):
-        return ('regiaoAbrangencia', 'grandezas-entrada', 'grandezas-calculadas', 'otimizacao', 'analiseResiduos')
+        return ('regiaoAbrangencia', 'grandezas-entrada', 'grandezas-calculadas', 'optimization', 'analiseResiduos')
 
     def __validacaoEntrada(self, simbolos, simbolos_incertezas, nomes,unidades, label_latex):
         u'''
@@ -229,7 +232,7 @@ class Grandeza:
             Caso seja uma matriz, cada coluna contém as estimativas para uma variável. Se for um vetor, as estimativas estão \
             numa única coluna, sendo necessário fornecer a entrada NE.
             * ``NV`` (int): número de variáveis
-            * ``matriz_incerteza``  (array) : incerteza para os valores das estimativas. Cada coluna contém a incerteza para os pontos de uma variável.
+            * ``matriz_incerteza``  (array) : uncertainty para os valores das estimativas. Cada coluna contém a uncertainty para os pontos de uma variável.
             * ``matriz_variancia`` (array)  : variância para os valores das estimativas. Deve ser a matriz de covariância.
             * ``gL''(lista)                 : graus de liberdade
             * ``NE`` (int): quantidade de pontos experimentais. Necessário apenas quanto a estimativa é um vetor.
@@ -244,7 +247,7 @@ class Grandeza:
 
                 * ``.matriz_estimativa`` (array): cada variável está alocada em uma coluna que contém suas observações.
                 * ``.vetor_estimativa``  (array): todas as observações de todas as variáveis estão em um único vetor.
-                * ``.matriz_incerteza``  (array): matriz em que cada coluna contém a incerteza de cada ponto de uma certeza variável.
+                * ``.matriz_incerteza``  (array): matriz em que cada coluna contém a uncertainty de cada ponto de uma certeza variável.
                 * ``.matriz_covariancia`` (array): matriz de covariância.
                 * ``matriz_correlacao`` (array): matriz de correlação
                 * ``NE`` (float): número de observações (para cada grandeza)
@@ -379,35 +382,49 @@ class Grandeza:
                 if not isfinite(cond(self.matriz_covariancia)):
                     raise TypeError('The covariance matrix of the quantity is singular.')
 
-    def _SETdadosestimacao(self, estimativa, matriz_incerteza=None, matriz_covariancia=None, gL=[], NE=None, **kwargs):
+    def _SETdata(self, estimativa, matriz_incerteza=None, matriz_covariancia=None, gL=[], NE=None, dataType='estimation', **kwargs):
 
-        self.__ID.append(self.__ID_disponivel[0]) #observado
+        if not self.__ID_available[0] in self.__ID:
+            self.observed = {}
 
-        self.observado = self.Dados(estimativa, self.NV,
-                                    matriz_incerteza=matriz_incerteza, matriz_covariancia=matriz_covariancia, symbols=self.simbolos,
+        if not dataType in self._available_dataType:
+            raise SyntaxError('The dataType should be:{}'.format(self._available_dataType))
+
+        self.__ID.append(self.__ID_available[0]) #observed
+
+        self.observed[dataType] = self.Dados(estimativa, self.NV,
+                                             matriz_incerteza=matriz_incerteza, matriz_covariancia=matriz_covariancia, symbols=self.simbolos,
+                                             gL=gL, NE=NE, **kwargs)
+
+    def _SETevaluated(self, estimativa, matriz_incerteza=None, matriz_covariancia=None, gL=[], NE=None, dataType='estimation', **kwargs):
+
+        if hasattr(self, self.__ID_available[0]):
+            kwargs['coluna_dumb'] =  self.observed['estimation']._coluna_dumb
+
+        if not self.__ID_available[1] in self.__ID:
+            self.evaluated = {}
+
+        self.__ID.append(self.__ID_available[1])
+        #self.evaluated = Organizador(estimativa,variancia,gL,tipo,NE)
+        self.evaluated[dataType] = self.Dados(estimativa, self.NV,
+                                    matriz_incerteza=matriz_incerteza, matriz_covariancia=matriz_covariancia,
                                     gL=gL, NE=NE, **kwargs)
 
-    def _SETcalculado(self,estimativa,matriz_incerteza=None,matriz_covariancia=None,gL=[],NE=None,**kwargs):
+    def _SETresidual(self, estimativa, matriz_incerteza=None, matriz_covariancia=None, gL=[], NE=None, dataType='estimation', **kwargs):
 
-        if hasattr(self, self.__ID_disponivel[0]):
-            kwargs['coluna_dumb'] =  self.observado._coluna_dumb
+        if hasattr(self, self.__ID_available[0]):
+            kwargs['coluna_dumb'] =  self.observed['estimation']._coluna_dumb
 
-        self.__ID.append(self.__ID_disponivel[1])
-        #self.calculado = Organizador(estimativa,variancia,gL,tipo,NE)
-        self.calculado = self.Dados(estimativa,self.NV,
-                                    matriz_incerteza=matriz_incerteza,matriz_covariancia=matriz_covariancia,
-                                    gL=gL,NE=NE,**kwargs)
+        if not self.__ID_available[3] in self.__ID:
+            self.residual = {}
+            self.estatisticas = {}
 
-    def _SETresiduos(self,estimativa,matriz_incerteza=None,matriz_covariancia=None,gL=[],NE=None,**kwargs):
+        self.__ID.append(self.__ID_available[3])
+        # self.residual = Organizador(estimativa,variancia,gL,tipo)
 
-        if hasattr(self, self.__ID_disponivel[0]):
-            kwargs['coluna_dumb'] =  self.observado._coluna_dumb
-
-        self.__ID.append( self.__ID_disponivel[3])
-        # self.residuos = Organizador(estimativa,variancia,gL,tipo)
-        self.residuos = self.Dados(estimativa,self.NV,
-                                   matriz_incerteza=matriz_incerteza,matriz_covariancia=matriz_covariancia,
-                                   gL=gL,NE=NE,**kwargs)
+        self.residual[dataType] = self.Dados(estimativa, self.NV,
+                                             matriz_incerteza=matriz_incerteza, matriz_covariancia=matriz_covariancia,
+                                             gL=gL, NE=NE, **kwargs)
 
     def _SETparametro(self, estimativa, variancia, regiao, limite_inferior=None, limite_superior=None, **kwargs):
 
@@ -453,7 +470,7 @@ class Grandeza:
         # --------------------------------------
         # EXECUÇÃO
         # --------------------------------------
-        self.__ID.append(self.__ID_disponivel[2])
+        self.__ID.append(self.__ID_available[2])
         self.estimativa         = estimativa
         self.matriz_covariancia = variancia
         # Cálculo da matriz de correlação
@@ -549,7 +566,7 @@ class Grandeza:
 
         return label
 
-    def _testesEstatisticos(self,Explic):
+    def _testesEstatisticos(self, Explic, dataType):
         u'''
         Subrotina para realizar testes estatísticos nos resíduos
 
@@ -600,10 +617,10 @@ class Grandeza:
 
         **HOMOCEDÁSTICIDADE**:
 
-        *het_white [1]: Testa se os residuos são homocedásticos, foi proposto por Halbert White em 1980.
+        *het_white [1]: Testa se os residual são homocedásticos, foi proposto por Halbert White em 1980.
          Para este teste, a hipótese nula é de que todas as observações têm a mesma variância do erro, ou seja, os erros são homocedásticas.
 
-        *Bresh Pagan:Testa a hipótese de os residuos são homocedásticos, recomendado para funções lineares  
+        *Bresh Pagan:Testa a hipótese de os residual são homocedásticos, recomendado para funções lineares
         **Obs** :  O teste de bresh pagan não é indicado pra formas não lineares de heterocedasticidade
         =====
         SAÍDA
@@ -621,7 +638,7 @@ class Grandeza:
 
         '''
     
-        if  self.__ID_disponivel[3] in self.__ID: # Testes para os resíduos
+        if self.__ID_available[3] in self.__ID: # Testes para os resíduos
             # Variável para salvar os nomes dos testes estatísticos - consulta
             # identifica o nome do teste, e o tipo de resposta (1.0 - float, {} - dicionário, [] - lista)
             # É nessa variável que o Relatório se baseia para obter as informações
@@ -636,7 +653,7 @@ class Grandeza:
                 pvalor[nome] = {}
 
             for i,nome in enumerate(self.simbolos):
-                dados = self.residuos.matriz_estimativa[:,i]
+                dados = self.residual[dataType].matriz_estimativa[:, i]
         
                 # Lista que contém as chamadas das funções de teste:
                 if size(dados) < 3: # Se for menor do que 3, não se pode executar o teste de shapiro
@@ -663,9 +680,9 @@ class Grandeza:
         else:
             raise NameError(u'Statistical tests should be applied for residues only')
 
-        self.estatisticas = pvalor
+        self.estatisticas[dataType] = pvalor
 
-    def Graficos(self, base_path=None, base_dir=None, ID=None, cmap=['k','r','0.75','w','0.75','r','k'], Fig=None):
+    def Graficos(self, base_path=None, base_dir=None, ID=None, dataType = [], cmap=['k','r','0.75','w','0.75','r','k'], Fig=None):
         u'''
         Método para gerar os gráficos das grandezas, cujas informações só dependam dela.
         
@@ -674,11 +691,12 @@ class Grandeza:
         =======
         
         * ``base_path`` : caminho onde os gráficos deverão ser salvos
+        * base_dir: diretório
         * ``ID``        : Identificação da grandeza.
+        * dataType: estimation or validation
         Caso seja None, será feito os gráficos para TODOS os atributos disponíveis.
-        * Fluxo       : identificação do fluxo de trabalho
         * cmap : definição de cores para o pcolor:
-         b: blue ;  g: green; r: red;    c: cyan;  m: magenta; y: yellow; k: black; w: white; 0.75: grey
+         b: blue ;  g: green; r: red;    c: cyan;  m: magenta; z: yellow; k: black; w: white; 0.75: grey
        * Fig (objeto): objetivo Grafico (Graficos.Grafico)
        Funções: 
         * probplot  : Gera um gráfico de probabilidade de dados de exemplo contra os quantis de uma distribuição teórica especificado (a distribuição normal por padrão).
@@ -686,17 +704,26 @@ class Grandeza:
         *BOXPLOT    : O boxplot (gráfico de caixa) é um gráfico utilizado para avaliar a distribuição empírica do dados. 
                       O boxplot é formado pelo primeiro e terceiro quartil e pela mediana.
         '''
-        self._configFolder = {'plots-subfolder-DadosEstimacao': 'Dados Estimacao',
-                              'plots-subfolder-matrizcorrelacao': 'Matrizes Correlacao',
-                              'plots-subfolder-comparacaoresiduo':'Comparacao entre residuos'}
+        self._configFolder = {'plots-subfolder-estimation': 'Estimation',
+                              'plots-subfolder-validation': 'Validation',
+                              'plots-subfolder-matrizcorrelacao': 'Correlation Matrices',
+                              'plots-subfolder-comparacaoresiduo':'Residuals'}
         # ---------------------------------------------------------------------
         # VALIDAÇÃO DAS ENTRADAS
         # ---------------------------------------------------------------------
         if ID is None:
             ID = self.__ID
 
-        if False in [ele in self.__ID_disponivel for ele in ID]:
-            raise NameError(u'You inserted an unavailable ID. The available IDs are: '+','.join(self.__ID_disponivel)+'.')
+        if False in [ele in self.__ID_available for ele in ID]:
+            raise NameError(u'You inserted an unavailable ID. The available IDs are: ' +','.join(self.__ID_available) + '.')
+        try:
+            dataType_observed = self.observed.keys()
+        except:
+            dataType_observed = []
+        try:
+            dataType_evaluated = self.evaluated.keys()
+        except:
+            dataType_evaluated = []
 
         if base_path is None:
             base_path = getcwd()
@@ -713,173 +740,178 @@ class Grandeza:
         #Gráfico Pcolor para auto correlação
 
         #Variável local para alterar a cor do cmap
-        cores   = set(['b', 'g', 'r', 'c','m', 'y', 'k', 'w', '0.75'])
+        cores   = set(['b', 'g', 'r', 'c','m', 'z', 'k', 'w', '0.75'])
         setcmap = set(cmap)
         if not setcmap.issubset(cores):
             raise TypeError('The colors must belong to the list: {}'.format(cores))
            
         cm1 = LinearSegmentedColormap.from_list("Correlacao-cmap",cmap)
 
-        if self.__ID_disponivel[0] in ID: # Gráfico Pcolor para estimação
+        if self.__ID_available[0] in ID: # Gráfico Pcolor para estimação
             #Pastas internas
-            # ------------------------------------------------------------------------------------
-            folder = sep + 'Grandezas' + sep + self._configFolder['plots-subfolder-DadosEstimacao'] + sep + self._configFolder['plots-subfolder-matrizcorrelacao'] + sep if base_dir is None else sep + base_dir + sep + self._configFolder['plots-subfolder-DadosEstimacao'] + sep + self._configFolder['plots-subfolder-matrizcorrelacao'] + sep
-            Validacao_Diretorio(base_path, folder)
-
-            # --------------------------------------------------------------------------------------
-            listalabel = []
-            for elemento in self.labelGraficos(printunit=False):
-                for i in range(self.observado.NE):
-                    listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
-            plot_corr(self.observado.matriz_correlacao[:self.observado.NE * self.NV, :self.observado.NE * self.NV, ], xnames=listalabel, ynames=listalabel,
-                      title=u'Matriz de correlação ' + self.__ID_disponivel[0], normcolor=True, cmap=cm1)
-
-            savefig(base_path+folder+'_'.join(self.simbolos))#+'_pcolor')_Matriz_de_correlacao')
-            close()
-
-        if (self.__ID_disponivel[1] in ID) and (self.calculado.matriz_correlacao is not None): # Gráfico Pcolor para calculado
-            listalabel=[]
-            # Pastas internas
-            # ------------------------------------------------------------------------------------
-            folder = sep + 'Grandezas' + sep+ self._configFolder['plots-subfolder-DadosEstimacao']+sep+ self._configFolder['plots-subfolder-matrizcorrelacao'] + sep if base_dir is None else sep + base_dir + sep + self._configFolder['plots-subfolder-DadosEstimacao']+ sep+ self._configFolder['plots-subfolder-matrizcorrelacao'] + sep
-            Validacao_Diretorio(base_path, folder)
-
-            # --------------------------------------------------------------------------------------
-            for elemento in self.labelGraficos(printunit=False):
-                for i in range(self.calculado.NE):
-                    listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
-            plot_corr(self.calculado.matriz_correlacao[:self.calculado.NE*self.NV,:self.calculado.NE*self.NV,], xnames=listalabel, ynames=listalabel,
-                      title=u'Matriz de correlação ' + self.__ID_disponivel[1], normcolor=True, cmap=cm1)
-
-            savefig(base_path+folder+self.__ID_disponivel[1])#+'_'+'pcolor')#_matriz-correlacao')
-            close()
-
-        if (self.__ID_disponivel[2] in ID) and (self.matriz_correlacao is not None): # Gráfico Pcolor para parâmetros
-            # Pastas internas
-            # ------------------------------------------------------------------------------------
-            folder = sep + 'Grandezas' + sep + self._configFolder['plots-subfolder-DadosEstimacao'] + sep + self._configFolder['plots-subfolder-matrizcorrelacao'] + sep if base_dir is None else sep + base_dir + sep + self._configFolder['plots-subfolder-DadosEstimacao'] + sep + self._configFolder['plots-subfolder-matrizcorrelacao'] + sep
-            Validacao_Diretorio(base_path, folder)
-            # --------------------------------------------------------------------------------------
-            plot_corr(self.matriz_correlacao, xnames=self.labelGraficos(printunit=False), ynames=self.labelGraficos(printunit=False), title=u'Matriz de correlação ' + self.__ID_disponivel[2],normcolor=True, cmap=cm1)
-            savefig(base_path+folder+self.__ID_disponivel[2])#+'_'+'pcolor')#_matriz-correlacao')
-            close()
-
-        if self.__ID_disponivel[3] in ID:
-            # BOXPLOT
-            # Pastas internas
-            # ------------------------------------------------------------------------------------
-            folder = sep + 'Grandezas' + sep + self._configFolder['plots-subfolder-DadosEstimacao'] + sep + self._configFolder['plots-subfolder-matrizcorrelacao'] + sep if base_dir is None else sep + base_dir + sep + self._configFolder['plots-subfolder-DadosEstimacao'] + sep + self._configFolder['plots-subfolder-comparacaoresiduo'] + sep
-            Validacao_Diretorio(base_path, folder)
-
-            # --------------------------------------------------------------------------------------
-            # checa a variabilidade dos dados, assim como a existência de possíveis outliers
-            Fig.boxplot(self.residuos.matriz_estimativa,label_x=self.labelGraficos(printunit=False), label_y='Resíduos')
-            Fig.salvar_e_fechar(base_path+folder+'boxplot_'+'residuo.png')
-
-            base_path = base_path + base_dir
-            for i,nome in enumerate(self.simbolos):
-                # Gráficos da estimação
-                # Pastas internas
+            for type_data in dataType_observed:
                 # ------------------------------------------------------------------------------------
-                folder = sep + self._configFolder['plots-subfolder-DadosEstimacao'] + sep + self.simbolos[i] + sep
+                folder = sep + base_dir + sep + self._configFolder['plots-subfolder-{}'.format(type_data)] + sep + self._configFolder['plots-subfolder-matrizcorrelacao'] + sep
                 Validacao_Diretorio(base_path, folder)
 
+                # --------------------------------------------------------------------------------------
+                listalabel = []
+                for elemento in self.labelGraficos(printunit=False):
+                    for i in range(self.observed[type_data].NE):
+                        listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
+                plot_corr(self.observed[type_data].matriz_correlacao[:self.observed[type_data].NE * self.NV, :self.observed[type_data].NE * self.NV, ], xnames=listalabel, ynames=listalabel,
+                          normcolor=True, cmap=cm1)
+
+                savefig(base_path+folder+'_'.join(self.simbolos) + '_' + self.__ID_available[0])
+                close()
+
+        if (self.__ID_available[1] in ID) and (self.evaluated['estimation'].matriz_correlacao is not None): # Gráfico Pcolor para evaluated
+            listalabel=[]
+            for type_data in dataType_evaluated:
+                # Pastas internas
                 # ------------------------------------------------------------------------------------
-                dados = self.residuos.matriz_estimativa[:,i]
-                x = arange(1, dados.shape[0]+1, 1)
-    
-                # TENDÊNCIA
-                #Testa a aleatoriedade dos dados, plotando os valores do residuo versus a ordem em que foram obtidos
-                #dessa forma verifica-se há alguma tendência
-                Fig.grafico_dispersao_sem_incerteza(array([min(x), max(x)]), array([mean(dados)] * 2),
-                                                    linestyle='-.', color='r', linewidth=2,
-                                                    add_legenda=True, corrigir_limites=False, config_axes=False)
-                Fig.grafico_dispersao_sem_incerteza(x, dados, label_x='Amostra', label_y=u'Resíduos {}'.format(self.labelGraficos()[i]),
-                                                    marker='o', linestyle='None')
-                Fig.axes.axhline(0, color='black', lw=1, zorder=1)
-                Fig.set_legenda(['Média dos resíduos'], loc = 'best')
-                Fig.salvar_e_fechar(base_path+folder+'tendencia_'+'residuo.png')
+                folder =  sep + base_dir + sep + self._configFolder['plots-subfolder-{}'.format(type_data)]+ sep+ self._configFolder['plots-subfolder-matrizcorrelacao'] + sep
+                Validacao_Diretorio(base_path, folder)
 
-                # AUTO CORRELAÇÃO
-                #Gera um gráfico de barras que verifica a autocorrelação
-                Fig.autocorr(dados, label_x='Lag', label_y=u'Autocorrelação resíduos {}'.format(self.labelGraficos(printunit=False)[i]),
-                             normed=True, maxlags=None)
-                Fig.salvar_e_fechar(base_path+folder+'autocorrelacao_'+'residuo.png')
+                # --------------------------------------------------------------------------------------
+                for elemento in self.labelGraficos(printunit=False):
+                    for i in range(self.evaluated[type_data].NE):
+                        listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
+                plot_corr(self.evaluated[type_data].matriz_correlacao[:self.evaluated[type_data].NE * self.NV, :self.evaluated[type_data].NE * self.NV, ], xnames=listalabel, ynames=listalabel,
+                          normcolor=True, cmap=cm1)
+                savefig(base_path + folder+'_'.join(self.simbolos) + '_' + self.__ID_available[1])
+                close()
 
-                # HISTOGRAMA
-                #Gera um gráfico de histograma, importante na verificação da pdf
-                Fig.histograma(dados, label_x=u'Resíduos {}'.format(self.labelGraficos()[i]), label_y=u'Densidade de probabilidade',
-                               density=True,bins=int(sqrt(dados.shape[0])))
-                Fig.salvar_e_fechar(base_path+folder+'histograma'+'_residuo.png')
+        if (self.__ID_available[2] in ID) and (self.matriz_correlacao is not None): # Gráfico Pcolor para parâmetros
+            # Pastas internas
+            # ------------------------------------------------------------------------------------
+            folder =  sep + base_dir + sep + self._configFolder['plots-subfolder-estimation'] + sep + self._configFolder['plots-subfolder-matrizcorrelacao'] + sep
+            Validacao_Diretorio(base_path, folder)
+            # --------------------------------------------------------------------------------------
+            plot_corr(self.matriz_correlacao, xnames=self.labelGraficos(printunit=False), ynames=self.labelGraficos(printunit=False), title=u'Matriz de correlação ' + self.__ID_available[2], normcolor=True, cmap=cm1)
+            savefig(base_path + folder + self.__ID_available[2])#+'_'+'pcolor')#_matriz-correlacao')
+            close()
 
-                # NORMALIDADE 
-                #Verifica se os dados são oriundos de uma pdf normal, o indicativo disto é a obtenção de uma reta 
-                Fig.probplot(dados, label_y=u'Valores ordenados resíduos {}'.format(self.labelGraficos(printunit=False)[i]))
-                Fig.salvar_e_fechar(base_path+folder+'probplot'+'_residuo.png')
+        if self.__ID_available[3] in ID:
+            # BOXPLOT
+            intersection = set(dataType).intersection(set(self.residual.keys()))
+            for type_data in intersection:
+                # Pastas internas
+                # ------------------------------------------------------------------------------------
+                folder = sep + base_dir + sep + self._configFolder['plots-subfolder-{}'.format(type_data)] + sep + self._configFolder['plots-subfolder-comparacaoresiduo'] + sep
+                Validacao_Diretorio(base_path, folder)
 
-        if (self.__ID_disponivel[0] in ID or self.__ID_disponivel[1] in ID):
+                # --------------------------------------------------------------------------------------
+                # checa a variabilidade dos dados, assim como a existência de possíveis outliers
+                Fig.boxplot(self.residual[type_data].matriz_estimativa, label_x=self.labelGraficos(printunit=False), label_y='Resíduos')
+                Fig.salvar_e_fechar(base_path+folder+'boxplot_'+'residual.png')
 
-            if self.__ID_disponivel[3] in ID:  # remover de ID o resíduo, pois foi tratado separadamente
-                ID.remove(self.__ID_disponivel[3])
-
-            base_path = base_path + base_dir
-            for atributo in ID:
-                y  = eval('self.'+atributo+'.matriz_estimativa')
-                NE = eval('self.'+atributo+'.NE')
-
-                for i, symb in enumerate(self.simbolos):
-                    # Gráficos da estimação
-                    # Pastas internas
-                    # ------------------------------------------------------------------------------------
-                    folder = sep + self._configFolder['plots-subfolder-DadosEstimacao'] + sep  + symb + sep
-                    Validacao_Diretorio(base_path, folder)
-
-                    # ------------------------------------------------------------------------------------
-                    dados = y[:,i]
-                    x   = linspace(1,NE,num=NE)
-                    #Gráfico em função do numero de observações
-                    Fig.grafico_dispersao_sem_incerteza(x, dados, label_x='Amostra',
-                                                        label_y=self.labelGraficos(self.__configLabel[atributo])[i],
-                                                        marker='o', linestyle=' ')
-                    Fig.salvar_e_fechar(base_path + folder + 'tendencia' + '_' + self.__configLabel[atributo] +'.png')
-
-            if self.__ID_disponivel[0] in ID:
-
+                base_path = base_path + base_dir
                 for i,nome in enumerate(self.simbolos):
                     # Gráficos da estimação
                     # Pastas internas
                     # ------------------------------------------------------------------------------------
-                    folder = sep + self._configFolder['plots-subfolder-DadosEstimacao'] + sep + self.simbolos[i] + sep
+                    folder = sep + self._configFolder['plots-subfolder-{}'.format(type_data)] + sep + self.simbolos[i] + sep
                     Validacao_Diretorio(base_path, folder)
 
                     # ------------------------------------------------------------------------------------
-                    dados = self.observado.matriz_estimativa[:, i]
+                    dados = self.residual[type_data].matriz_estimativa[:, i]
+                    x = arange(1, dados.shape[0]+1, 1)
+
+                    # TENDÊNCIA
+                    #Testa a aleatoriedade dos dados, plotando os valores do residuo versus a ordem em que foram obtidos
+                    #dessa forma verifica-se há alguma tendência
+                    Fig.grafico_dispersao_sem_incerteza(array([min(x), max(x)]), array([mean(dados)] * 2),
+                                                        linestyle='-.', color='r', linewidth=2,
+                                                        add_legenda=True, corrigir_limites=False, config_axes=False)
+                    Fig.grafico_dispersao_sem_incerteza(x, dados, label_x='sample', label_y=u'residual {}'.format(self.labelGraficos()[i]),
+                                                        marker='o', linestyle='None')
+                    Fig.axes.axhline(0, color='black', lw=1, zorder=1)
+                    Fig.set_legenda(['mean'], loc = 'best')
+                    Fig.salvar_e_fechar(base_path+folder+'trend_'+'residual.png')
 
                     # AUTO CORRELAÇÃO
-                    # Gera um gráfico de barras que verifica a autocorrelação
-                    Fig.autocorr(dados, label_x='Lag',
-                                 label_y=u'Autocorrelação de {}'.format(self.labelGraficos(printunit=False)[i]),
+                    #Gera um gráfico de barras que verifica a autocorrelação
+                    Fig.autocorr(dados, label_x='lag', label_y=u'autorcorrelation {}'.format(self.labelGraficos(printunit=False)[i]),
                                  normed=True, maxlags=None)
-                    Fig.salvar_e_fechar(base_path + folder + 'autocorrelacao_' + '_observada.png')
+                    Fig.salvar_e_fechar(base_path+folder+'autocorrelation_'+'residuo.png')
 
-            if self.__ID_disponivel[1] in ID:
+                    # HISTOGRAMA
+                    #Gera um gráfico de histograma, importante na verificação da pdf
+                    Fig.histograma(dados, label_x=u'residual {}'.format(self.labelGraficos()[i]), label_y=u'probability density',
+                                   density=True,bins=int(sqrt(dados.shape[0])))
+                    Fig.salvar_e_fechar(base_path+folder+'histogram'+'_residual.png')
 
-                for i, nome in enumerate(self.simbolos):
-                    # Gráficos da estimação
-                    # Pastas internas
-                    # ------------------------------------------------------------------------------------
-                    folder = sep + self._configFolder['plots-subfolder-DadosEstimacao'] + sep + self.simbolos[i] + sep
-                    Validacao_Diretorio(base_path, folder)
+                    # NORMALIDADE
+                    #Verifica se os dados são oriundos de uma pdf normal, o indicativo disto é a obtenção de uma reta
+                    Fig.probplot(dados, label_y=u'ordered residual {}'.format(self.labelGraficos(printunit=False)[i]))
+                    Fig.salvar_e_fechar(base_path+folder+'probplot'+'_residual.png')
 
-                    # ------------------------------------------------------------------------------------
-                    dados = self.calculado.matriz_estimativa[:,i]
+        if (self.__ID_available[0] in ID or self.__ID_available[1] in ID):
 
-                    # AUTO CORRELAÇÃO
-                    # Gera um gráfico de barras que verifica a autocorrelação
-                    Fig.autocorr(dados, label_x='Lag',
-                                 label_y=u'Autocorrelação de {}'.format(self.labelGraficos(printunit=False)[i]),
-                                 normed=True, maxlags=None)
-                    Fig.salvar_e_fechar(base_path + folder + 'autocorrelacao_' + 'calculado.png')
+            if self.__ID_available[3] in ID:  # remover de ID o resíduo, pois foi tratado separadamente
+                ID.remove(self.__ID_available[3])
+
+            base_path = base_path + base_dir
+            for type_data in dataType:
+                for atributo in ID:
+                    y  = eval('self.'+atributo+'["{}"]'.format(type_data)+'.matriz_estimativa')
+                    NE = eval('self.'+atributo+'["{}"]'.format(type_data)+'.NE')
+                    print('self.'+atributo+'["{}"]'.format(type_data)+'.matriz_estimativa')
+                    for i, symb in enumerate(self.simbolos):
+                        # Gráficos da estimação
+                        # Pastas internas
+                        # ------------------------------------------------------------------------------------
+                        folder = sep + self._configFolder['plots-subfolder-{}'.format(type_data)] + sep  + symb + sep
+                        Validacao_Diretorio(base_path, folder)
+
+                        # ------------------------------------------------------------------------------------
+                        dados = y[:,i]
+                        x   = linspace(1,NE,num=NE)
+                        #Gráfico em função do numero de observações
+                        Fig.grafico_dispersao_sem_incerteza(x, dados, label_x='Amostra',
+                                                            label_y=self.labelGraficos(self.__configLabel[atributo])[i],
+                                                            marker='o', linestyle=' ')
+                        Fig.salvar_e_fechar(base_path + folder + 'trend' + '_' + self.__configLabel[atributo] +'.png')
+
+            if self.__ID_available[0] in ID:
+
+                for type_data in dataType:
+                    for i,nome in enumerate(self.simbolos):
+                        # Gráficos da estimação
+                        # Pastas internas
+                        # ------------------------------------------------------------------------------------
+                        folder = sep + self._configFolder['plots-subfolder-{}'.format(type_data)] + sep + self.simbolos[i] + sep
+                        Validacao_Diretorio(base_path, folder)
+
+                        # ------------------------------------------------------------------------------------
+                        dados = self.observed[type_data].matriz_estimativa[:, i]
+
+                        # AUTO CORRELAÇÃO
+                        # Gera um gráfico de barras que verifica a autocorrelação
+                        Fig.autocorr(dados, label_x='Lag',
+                                     label_y=u'autocorrelation {}'.format(self.labelGraficos(printunit=False)[i]),
+                                     normed=True, maxlags=None)
+                        Fig.salvar_e_fechar(base_path + folder + 'autocorrelacao' + '_observada.png')
+
+            if self.__ID_available[1] in ID:
+                for type_data in dataType:
+                    for i, nome in enumerate(self.simbolos):
+                        # Gráficos da estimação
+                        # Pastas internas
+                        # ------------------------------------------------------------------------------------
+                        folder = sep + self._configFolder['plots-subfolder-{}'.format(type_data)] + sep + self.simbolos[i] + sep
+                        Validacao_Diretorio(base_path, folder)
+
+                        # ------------------------------------------------------------------------------------
+                        dados = self.evaluated[type_data].matriz_estimativa[:, i]
+
+                        # AUTO CORRELAÇÃO
+                        # Gera um gráfico de barras que verifica a autocorrelação
+                        Fig.autocorr(dados, label_x='Lag',
+                                     label_y=u'autocorrelation {}'.format(self.labelGraficos(printunit=False)[i]),
+                                     normed=True, maxlags=None)
+                        Fig.salvar_e_fechar(base_path + folder + 'autocorrelation_' + 'evaluated.png')
 
 class Grandeza_simplificada:
 

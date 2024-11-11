@@ -14,14 +14,14 @@ def Model(param, y, x, args):
 
 #%% Starting the MT_PEU main object
 # Model: Pass the model defined in def Model;
-# symbols_x: List of symbols for quantity x;
-# symbols_y: List of symbols for quantity y;
+# symbols_gamma: List of symbols for quantity gamma;
+# symbols_z: List of symbols for quantity z;
 # symbols_param: List of Symbols for the parameters to be estimated;
-# Folder: Defines the name of the folder where the results will be saved.
-Estimation = EstimacaoNaoLinear(Model, symbols_y=['P', 'T'],
-                                symbols_uy=['uP','uT'],
+# folder: Defines the name of the folder where the results will be saved.
+Estimation = EstimacaoNaoLinear(Model, symbols_z=['P', 'T'],
+                                symbols_uz=['uP', 'uT'],
                                 symbols_param=['A','B','C'],
-                                Folder='resultadoimplicito')
+                                folder='resultadoimplicito')
 
 #%% Defining observed data manually
 # Input data
@@ -38,7 +38,7 @@ Estimation.setDados(data=["data_example3",{'T':T,'uT':uxT}])
 # algorithm: Informs the optimization algorithm that will be used. Each algorithm has its own keywords;
 # optimizationReport: Informs whether the optimization report should be created (True or False);
 # report: Informs whether the parameters report should be created (True or False).
-Estimation.optimize(initial_estimative = [1, 1.5, 0.009]+Estimation.y.observado.lista_estimativa,
+Estimation.optimize(initial_estimative = [1, 1.5, 0.009]+Estimation.z.observed.lista_estimativa,
                     lower_bound=[-50,-1e4,-50]+[0]*len(T)+[200]*len(T),
                     upper_bound=[50,1e4,50]+[300]*len(T)+[400]*len(T),
                     algorithm='ipopt',

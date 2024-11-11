@@ -15,12 +15,12 @@ def model(param, y, x, *args):
 
 #%% Starting the MT_PEU main object
 # Model: Pass the model defined in def Model;
-# symbols_y: list of symbols for quantity y;
-# symbols_uy: list of symbols for uncertainty y;
+# symbols_z: list of symbols for quantity z;
+# symbols_uz: list of symbols for uncertainty z;
 # symbols_param: list of symbols for the parameters to be estimated;
-# Folder: string with the name of the folder where reports and charts will be saved;
-Estime = EstimacaoNaoLinear(model, symbols_y=['frac', 'time', 'temperature'],symbols_uy=['ufrac', 'utime', 'utemperature'],
-                            symbols_param=['ko','E'], Folder='resultadoimplicito')
+# folder: string with the name of the folder where reports and charts will be saved;
+Estime = EstimacaoNaoLinear(model, symbols_z=['frac', 'time', 'temperature'], symbols_uz=['ufrac', 'utime', 'utemperature'],
+                            symbols_param=['ko','E'], folder='resultadoimplicito')
 
 #%% Defining the observed data set
 Frac = [0.9,0.949,0.886,0.785,0.791,0.890,0.787,0.877,0.938,
@@ -48,6 +48,9 @@ uxtemperature = [1]*41
 Estime.setDados(data={'time':time,'utime':uxtime,'temperature':temperature,
                       'utemperature':uxtemperature,'frac':Frac,'ufrac':ufrac})
 
+Estime.setupSolveModel(['frac'], ['time','temperature'])
+
+Estime.solveModel([8.625e-01, 2.764e+04],[120,600], [0.9])
 
 #%% Optimization - estimating the parameters
 # initial_estimate: list containing initial estimate for optimization algorithm
@@ -66,6 +69,8 @@ Estime.residualAnalysis()
 #%% Plotting the main results
 # using solely default options
 Estime.plots()
+
+#Estime.reports()
 
 #%% Reference of this case study
 # SCHWAAB, M.M.;PINTO, J.C. Análise de Dados Experimentais I: Fundamentos da Estátistica e Estimação de Parâmetros.

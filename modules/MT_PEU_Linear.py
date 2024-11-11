@@ -45,7 +45,7 @@ def Model_2 (param,x,*args):
     p = [] ; var = []
     for i in range(param.rows()):
         p = vertcat(p, param[i])
-    #for i in range(len(x)):
+    #for i in range(len(gamma)):
     rows = args[0] # This argument corresponds to the amount of input data
     var = horzcat(var,x)
     var = horzcat(var, MX.ones(rows, 1))
@@ -54,7 +54,7 @@ def Model_2 (param,x,*args):
 
 class EstimacaoLinear(EstimacaoNaoLinear):
     
-    def __init__(self,symbols_y,symbols_uy, symbols_x,symbols_ux,symbols_param,PA=0.95,folder='Projeto',**kwargs):
+    def __init__(self, symbols_z, symbols_uz, symbols_gamma, symbols_ux, symbols_param, PA=0.95, folder='Projeto', **kwargs):
         u'''
         Classe para executar a estimação de parâmetros de modelos MISO lineares nos parâmetros       
 
@@ -70,8 +70,8 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         =======================
         Entradas (obrigatórias)
         =======================
-        * ``symbols_y`` (list)     : lista com os simbolos das variáveis y (Não podem haver caracteres especiais)
-        * ``symbols_x`` (list)     : lista com os simbolos das variáveis x (Não podem haver caracteres especiais)
+        * ``symbols_z`` (list)     : lista com os simbolos das variáveis z (Não podem haver caracteres especiais)
+        * ``symbols_gamma`` (list)     : lista com os simbolos das variáveis gamma (Não podem haver caracteres especiais)
         * ``symbols_param`` (list) : lista com o simbolos dos parâmetros (Não podem haver caracteres especiais)
 
         ====================
@@ -88,12 +88,12 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         Keywords (Entradas opcionais):
         ==============================
         
-        * ``names_x``        (list): lista com os nomes para x
-        * ``units_x``        (list): lista com as unidades para x (inclusive em formato LATEX)
+        * ``names_x``        (list): lista com os nomes para gamma
+        * ``units_x``        (list): lista com as unidades para gamma (inclusive em formato LATEX)
         * ``label_latex_x``  (list): lista com os símbolos das variáveis em formato LATEX
         
-        * ``names_y``        (list): lista com os nomes para y
-        * ``units_y``        (list): lista com as unidades para y (inclusive em formato LATEX)
+        * ``names_y``        (list): lista com os nomes para z
+        * ``units_y``        (list): lista com as unidades para z (inclusive em formato LATEX)
         * ``label_latex_y``  (list): lista com os símbolos das variáveis em formato LATEX
         
         * ``names_param``       (list): lista com os nomes para os parâmetros (inclusive em formato LATEX)
@@ -114,9 +114,9 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         * ``setConjunto``        : método para incluir dados obtidos de experimentos. Neste há a opção de determinar \
         se estes dados serão utilizados como dados para estimar os parâmetros ou para validação. (Vide documentação do método)
         * ``optimize``              : método para realizar a otimização, com base nos dados fornecidos em setConjunto.
-        * ``parametersUncertainty``  : método que avalia a incerteza dos parâmetros (Vide documentação do método)
+        * ``parametersUncertainty``  : método que avalia a uncertainty dos parâmetros (Vide documentação do método)
         * ``setConjunto``        : (é opcional para inclusão de dados de validação)
-        * ``Prediction``             : método que avalia a predição do modelo e sua incerteza ou utilizando os pontos experimentais ou de \
+        * ``Prediction``             : método que avalia a predição do modelo e sua uncertainty ou utilizando os pontos experimentais ou de \
         validação, se disponível (Vide documentação do método) 
         * ``residualAnalysis``      : método para executar a análise de resíduos (Vide documentação do método)
         * ``plots``             : método para criação dos gráficos (Vide documentação do método)
@@ -142,15 +142,15 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         As saídas deste motor de cálculo estão, principalmente, sob a forma de atributos e gráficos.
         Os principais atributos de uma variável Estimacao, são:
                 
-        * ``x`` : objeto Grandeza que contém todas as informações referentes às grandezas \
+        * ``gamma`` : objeto Grandeza que contém todas as informações referentes às grandezas \
         independentes sob a forma de atributos:
             * ``estimação`` : referente aos dados experimentais. Principais atributos: ``matriz_estimativa``, ``matriz_covariancia``
-            * ``calculado``    : referente aos dados calculados pelo modelo. Principais atributos: ``matriz_estimativa``, ``matriz_covariancia``
+            * ``evaluated``    : referente aos dados calculados pelo modelo. Principais atributos: ``matriz_estimativa``, ``matriz_covariancia``
             * ``predição``    : referente aos dados de validação. Principais atributos: ``matriz_estimativa``, ``matriz_covariancia``
-            * ``residuos``     : referente aos resíduos de regressão. Principais atributos: ``matriz_estimativa``, ``estatisticas``
+            * ``residual``     : referente aos resíduos de regressão. Principais atributos: ``matriz_estimativa``, ``estatisticas``
             
-        * ``y``          : objeto Grandeza que contém todas as informações referentes às grandezas \
-        dependentes sob a forma de atributos. Os atributos são os mesmos de x.
+        * ``z``          : objeto Grandeza que contém todas as informações referentes às grandezas \
+        dependentes sob a forma de atributos. Os atributos são os mesmos de gamma.
 
         * ``parametros`` : objeto Grandeza que contém todas as informações referentes aos parâmetros sob a forma de atributos.
             * ``estimativa``         : estimativa para os parâmetros
@@ -167,12 +167,12 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # ---------------------------------------------------------------------
         # For to start the class it's necessary to check wich is the most suitable model
 
-        if (len(symbols_param) == len(symbols_x) + 1):
+        if (len(symbols_param) == len(symbols_gamma) + 1):
             # The the independent term will be calculated and Model_2 should be used
-            EstimacaoNaoLinear.__init__(self, Model_2,symbols_y,symbols_uy, symbols_x,symbols_ux, symbols_param, PA, folder, **kwargs)
+            EstimacaoNaoLinear.__init__(self, Model_2, symbols_z, symbols_uz, symbols_gamma, symbols_ux, symbols_param, PA, folder, **kwargs)
         else:
             # The the independent term won't be calculated and Model_1 should be used
-            EstimacaoNaoLinear.__init__(self, Model_1, symbols_y,symbols_uy, symbols_x,symbols_ux, symbols_param, PA, folder, **kwargs)
+            EstimacaoNaoLinear.__init__(self, Model_1, symbols_z, symbols_uz, symbols_gamma, symbols_ux, symbols_param, PA, folder, **kwargs)
 
         self._EstimacaoNaoLinear__flag.ToggleActive('Linear') # Enable linear flag to correctly create 'self .__ values' when independent term calculation
         self._EstimacaoNaoLinear__flag.setCaracteristica(['calc_termo_independente'])
@@ -182,25 +182,25 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
         # ---------------------------------------------------------------------
-        if self.y.NV != 1:
+        if self.z.NV != 1:
             raise ValueError(u'It is performing the parameter estimation of linear models only for the MISO case.')
 
-        if (self.parametros.NV != self.x.NV) and (self.parametros.NV != self.x.NV+1):
+        if (self.parametros.NV != self.gamma.NV) and (self.parametros.NV != self.gamma.NV + 1):
             raise ValueError(u'The number of parameters must be equal to the number of independent quantities (the linear coefficient is not calculated).'+\
             'OR equal to the number of independent quantities + 1 (the linear coefficient is calculated).')
 
         self.__coluna_dumb = False # this variable indicates that a column of ones has been added to independent quantities
         # ---------------------------------------------------------------------
-        # Definindo se o b será calculado
+        # Definindo se o b será evaluated
         # ---------------------------------------------------------------------
-        if (self.parametros.NV == self.x.NV+1):
+        if (self.parametros.NV == self.gamma.NV+1):
             self._EstimacaoNaoLinear__flag.ToggleActive('calc_termo_independente')
             self.__coluna_dumb = True
 
     def setDados(self, data,separador=';',decimal='.', glx=[], gly=[],uxy=None):
 
         u'''
-        Método para incluir os dados de entrada da estimação e predição (quando chamado setDados pela segunda vez)
+        Método para incluir os dados de entrada da estimação e predição (quando chamado setData pela segunda vez)
         
         =======================
         Entradas (Obrigatórias)
@@ -215,7 +215,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
 
          # EXECUTION
 
-        self._EstimacaoNaoLinear__controleFluxo.SET_ETAPA('setDados')
+        self._EstimacaoNaoLinear__controleFluxo.SET_ETAPA('setData')
         # MANUAL DATA ENTRY
         aux_list = []  # list auxiliary used for error
 
@@ -240,15 +240,15 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         if isinstance(data, dict):  # manual input mode case passed only one dictionary
             manual_entry(data)  # VALIDATION
             # Test if the symbols passed in the object instantiation parameters of the MT_PEU class are all in the database
-            list_names = self.x.simbolos + self.y.simbolos + self.y.simbolos_incertezas + self.x.simbolos_incertezas
+            list_names = self.gamma.simbolos + self.z.simbolos + self.z.simbolos_incertezas + self.gamma.simbolos_incertezas
             for symb in list_names:
                 if symb not in list(data.keys()):
                     raise ValueError("The symbol {} was not passed  in database".format(symb))
 
-            X = array([data[i] for i in self.x.simbolos], ndmin=2, dtype=float).transpose()
-            uX = array([data[i] for i in self.x.simbolos_incertezas], ndmin=2, dtype=float).transpose()
-            Y = array([data[i] for i in self.y.simbolos], ndmin=2, dtype=float).transpose()
-            uY = array([data[i] for i in self.y.simbolos_incertezas], ndmin=2, dtype=float).transpose()
+            X = array([data[i] for i in self.gamma.simbolos], ndmin=2, dtype=float).transpose()
+            uX = array([data[i] for i in self.gamma.simbolos_incertezas], ndmin=2, dtype=float).transpose()
+            Y = array([data[i] for i in self.z.simbolos], ndmin=2, dtype=float).transpose()
+            uY = array([data[i] for i in self.z.simbolos_incertezas], ndmin=2, dtype=float).transpose()
 
         # -----------------------------------------------------------------------------
         # ROUTINE THAT IMPORTS AND VALIDATES DATA FROM .CSV AND .XLSX FILES
@@ -263,7 +263,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
                 if not (isinstance(name_validation, str) or isinstance(name_validation, dict)):
                     error = True
             if error:
-                raise ValueError(f"You must pass a strig or dictionary in list of setDados")
+                raise ValueError(f"You must pass a strig or dictionary in list of setData")
 
             aux_list1 = []  # Auxiliary list to separate dictionaries from strings and thus validate repeated strings
             for element in data:
@@ -356,23 +356,23 @@ class EstimacaoLinear(EstimacaoNaoLinear):
                     f"In quantity{'s'[:int(len(aux_list)) ^ 1]} {','.join(aux_list)} there are empty lines or the quantitity of data points are inconsistenty")
 
             # Test if the symbols passed in the object instantiation parameters of the MT_PEU class are all in the dataset
-            list_names = self.x.simbolos + self.y.simbolos + self.y.simbolos_incertezas + self.x.simbolos_incertezas
+            list_names = self.gamma.simbolos + self.z.simbolos + self.z.simbolos_incertezas + self.gamma.simbolos_incertezas
             for symb in list_names:
                 if symb not in dataframe_geral.columns.tolist():
                     raise ValueError("The symbol {} was not passed  in database".format(symb))
 
             # Creation of estimation and uncertainty matrices
-            X = dataframe_geral[self.x.simbolos].to_numpy(dtype=float)
-            Y = dataframe_geral[self.y.simbolos].to_numpy(dtype=float)
-            uX = dataframe_geral[self.x.simbolos_incertezas].to_numpy(dtype=float)
-            uY = dataframe_geral[self.y.simbolos_incertezas].to_numpy(dtype=float)
+            X = dataframe_geral[self.gamma.simbolos].to_numpy(dtype=float)
+            Y = dataframe_geral[self.z.simbolos].to_numpy(dtype=float)
+            uX = dataframe_geral[self.gamma.simbolos_incertezas].to_numpy(dtype=float)
+            uY = dataframe_geral[self.z.simbolos_incertezas].to_numpy(dtype=float)
 
         else:
             raise TypeError(
                 " The data input can be  a list or string or dictionary, check if the input follows any of these formats")
 
-        self._EstimacaoNaoLinear__validacaoDadosEntrada(X, uX, self.x.NV)
-        self._EstimacaoNaoLinear__validacaoDadosEntrada(Y, uY, self.y.NV)
+        self._EstimacaoNaoLinear__validacaoDadosEntrada(X, uX, self.gamma.NV)
+        self._EstimacaoNaoLinear__validacaoDadosEntrada(Y, uY, self.z.NV)
 
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
@@ -398,8 +398,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             dataType = self._EstimacaoNaoLinear__tiposDisponiveisEntrada[1]
 
 
-
-        if dataType == 'observado':
+        if dataType == 'observed':
             self._EstimacaoNaoLinear__flag.ToggleActive('dadosestimacao')
             if self._EstimacaoNaoLinear__controleFluxo.FLUXO_ID != 0:
                 self._EstimacaoNaoLinear__controleFluxo.reiniciar()
@@ -410,12 +409,12 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             # ---------------------------------------------------------------------
             # Salvando os dados experimentais nas variáveis.
             try:
-                self.x._SETdadosestimacao(estimativa=X,matriz_incerteza= uX ,gL=glx,coluna_dumb=self.__coluna_dumb)
+                self.gamma._SETdata(estimativa=X, matriz_incerteza= uX, gL=glx, coluna_dumb=self.__coluna_dumb)
             except Exception as erro:
                 raise RuntimeError('Error in the creation of the estimation set of the quantity X: {}'.format(erro))
 
             try:
-                self.y._SETdadosestimacao(estimativa=Y,matriz_incerteza=uY,gL=gly)
+                self.z._SETdata(estimativa=Y, matriz_incerteza=uY, gL=gly)
             except Exception as erro:
                 raise RuntimeError('Error in the creation of the estimation set of the quantity Y: {}'.format(erro))
 
@@ -428,12 +427,12 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             # ---------------------------------------------------------------------
             # Salvando os dados de validação.
             try:
-                self.x._SETdadosvalidacao(estimativa=X,matriz_incerteza=uX,gL=glx,coluna_dumb=coluna_dumb)
+                self.gamma._SETdadosvalidacao(estimativa=X, matriz_incerteza=uX, gL=glx, coluna_dumb=coluna_dumb)
             except Exception as erro:
                 raise RuntimeError('Error in the creation of the validation set of the quantity X: {}'.format(erro))
 
             try:
-                self.y._SETdadosvalidacao(estimativa=Y,matriz_incerteza=uY,gL=gly)
+                self.z._SETdadosvalidacao(estimativa=Y, matriz_incerteza=uY, gL=gly)
             except Exception as erro:
                 raise RuntimeError('Error in the creation of the validation set of the quantity Y: {}'.format(erro))
 
@@ -446,12 +445,12 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             # ---------------------------------------------------------------------
             # Salvando os dados de validação.
             try:
-                self.x._SETdadosvalidacao(estimativa=X,matriz_incerteza=uX,gL=glx,coluna_dumb=self.__coluna_dumb)
+                self.gamma._SETdadosvalidacao(estimativa=X, matriz_incerteza=uX, gL=glx, coluna_dumb=self.__coluna_dumb)
             except Exception as erro:
                 raise RuntimeError('Error in the creation of the validation set of the quantity X: {}'.format(erro))
 
             try:
-                self.y._SETdadosvalidacao(estimativa=Y,matriz_incerteza=uY,gL=gly)
+                self.z._SETdadosvalidacao(estimativa=Y, matriz_incerteza=uY, gL=gly)
             except Exception as erro:
                 raise RuntimeError('Error in the creation of the validation set of the quantity Y: {}'.format(erro))
 
@@ -465,7 +464,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # ---------------------------------------------------------------------
         # FLUXO
         # ---------------------------------------------------------------------
-        self._EstimacaoNaoLinear__controleFluxo.SET_ETAPA('otimizacao')
+        self._EstimacaoNaoLinear__controleFluxo.SET_ETAPA('optimization')
 
         # ---------------------------------------------------------------------
         # VALIDAÇÃO
@@ -479,9 +478,9 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # ---------------------------------------------------------------------
         # RESOLUÇÃO
         # ---------------------------------------------------------------------
-        X   = self.x.observado.matriz_estimativa
-        Uyy = self.y.observado.matriz_covariancia
-        y   = self.y.observado.vetor_estimativa
+        X   = self.gamma.observed.matriz_estimativa
+        Uyy = self.z.observed.matriz_covariancia
+        y   = self.z.observed.vetor_estimativa
         variancia = inv(X.transpose().dot(inv(Uyy)).dot(X))
         parametros = variancia.dot(X.transpose().dot(inv(Uyy))).dot(y)
         # ---------------------------------------------------------------------
@@ -493,7 +492,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # FUNÇÃO OBJETIVO NO PONTO ÓTIMO
         # ---------------------------------------------------------------------
         # initialization of the method that create the symbolic's variables
-        EstimacaoNaoLinear._constructionCasadiVariables(self)
+        EstimacaoNaoLinear.__buildSymOptmization(self)
 
         self.FOotimo = float(self._excObjectiveFunction(self.parametros.estimativa,self._values))
 
@@ -524,8 +523,8 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # CÁLCULO DA MATRIZ DE COVARIÂNCIA
         # ---------------------------------------------------------------------
         # Caso a matriz de covariância não seja calculada, ela será aqui calculada
-        X   = self.x.observado.matriz_estimativa
-        Uyy = self.y.observado.matriz_covariancia
+        X   = self.gamma.observed.matriz_estimativa
+        Uyy = self.z.observed.matriz_covariancia
         variancia = inv(X.transpose().dot(inv(Uyy)).dot(X))
         self.parametros._updateParametro(matriz_covariancia=variancia)
 

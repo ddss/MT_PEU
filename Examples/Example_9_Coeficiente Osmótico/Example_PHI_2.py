@@ -11,14 +11,14 @@ def Model(param, x, args):
     return PHI
 #%% Starting the MT_PEU main object
 # Model: Pass the model defined in def Model;
-# symbols_x: list of symbols for quantity x;
-# symbols_ux: list of symbols for uncertainty x;
-# symbols_y: list of symbols for quantity y;
-# symbols_uy: list of symbols for uncertainty y;
+# symbols_gamma: list of symbols for quantity gamma;
+# symbols_ux: list of symbols for uncertainty gamma;
+# symbols_z: list of symbols for quantity z;
+# symbols_uz: list of symbols for uncertainty z;
 # symbols_param: list of symbols for the parameters to be estimated;
-# Folder: string with the name of the folder where reports and charts will be saved;
-Estimation = EstimacaoNaoLinear(Model, symbols_x=['T','M'],symbols_ux=['uT','uM'] ,symbols_y=['PHI'],symbols_uy=['uPHI'],
-                                symbols_param=['B01','B02','B03','B11','B12','B13','C1','C2','C3'], Folder='CoefOsmotico' )
+# folder: string with the name of the folder where reports and charts will be saved;
+Estimation = EstimacaoNaoLinear(Model, symbols_gamma=['T', 'M'], symbols_ux=['uT', 'uM'], symbols_z=['PHI'], symbols_uz=['uPHI'],
+                                symbols_param=['B01','B02','B03','B11','B12','B13','C1','C2','C3'], folder='CoefOsmotico')
 #%% Data entry using .CSV
 Estimation.setDados(data='Dados',separador= ';',decimal=',')
 

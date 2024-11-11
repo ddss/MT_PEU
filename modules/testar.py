@@ -24,10 +24,10 @@ y = [0.9,0.949,0.886,0.785,0.791,0.890,0.787,0.877,0.938,
 uy = [1]*41; uxtempo = [1]*41; uxtemperatura = [1]*41
 
 #Execução do MT_PEU
-Estime = EstimacaoNaoLinear(Modelo, simbolos_x=['t','T'], simbolos_y=['y'], simbolos_param=['ko','E'], Folder='Exemplo1')
+Estime = EstimacaoNaoLinear(Modelo, simbolos_x=['t','T'], simbolos_y=['z'], simbolos_param=['ko','E'], folder='Exemplo1')
 Estime.setDados(0, (tempo, uxtempo), (temperatura, uxtemperatura))
 Estime.setDados(1, (y, uy))
-Estime.setConjunto(tipo='observado')
+Estime.setConjunto(tipo='observed')
 Estime.optimize(initial_estimative=[0.5, 25000], algoritmo='ipopt')
 Estime.incertezaParametros(metodoIncerteza='Geral''')
 Estime.predicao()
@@ -77,16 +77,16 @@ sensibilidade = array([[-1.06335451e-01,  1.52826132e-04],
        [-4.20883720e-01,  5.67978718e-04]])
 
 # Dados de teste
-testdata_H = [(Modelo, ['t','T'], ['y'], ['ko','E'],'Exemplo1',y,tempo,temperatura,uy,uxtempo,uxtemperatura,hessian)]
-testdata_S = [(Modelo, ['t','T'], ['y'], ['ko','E'],'Exemplo1',y,tempo,temperatura,uy,uxtempo,uxtemperatura,sensibilidade)]
+testdata_H = [(Modelo, ['t','T'], ['z'], ['ko','E'],'Exemplo1',y,tempo,temperatura,uy,uxtempo,uxtemperatura,hessian)]
+testdata_S = [(Modelo, ['t','T'], ['z'], ['ko','E'],'Exemplo1',y,tempo,temperatura,uy,uxtempo,uxtemperatura,sensibilidade)]
 
-#Hessiana
-@pytest.mark.parametrize("Modelo, simbolos_x, simbolos_y, simbolos_param, Folder, y, tempo, temperatura, uy, uxtempo, uxtemperatura, H",testdata_H)
+#hessian
+@pytest.mark.parametrize("Modelo, simbolos_x, simbolos_y, simbolos_param, folder, z, tempo, temperatura, uy, uxtempo, uxtemperatura, H",testdata_H)
 def test_hessian(Modelo, simbolos_x, simbolos_y, simbolos_param, Folder, y, tempo, temperatura, uy, uxtempo, uxtemperatura,H):
     assert round(Estime.Hessiana.mean(),5) == round(H.mean(),5)
 
 # Sensibilidade
-@pytest.mark.parametrize("Modelo, simbolos_x, simbolos_y, simbolos_param, Folder, y, tempo, temperatura, uy, uxtempo, uxtemperatura, S",testdata_S)
+@pytest.mark.parametrize("Modelo, simbolos_x, simbolos_y, simbolos_param, folder, z, tempo, temperatura, uy, uxtempo, uxtemperatura, S",testdata_S)
 def test_S(Modelo, simbolos_x, simbolos_y, simbolos_param, Folder, y, tempo, temperatura, uy, uxtempo,uxtemperatura, S):
     assert round(Estime.S.mean(), 5) == round(S.mean(), 5)
 

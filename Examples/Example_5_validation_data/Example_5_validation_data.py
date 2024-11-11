@@ -14,20 +14,20 @@ def Model(param, x, *args):
 
 #%% Starting the MT_PEU main object
 # Model: Pass the model defined in def Model;
-# symbols_x: List of symbols for quantity x;
-# symbols_y: List of symbols for quantity y;
+# symbols_gamma: List of symbols for quantity gamma;
+# symbols_z: List of symbols for quantity z;
 # symbols_param: List of symbols for the parameters to be estimated;
 # label_latex_param: List of symbols for parameters written in LaTex;
-# label_latex_x: List of symbols for quantities x written in LaTex
+# label_latex_x: List of symbols for quantities gamma written in LaTex
 # units_y: List of units of measurement for independent quantities;
 # units_param: List of units of measurement of the parameters;
 # units_x: List of units of measurement of dependent quantities;
-# Folder: Defines the name of the folder where the results will be saved.
-Estime = EstimacaoNaoLinear(Model, symbols_x=['Time', 'Temperature'], symbols_ux=['UxTime','Uxtemperature'], units_x=['s', 'K'], label_latex_x=[r'$t$', '$T$'],
-                            symbols_y=['Y'],symbols_uy=['uY'], units_y=['adm'],
+# folder: Defines the name of the folder where the results will be saved.
+Estime = EstimacaoNaoLinear(Model, symbols_gamma=['Time', 'Temperature'], symbols_ux=['UxTime', 'Uxtemperature'], units_x=['s', 'K'], label_latex_x=[r'$t$', '$T$'],
+                            symbols_z=['Y'], symbols_uz=['uY'], units_y=['adm'],
                             symbols_param=['ko', 'E'], units_param=['adm','K'],
                             label_latex_param=[r'$k_o$', r'$E$'],
-                            Folder='Example5')
+                            folder='Example5')
 
 
 #%% Setting the observed data set
@@ -56,11 +56,11 @@ Estime.parametersUncertainty(uncertaintyMethod='Geral',objectiveFunctionMapping=
                              parametersReport = True, iterations=200)
 
 #%% Evaluating model predictions
-# export_y: Exports the calculated data of y, its uncertainty, and degrees of freedom in a txt with comma separation (True or False);
-# export_y_xls: Exports the calculated data of y, its uncertainty, and degrees of freedom in a xls (True or False);
-# export_cov_y: Exports the covariance matrix of y (True or False);
-# export_x: Exports the calculated data of x, its uncertainty, and degrees of freedom in a txt with comma separation(True or False);
-# export_cov_x: Exports the covariance matrix of x (True or False).
+# export_y: Exports the calculated data of z, its uncertainty, and degrees of freedom in a txt with comma separation (True or False);
+# export_y_xls: Exports the calculated data of z, its uncertainty, and degrees of freedom in a xls (True or False);
+# export_cov_y: Exports the covariance matrix of z (True or False);
+# export_x: Exports the calculated data of gamma, its uncertainty, and degrees of freedom in a txt with comma separation(True or False);
+# export_cov_x: Exports the covariance matrix of gamma (True or False).
 
 Estime.prediction(export_y=True,export_y_xls=True, export_cov_y=True, export_x=True, export_cov_x=True)
 
@@ -77,7 +77,7 @@ Estime.plots()
 u"""
 If the user wishes, it is possible to do the same analysis as before with the prediction data. 
 The procedure to be followed is similar to the one previously carried out. The only difference is in the argument inserted in the setConjunto method.
-Instead of "type = observado" it becomes "type = predicao". It is necessary to enter at least 4 data for each prediction variable. 
+Instead of "type = observed" it becomes "type = predicao". It is necessary to enter at least 4 data for each prediction variable. 
 """
 
 #%% Setting the validation data set
@@ -102,17 +102,17 @@ uy1 = [0.2]*12
 Estime.setDados(data={'Time':time,'UxTime':uxtime,'Temperature':temperature,'Uxtemperature':uxtemperature,'Y':y,'uY':uy1})
 
 # Defining the previous data set to be used to validation
-# dataType: Defines the purpose of the informed data set: observado, predicao.
-# glx: Degrees of freedom of quantity x;
-# gly: Degrees of freedom of quantity y;
+# dataType: Defines the purpose of the informed data set: observed, predicao.
+# glx: Degrees of freedom of quantity gamma;
+# gly: Degrees of freedom of quantity z;
 
 
 #%% Evaluating model predictions for the validation data
-# export_y: Exports the calculated data of y, its uncertainty, and degrees of freedom in a txt with comma separation (True or False);
-# export_y_xls: Exports the calculated data of y, its uncertainty, and degrees of freedom in a xls (True or False);
-# export_cov_y: Exports the covariance matrix of y (True or False);
-# export_x: Exports the calculated data of x, its uncertainty, and degrees of freedom in a txt with comma separation(True or False);
-# export_cov_x: Exports the covariance matrix of x (True or False).
+# export_y: Exports the calculated data of z, its uncertainty, and degrees of freedom in a txt with comma separation (True or False);
+# export_y_xls: Exports the calculated data of z, its uncertainty, and degrees of freedom in a xls (True or False);
+# export_cov_y: Exports the covariance matrix of z (True or False);
+# export_x: Exports the calculated data of gamma, its uncertainty, and degrees of freedom in a txt with comma separation(True or False);
+# export_cov_x: Exports the covariance matrix of gamma (True or False).
 Estime.prediction(export_y=True,export_y_xls=True, export_cov_y=True, export_x=True, export_cov_x=True)
 
 #%% Evaluating residuals and quality index

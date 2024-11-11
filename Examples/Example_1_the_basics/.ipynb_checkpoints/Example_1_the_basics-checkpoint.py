@@ -14,12 +14,12 @@ def Model(param, x, *args):
 
 #%% Starting the MT_PEU main object
 # Model: Pass the model defined in def Model;
-# symbols_x: list of symbols for quantity x;
-# symbols_ux: list of symbols for uncertainty x;
-# symbols_y: list of symbols for quantity y;
-# symbols_uy: list of symbols for uncertainty y;
+# symbols_gamma: list of symbols for quantity gamma;
+# symbols_ux: list of symbols for uncertainty gamma;
+# symbols_z: list of symbols for quantity z;
+# symbols_uz: list of symbols for uncertainty z;
 # symbols_param: list of symbols for the parameters to be estimated;
-# Folder: string with the name of the folder where reports and charts will be saved;
+# folder: string with the name of the folder where reports and charts will be saved;
 Estime = EstimacaoNaoLinear(Model, symbols_x=['Time','Temperature'],symbols_ux=['UxTime','Uxtemperature']\
 ,symbols_y=['Y'] ,symbols_uy=['uY'], symbols_param=['ko','E'], Folder='Example1')
 
@@ -47,7 +47,7 @@ temperature = [600.0,600.0,612.0,612.0,612.0,612.0,620.0,620.0,620.0,
 uxtemperature = [1]*41
 
 #Data entry using .XLSX
-Estime.setDados(data=["data"])
+Estime.setData(data=["data"])
 
 
 #%% Optimization - estimating the parameters

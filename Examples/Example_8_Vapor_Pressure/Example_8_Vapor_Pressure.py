@@ -14,19 +14,19 @@ def Model(param, x, args):
 
 #%% Starting the MT_PEU main object
 # Model: Pass the model defined in def Model;
-# symbols_x: List of symbols for quantity x;
-# symbols_y: List of symbols for quantity y;
+# symbols_gamma: List of symbols for quantity gamma;
+# symbols_z: List of symbols for quantity z;
 # symbols_param: List of symbols for the parameters to be estimated;
-# Folder: Defines the name of the folder where the results will be saved.
-Estimation = EstimacaoNaoLinear(Model, symbols_x=[r'T'],symbols_ux=[r'uT'] ,symbols_y=[r'P'],symbols_uy=['uP'], symbols_param=['A','B'],  Folder='Example8' )
+# folder: Defines the name of the folder where the results will be saved.
+Estimation = EstimacaoNaoLinear(Model, symbols_gamma=[r'T'], symbols_ux=[r'uT'], symbols_z=[r'P'], symbols_uz=['uP'], symbols_param=['A', 'B'], folder='Example8')
 
 #%% Setting the observed data set
 
 Estimation.setDados(data="data_exa8.xlsx",glx=[], gly=[])
 # Defining the previous data set to be used to parameter estimation
-# dataType: Defines the purpose of the informed data set: observado, predicao.
-# glx: Degrees of freedom of quantity x;
-# gly: Degrees of freedom of quantity y;
+# dataType: Defines the purpose of the informed data set: observed, predicao.
+# glx: Degrees of freedom of quantity gamma;
+# gly: Degrees of freedom of quantity z;
 #%% Optimization - estimating the parameters
 # initial_estimative: List with the initial estimates for the parameters;
 # lower_bound: List with the lower bounds for the parameters;
@@ -42,11 +42,11 @@ Estimation.optimize(initial_estimative = [200, -80680.1], algorithm='ipopt', opt
 Estimation.parametersUncertainty(uncertaintyMethod='SensibilidadeModelo', objectiveFunctionMapping=True, parametersReport = True)
 
 #%% Evaluating model predictions
-# export_y: Exports the calculated data of y, its uncertainty, and degrees of freedom in a txt with comma separation (True or False);
-# export_y_xls: Exports the calculated data of y, its uncertainty, and degrees of freedom in a xls (True or False);
-# export_cov_y: Exports the covariance matrix of y (True or False);
-# export_x: Exports the calculated data of x, its uncertainty, and degrees of freedom in a txt with comma separation(True or False);
-# export_cov_x: Exports the covariance matrix of x (True or False).
+# export_y: Exports the calculated data of z, its uncertainty, and degrees of freedom in a txt with comma separation (True or False);
+# export_y_xls: Exports the calculated data of z, its uncertainty, and degrees of freedom in a xls (True or False);
+# export_cov_y: Exports the covariance matrix of z (True or False);
+# export_x: Exports the calculated data of gamma, its uncertainty, and degrees of freedom in a txt with comma separation(True or False);
+# export_cov_x: Exports the covariance matrix of gamma (True or False).
 Estimation.prediction(export_y=True,export_y_xls=True, export_cov_y=True, export_x=True, export_cov_x=True)
 
 #%% Evaluating residuals and quality index
@@ -62,21 +62,21 @@ from modules.MT_PEU_Linear import EstimacaoLinear
 from numpy import log
 
 #%% Starting the MT_PEU main object
-# symbols_x: List of symbols for quantity x;
-# symbols_y: List of symbols for quantity y;
+# symbols_gamma: List of symbols for quantity gamma;
+# symbols_z: List of symbols for quantity z;
 # symbols_param: List of symbols for the parameters to be estimated;
-# Folder: Defines the name of the folder where the results will be saved.
-ER = EstimacaoLinear(symbols_x=[r'X1'],symbols_ux=[r'uX1'], symbols_y=[r'Y1'],symbols_uy=[r'uY1'] ,symbols_param=['A1','B1'],  folder='Ex8Linear')
+# folder: Defines the name of the folder where the results will be saved.
+ER = EstimacaoLinear(symbols_gamma=[r'X1'], symbols_ux=[r'uX1'], symbols_z=[r'Y1'], symbols_uz=[r'uY1'], symbols_param=['A1', 'B1'], folder='Ex8Linear')
 #%% Defining observed data
 # Input data
-T =Estimation.x.observado.matriz_estimativa.transpose()[0]
+T =Estimation.gamma.observed.matriz_estimativa.transpose()[0]
 # Input data uncertainty
-uT =Estimation.x.observado.matriz_incerteza.transpose()[0]
+uT =Estimation.gamma.observed.matriz_incerteza.transpose()[0]
 
 # Output data
-P =Estimation.y.observado.matriz_estimativa.transpose()[0]
+P =Estimation.z.observed.matriz_estimativa.transpose()[0]
 # Output data uncertainty
-uP =Estimation.y.observado.matriz_incerteza.transpose()[0]
+uP =Estimation.z.observed.matriz_incerteza.transpose()[0]
 
 
 #Input observed data
@@ -94,9 +94,9 @@ uY = ((1/P)**2*uP**2 + (-1*-68.2/(8.31446*T))**2*uT**2)**0.5
 #%% Setting the observed data set
 
 # Defining the previous data set to be used to parameter estimation
-# dataType: Defines the purpose of the informed data set: observado, predicao.
-# glx: Degrees of freedom of quantity x;
-# gly: Degrees of freedom of quantity y;
+# dataType: Defines the purpose of the informed data set: observed, predicao.
+# glx: Degrees of freedom of quantity gamma;
+# gly: Degrees of freedom of quantity z;
 ER.setDados(data={'X1':X,'uX1':uX,'Y1':Y,'uY1':uY},glx=[],gly=[])
 
 #%% Optimization - estimating the parameters
@@ -108,11 +108,11 @@ ER.optimize(report=True)
 ER.parametersUncertainty(objectiveFunctionMapping=True)
 
 #%% Evaluating model predictions
-# export_y: Exports the calculated data of y, its uncertainty, and degrees of freedom in a txt with comma separation (True or False);
-# export_y_xls: Exports the calculated data of y, its uncertainty, and degrees of freedom in a xls (True or False);
-# export_cov_y: Exports the covariance matrix of y (True or False);
-# export_x: Exports the calculated data of x, its uncertainty, and degrees of freedom in a txt with comma separation(True or False);
-# export_cov_x: Exports the covariance matrix of x (True or False).
+# export_y: Exports the calculated data of z, its uncertainty, and degrees of freedom in a txt with comma separation (True or False);
+# export_y_xls: Exports the calculated data of z, its uncertainty, and degrees of freedom in a xls (True or False);
+# export_cov_y: Exports the covariance matrix of z (True or False);
+# export_x: Exports the calculated data of gamma, its uncertainty, and degrees of freedom in a txt with comma separation(True or False);
+# export_cov_x: Exports the covariance matrix of gamma (True or False).
 ER.prediction(export_y=True,export_y_xls=True, export_cov_y=True, export_x=True, export_cov_x=True)
 
 #%% Evaluating residuals and quality index

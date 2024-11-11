@@ -4,7 +4,7 @@ path.append("../../modules")#passando o diretório da pasta raíz
 from modules.MT_PEU_Linear import EstimacaoLinear
 
 #%% Initialization of the class that performs the estimation.
-ER = EstimacaoLinear(['y'],['uy'],['x'],['ux'],['p1','p2'],folder='Example6')
+ER = EstimacaoLinear(['z'],['uy'],['gamma'],['ux'],['p1','p2'],folder='Example6')
 
 #%% Setting the observed data set to using Manual data entry
 
@@ -20,13 +20,13 @@ y = [.1,.9,2.2,3.2,3.9,4.8]
 uy = [1,1,1,1,1,1]
 #Manual data entry
 
-ER.setDados(data={'x':x,'ux':ux,'y':y ,'uy':uy},glx=[],gly=[])
+ER.setDados(data={'gamma':x,'ux':ux,'z':y ,'uy':uy},glx=[],gly=[])
 
 
 # Defining the previous data set to be used to parameter estimation
-# dataType: Defines the purpose of the informed data set: observado, predicao.
-# glx: Degrees of freedom of quantity x;
-# gly: Degrees of freedom of quantity y;
+# dataType: Defines the purpose of the informed data set: observed, predicao.
+# glx: Degrees of freedom of quantity gamma;
+# gly: Degrees of freedom of quantity z;
 
 #%% Optimization - estimating the parameters
 # report: Informs whether the parameters report should be created (True or False).
@@ -38,11 +38,11 @@ ER.optimize(report=False)
 ER.parametersUncertainty(objectiveFunctionMapping=True, parametersReport=True)
 
 #%% Evaluating model predictions
-# export_y: Exports the calculated data of y, its uncertainty, and degrees of freedom in a txt with comma separation (True or False);
-# export_y_xls: Exports the calculated data of y, its uncertainty, and degrees of freedom in a xls (True or False);
-# export_cov_y: Exports the covariance matrix of y (True or False);
-# export_x: Exports the calculated data of x, its uncertainty, and degrees of freedom in a txt with comma separation(True or False);
-# export_cov_x: Exports the covariance matrix of x (True or False).
+# export_y: Exports the calculated data of z, its uncertainty, and degrees of freedom in a txt with comma separation (True or False);
+# export_y_xls: Exports the calculated data of z, its uncertainty, and degrees of freedom in a xls (True or False);
+# export_cov_y: Exports the covariance matrix of z (True or False);
+# export_x: Exports the calculated data of gamma, its uncertainty, and degrees of freedom in a txt with comma separation(True or False);
+# export_cov_x: Exports the covariance matrix of gamma (True or False).
 ER.prediction(export_y=True,export_y_xls=True, export_cov_y=True, export_x=True, export_cov_x=True)
 
 #%% Evaluating residuals and quality index
@@ -55,6 +55,6 @@ ER.reports()
 
 #%% Reference of this case study
 # SCHWAAB, M.M.;PINTO, J.C. Análise de Dados Experimentais I: Fundamentos da Estátistica e Estimação de Parâmetros. Rio de Janeiro: e-papers, 2007.
-# Avaliação de dados de medição — Guia para a expressão de incerteza de medição http://www.inmetro.gov.br/noticias/conteudo/iso_gum_versao_site.pdf
+# Avaliação de dados de medição — Guia para a expressão de uncertainty de medição http://www.inmetro.gov.br/noticias/conteudo/iso_gum_versao_site.pdf
 
 

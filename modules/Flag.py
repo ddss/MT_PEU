@@ -39,11 +39,11 @@ class flag:
         Exemplo: ::
 
         >>> Fl = flag()
-        >>> Fl.setCaracteristica(['observado','reconciliacao'])
+        >>> Fl.setCaracteristica(['observed','reconciliacao'])
         >>> Fl.info
-        >>> Fl.ToggleActive('observado')
+        >>> Fl.ToggleActive('observed')
         >>> Fl.info
-        >>> Fl.ToggleInactive('observado')
+        >>> Fl.ToggleInactive('observed')
         >>> Fl.info
         >>> Fl.setCaracteristica(['validacao'])
         >>> Fl.info

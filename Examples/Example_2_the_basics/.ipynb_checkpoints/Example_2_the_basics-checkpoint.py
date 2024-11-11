@@ -15,21 +15,21 @@ def Model (param,x, *args):
 
 #%% Starting the MT_PEU main object
 # Model: Pass the model defined in def Model;
-# symbols_x: List of symbols for quantity x;
-# symbols_y: List of symbols for quantity y;
+# symbols_gamma: List of symbols for quantity gamma;
+# symbols_z: List of symbols for quantity z;
 # symbols_param: List of symbols for the parameters to be estimated;
 # label_latex_param: List of symbols for parameters written in LaTex;
 # units_y: List of units of measurement for independent quantities;
 # units_x: List of units of measurement of dependent quantities;
 # units_param: List of units of measurement of the parameters;
-# Folder: Defines the name of the folder where the results will be saved.
+# folder: Defines the name of the folder where the results will be saved.
 Estime = EstimacaoNaoLinear(Model, symbols_x=['Time','Temperature'],symbols_ux=['UxTime','Uxtemperature'], units_x=['s','K'],
                             symbols_y=[r'Y'],symbols_uy=['uY'], units_y=['adm'],
                             symbols_param=['ko','E'], units_param=['adm','K'], Folder='Example2')
 
 #%% Setting the observed data set
 #Data entry using standard excel template
-Estime.setDados(data="data_example2")
+Estime.setData(data="data_example2")
 
 #%% Optimization - estimating the parameters
 # initial_estimative: List with the initial estimates for the parameters;
@@ -47,9 +47,9 @@ Estime.parametersUncertainty(uncertaintyMethod='2InvHessiana',objectiveFunctionM
 Estime.plots()
 
 #%% Evaluating model predictions
-# export_y: Exports the calculated data of y, its uncertainty, and degrees of freedom in a txt with comma separation (True or False);
-# export_y_xls: Exports the calculated data of y, its uncertainty, and degrees of freedom in a xls (True or False);
-# export_cov_y: Exports the covariance matrix of y (True or False);
+# export_y: Exports the calculated data of z, its uncertainty, and degrees of freedom in a txt with comma separation (True or False);
+# export_y_xls: Exports the calculated data of z, its uncertainty, and degrees of freedom in a xls (True or False);
+# export_cov_y: Exports the covariance matrix of z (True or False);
 Estime.prediction(export_y=True, export_y_xls=True, export_cov_y=True, )
 
 #%% Evaluating residuals and quality index

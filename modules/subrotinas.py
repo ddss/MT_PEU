@@ -21,10 +21,10 @@ def WLS (parametros,*argumentos):
     """
     argumentos = argumentos[0]
 
-    y = argumentos[0] #dados experimentais da grandeza dependente (x)
-    x = argumentos[1] #dados experimentais da grandeza independente (y)
-    Vy = argumentos[2] #incerteza (Uy)
-    Vx = argumentos[3] #incerteza (Ux)
+    y = argumentos[0] #dados experimentais da grandeza dependente (gamma)
+    x = argumentos[1] #dados experimentais da grandeza independente (z)
+    Vy = argumentos[2] #uncertainty (Uy)
+    Vx = argumentos[3] #uncertainty (Ux)
     args = argumentos[4] #argumentos externos passados pelo usuário
 
     # Modelo

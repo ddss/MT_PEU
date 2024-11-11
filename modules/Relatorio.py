@@ -46,7 +46,7 @@ class Report:
 
     def Parametros(self,parametros, pontoOtimo):
         '''
-        Escrita sobre a etapa a estimativa dos parâmetros e sua incerteza
+        Escrita sobre a etapa a estimativa dos parâmetros e sua uncertainty
 
         =======
         Entrada
@@ -76,7 +76,7 @@ class Report:
             f.write('</tr>\n')
 
             if parametros.matriz_covariancia is not None:
-                # Matriz de covariância, incerteza e matriz de correlação
+                # Matriz de covariância, uncertainty e matriz de correlação
                 f.write('<tr>\n')
                 f.write(('<td><b>Variância</b></td>'+ '<td>{:^10.3e}</td> '*parametros.NV).format(*[parametros.matriz_covariancia[i,i] for i in range(parametros.NV)]) + self.__quebra)
                 f.write('</tr>\n')
@@ -150,9 +150,9 @@ class Report:
                 f.write(('<td>Limite inferior</td>'+ '<td>{:^10}</td>'*parametros.NV).format(*['N/A']*parametros.NV) + self.__quebra)
                 f.write('</table>\n')
             f.close()
-    def Grandezas(self, y, estatisticas, **kwargs):
+    def Grandezas(self, z, estatisticas, dataType, **kwargs):
         u'''
-        Grandezas(self, y, estatisticas,**kwargs)
+        Grandezas(self, z, estatisticas,**kwargs)
 
         ============================================================================
         Write the prediction and residual analysis results in the prediction report.
@@ -160,20 +160,20 @@ class Report:
 
         - Parameters
         ------------
-        y : grandeza class instance
+        z : grandeza class instance
             instance containing the information relating to the variables.
         estatisticas : dict
             dictionary with the R2, adjusted R2, and FO (objective function) values.
-
+        dataType
         - keywords
         -----------
 
-        export_y : bool
-            exports the calculated data of y, its uncertainty, and degrees of freedom in a txt with comma separation.
-        export_y_xls : bool
-            exports the calculated data of y, its uncertainty, and degrees of freedom in a xls.
-        export_cov_y : bool
-            exports the covariance matrix of y.
+        export_z : bool
+            exports the calculated data of z, its uncertainty, and degrees of freedom in a txt with comma separation.
+        export_z_xls : bool
+            exports the calculated data of z, its uncertainty, and degrees of freedom in a xls.
+        export_cov_z : bool
+            exports the covariance matrix of z.
         - References
         -------------
 
@@ -184,24 +184,24 @@ class Report:
         # ---------------------------------------------------------------------
         # VALIDATION
         # ---------------------------------------------------------------------
-        if not isinstance(kwargs.get('export_y'),bool) and kwargs.get('export_y') is not None:
-            raise TypeError('A keyword export_y deve ser booleana')
-        if not isinstance(kwargs.get('export_cov_y'),bool) and kwargs.get('export_cov_y') is not None:
-            raise TypeError('A keyword export_cov_y deve ser booleana')
-        if not isinstance(kwargs.get('export_y_xls'), bool) and kwargs.get('export_y_xls') is not None:
-            raise TypeError('A keyword export_y_xls deve ser booleana')
-        if kwargs.get('export_y_xls') is None:
-            export_y_xls = False
+        if not isinstance(kwargs.get('export_z'),bool) and kwargs.get('export_z') is not None:
+            raise TypeError('A keyword export_z deve ser booleana')
+        if not isinstance(kwargs.get('export_cov_z'),bool) and kwargs.get('export_cov_z') is not None:
+            raise TypeError('A keyword export_cov_z deve ser booleana')
+        if not isinstance(kwargs.get('export_z_xls'), bool) and kwargs.get('export_z_xls') is not None:
+            raise TypeError('A keyword export_z_xls deve ser booleana')
+        if kwargs.get('export_z_xls') is None:
+            export_z_xls = False
         else:
-            export_y_xls = kwargs.get('export_y_xls')
-        if kwargs.get('export_y') is None:
-            export_y = False
+            export_z_xls = kwargs.get('export_z_xls')
+        if kwargs.get('export_z') is None:
+            export_z = False
         else:
-            export_y = kwargs.get('export_y')
-        if kwargs.get('export_cov_y') is None:
-            export_cov_y = False
+            export_z = kwargs.get('export_z')
+        if kwargs.get('export_cov_z') is None:
+            export_cov_z = False
         else:
-            export_cov_y = kwargs.get('export_cov_y')
+            export_cov_z = kwargs.get('export_cov_z')
 
         PA = kwargs.get('PA')
         # ---------------------------------------------------------------------
@@ -210,7 +210,7 @@ class Report:
 
         #------------------------------------------------------------
         if estatisticas is not None:
-            with open(self.__base_path+'grandezas-report'+'.html','wt') as f:
+            with open(self.__base_path+'grandezas-report-{}'.format(dataType)+'.html','wt') as f:
                 # TITLE:
                 f.write('<center>\n') # Centraliza o objeto no HTML
                 f.write('<h1> PREDIÇÃO </h1>\n')
@@ -222,18 +222,18 @@ class Report:
                 f.write('<table border rules = all > \n') #Inicia a tabela no HTML
                 f.write('<tr>\n')
                 f.write('<td><b> Símbolos </b> </td>\n') #Escreve o nome símbolos apenas na primeira célula da  tabela
-                f.write(('<td><b> {} </b> </td/>\n'*y.NV).format(*y.simbolos)) #Escreve os símbolos na tabela
+                f.write(('<td><b> {} </b> </td/>\n' * z.NV).format(*z.simbolos)) #Escreve os símbolos na tabela
                 f.write('<tr>\n')
                 f.write('<td> Coeficiente de determinação  </td> \n')
-                for id3 in range(y.NV):
+                for id3 in range(z.NV):
                     # id3 corresponde aos elementos da lista de simbolos usados para endereçar  os coeficientes no dicionário
-                    f.write(( '<td> {:.3f} </td>\n').format(estatisticas['R2'][y.simbolos[id3]]))
+                    f.write(( '<td> {:.3f} </td>\n').format(estatisticas[dataType]['R2'][z.simbolos[id3]]))
                 f.write('</tr>\n')
                 f.write('<tr>\n')
                 f.write('<td> Coeficiente de determinação ajustado </td>\n')
-                for id3 in range(y.NV):
+                for id3 in range(z.NV):
                     ## id3 corresponde aos elementos da lista de simbolos usados para endereçar  os coeficientes no dicionário
-                    f.write(( '<td> {:.3f} </td>\n').format(estatisticas['R2ajustado'][y.simbolos[id3]]))
+                    f.write(( '<td> {:.3f} </td>\n').format(estatisticas[dataType]['R2adjusted'][z.simbolos[id3]]))
                 f.write('</tr>\n')
                 f.write('</table>\n')
 
@@ -241,27 +241,27 @@ class Report:
                 f.write('<h3>Função objetivo (FO):</h3>'+self.__quebra)
                 # O valor da função objetivo é selecionado para ficar na esquerda , na direita ou no centro dos valores de chi2min e chi2max .
                 # &#935 ---> chi : como o HTML escreve
-                if float(estatisticas['FuncaoObjetivo']['chi2max'])>float(estatisticas['FuncaoObjetivo']['FO']) and float(estatisticas['FuncaoObjetivo']['FO'])>float(estatisticas['FuncaoObjetivo']['chi2min']):
+                if float(estatisticas[dataType]['ObjectiveFunction']['chi2max'])>float(estatisticas[dataType]['ObjectiveFunction']['FO']) and float(estatisticas[dataType]['ObjectiveFunction']['FO'])>float(estatisticas[dataType]['ObjectiveFunction']['chi2min']):
                     f.write('<table border rules = all>\n')
                     f.write('<tr>\n')
                     f.write(' <td><b> &#935<sup>2</sup> min</b> </td> <td> <b> FO </b></td> <td><b> &#935<sup>2</sup> max</b></td> ')
                     f.write('</tr>\n')
                     f.write('<tr>\n')
-                    f.write('<td> {:.3f}</td>'.format(estatisticas['FuncaoObjetivo']['chi2min']) + self.__quebra)
-                    f.write('<td> {:.3f}</td>'.format(estatisticas['FuncaoObjetivo']['FO'])+self.__quebra)
-                    f.write('<td> {:.3f}</td>'.format(estatisticas['FuncaoObjetivo']['chi2max']) + self.__quebra)
+                    f.write('<td> {:.3f}</td>'.format(estatisticas[dataType]['ObjectiveFunction']['chi2min']) + self.__quebra)
+                    f.write('<td> {:.3f}</td>'.format(estatisticas[dataType]['ObjectiveFunction']['FO'])+self.__quebra)
+                    f.write('<td> {:.3f}</td>'.format(estatisticas[dataType]['ObjectiveFunction']['chi2max']) + self.__quebra)
                     f.write('</tr>\n')
                     f.write('</table>\n')
 
-                elif float(estatisticas['FuncaoObjetivo']['FO'])<float(estatisticas['FuncaoObjetivo']['chi2min']):
+                elif float(estatisticas[dataType]['ObjectiveFunction']['FO'])<float(estatisticas[dataType]['ObjectiveFunction']['chi2min']):
                     f.write('<table border rules = all>\n')
                     f.write('<tr>\n')
                     f.write('<td><b> FO  </b> </td> <td><b>  &#935<sup>2</sup> min </b> </td>  <td> <b>&#935<sup>2</sup> max </b></td> ')
                     f.write('</tr>\n')
                     f.write('<tr>\n')
-                    f.write('<td> {:.3f}</td>'.format(estatisticas['FuncaoObjetivo']['FO']) + self.__quebra)
-                    f.write('<td> {:.3f}</td>'.format(estatisticas['FuncaoObjetivo']['chi2min']) + self.__quebra)
-                    f.write('<td> {:.3f}</td>'.format(estatisticas['FuncaoObjetivo']['chi2max'])+self.__quebra)
+                    f.write('<td> {:.3f}</td>'.format(estatisticas[dataType]['ObjectiveFunction']['FO']) + self.__quebra)
+                    f.write('<td> {:.3f}</td>'.format(estatisticas[dataType]['ObjectiveFunction']['chi2min']) + self.__quebra)
+                    f.write('<td> {:.3f}</td>'.format(estatisticas[dataType]['ObjectiveFunction']['chi2max'])+self.__quebra)
                     f.write('</tr>\n')
                     f.write('</table>\n')
 
@@ -271,9 +271,9 @@ class Report:
                     f.write(' <td><b>  &#935<sup>2</sup> min </b> </td>  <td> <b>&#935<sup>2</sup> max </b></td> <td><b> FO  </b> </td>')
                     f.write('</tr>\n')
                     f.write('<tr>\n')
-                    f.write('<td> {:.3f}</td>'.format(estatisticas['FuncaoObjetivo']['chi2min']) + self.__quebra)
-                    f.write('<td> {:.3f}</td>'.format(estatisticas['FuncaoObjetivo']['chi2max']) + self.__quebra)
-                    f.write('<td> {:.3f}</td>'.format(estatisticas['FuncaoObjetivo']['FO']) + self.__quebra)
+                    f.write('<td> {:.3f}</td>'.format(estatisticas[dataType]['ObjectiveFunction']['chi2min']) + self.__quebra)
+                    f.write('<td> {:.3f}</td>'.format(estatisticas[dataType]['ObjectiveFunction']['chi2max']) + self.__quebra)
+                    f.write('<td> {:.3f}</td>'.format(estatisticas[dataType]['ObjectiveFunction']['FO']) + self.__quebra)
                     f.write('</tr>\n')
                     f.write('</table>\n')
                 f.write(self.__quebra)
@@ -283,35 +283,35 @@ class Report:
                 f.write(self.__quebra)
 
                # RESIDUAL ANALYSIS
-                def Matriz_HTML (nome_teste,resíduo_nome=None):
+                def Matriz_HTML (nome_teste, residuo_nome=None):
                     #Função escreve tabela automática , o objetivo dela é escrever automaticamente as tabelas com seus respectivos testes
-                    if resíduo_nome is None:
+                    if residuo_nome is None:
                         # Parte I da função que escreve as tabelas em Normalidade (normaltest,shapiro,anderson,kstest) e Média(ttest,ztest).
                         f.write('<table border rules="all">')
                         f.write('<tr>\n')
                         f.write('<td><b>Testes com p-valores </b></td> ')
-                        f.write(('<td> <b> Resíduos para {} </b> </td> <td> <b> Aceita Ho </b> </td> \n'*y.NV).format(*y.simbolos))
+                        f.write(('<td> <b> Resíduos para {} </b> </td> <td> <b> Aceita Ho </b> </td> \n' * z.NV).format(*z.simbolos))
                         f.write('<tr>\n')
                         # Cria 2 células para cada variável de saída e desloca para a direita
-                        for teste in y._Grandeza__nomesTestes[nome_teste].keys():# Roda uma vez para cada teste , algumas das análises tem mais de um teste por isso o for
-                            if not isinstance(y._Grandeza__nomesTestes[nome_teste][teste],dict):#testa se o determinado argumento é um diciónario
+                        for teste in z._Grandeza__nomesTestes[nome_teste].keys():# Roda uma vez para cada teste , algumas das análises tem mais de um teste por isso o for
+                            if not isinstance(z._Grandeza__nomesTestes[nome_teste][teste], dict):#testa se o determinado argumento é um diciónario
                                 f.write('<tr>\n')
                                 f.write('<td>{}</td> '.format(teste))
-                            for symb in y.simbolos:
-                                if isinstance(y.estatisticas[symb][nome_teste][teste],float):# testa se o determinado argumento é um float
-                                    f.write('<td>{:^8.3f}</td>'.format(y.estatisticas[symb][nome_teste][teste])+' ')
-                                    if float(1 - PA) < float(y.estatisticas[symb][nome_teste][teste]): #teste se aceita H0 ou não
+                            for symb in z.simbolos:
+                                if isinstance(z.estatisticas[dataType][symb][nome_teste][teste], float):# testa se o determinado argumento é um float
+                                    f.write('<td>{:^8.3f}</td>'.format(z.estatisticas[dataType][symb][nome_teste][teste]) + ' ')
+                                    if float(1 - PA) < float(z.estatisticas[dataType][symb][nome_teste][teste]): #teste se aceita H0 ou não
                                         f.write('<td> Sim </td>\n  ')
                                     else:
                                         f.write('<td> Não </td>\n ')
-                                elif y.estatisticas[symb][nome_teste][teste] is None:
+                                elif z.estatisticas[dataType][symb][nome_teste][teste] is None:
                                     f.write('<td>{:^8}</td>'.format('N/A')+' ')
                                     f.write('<td> - </td>\n ')
                             f.write('</tr>')
                         f.write('</table>\n')
                         f.write('<ul>\n')
                         f.write('<li> <i> Ho( Hipótese nula ): </i> </b> {} </li> \n'.format(
-                            y._Grandeza__TestesInfo[nome_teste][teste]['H0']))
+                            z._Grandeza__TestesInfo[nome_teste][teste]['H0']))
                         f.write(
                             '<li>   <p>  <i> Informação : </i>  p-valores devem ser maiores do que o nível de '
                             'significância (1-PA) </p> <p>    para não rejeitar a hipótese nula (Ho).</li>' + self.__quebra)
@@ -321,16 +321,16 @@ class Report:
                         f.write('<table border rules="all">')
                         f.write('<tr>')
                         f.write('<td>  <b>  {:<}:   </b> </td>'.format('Durbin Watson') + (
-                                    '<td> <b> Resíduos para {:^8} </b> ' * y.NV).format(
-                            *y.simbolos) + '</td> </tr>' + self.__quebra)
-                        if isinstance(y._Grandeza__nomesTestes[resíduo_nome][nome_teste], dict):
+                                    '<td> <b> Resíduos para {:^8} </b> ' * z.NV).format(
+                            *z.simbolos) + '</td> </tr>' + self.__quebra)
+                        if isinstance(z._Grandeza__nomesTestes[residuo_nome][nome_teste], dict):
                                 f.write('<tr> <td> {:<33}</td>'.format('estatistica'))
-                                for symb in y.simbolos:
+                                for symb in z.simbolos:
                                     if isinstance(
-                                            y._Grandeza__nomesTestes[resíduo_nome][nome_teste]['estatistica'],
+                                            z._Grandeza__nomesTestes[residuo_nome][nome_teste]['estatistica'],
                                             float):
                                         f.write('<td>{:^8.3f}</td>'.format(
-                                            y.estatisticas[symb][resíduo_nome][nome_teste]['estatistica']))
+                                            z.estatisticas[dataType][symb][residuo_nome][nome_teste]['estatistica']))
                                     else:
                                         f.write('<td> N/A </td>')
                                 f.write('</tr>')
@@ -348,21 +348,21 @@ class Report:
                         f.write('<table border rules="all">')
                         f.write('<tr>')
                         f.write('<td>  <b>  {:<}:   </b> </td>'.format(nome_teste) + (
-                                '<td><b> Resíduos para {:^8} </b> <td><b> Aceita Ho </b></td>' * y.NV).format(
-                            *y.simbolos) + '</td> ')
+                                '<td><b> Resíduos para {:^8} </b> <td><b> Aceita Ho </b></td>' * z.NV).format(
+                            *z.simbolos) + '</td> ')
                         f.write('</tr>\n')
-                        for teste in y._Grandeza__nomesTestes[resíduo_nome].keys():
+                        for teste in z._Grandeza__nomesTestes[residuo_nome].keys():
                             if teste == nome_teste:
-                                if isinstance(y._Grandeza__nomesTestes[resíduo_nome][teste], dict):
-                                    for key in y._Grandeza__nomesTestes[resíduo_nome][teste].keys():
+                                if isinstance(z._Grandeza__nomesTestes[residuo_nome][teste], dict):
+                                    for key in z._Grandeza__nomesTestes[residuo_nome][teste].keys():
                                         f.write('<tr> <td> {:<33}</td>'.format(key))
-                                        for symb in y.simbolos:
-                                            if isinstance(y.estatisticas[symb][resíduo_nome][teste][key],
-                                                          float) and not math.isnan(y.estatisticas[symb][resíduo_nome][teste][key]):
+                                        for symb in z.simbolos:
+                                            if isinstance(z.estatisticas[dataType][symb][residuo_nome][teste][key],
+                                                          float) and not math.isnan(z.estatisticas[dataType][symb][residuo_nome][teste][key]):
                                                 f.write('<td>{:^8.3f}</td>'.format(
-                                                    y.estatisticas[symb][resíduo_nome][teste][key]))
+                                                    z.estatisticas[dataType][symb][residuo_nome][teste][key]))
                                                 if float(1 - PA) < float(
-                                                        y.estatisticas[symb][resíduo_nome][teste][key]):
+                                                        z.estatisticas[dataType][symb][residuo_nome][teste][key]):
                                                     f.write('<td> Sim </td>\n  ')
                                                 else:
                                                     f.write('<td> Não </td>\n ')
@@ -375,7 +375,7 @@ class Report:
 
                         f.write('<ul>\n')
                         f.write('<li> <i> Ho( Hipótese nula ): </i> </b> {} </li> \n'.format(
-                            y._Grandeza__TestesInfo[resíduo_nome][teste][key]['H0']))
+                            z._Grandeza__TestesInfo[residuo_nome][teste][key]['H0']))
 
                         f.write(
                             '<li>   <p>  <i> Informação : </i>  p-valores devem ser maiores do que o nível de significância (1-PA) </p> <p>    para não rejeitar a hipótese nula (Ho).</li>' + self.__quebra)
@@ -402,29 +402,29 @@ class Report:
         # PREDICTION EXPORT
         # ---------------------------------------------------------------------
         # Calculated values and uncertainty
-        if export_y: # txt format
+        if export_z: # txt format
             cont = 0
-            for symb in y.simbolos:
-                with open(self.__base_path+symb+'-calculado-predicao'+'.txt','wt') as f:
-                    for i in range(y.calculado.NE):
-                        f.write('{:.5g},{:.5g},{:.5g}'.format(y.calculado.matriz_estimativa[i,cont],y.calculado.matriz_incerteza[i,cont],y.calculado.gL[cont][i])+self.__quebra)
+            for symb in z.simbolos:
+                with open(self.__base_path+symb+'-evaluated-{}'.format(dataType)+'.txt','wt') as f:
+                    for i in range(z.evaluated[dataType].NE):
+                        f.write('{:.5g},{:.5g},{:.5g}'.format(z.evaluated[dataType].matriz_estimativa[i,cont], z.evaluated[dataType].matriz_incerteza[i,cont], z.evaluated[dataType].gL[cont][i]) + self.__quebra)
                 f.close()
                 cont+=1
-        if export_y_xls: # xls format
+        if export_z_xls: # xls format
             cont = 0
             wb = xlwt.Workbook()
-            ws = wb.add_sheet('calculado-predicao')
-            for i in range(y.calculado.NE):
-                 ws.write(i, 0, y.calculado.matriz_estimativa[i, cont]), ws.write(i, 1, y.calculado.matriz_incerteza[i, cont]), ws.write(i, 2, y.calculado.gL[cont][i])
-            for symb in y.simbolos:
-                wb.save(self.__base_path+symb+'-calculado-predicao'+'.xls')
+            ws = wb.add_sheet('evaluated-{}'.format(dataType))
+            for i in range(z.evaluated[dataType].NE):
+                 ws.write(i, 0, z.evaluated[dataType].matriz_estimativa[i, cont]), ws.write(i, 1, z.evaluated[dataType].matriz_incerteza[i, cont]), ws.write(i, 2, z.evaluated[dataType].gL[cont][i])
+            for symb in z.simbolos:
+                wb.save(self.__base_path+symb+'-evaluated-{}'.format(dataType)+'.xls')
         # covariance matrix
-        if export_cov_y:
-            # with open(self.__base_path+'y-calculado-matriz-covariancia_fl'+self.__fluxo+'.txt','wt') as f:
-            with open(self.__base_path+'y-calculado-matriz-covariancia'+'.txt','wt') as f:
-                for i in range(y.NV*y.calculado.NE):
-                    for j in range(y.NV*y.calculado.NE):
-                        f.write('{:.5g} '.format(y.calculado.matriz_covariancia[i,j]))
+        if export_cov_z:
+            # with open(self.__base_path+'z-evaluated-matriz-covariancia_fl'+self.__fluxo+'.txt','wt') as f:
+            with open(self.__base_path+'z-evaluated-{}-matriz-covariancia'.format(dataType)+'.txt','wt') as f:
+                for i in range(z.NV * z.evaluated[dataType].NE):
+                    for j in range(z.NV * z.evaluated[dataType].NE):
+                        f.write('{:.5g} '.format(z.evaluated[dataType].matriz_covariancia[i,j]))
                     f.write(self.__quebra)
             f.close()
 

@@ -190,8 +190,8 @@ class Grafico:
         ========
         :param x (array): dados de x
         :param y (array): dados de y
-        :param ux (array ou None): incerteza de x
-        :param uy (array ou None): incerteza de y
+        :param ux (array ou None): uncertainty de x
+        :param uy (array ou None): uncertainty de y
         :param label_x (string): label do eixo x
         :param label_y (string): label do eixo y
         :param fator_abrangencia: fator de abrangencia
@@ -214,7 +214,7 @@ class Grafico:
             uy = uy[argsort(x)]
         x = sort(x)
 
-        # incerteza expandida
+        # uncertainty expandida
         if ux is not None:
             xerr = [fator_abrangencia_x[i] * ux[i] for i in range(len(ux))]
         else:
