@@ -741,8 +741,6 @@ class EstimacaoNaoLinear:
         # CREATION OF CASADI'S VARIABLES THAT WILL BE USED TO BUILD THE CASADI'S MODEL
         # --------------------------------------------------------------------- ----------
 
-        # if no prediction data were entered, then estimation is being performed and
-        # estimation data should be used
         self.__symZr = [] # Calculated Z
         self.__symZobs = [] # Observed Z
 
@@ -757,9 +755,9 @@ class EstimacaoNaoLinear:
         zmodel = []
         for j in range(self.z.NV):
             self.__symZobs = vertcat(self.__symZobs, MX.sym('{}obs'.format(self.z.simbolos[j]), self.z.observed['estimation'].NE, 1))
-            symYr = MX.sym('{}r'.format(self.z.simbolos[j]), self.z.observed['estimation'].NE, 1)
-            self.__symZr = vertcat(self.__symZr, symYr)
-            zmodel.append(symYr)
+            symZr = MX.sym('{}r'.format(self.z.simbolos[j]), self.z.observed['estimation'].NE, 1)
+            self.__symZr = vertcat(self.__symZr, symZr)
+            zmodel.append(symZr)
 
         self.__symDecisionVariables = vertcat(self.__symDecisionVariables, self.__symZr)
 
@@ -1464,7 +1462,11 @@ class EstimacaoNaoLinear:
 
         return solution
 
-    def __jacModel(self):
+    def __buildSymPrediction(self):
+
+        # -----------------
+        # Model derivatives
+        # -----------------
 
         jac_Y = jacobian(self._symEvalModel, self.__symevalY)
 
@@ -1475,6 +1477,38 @@ class EstimacaoNaoLinear:
 
         self.jacModelParamXGamma = Function('jacmodelparamxgamma', [self.__symevalY, self.__symParam, self.__symevalX, self.__symGamma],
                                   [jac_Param_X_Gamma])
+
+        # -------------------
+        # Objective function
+        # ------------------
+
+        self.__symZval = []  # Predicted Z
+        self.__symZobsval = []  # Observed Z - validation data
+
+        # Creation of variables in casadi's format
+        zmodel = []
+        for j in range(self.z.NV):
+            self.__symZobsval = vertcat(self.__symZobsval,
+                                     MX.sym('{}val'.format(self.z.simbolos[j]), self.z.observed['validation'].NE, 1))
+            symZval = MX.sym('{}r'.format(self.z.simbolos[j]), self.z.observed['validation'].NE, 1)
+            self.__symZval = vertcat(self.__symZval, symZval)
+            zmodel.append(symZval)
+
+        # Model definition
+        if type(self.__modelo(self.__symParam, zmodel, self.__symGamma)) is list:
+            self.__symModelPrediction = vertcat(*self.__modelo(self.__symParam, zmodel, self.__symGamma))
+        else:
+            raise SyntaxError('The model must return a list.')
+
+        self.__excModelPrediction = Function('ModelPrediction', [self.__symParam, self.__symZval, self.__symGamma],
+                                   [self.__symModelPrediction])  # Executable
+
+        # Objective function definition
+        self.__symObjectiveFunctionPrediction = (self.__symZobsval - self.__symZval).T @ inv(
+            self.z.observed['validation'].matriz_covariancia) @ (self.__symZobsval - self.__symZval)
+        self._excObjectiveFunctionPrediction = Function('Objective_Function_Prediction',
+                                              [self.__symZval, self.__symZobsval],
+                                              [self.__symObjectiveFunctionPrediction])  # Executable
 
     def prediction(self):
         u"""
@@ -1488,7 +1522,7 @@ class EstimacaoNaoLinear:
             for symb in self._setupModel['y']:
                 idy.append(self.z.simbolos.index(symb))
 
-            self.__jacModel()
+            self.__buildSymPrediction()
 
             ypredicted = []
             uyypredicted = []
@@ -1637,9 +1671,8 @@ class EstimacaoNaoLinear:
             if type_data == 'estimation':
                 self.estatisticas[type_data]['ObjectiveFunction'] = {'chi2max':chi2max, 'chi2min':chi2min, 'FO':self.FOotimo}
             else:
-                #TODO: função objetivo precisa ser construída para os dados de validação
-                FO = self._excObjectiveFunction(vertcat(self.parametros.estimativa,self.z.evaluated[type_data].vetor_estimativa),
-                                                self.z.observed[type_data].vetor_estimativa)
+                FO = self._excObjectiveFunctionPrediction(self.z.evaluated[type_data].vetor_estimativa,
+                                                          self.z.observed[type_data].vetor_estimativa)
                 self.estatisticas[type_data]['ObjectiveFunction'] = {'chi2max': chi2max, 'chi2min': chi2min, 'FO': float(FO)}
 
             # prediction report creation
