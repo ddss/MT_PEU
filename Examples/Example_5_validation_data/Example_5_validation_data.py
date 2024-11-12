@@ -31,7 +31,7 @@ Estime = EstimacaoNaoLinear(Model, symbols_gamma=['Time', 'Temperature'], symbol
 
 
 #%% Setting the observed data set
-Estime.setDados(data="data_exa5",glx=[], gly=[])
+Estime.setData(data="data_exa5", glx=[], gly=[])
 
 #%% Optimization - estimating the parameters
 # initial_estimative: List with the initial estimates for the parameters;
@@ -99,7 +99,7 @@ uy1 = [0.2]*12
 
 #%% Setting the observed data set
 # inputs
-Estime.setDados(data={'Time':time,'UxTime':uxtime,'Temperature':temperature,'Uxtemperature':uxtemperature,'Y':y,'uY':uy1})
+Estime.setData(data={'Time':time, 'UxTime':uxtime, 'Temperature':temperature, 'Uxtemperature':uxtemperature, 'Y':y, 'uY':uy1})
 
 # Defining the previous data set to be used to validation
 # dataType: Defines the purpose of the informed data set: observed, predicao.

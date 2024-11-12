@@ -197,7 +197,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
             self._EstimacaoNaoLinear__flag.ToggleActive('calc_termo_independente')
             self.__coluna_dumb = True
 
-    def setDados(self, data,separador=';',decimal='.', glx=[], gly=[],uxy=None):
+    def setData(self, data, separador=';', decimal='.', glx=[], gly=[], uxy=None):
 
         u'''
         Método para incluir os dados de entrada da estimação e predição (quando chamado setData pela segunda vez)

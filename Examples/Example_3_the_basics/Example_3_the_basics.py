@@ -31,7 +31,7 @@ T = [297.1,298.2,299.3,301.2,304.2,307.2,310.2,314.1,316.2,317.8,318.2,320.2,
 uxT = [0.1]*len(T)
 
 #%% Setting the observed data set using manual format and import
-Estimation.setDados(data=["data_example3",{'T':T,'uT':uxT}])
+Estimation.setData(data=["data_example3", {'T':T, 'uT':uxT}])
 
 #%% Optimization - estimating the parameters,
 # initial_estimative: List with the initial estimates for the parameters;

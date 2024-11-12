@@ -28,7 +28,7 @@ Estime = EstimacaoNaoLinear(model, symbols_z=['frac', 'time', 'temperature'], sy
 
 #%% Setting the observed data set
 #Data entry using  .xlsx
-Estime.setDados(data="data_example2-2")
+Estime.setData(data="data_example2-2")
 
 #%% Optimization - estimating the parameters
 # initial_estimative: List with the initial estimates for the parameters;

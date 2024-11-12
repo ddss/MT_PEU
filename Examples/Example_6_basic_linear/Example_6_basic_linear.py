@@ -20,7 +20,7 @@ y = [.1,.9,2.2,3.2,3.9,4.8]
 uy = [1,1,1,1,1,1]
 #Manual data entry
 
-ER.setDados(data={'gamma':x,'ux':ux,'z':y ,'uy':uy},glx=[],gly=[])
+ER.setData(data={'gamma':x, 'ux':ux, 'z':y , 'uy':uy}, glx=[], gly=[])
 
 
 # Defining the previous data set to be used to parameter estimation

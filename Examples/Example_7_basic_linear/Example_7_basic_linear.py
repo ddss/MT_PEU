@@ -24,7 +24,7 @@ uq= [1, 1, 1, 1]
 # dataType: Defines the purpose of the informed data set: observed, predicao.
 # glx: Degrees of freedom of quantity gamma;
 # gly: Degrees of freedom of quantity z;
-ER.setDados(data={'gamma':x,'ux':ux,'q':q,'uq':uq},glx=[],gly=[])
+ER.setData(data={'gamma':x, 'ux':ux, 'q':q, 'uq':uq}, glx=[], gly=[])
 
 
 #%% Optimization - estimating the parameters

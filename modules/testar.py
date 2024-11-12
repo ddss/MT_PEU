@@ -25,8 +25,8 @@ uy = [1]*41; uxtempo = [1]*41; uxtemperatura = [1]*41
 
 #Execução do MT_PEU
 Estime = EstimacaoNaoLinear(Modelo, simbolos_x=['t','T'], simbolos_y=['z'], simbolos_param=['ko','E'], folder='Exemplo1')
-Estime.setDados(0, (tempo, uxtempo), (temperatura, uxtemperatura))
-Estime.setDados(1, (y, uy))
+Estime.setData(0, (tempo, uxtempo), (temperatura, uxtemperatura))
+Estime.setData(1, (y, uy))
 Estime.setConjunto(tipo='observed')
 Estime.optimize(initial_estimative=[0.5, 25000], algoritmo='ipopt')
 Estime.incertezaParametros(metodoIncerteza='Geral''')
@@ -83,7 +83,7 @@ testdata_S = [(Modelo, ['t','T'], ['z'], ['ko','E'],'Exemplo1',y,tempo,temperatu
 #hessian
 @pytest.mark.parametrize("Modelo, simbolos_x, simbolos_y, simbolos_param, folder, z, tempo, temperatura, uy, uxtempo, uxtemperatura, H",testdata_H)
 def test_hessian(Modelo, simbolos_x, simbolos_y, simbolos_param, Folder, y, tempo, temperatura, uy, uxtempo, uxtemperatura,H):
-    assert round(Estime.Hessiana.mean(),5) == round(H.mean(),5)
+    assert round(Estime.hessian.mean(), 5) == round(H.mean(), 5)
 
 # Sensibilidade
 @pytest.mark.parametrize("Modelo, simbolos_x, simbolos_y, simbolos_param, folder, z, tempo, temperatura, uy, uxtempo, uxtemperatura, S",testdata_S)

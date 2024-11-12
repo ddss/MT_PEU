@@ -22,7 +22,7 @@ Estimation = EstimacaoNaoLinear(Model, symbols_gamma=[r'T'], symbols_ux=[r'uT'],
 
 #%% Setting the observed data set
 
-Estimation.setDados(data="data_exa8.xlsx",glx=[], gly=[])
+Estimation.setData(data="data_exa8.xlsx", glx=[], gly=[])
 # Defining the previous data set to be used to parameter estimation
 # dataType: Defines the purpose of the informed data set: observed, predicao.
 # glx: Degrees of freedom of quantity gamma;
@@ -97,7 +97,7 @@ uY = ((1/P)**2*uP**2 + (-1*-68.2/(8.31446*T))**2*uT**2)**0.5
 # dataType: Defines the purpose of the informed data set: observed, predicao.
 # glx: Degrees of freedom of quantity gamma;
 # gly: Degrees of freedom of quantity z;
-ER.setDados(data={'X1':X,'uX1':uX,'Y1':Y,'uY1':uY},glx=[],gly=[])
+ER.setData(data={'X1':X, 'uX1':uX, 'Y1':Y, 'uY1':uY}, glx=[], gly=[])
 
 #%% Optimization - estimating the parameters
 # report: Informs whether the parameters report should be created (True or False).

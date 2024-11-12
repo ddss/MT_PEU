@@ -136,7 +136,7 @@ class Grandeza:
 
     @property
     def _available_dataType(self):
-        return ['estimation','validation']
+        return ['estimation', 'validation']
 
     @property
     def __configLabel(self):
@@ -382,10 +382,15 @@ class Grandeza:
                 if not isfinite(cond(self.matriz_covariancia)):
                     raise TypeError('The covariance matrix of the quantity is singular.')
 
-    def _SETdata(self, estimativa, matriz_incerteza=None, matriz_covariancia=None, gL=[], NE=None, dataType='estimation', **kwargs):
+    def _SETdata(self, estimativa, matriz_incerteza=None, matriz_covariancia=None, gL=[], NE=None, dataType=None, **kwargs):
 
         if not self.__ID_available[0] in self.__ID:
             self.observed = {}
+            if dataType is None:
+                dataType = 'estimation'
+        else:
+            if dataType is None:
+                dataType = 'validation'
 
         if not dataType in self._available_dataType:
             raise SyntaxError('The dataType should be:{}'.format(self._available_dataType))
@@ -765,22 +770,24 @@ class Grandeza:
                 savefig(base_path+folder+'_'.join(self.simbolos) + '_' + self.__ID_available[0])
                 close()
 
-        if (self.__ID_available[1] in ID) and (self.evaluated['estimation'].matriz_correlacao is not None): # Gráfico Pcolor para evaluated
+        if self.__ID_available[1] in ID: # Gráfico Pcolor para evaluated
             listalabel=[]
             for type_data in dataType_evaluated:
-                # Pastas internas
-                # ------------------------------------------------------------------------------------
-                folder =  sep + base_dir + sep + self._configFolder['plots-subfolder-{}'.format(type_data)]+ sep+ self._configFolder['plots-subfolder-matrizcorrelacao'] + sep
-                Validacao_Diretorio(base_path, folder)
+                if self.evaluated[type_data].matriz_correlacao is not None:
+                    # Pastas internas
+                    # ------------------------------------------------------------------------------------
+                    folder =  sep + base_dir + sep + self._configFolder['plots-subfolder-{}'.format(type_data)]+ sep+ self._configFolder['plots-subfolder-matrizcorrelacao'] + sep
+                    Validacao_Diretorio(base_path, folder)
 
-                # --------------------------------------------------------------------------------------
-                for elemento in self.labelGraficos(printunit=False):
-                    for i in range(self.evaluated[type_data].NE):
-                        listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
-                plot_corr(self.evaluated[type_data].matriz_correlacao[:self.evaluated[type_data].NE * self.NV, :self.evaluated[type_data].NE * self.NV, ], xnames=listalabel, ynames=listalabel,
-                          normcolor=True, cmap=cm1)
-                savefig(base_path + folder+'_'.join(self.simbolos) + '_' + self.__ID_available[1])
-                close()
+                    # --------------------------------------------------------------------------------------
+                    listalabel = []
+                    for elemento in self.labelGraficos(printunit=False):
+                        for i in range(self.evaluated[type_data].NE):
+                            listalabel.append(elemento + r'$_{'+'{}'.format(i+1)+'}$')
+                    plot_corr(self.evaluated[type_data].matriz_correlacao[:self.evaluated[type_data].NE * self.NV, :self.evaluated[type_data].NE * self.NV, ], xnames=listalabel, ynames=listalabel,
+                              normcolor=True, cmap=cm1)
+                    savefig(base_path + folder+'_'.join(self.simbolos) + '_' + self.__ID_available[1])
+                    close()
 
         if (self.__ID_available[2] in ID) and (self.matriz_correlacao is not None): # Gráfico Pcolor para parâmetros
             # Pastas internas
@@ -806,12 +813,11 @@ class Grandeza:
                 Fig.boxplot(self.residual[type_data].matriz_estimativa, label_x=self.labelGraficos(printunit=False), label_y='Resíduos')
                 Fig.salvar_e_fechar(base_path+folder+'boxplot_'+'residual.png')
 
-                base_path = base_path + base_dir
                 for i,nome in enumerate(self.simbolos):
                     # Gráficos da estimação
                     # Pastas internas
                     # ------------------------------------------------------------------------------------
-                    folder = sep + self._configFolder['plots-subfolder-{}'.format(type_data)] + sep + self.simbolos[i] + sep
+                    folder = sep + base_dir + sep + self._configFolder['plots-subfolder-{}'.format(type_data)] + sep + self.simbolos[i] + sep
                     Validacao_Diretorio(base_path, folder)
 
                     # ------------------------------------------------------------------------------------
@@ -857,7 +863,7 @@ class Grandeza:
                 for atributo in ID:
                     y  = eval('self.'+atributo+'["{}"]'.format(type_data)+'.matriz_estimativa')
                     NE = eval('self.'+atributo+'["{}"]'.format(type_data)+'.NE')
-                    print('self.'+atributo+'["{}"]'.format(type_data)+'.matriz_estimativa')
+
                     for i, symb in enumerate(self.simbolos):
                         # Gráficos da estimação
                         # Pastas internas

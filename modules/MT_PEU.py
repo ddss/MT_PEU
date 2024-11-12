@@ -12,7 +12,7 @@ Main class of the PEU calculation engine
 # ---------------------------------------------------------------------
 # Scientific calculations
 from numpy import array, size, linspace, min, max,\
-    mean, nanmax, nanmin, arange, inf, hstack, vstack, zeros
+    mean, nanmax, nanmin, arange, inf, hstack, vstack, zeros, copy, delete
 from numpy.random import uniform, triangular
 from scipy.stats import f, t, chi2
 from scipy.special import factorial
@@ -77,6 +77,7 @@ class EstimacaoNaoLinear:
             self.optimization = 0
             self.setupSolveModel = 0
             self.solveModel = 0
+            self.prediction = 0
             self.uncertainty = 0
             self.regiaoAbrangencia = 0
             self.residualAnalysis = 0
@@ -134,6 +135,10 @@ class EstimacaoNaoLinear:
         @property
         def _before_solveModel(self):
             return ['setupSolveModel']
+
+        @property
+        def _before_prediction(self):
+            return ['setData', 'setupSolveModel', 'optimization']
 
         @property
         def _before_uncertainty(self):
@@ -358,7 +363,7 @@ class EstimacaoNaoLinear:
 
         # Check if base_path is a string
         if kwargs.get(self.__keywordsEntrada[6]) is not None and not isinstance(kwargs.get(self.__keywordsEntrada[6]),
-                                                                                  str):
+                                                                                str):
             raise TypeError('The keyword {} must be a string.'.format(self.__keywordsEntrada[6]))
 
         # ---------------------------------------------------------------------
@@ -413,10 +418,10 @@ class EstimacaoNaoLinear:
         # Variable that controls the name of the folders created by the graphic methods and reports
         self._configFolder = {'plots':'Plots',
                               'plots-{}'.format(self.__tipoGraficos[0]):'Coverage Region',
-                              'plots-{}'.format(self.__tipoGraficos[1]):'Quantity',
-                              'plots-{}'.format(self.__tipoGraficos[2]):'Quantity',
+                              'plots-{}'.format(self.__tipoGraficos[1]):'Quantities',
+                              'plots-{}'.format(self.__tipoGraficos[2]):'Quantities',
                               'plots-{}'.format(self.__tipoGraficos[3]):'Optimization',
-                              'plots-{}'.format(self.__tipoGraficos[4]):'Quantity',
+                              'plots-{}'.format(self.__tipoGraficos[4]):'Quantities',
                               'plots-subfolder-grandezatendencia': 'Observed Trend',
                               'plots-subsubfolder-comparison':'Observed-Evaluated',
                               'plots-subfolder-estimation': 'Estimation',
@@ -451,7 +456,7 @@ class EstimacaoNaoLinear:
 
     @property
     def __graph_flux_association(self):
-        return {'setData':[self.__tipoGraficos[1]],'uncertainty':[self.__tipoGraficos[0], self.__tipoGraficos[2], self.__tipoGraficos[3]],
+        return {'setData':[self.__tipoGraficos[1]],'uncertainty':[self.__tipoGraficos[0], self.__tipoGraficos[2]],
                 'optimization':[self.__tipoGraficos[2],self.__tipoGraficos[3]],'residualAnalysis':[self.__tipoGraficos[4]]}
 
     def __validacaoDadosEntrada(self, dados, udados, NV):
@@ -494,7 +499,7 @@ class EstimacaoNaoLinear:
         if udados.shape[0]*self.z.NV-float(self.parametros.NV) <= 0: # Verificar se há graus de liberdade suficiente
             warn('Insufficient degrees of freedom. Your experimental data set is not enough to estimate the parameters!',UserWarning)
 
-    def setDados(self, data, separador=';', decimal='.', gly=[]):
+    def setData(self, data, separador=';', decimal='.', gly=[]):
         u"""
         setData(self,data,separador=';',decimal='.' ,dataType= None, glx=[],gly=[]):
         ===================================================================================================================
@@ -570,8 +575,8 @@ class EstimacaoNaoLinear:
                 if symb not in list(data.keys()):
                     raise ValueError("The symbol {} was not passed  in database".format(symb))
 
-            Y = array([data[i] for i in self.z.simbolos], ndmin=2, dtype=float).transpose()
-            uY = array([data[i] for i in self.z.simbolos_incertezas], ndmin=2, dtype=float).transpose()
+            Z = array([data[i] for i in self.z.simbolos], ndmin=2, dtype=float).transpose()
+            uZ = array([data[i] for i in self.z.simbolos_incertezas], ndmin=2, dtype=float).transpose()
 
         #-----------------------------------------------------------------------------
         # ROUTINE THAT IMPORTS AND VALIDATES DATA FROM .CSV AND .XLSX FILES
@@ -594,10 +599,10 @@ class EstimacaoNaoLinear:
                     data.remove(element)
 
             for value in Counter(data): # warns that files with repeated names were passed
-               if Counter(data)[value] != 1:
-                 aux_list.append(value)
+                if Counter(data)[value] != 1:
+                    aux_list.append(value)
             if len(aux_list) > 1:
-              warn(f"Files passed with same names :{','.join(aux_list)}.", Warning)
+                warn(f"Files passed with same names :{','.join(aux_list)}.", Warning)
             elif len(aux_list) == 1:
                 warn(f"File passed with same name: {','.join(aux_list)}.", Warning)
 
@@ -676,20 +681,20 @@ class EstimacaoNaoLinear:
                     raise ValueError("The symbol {} was not passed  in database".format(symb))
 
             #Creation of estimation and uncertainty matrices
-            Y = dataframe_geral[self.z.simbolos].to_numpy(dtype=float)
-            uY = dataframe_geral[self.z.simbolos_incertezas].to_numpy(dtype=float)
+            Z = dataframe_geral[self.z.simbolos].to_numpy(dtype=float)
+            uZ = dataframe_geral[self.z.simbolos_incertezas].to_numpy(dtype=float)
 
         else:
             raise TypeError(" The data input can be  a list or string or dictionary, check if the input follows any of these formats")
 
-        self.__validacaoDadosEntrada(Y, uY, self.z.NV)
+        self.__validacaoDadosEntrada(Z, uZ, self.z.NV)
 
         # ---------------------------------------------------------------------
         # ASSIGNMENT OF VALUES TO QUANTITIES
         # ---------------------------------------------------------------------
         # Saving the experimental data in the variables.
         try:
-            self.z._SETdata(estimativa=Y, matriz_incerteza=uY, gL=gly)
+            self.z._SETdata(estimativa=Z, matriz_incerteza=uZ, gL=gly)
         except Exception as erro:
             raise RuntimeError(
                 'Error in the creation of the estimation set of the quantity Y: {}'.format(erro))
@@ -908,27 +913,27 @@ class EstimacaoNaoLinear:
         # optimization problem setup
         S = nlpsol('S', algorithm, nlp, options)
         # passing the arguments for the optimization problem
-        self.otimizacao = S(x0=initial_estimative,
-                            lbx=lower_bound, ubx=upper_bound,
-                            lbg = [0]*nlp['g'].size()[0], ubg=[0]*nlp['g'].size()[0])
+        self.optsolution = S(x0=initial_estimative,
+                             lbx=lower_bound, ubx=upper_bound,
+                             lbg = [0]*nlp['g'].size()[0], ubg=[0]*nlp['g'].size()[0])
 
         # ASSIGNMENT OF VALUES TO QUANTITIES
 
         # ---------------------------------------------------------------------
         # OPTIMAL POINT OF THE OBJECTIVE FUNCTION
         # ---------------------------------------------------------------------
-        self.FOotimo = float(self.otimizacao['f'])
+        self.FOotimo = float(self.optsolution['f'])
         # ---------------------------------------------------------------------
         # OPTIMAL VALUE OF THE PARAMETERS
         # ---------------------------------------------------------------------
-        self.__opt_param = [float(self.otimizacao['x'][i]) for i in range(self.parametros.NV)] # converts DM type in float type
+        self.__opt_param = [float(self.optsolution['x'][i]) for i in range(self.parametros.NV)] # converts DM type in float type
 
         # every time optimization is run all previous information about parameters is lost
         self.parametros._SETparametro(self.__opt_param, None, None,
                                       limite_superior=upper_bound[0:self.parametros.NV],
                                       limite_inferior=lower_bound[0:self.parametros.NV])
 
-        self.z._SETevaluated(estimativa=array(self.otimizacao['x'][self.parametros.NV:]), NE=self.z.observed['estimation'].NE)
+        self.z._SETevaluated(estimativa=array(self.optsolution['x'][self.parametros.NV:]), NE=self.z.observed['estimation'].NE)
 
         # check if the parameters estimative is equal to the informed boundaries
         for i in range(self.parametros.NV):
@@ -940,7 +945,7 @@ class EstimacaoNaoLinear:
             self._out.Parametros(self.parametros, self.FOotimo)
             self._out.Grandezas(self.z, None, dataType='estimation')
 
-         #Conversion of the optimization report to html
+        #Conversion of the optimization report to html
         if optimizationReport is not False:
             with open(self._out.optimization() +'Optimization_report.txt', 'r') as f:
                 n_linhas = len(f.readlines())
@@ -953,94 +958,25 @@ class EstimacaoNaoLinear:
             with open(self._out.optimization() +'Optimization_report.html', 'w') as arquivo:
                 arquivo.writelines(linhas)
 
-    def setupSolveModel(self, symbols_y, symbols_x):
-        u"""
-        Evaluation of the model in order do calculate y, given fixed x in point xo
-        - Parameters
-        ------------
-
-        symbols_y : list of symbols of calculated quantities (must be in symbols_z)
-        symbols_x: list of symbols of fixed quantities (must be in symbols_z)
-        xo: xo estimates to evaluate y
-
-        The degrees of freedom of the model must be zero:
-        number os equations (g)+ nx = ny
-        """
-        self.__controleFluxo.SET_ETAPA('setupSolveModel')
-
-        if len(set(self.z.simbolos)-set(symbols_y+symbols_x)) > 0:
-            raise SyntaxError('All the quantities symbols must be assined. Missing symbol: {}'.format(set(symbols_y+symbols_x)-set(self.z.simbolos)))
-
-        self.__symevalY = [] # calculated variables
-        self.__symevalX = [] # fixed variables
-
-        zmodel = []
-        symmap = {}
-        for symb in self.z.simbolos:
-            symZ = MX.sym('{}eval'.format(symb), 1, 1)
-            zmodel.append(symZ)
-            symmap[symb] = symZ
-
-        for symb in symbols_y:
-            self.__symevalY = vertcat(self.__symevalY, symmap[symb])
-
-        for symb in symbols_x:
-            self.__symevalX = vertcat(self.__symevalX, symmap[symb])
-
-        self._symEvalModel = vertcat(*self.__modelo(self.__symParam, zmodel, self.__symGamma))
-
-        self._execEvalModel = Function('symmodelyx',
-                                        [self.__symevalY, self.__symParam, self.__symevalX, self.__symGamma],
-                                        [self._symEvalModel])
-
-    def solveModel(self, param_values, x_values, y_initial_estimate, gamma_values=[]):
-        u"""
-        Evaluate the model, given calculated parameters,
-        """
-        self.__controleFluxo.SET_ETAPA('solveModel')
-
-        #---Validation---#
-        if not (type(param_values) is list and type(x_values) is list and type(y_initial_estimate) is list and type(gamma_values) is list):
-            raise SyntaxError('All the parameters and quantities must be lists.')
-
-        if len(param_values) != self.parametros.NV:
-            raise SyntaxError('The parameters size must be: {}'.format(self.parametros.NV))
-
-        if len(x_values) != self.__symevalX.size()[0]:
-            raise SyntaxError('The x size must be: {}'.format(self.__symevalX.size()[0]))
-
-        if len(y_initial_estimate) != self.__symevalY.size()[0]:
-            raise SyntaxError('The y size must be: {}'.format(self.__symevalY.size()[0]))
-
-        execModel = Function('symmodel',
-                                    [self.__symevalY],
-                                    [self._execEvalModel(self.__symevalY, param_values, x_values, gamma_values)])
-
-        solver = rootfinder('evalModel', 'newton', execModel)
-
-        ysolution = solver(y_initial_estimate)
-
-        return ysolution
-
-    def __Hessiana_Lagran_VarDecisao(self):
+    def __Hessian_Lagran_DecisionVar(self):
 
         aux = Function('hessian', [self.__symDecisionVariables, self.__symmu, self.__symZobs, self.__symGamma],
                        [hessian(self.__symLagrangeana, vertcat(self.__symDecisionVariables, self.__symmu))[0]]) #function
 
-        self.Hessiana = array(aux(self.otimizacao['x'], self.otimizacao['lam_g'], self.z.observed['estimation'].vetor_estimativa, self.gamma.estimativas)) #numeric
+        self.hessian = array(aux(self.optsolution['x'], self.optsolution['lam_g'], self.z.observed['estimation'].vetor_estimativa, self.gamma.estimativas)) #numeric
 
-        return self.Hessiana
+        return self.hessian
 
-    def __Matriz_Gy(self):
+    def __Gz(self):
 
         aux = Function('Gz', [self.__symDecisionVariables, self.__symmu, self.__symZobs, self.__symGamma],
                        [jacobian(jacobian(self.__symLagrangeana, vertcat(self.__symDecisionVariables, self.__symmu)), vertcat(self.__symZobs, self.__symGamma))]) # function
 
-        self.Gy = array(aux(self.otimizacao['x'], self.otimizacao['lam_g'], self.z.observed['estimation'].vetor_estimativa, self.gamma.estimativas))
+        self.Gy = array(aux(self.optsolution['x'], self.optsolution['lam_g'], self.z.observed['estimation'].vetor_estimativa, self.gamma.estimativas))
 
         return self.Gy
 
-    def uncertainty(self, report = True, objectiveFunctionMapping=False, **kwargs):
+    def uncertainty(self, report= True, objectiveFunctionMapping=False, **kwargs):
         u"""
         Uncertainty(self, Report = True, objectiveFunctionMapping=True, **kwargs)
 
@@ -1074,6 +1010,7 @@ class EstimacaoNaoLinear:
         # FLUX
         # ---------------------------------------------------------------------
         self.__controleFluxo.SET_ETAPA('uncertainty')
+
         # ---------------------------------------------------------------------
         # VALIDATION
         # ---------------------------------------------------------------------
@@ -1087,21 +1024,21 @@ class EstimacaoNaoLinear:
         # Evaluation of the auxiliary matrices
         # Hessian matrix of the objective function
         # Only evaluated if the chosen method is 2InvHess or Geral
-        self.__Hessiana_Lagran_VarDecisao()
+        self.__Hessian_Lagran_DecisionVar()
 
         # Inverse of the Hessian matrix of the objective function in relation to the parameters
-        invHess = inv(self.Hessiana)
+        invHess = inv(self.hessian)
 
         # Gz: second partial derivatives of the objective function in relation to parameters and experimental data
-        self.__Matriz_Gy()
+        self.__Gz()
 
         # ---------------------------------------------------------------------
         # ASSESSMENT OF THE UNCERTAINTY OF THE PARAMETERS
         # ---------------------------------------------------------------------
         if self.gamma.NV > 0:
-            Uxx = diag(self.gamma.incertezas ** 2)
+            Ugammagamma = diag(self.gamma.incertezas ** 2)
             U_exp_1 = hstack((self.z.observed['estimation'].matriz_covariancia, zeros((self.z.NV, self.gamma.NV))))
-            U_exp_2 = hstack((zeros((self.gamma.NV, self.z.NV)), Uxx))
+            U_exp_2 = hstack((zeros((self.gamma.NV, self.z.NV)), Ugammagamma))
             U_exp = vstack((U_exp_1,U_exp_2))
         else:
             U_exp = self.z.observed['estimation'].matriz_covariancia
@@ -1115,7 +1052,7 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         self.parametros._updateParametro(matriz_covariancia=matriz_covariancia[0:self.parametros.NV,0:self.parametros.NV])
 
-        self.z._SETevaluated(estimativa=array(self.otimizacao['x'][self.parametros.NV:]),
+        self.z._SETevaluated(estimativa=array(self.optsolution['x'][self.parametros.NV:]),
                              matriz_covariancia=matriz_covariancia[self.parametros.NV:self.parametros.NV + self.z.NV * self.z.observed['estimation'].NE, self.parametros.NV:self.parametros.NV + self.z.NV * self.z.observed['estimation'].NE],
                              gL=[[self.z.observed['estimation'].NE * self.z.NV - self.parametros.NV] * self.z.observed['estimation'].NE] * self.z.NV,
                              NE=self.z.observed['estimation'].NE)
@@ -1130,10 +1067,10 @@ class EstimacaoNaoLinear:
 
         # The coverage region is only executed if there is a history of positions and fitness
         if self.__controleFluxo.mapeamentoFO and self.parametros.NV != 1:
-            # OBTAINING THE REGION:
-            regiao = self.regiaoAbrangencia()
-            # ATTRIBUTION TO THE QUANTITY
-            self.parametros._updateParametro(regiao_abrangencia=regiao)
+                # OBTAINING THE REGION:
+                regiao = self.regiaoAbrangencia()
+                # ATTRIBUTION TO THE QUANTITY
+                self.parametros._updateParametro(regiao_abrangencia=regiao)
 
         # parameters report creation
         if report is True:
@@ -1256,8 +1193,8 @@ class EstimacaoNaoLinear:
                              [self.parametros.matriz_covariancia[p2, p1], self.parametros.matriz_covariancia[p2, p2]]])
 
                 coordenadas_x, coordenadas_y, width, height, theta = eval_cov_ellipse(cov, [self.parametros.estimativa[p1],
-                                                                      self.parametros.estimativa[p2]],
-                                                                FOcomparacao, ax=False)
+                                                                                            self.parametros.estimativa[p2]],
+                                                                                      FOcomparacao, ax=False)
 
                 extremo_elipse_superior[p1] = nanmax(coordenadas_x)
                 extremo_elipse_superior[p2] = nanmax(coordenadas_y)
@@ -1450,6 +1387,162 @@ class EstimacaoNaoLinear:
 
         return regiao
 
+    def setupSolveModel(self, symbols_y, symbols_x):
+        u"""
+        Evaluation of the model in order do calculate y, given fixed x in point xo
+        - Parameters
+        ------------
+
+        symbols_y : list of symbols of calculated quantities (must be in symbols_z)
+        symbols_x: list of symbols of fixed quantities (must be in symbols_z)
+        xo: xo estimates to evaluate y
+
+        The degrees of freedom of the model must be zero:
+        number os equations (g)+ nx = ny
+        """
+        self.__controleFluxo.SET_ETAPA('setupSolveModel')
+
+        if len(set(self.z.simbolos) - set(symbols_y + symbols_x)) > 0:
+            raise SyntaxError('All the quantities symbols must be assined. Missing symbol: {}'.format(
+                set(symbols_y + symbols_x) - set(self.z.simbolos)))
+
+        self._setupModel = {'y': symbols_y, 'x': symbols_x}
+
+        self.__symevalY = []  # calculated variables
+        self.__symevalX = []  # fixed variables
+
+        zmodel = []
+        symmap = {}
+        for symb in self.z.simbolos:
+            symZ = MX.sym('{}eval'.format(symb), 1, 1)
+            zmodel.append(symZ)
+            symmap[symb] = symZ
+
+        for symb in symbols_y:
+            self.__symevalY = vertcat(self.__symevalY, symmap[symb])
+
+        for symb in symbols_x:
+            self.__symevalX = vertcat(self.__symevalX, symmap[symb])
+
+        self._symEvalModel = vertcat(*self.__modelo(self.__symParam, zmodel, self.__symGamma))
+
+        self._execEvalModel = Function('symmodelyx',
+                                       [self.__symevalY, self.__symParam, self.__symevalX, self.__symGamma],
+                                       [self._symEvalModel])
+
+    def solveModel(self, param_values, x_values, y_initial_estimate, gamma_values=[]):
+        u"""
+        Evaluate the model, given calculated parameters,
+        """
+        self.__controleFluxo.SET_ETAPA('solveModel')
+
+        # ---Validation---#
+        if not (type(param_values) is list and type(x_values) is list and type(y_initial_estimate) is list and type(
+                gamma_values) is list):
+            raise SyntaxError('All the parameters and quantities must be lists.')
+
+        if len(param_values) != self.parametros.NV:
+            raise SyntaxError('The parameters size must be: {}'.format(self.parametros.NV))
+
+        if len(x_values) != self.__symevalX.size()[0]:
+            raise SyntaxError('The x size must be: {}'.format(self.__symevalX.size()[0]))
+
+        if len(y_initial_estimate) != self.__symevalY.size()[0]:
+            raise SyntaxError('The y size must be: {}'.format(self.__symevalY.size()[0]))
+
+        execModel = Function('symmodel',
+                             [self.__symevalY],
+                             [self._execEvalModel(self.__symevalY, param_values, x_values, gamma_values)])
+
+        solver = rootfinder('evalModel', 'newton', execModel)
+
+        return solver(y_initial_estimate)
+
+    def __jacModel(self):
+
+        jac_Y = jacobian(self._symEvalModel, self.__symevalY)
+
+        self.jacModelY = Function('jacmodely', [self.__symevalY, self.__symParam, self.__symevalX, self.__symGamma],
+                                  [jac_Y])
+
+        jac_Param_X_Gamma = jacobian(self._symEvalModel, vertcat(self.__symParam, self.__symevalX, self.__symGamma))
+
+        self.jacModelParamXGamma = Function('jacmodelparamxgamma', [self.__symevalY, self.__symParam, self.__symevalX, self.__symGamma],
+                                  [jac_Param_X_Gamma])
+
+    def prediction(self):
+        u"""
+        Prediction of the model given the validation data
+        """
+        self.__controleFluxo.SET_ETAPA('prediction')
+
+        idy = []
+        for symb in self._setupModel['y']:
+            idy.append(self.z.simbolos.index(symb))
+
+        self.__jacModel()
+
+        ypredicted = []
+        uyypredicted = []
+        for pos, data in enumerate(self.z.observed['validation'].matriz_estimativa):
+            datamap = {}
+            for i, symb in enumerate(self.z.simbolos):
+                datamap[symb] = data[i]
+
+            data_y = []
+            for symb in self._setupModel['y']:
+                data_y.append(datamap[symb])
+
+            data_x = []
+            for symb in self._setupModel['x']:
+                data_x.append(datamap[symb])
+
+            ypredicted.append(self.solveModel(self.parametros.estimativa, data_x, data_y, self.gamma.estimativas))
+
+            # uncertainty
+            if self.__controleFluxo.uncertainty:
+                # dY = -inv(dg/dy)*(dg/dxgamma)*dXgamma
+                U = diag(self.z.observed['validation'].matriz_incerteza[pos]**2)
+                Uxx = delete(delete(U, idy, axis=1), idy, axis=0)
+
+                U_exp_1 = hstack((self.parametros.matriz_covariancia, zeros((self.parametros.matriz_covariancia.shape[0], Uxx.shape[1]))))
+                U_exp_2 = hstack((zeros((Uxx.shape[0],self.parametros.NV)), Uxx))
+
+                U_exp = vstack((U_exp_1,U_exp_2))
+
+                if self.gamma.NV > 0:
+                    Ugammagamma = diag(self.gamma.incertezas ** 2)
+                    U_exp_1 = hstack((U_exp, zeros((U_exp.shape[0], self.gamma.NV))))
+                    U_exp_2 = hstack((zeros((self.gamma.NV, U_exp.shape[1])), Ugammagamma))
+                    U_exp = vstack((U_exp_1,U_exp_2))
+
+                invjacModelY_data = inv(array(self.jacModelY(ypredicted[-1], self.parametros.estimativa, data_x, self.gamma.estimativas)))
+                jacModelXGamma_data = array(self.jacModelParamXGamma(ypredicted[-1], self.parametros.estimativa,data_x,self.gamma.estimativas))
+
+                uyypredicted.append(invjacModelY_data.dot(jacModelXGamma_data).dot(U_exp).dot(jacModelXGamma_data.transpose()).dot(invjacModelY_data))
+
+        # CONVERSÕES DE VARIÁVEIS
+        ypredicted = array(ypredicted, dtype=float).reshape(
+            len(self._setupModel['y']) * self.z.observed['validation'].NE, 1)
+
+        if self.__controleFluxo.uncertainty:
+            # conversão de covariância para incerteza
+            uypredicted = (array(uyypredicted, dtype=float).reshape(
+                len(self._setupModel['y']) * self.z.observed['validation'].NE, 1))**0.5
+            evaluated_uz = copy(self.z.observed['validation'].matriz_incerteza)
+        else:
+            evaluated_uz = None
+
+        # SALVAR
+        evaluated_z = copy(self.z.observed['validation'].matriz_estimativa)
+        for i, symb in enumerate(self._setupModel['y']):
+            coluna_z = self.z.simbolos.index(symb)
+            evaluated_z[:, coluna_z] = ypredicted[:, i]
+            if self.__controleFluxo.uncertainty:
+                evaluated_uz[:, coluna_z] = uypredicted[:, i]
+
+        self.z._SETevaluated(evaluated_z, matriz_incerteza = evaluated_uz, dataType='validation')
+
     def residualAnalysis(self, report=True, dataType=[], **kwargs):
         u"""
         residualAnalysis(self, report=True, **kwargs)
@@ -1512,8 +1605,8 @@ class EstimacaoNaoLinear:
                 SST = sum((self.z.observed[type_data].matriz_estimativa[:, i] - \
                            mean(self.z.observed[type_data].matriz_estimativa[:, i])) ** 2)
                 self.estatisticas[type_data]['R2'][symb]         = 1 - SSE/SST
-                self.estatisticas[type_data]['R2adjusted'][symb] = 1 - (SSE / (self.z.observed[type_data].NE - self.parametros.NV))\
-                                           /(SST / (self.z.observed[type_data].NE - 1))
+                self.estatisticas[type_data]['R2adjusted'][symb] = 1 - (SSE / (self.z.observed[type_data].NE - self.parametros.NV)) \
+                                                                   /(SST / (self.z.observed[type_data].NE - 1))
 
             # ---------------------------------------------------------------------
             # EXECUTION OF STATISTICAL TESTS
@@ -1649,92 +1742,24 @@ class EstimacaoNaoLinear:
         # created plots for the output data (calculated)
         # quantities-calculated
         if self.__tipoGraficos[2] in types:
-            base_dir = sep + self._configFolder['plots-{}'.format(self.__tipoGraficos[2])] + sep
-            Validacao_Diretorio(base_path, base_dir)
+            folder = sep + self._configFolder['plots-{}'.format(self.__tipoGraficos[2])] + sep
+            Validacao_Diretorio(base_path, folder)
 
             # evaluates if the parametersUncertainty method was executed at any time
             if self.__controleFluxo.uncertainty:
-                self.parametros.Graficos(base_path, base_dir, ID=['parametros'])
+                self.parametros.Graficos(base_path, folder, ID=['parametros'])
             else:
                 warn('The graphs involving parameters could not be created because the uncertainty method was not executed.',UserWarning)
 
-            # evaluates if optimization method was executed at any time
-            if self.__controleFluxo.optimization:
-                self.z.Graficos(base_path, base_dir, ID=['evaluated'], Fig=Fig)
-            else:
-                warn('The graphs involving the quantities could not be created because the optimization method was not executed.',
-                    UserWarning)
-
-        # coverage region
-        if self.__tipoGraficos[0] in types:
-            # The plots of the coverage region will be created only if the covariance matrix of the parameters has been calculated.
-            if self.__controleFluxo.uncertainty:
-                # Estimation plots
-                if self.parametros.NV > 1:
-                    base_dir = sep + self._configFolder['plots-{}'.format(self.__tipoGraficos[0])] + sep
-                    Validacao_Diretorio(base_path, base_dir)
-                # the plots can only be executed if the number of parameters is greater than 1
-                if self.parametros.NV != 1:
-                    # number of non-repeated combinations for the parameters
-                    Combinacoes = int(factorial(self.parametros.NV)/(factorial(self.parametros.NV-2)*factorial(2)))
-                    p1 = 0; p2 = 1; cont = 0; passo = 1 # inicialiação dos contadores (pi e p2 são indinces dos parâmetros
-                    # passo: counts the number of evaluated parameters
-                    # cont: compute (param.NV - step1)+(param.NV - step2)
-
-                    for pos in range(Combinacoes):
-                        if pos == (self.parametros.NV-1)+cont:
-                            p1 +=1; p2 = p1+1; passo +=1
-                            cont += self.parametros.NV-passo
-
-                        # Plots the coverage region by likelihood method
-                        if self.__controleFluxo.regiaoAbrangencia and self.parametros.regiao_abrangencia != []:
-                            aux1 = [] # auxiliary list -> coverage region for the parameter P1
-                            aux2 = [] # auxiliary list -> coverage region for the parameter P2
-                            for it in range(int(size(self.parametros.regiao_abrangencia)/self.parametros.NV)):
-                                aux1.append(self.parametros.regiao_abrangencia[it][p1])
-                                aux2.append(self.parametros.regiao_abrangencia[it][p2])
-                            Fig.grafico_dispersao_sem_incerteza(array(aux1), array(aux2),
-                                                                add_legenda=True, corrigir_limites=False,
-                                                                marker='o', linestyle='None', color='b', linewidth=2.0, zorder=1)
-                        # Plots the coverage region by linearization (ellipse) method
-                        fisher, ellipseComparacao = self.__criteriosAbrangencia()
-
-                        cov = array([[self.parametros.matriz_covariancia[p1,p1], self.parametros.matriz_covariancia[p1,p2]],
-                                     [self.parametros.matriz_covariancia[p2,p1], self.parametros.matriz_covariancia[p2,p2]]])
-
-                        Fig.elipse_covariancia(cov,[self.parametros.estimativa[p1],self.parametros.estimativa[p2]],ellipseComparacao)
-
-                        if self.__controleFluxo.regiaoAbrangencia and self.parametros.regiao_abrangencia != []:
-                            Fig.set_legenda([u'Verossimilhança','Elipse'], loc='best')
-                        else:
-                            Fig.set_legenda(['Elipse'], loc='best')
-
-                        Fig.set_label(self.parametros.labelGraficos()[p1], self.parametros.labelGraficos()[p2])
-
-                        # SAVE THE PLOT
-                        Fig.salvar_e_fechar(base_path+base_dir+'regiao_verossimilhanca'+'_'+
-                                    str(self.parametros.simbolos[p1])+'_'+str(self.parametros.simbolos[p2])+'.png',
-                                            config_axes=True)
-                        p2+=1
-                else:
-                    warn('The coverage region graphs could not be created, because there is only one parameter.',UserWarning)
-
-            else:
-                warn('The coverage region graphs could not be created because the uncertaintyParameters method was not run OR in the SETparameter method the parameters variance was not defined',UserWarning)
-
-        # calculated
-        if self.__tipoGraficos[2] in types:
             # The execution of the prediction method is necessary for this flux
             if self.__controleFluxo.optimization:
                 for type_data in dataType_evaluated:
-
                     # -----------------------------------------------------------------------------------
                     # created plots for the experimental data
-                    folder = sep + self._configFolder['plots-{}'.format(self.__tipoGraficos[2])] + sep + \
-                             self._configFolder['plots-subfolder-{}'.format(type_data)] + sep + self._configFolder[
-                                 'plots-subfolder-grandezatendencia'] + sep
+                    folder = sep + self._configFolder['plots-{}'.format(self.__tipoGraficos[2])] + sep
                     Validacao_Diretorio(base_path, folder)
-                    self.z.Graficos(base_path, base_dir, ID=['evaluated'], dataType=[type_data], Fig=Fig)
+
+                    self.z.Graficos(base_path, folder, ID=['evaluated'], dataType=[type_data], Fig=Fig)
 
                     # Internal folders
                     # ------------------------------------------------------------------------------------
@@ -1835,13 +1860,13 @@ class EstimacaoNaoLinear:
                                                                 fator_abrangencia_x=t_cal, fator_abrangencia_y=t_val,
                                                                 fmt="o", corrigir_limites=True, config_axes=False)
                             Fig.grafico_dispersao_sem_incerteza(diagonal, diagonal, linestyle='-', color='k', linewidth=2.0,
-                                                                 corrigir_limites=False, config_axes=False)
+                                                                corrigir_limites=False, config_axes=False)
                             Fig.set_label(self.z.labelGraficos('observed')[iy],
                                           self.z.labelGraficos('evaluated')[iy])
                             Fig.salvar_e_fechar(base_path + folder + str(self.z.simbolos[iy]) + '_interval.png',
                                                 config_axes=True,
                                                 reiniciar=False)
-                                                # If there is no validation data, a test based on the F test is applied
+                            # If there is no validation data, a test based on the F test is applied
 
                             # Comparison between the experimental (validation) and calculated values by the model, with variance,
                             # by samples
@@ -1867,6 +1892,79 @@ class EstimacaoNaoLinear:
                             Fig.set_legenda(['interval F test'], fontsize = 12, loc='best')
                             Fig.salvar_e_fechar(base_path + folder + str(self.z.simbolos[iy]) + '_interval_F.png',
                                                 config_axes=False)
+
+                # coverage region
+                if self.__tipoGraficos[0] in types:
+                    # The plots of the coverage region will be created only if the covariance matrix of the parameters has been calculated.
+                    if self.__controleFluxo.uncertainty:
+                        # Estimation plots
+                        if self.parametros.NV > 1:
+                            base_dir = sep + self._configFolder['plots-{}'.format(self.__tipoGraficos[0])] + sep
+                            Validacao_Diretorio(base_path, base_dir)
+                        # the plots can only be executed if the number of parameters is greater than 1
+                        if self.parametros.NV != 1:
+                            # number of non-repeated combinations for the parameters
+                            Combinacoes = int(
+                                factorial(self.parametros.NV) / (factorial(self.parametros.NV - 2) * factorial(2)))
+                            p1 = 0;
+                            p2 = 1;
+                            cont = 0;
+                            passo = 1  # inicialiação dos contadores (pi e p2 são indinces dos parâmetros
+                            # passo: counts the number of evaluated parameters
+                            # cont: compute (param.NV - step1)+(param.NV - step2)
+
+                            for pos in range(Combinacoes):
+                                if pos == (self.parametros.NV - 1) + cont:
+                                    p1 += 1;
+                                    p2 = p1 + 1;
+                                    passo += 1
+                                    cont += self.parametros.NV - passo
+
+                                # Plots the coverage region by likelihood method
+                                if self.__controleFluxo.regiaoAbrangencia and self.parametros.regiao_abrangencia != []:
+                                    aux1 = []  # auxiliary list -> coverage region for the parameter P1
+                                    aux2 = []  # auxiliary list -> coverage region for the parameter P2
+                                    for it in range(int(size(self.parametros.regiao_abrangencia) / self.parametros.NV)):
+                                        aux1.append(self.parametros.regiao_abrangencia[it][p1])
+                                        aux2.append(self.parametros.regiao_abrangencia[it][p2])
+                                    Fig.grafico_dispersao_sem_incerteza(array(aux1), array(aux2),
+                                                                        add_legenda=True, corrigir_limites=False,
+                                                                        marker='o', linestyle='None', color='b',
+                                                                        linewidth=2.0, zorder=1)
+                                # Plots the coverage region by linearization (ellipse) method
+                                fisher, ellipseComparacao = self.__criteriosAbrangencia()
+
+                                cov = array([[self.parametros.matriz_covariancia[p1, p1],
+                                              self.parametros.matriz_covariancia[p1, p2]],
+                                             [self.parametros.matriz_covariancia[p2, p1],
+                                              self.parametros.matriz_covariancia[p2, p2]]])
+
+                                Fig.elipse_covariancia(cov,
+                                                       [self.parametros.estimativa[p1], self.parametros.estimativa[p2]],
+                                                       ellipseComparacao)
+
+                                if self.__controleFluxo.regiaoAbrangencia and self.parametros.regiao_abrangencia != []:
+                                    Fig.set_legenda([u'Verossimilhança', 'Elipse'], loc='best')
+                                else:
+                                    Fig.set_legenda(['Elipse'], loc='best')
+
+                                Fig.set_label(self.parametros.labelGraficos()[p1], self.parametros.labelGraficos()[p2])
+
+                                # SAVE THE PLOT
+                                Fig.salvar_e_fechar(base_path + base_dir + 'coverage_region' + '_' +
+                                                    str(self.parametros.simbolos[p1]) + '_' + str(
+                                    self.parametros.simbolos[p2]) + '.png',
+                                                    config_axes=True)
+                                p2 += 1
+                        else:
+                            warn(
+                                'The coverage region graphs could not be created, because there is only one parameter.',
+                                UserWarning)
+
+                    else:
+                        warn(
+                            'The coverage region graphs could not be created because the uncertaintyParameters method was not run OR in the SETparameter method the parameters variance was not defined',
+                            UserWarning)
 
         # Residual analysis
         if (self.__tipoGraficos[4] in types):

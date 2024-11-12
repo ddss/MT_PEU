@@ -20,7 +20,7 @@ def Model(param, x, args):
 Estimation = EstimacaoNaoLinear(Model, symbols_gamma=['T', 'M'], symbols_ux=['uT', 'uM'], symbols_z=['PHI'], symbols_uz=['uPHI'],
                                 symbols_param=['B01','B02','B03','B11','B12','B13','C1','C2','C3'], folder='CoefOsmotico')
 #%% Data entry using .CSV
-Estimation.setDados(data='Dados',separador= ';',decimal=',')
+Estimation.setData(data='Dados', separador=';', decimal=',')
 
 #%% Optimization - estimating the parameters
 # initial_estimate: list containing initial estimate for optimization algorithm

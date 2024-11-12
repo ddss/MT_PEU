@@ -20,7 +20,7 @@ def model(param, y, x, *args):
 # symbols_param: list of symbols for the parameters to be estimated;
 # folder: string with the name of the folder where reports and charts will be saved;
 Estime = EstimacaoNaoLinear(model, symbols_z=['frac', 'time', 'temperature'], symbols_uz=['ufrac', 'utime', 'utemperature'],
-                            symbols_param=['ko','E'], folder='resultadoimplicito')
+                            symbols_param=['ko','E'], folder='resultado')
 
 #%% Defining the observed data set
 Frac = [0.9,0.949,0.886,0.785,0.791,0.890,0.787,0.877,0.938,
@@ -45,12 +45,11 @@ temperature = [600.0,600.0,612.0,612.0,612.0,612.0,620.0,620.0,620.0,
 uxtemperature = [1]*41
 
 #Data entry manual
-Estime.setDados(data={'time':time,'utime':uxtime,'temperature':temperature,
+Estime.setData(data={'time':time, 'utime':uxtime, 'temperature':temperature,
                       'utemperature':uxtemperature,'frac':Frac,'ufrac':ufrac})
 
-Estime.setupSolveModel(['frac'], ['time','temperature'])
-
-Estime.solveModel([8.625e-01, 2.764e+04],[120,600], [0.9])
+Estime.setData(data={'time':time, 'utime':uxtime, 'temperature':temperature,
+                      'utemperature':uxtemperature,'frac':Frac,'ufrac':ufrac})
 
 #%% Optimization - estimating the parameters
 # initial_estimate: list containing initial estimate for optimization algorithm
@@ -62,6 +61,11 @@ Estime.optimize(initial_estimative=[0.5,25000]+Frac+time+temperature,
 # using solely default options
 Estime.uncertainty()
 
+#%% prediction
+Estime.setupSolveModel(['frac'], ['time','temperature'])
+
+Estime.prediction()
+
 #%% Evaluating residuals and quality index
 # using solely default options
 Estime.residualAnalysis()
@@ -70,7 +74,7 @@ Estime.residualAnalysis()
 # using solely default options
 Estime.plots()
 
-#Estime.reports()
+Estime.reports(export_z=True, export_cov_z=True)
 
 #%% Reference of this case study
 # SCHWAAB, M.M.;PINTO, J.C. Análise de Dados Experimentais I: Fundamentos da Estátistica e Estimação de Parâmetros.
