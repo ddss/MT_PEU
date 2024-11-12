@@ -6,11 +6,11 @@ from numpy import exp
 
 #%% Model definition
 # def Model: The def model specifies the equations with their respective parameters.
-def Model(param, x, *args):
+def model(param, y, gamma):
     ko, E = param[0], param[1]
-    time, T = x[:,0], x[:,1]
+    frac, time, T = y[0], y[1], y[2]
 
-    return exp(-ko * time * exp(-E * (1 / T - 1. / 630.)))
+    return [frac - exp(-ko * time * exp(-E * (1 / T - 1. / 630.)))]
 
 #%% Starting the MT_PEU main object
 # Model: Pass the model defined in def Model;
@@ -23,15 +23,12 @@ def Model(param, x, *args):
 # units_param: List of units of measurement of the parameters;
 # units_x: List of units of measurement of dependent quantities;
 # folder: Defines the name of the folder where the results will be saved.
-Estime = EstimacaoNaoLinear(Model, symbols_gamma=['Time', 'Temperature'], symbols_ux=['UxTime', 'Uxtemperature'], units_x=['s', 'K'], label_latex_x=[r'$t$', '$T$'],
-                            symbols_z=['Y'], symbols_uz=['uY'], units_y=['adm'],
-                            symbols_param=['ko', 'E'], units_param=['adm','K'],
-                            label_latex_param=[r'$k_o$', r'$E$'],
-                            folder='Example5')
+Estime = EstimacaoNaoLinear(model, symbols_z=['frac', 'time', 'temperature'], symbols_uz=['ufrac', 'utime', 'utemperature'],
+                            symbols_param=['ko','E'], folder='resultado')
 
 
 #%% Setting the observed data set
-Estime.setData(data="data_exa5", glx=[], gly=[])
+Estime.setData(data="data_exa5")
 
 #%% Optimization - estimating the parameters
 # initial_estimative: List with the initial estimates for the parameters;
@@ -40,8 +37,10 @@ Estime.setData(data="data_exa5", glx=[], gly=[])
 # algorithm: Informs the optimization algorithm that will be used. Each algorithm has its own keywords;
 # optimizationReport: Informs whether the optimization report should be created (True or False);
 # report: Informs whether the parameters report should be created (True or False).
-Estime.optimize(initial_estimative=[0.005, 20000.000], algorithm='ipopt', lower_bound=[0.006,15000], upper_bound=[100,30000],
-                optimizationReport = True, report= False)
+NE = Estime.z.observed['estimation'].NE
+Estime.optimize(initial_estimative=[0.005, 20000.000]+Estime.z.observed['estimation'].lista_estimativa,
+                lower_bound=[0.006,15000]+[0]*NE+[0]*NE+[500]*NE,
+                upper_bound=[100,30000]+[1]*NE+[200]*NE+[700]*NE)
 
 #%% Evaluating the parameters uncertainty and coverage region
 # uncertaintyMethod: method for calculating the covariance matrix of the parameters;
@@ -52,8 +51,7 @@ Estime.optimize(initial_estimative=[0.005, 20000.000], algorithm='ipopt', lower_
 # increases the execution time
 # report: Informs whether the parameters report should be created.
 
-Estime.parametersUncertainty(uncertaintyMethod='Geral',objectiveFunctionMapping=True, lower_bound=[7.2e-3,26400], upper_bound=[7.7e-3,28600],
-                             parametersReport = True, iterations=200)
+Estime.uncertainty()
 
 #%% Evaluating model predictions
 # export_y: Exports the calculated data of z, its uncertainty, and degrees of freedom in a txt with comma separation (True or False);
@@ -61,14 +59,15 @@ Estime.parametersUncertainty(uncertaintyMethod='Geral',objectiveFunctionMapping=
 # export_cov_y: Exports the covariance matrix of z (True or False);
 # export_x: Exports the calculated data of gamma, its uncertainty, and degrees of freedom in a txt with comma separation(True or False);
 # export_cov_x: Exports the covariance matrix of gamma (True or False).
+Estime.setupSolveModel(['frac'],['temperature','time'])
 
-Estime.prediction(export_y=True,export_y_xls=True, export_cov_y=True, export_x=True, export_cov_x=True)
+Estime.prediction()
 
 #%% Evaluating residuals and quality index
 Estime.residualAnalysis(report=True)
 
 #%% Plotting the main results
-Estime.plots()
+#Estime.plots()
 
 # =================================================================================
 # OPTIONAL: VALIDATION
@@ -99,7 +98,7 @@ uy1 = [0.2]*12
 
 #%% Setting the observed data set
 # inputs
-Estime.setData(data={'Time':time, 'UxTime':uxtime, 'Temperature':temperature, 'Uxtemperature':uxtemperature, 'Y':y, 'uY':uy1})
+Estime.setData(data={'time':time, 'utime':uxtime, 'temperature':temperature, 'utemperature':uxtemperature, 'frac':y, 'ufrac':uy1})
 
 # Defining the previous data set to be used to validation
 # dataType: Defines the purpose of the informed data set: observed, predicao.
@@ -113,7 +112,7 @@ Estime.setData(data={'Time':time, 'UxTime':uxtime, 'Temperature':temperature, 'U
 # export_cov_y: Exports the covariance matrix of z (True or False);
 # export_x: Exports the calculated data of gamma, its uncertainty, and degrees of freedom in a txt with comma separation(True or False);
 # export_cov_x: Exports the covariance matrix of gamma (True or False).
-Estime.prediction(export_y=True,export_y_xls=True, export_cov_y=True, export_x=True, export_cov_x=True)
+Estime.prediction()
 
 #%% Evaluating residuals and quality index
 Estime.residualAnalysis(report=True)

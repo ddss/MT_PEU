@@ -21,6 +21,7 @@ from pandas import ExcelFile,read_excel,read_csv,concat,DataFrame
 # Operating System Packages
 from os import getcwd, sep
 from casadi import MX,vertcat,horzcat,nlpsol,sum1,jacobian,hessian,mtimes,inv as inv_cas, diag,Function, rootfinder
+from scipy.optimize import fsolve
 # Exception Handling
 from warnings import warn
 from os import listdir
@@ -114,9 +115,9 @@ class EstimacaoNaoLinear:
                 # If there is no predecessor step, the value is assigned to True.
                 teste = teste if teste != [] else [True]
                 # If no predecessor step has been executed, returns an error
-                if not any(teste):
+                if not all(teste):
                     raise SyntaxError('To run the {} method you must first run {}.'.format(etapa, ' or '.join(
-                        getattr(self, '_predecessora_' + etapa))))
+                        getattr(self, '_before_' + etapa))))
             # Assigning the value 1 (executed) to the attribute related to the step being executed
             setattr(self, etapa, 1)
 
@@ -1430,7 +1431,7 @@ class EstimacaoNaoLinear:
                                        [self.__symevalY, self.__symParam, self.__symevalX, self.__symGamma],
                                        [self._symEvalModel])
 
-    def solveModel(self, param_values, x_values, y_initial_estimate, gamma_values=[]):
+    def solveModel(self, param_values, x_values, y_initial_estimate, gamma_values=[], solver='rootfinder'):
         u"""
         Evaluate the model, given calculated parameters,
         """
@@ -1454,9 +1455,14 @@ class EstimacaoNaoLinear:
                              [self.__symevalY],
                              [self._execEvalModel(self.__symevalY, param_values, x_values, gamma_values)])
 
-        solver = rootfinder('evalModel', 'newton', execModel)
+        if solver == 'fsolve':
+            solution = fsolve(lambda x: array(execModel(x),ndmin=2), y_initial_estimate)
+        else:
+            solver = rootfinder('evalModel', 'newton', execModel)
 
-        return solver(y_initial_estimate)
+            solution = solver(y_initial_estimate)
+
+        return solution
 
     def __jacModel(self):
 
@@ -1476,72 +1482,77 @@ class EstimacaoNaoLinear:
         """
         self.__controleFluxo.SET_ETAPA('prediction')
 
-        idy = []
-        for symb in self._setupModel['y']:
-            idy.append(self.z.simbolos.index(symb))
+        if 'validation' in self.z.observed.keys():
 
-        self.__jacModel()
-
-        ypredicted = []
-        uyypredicted = []
-        for pos, data in enumerate(self.z.observed['validation'].matriz_estimativa):
-            datamap = {}
-            for i, symb in enumerate(self.z.simbolos):
-                datamap[symb] = data[i]
-
-            data_y = []
+            idy = []
             for symb in self._setupModel['y']:
-                data_y.append(datamap[symb])
+                idy.append(self.z.simbolos.index(symb))
 
-            data_x = []
-            for symb in self._setupModel['x']:
-                data_x.append(datamap[symb])
+            self.__jacModel()
 
-            ypredicted.append(self.solveModel(self.parametros.estimativa, data_x, data_y, self.gamma.estimativas))
+            ypredicted = []
+            uyypredicted = []
+            for pos, data in enumerate(self.z.observed['validation'].matriz_estimativa):
+                datamap = {}
+                for i, symb in enumerate(self.z.simbolos):
+                    datamap[symb] = data[i]
 
-            # uncertainty
-            if self.__controleFluxo.uncertainty:
-                # dY = -inv(dg/dy)*(dg/dxgamma)*dXgamma
-                U = diag(self.z.observed['validation'].matriz_incerteza[pos]**2)
-                Uxx = delete(delete(U, idy, axis=1), idy, axis=0)
+                data_y = []
+                for symb in self._setupModel['y']:
+                    data_y.append(datamap[symb])
 
-                U_exp_1 = hstack((self.parametros.matriz_covariancia, zeros((self.parametros.matriz_covariancia.shape[0], Uxx.shape[1]))))
-                U_exp_2 = hstack((zeros((Uxx.shape[0],self.parametros.NV)), Uxx))
+                data_x = []
+                for symb in self._setupModel['x']:
+                    data_x.append(datamap[symb])
 
-                U_exp = vstack((U_exp_1,U_exp_2))
+                ypredicted.append(self.solveModel(self.parametros.estimativa, data_x, data_y, self.gamma.estimativas))
 
-                if self.gamma.NV > 0:
-                    Ugammagamma = diag(self.gamma.incertezas ** 2)
-                    U_exp_1 = hstack((U_exp, zeros((U_exp.shape[0], self.gamma.NV))))
-                    U_exp_2 = hstack((zeros((self.gamma.NV, U_exp.shape[1])), Ugammagamma))
+                # uncertainty
+                if self.__controleFluxo.uncertainty:
+                    # dY = -inv(dg/dy)*(dg/dxgamma)*dXgamma
+                    U = diag(self.z.observed['validation'].matriz_incerteza[pos]**2)
+                    Uxx = delete(delete(U, idy, axis=1), idy, axis=0)
+
+                    U_exp_1 = hstack((self.parametros.matriz_covariancia, zeros((self.parametros.matriz_covariancia.shape[0], Uxx.shape[1]))))
+                    U_exp_2 = hstack((zeros((Uxx.shape[0],self.parametros.NV)), Uxx))
+
                     U_exp = vstack((U_exp_1,U_exp_2))
 
-                invjacModelY_data = inv(array(self.jacModelY(ypredicted[-1], self.parametros.estimativa, data_x, self.gamma.estimativas)))
-                jacModelXGamma_data = array(self.jacModelParamXGamma(ypredicted[-1], self.parametros.estimativa,data_x,self.gamma.estimativas))
+                    if self.gamma.NV > 0:
+                        Ugammagamma = diag(self.gamma.incertezas ** 2)
+                        U_exp_1 = hstack((U_exp, zeros((U_exp.shape[0], self.gamma.NV))))
+                        U_exp_2 = hstack((zeros((self.gamma.NV, U_exp.shape[1])), Ugammagamma))
+                        U_exp = vstack((U_exp_1,U_exp_2))
 
-                uyypredicted.append(invjacModelY_data.dot(jacModelXGamma_data).dot(U_exp).dot(jacModelXGamma_data.transpose()).dot(invjacModelY_data))
+                    invjacModelY_data = inv(array(self.jacModelY(ypredicted[-1], self.parametros.estimativa, data_x, self.gamma.estimativas)))
+                    jacModelXGamma_data = array(self.jacModelParamXGamma(ypredicted[-1], self.parametros.estimativa,data_x,self.gamma.estimativas))
 
-        # CONVERSÕES DE VARIÁVEIS
-        ypredicted = array(ypredicted, dtype=float).reshape(
-            len(self._setupModel['y']) * self.z.observed['validation'].NE, 1)
+                    uyypredicted.append(invjacModelY_data.dot(jacModelXGamma_data).dot(U_exp).dot(jacModelXGamma_data.transpose()).dot(invjacModelY_data))
 
-        if self.__controleFluxo.uncertainty:
-            # conversão de covariância para incerteza
-            uypredicted = (array(uyypredicted, dtype=float).reshape(
-                len(self._setupModel['y']) * self.z.observed['validation'].NE, 1))**0.5
-            evaluated_uz = copy(self.z.observed['validation'].matriz_incerteza)
-        else:
-            evaluated_uz = None
+            # CONVERSÕES DE VARIÁVEIS
+            ypredicted = array(ypredicted, dtype=float).reshape(
+                self.z.observed['validation'].NE, len(self._setupModel['y']))
 
-        # SALVAR
-        evaluated_z = copy(self.z.observed['validation'].matriz_estimativa)
-        for i, symb in enumerate(self._setupModel['y']):
-            coluna_z = self.z.simbolos.index(symb)
-            evaluated_z[:, coluna_z] = ypredicted[:, i]
             if self.__controleFluxo.uncertainty:
-                evaluated_uz[:, coluna_z] = uypredicted[:, i]
+                # conversão de covariância para incerteza
+                # TODO: permitir salvar a matriz covariância
+                aux = array([diag(u)**0.5 for u in uyypredicted])
+                uypredicted = aux.reshape(self.z.observed['validation'].NE, len(self._setupModel['y']))
+                evaluated_uz = copy(self.z.observed['validation'].matriz_incerteza)
+            else:
+                evaluated_uz = None
 
-        self.z._SETevaluated(evaluated_z, matriz_incerteza = evaluated_uz, dataType='validation')
+            # SALVAR
+            evaluated_z = copy(self.z.observed['validation'].matriz_estimativa)
+            for i, symb in enumerate(self._setupModel['y']):
+                coluna_z = self.z.simbolos.index(symb)
+                evaluated_z[:, coluna_z] = ypredicted[:, i]
+                if self.__controleFluxo.uncertainty:
+                    evaluated_uz[:, coluna_z] = uypredicted[:, i]
+
+            self.z._SETevaluated(evaluated_z, matriz_incerteza = evaluated_uz, dataType='validation')
+        else:
+            warn('It is needed validation data. Prediction skiped.')
 
     def residualAnalysis(self, report=True, dataType=[], **kwargs):
         u"""
@@ -1626,6 +1637,7 @@ class EstimacaoNaoLinear:
             if type_data == 'estimation':
                 self.estatisticas[type_data]['ObjectiveFunction'] = {'chi2max':chi2max, 'chi2min':chi2min, 'FO':self.FOotimo}
             else:
+                #TODO: função objetivo precisa ser construída para os dados de validação
                 FO = self._excObjectiveFunction(vertcat(self.parametros.estimativa,self.z.evaluated[type_data].vetor_estimativa),
                                                 self.z.observed[type_data].vetor_estimativa)
                 self.estatisticas[type_data]['ObjectiveFunction'] = {'chi2max': chi2max, 'chi2min': chi2min, 'FO': float(FO)}
@@ -1684,11 +1696,13 @@ class EstimacaoNaoLinear:
         if len(dataType) == 0:
             dataType_observed = self.z.observed.keys()
             dataType_evaluated = self.z.evaluated.keys()
-            dataType_residual = self.z.residual.keys()
+            if self.__controleFluxo.residualAnalysis:
+                dataType_residual = self.z.residual.keys()
         else:
             dataType_observed = set(dataType).intersection(self.z.observed.keys())
             dataType_evaluated = set(dataType).intersection(self.z.evaluated.keys())
-            dataType_residual = set(dataType).intersection(self.z.residual.keys())
+            if self.__controleFluxo.residualAnalysis:
+                dataType_residual = set(dataType).intersection(self.z.residual.keys())
 
         # Initialization of the Figure that will contain the graphs -> object
         Fig = Grafico(dpi=600)

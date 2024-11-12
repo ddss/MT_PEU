@@ -6,7 +6,7 @@ from numpy import exp
 
 #%% Model definition
 # def Model: The def model specifies the equations with their respective parameters.
-def model(param, y, x, *args):
+def model(param, y, gamma, *args):
 
     ko, E = param[0], param[1]
     reacfrac, time, T = y[0], y[1], y[2]
@@ -24,7 +24,7 @@ def model(param, y, x, *args):
 # units_param: List of units of measurement of the parameters;
 # folder: Defines the name of the folder where the results will be saved.
 Estime = EstimacaoNaoLinear(model, symbols_z=['frac', 'time', 'temperature'], symbols_uz=['ufrac', 'utime', 'utemperature'],
-                            symbols_param=['ko','E'], folder='resultadoimplicito')
+                            symbols_param=['ko','E'], folder='resultado')
 
 #%% Setting the observed data set
 #Data entry using  .xlsx
@@ -34,7 +34,7 @@ Estime.setData(data="data_example2-2")
 # initial_estimative: List with the initial estimates for the parameters;
 # algorithm: Informs the optimization algorithm that will be used. Each algorithm has its own keywords;
 # optimizationReport: Informs whether the optimization report should be created (True or False);
-Estime.optimize(initial_estimative=[18,20000]+Estime.z.observed.lista_estimativa,
+Estime.optimize(initial_estimative=[18,20000]+Estime.z.observed['estimation'].lista_estimativa,
                 lower_bound=[0,10000]+[0]*41+[0]*41+[500]*41,
                 upper_bound=[100,30000]+[1]*41+[200]*41+[700]*41)
 

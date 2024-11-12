@@ -6,7 +6,7 @@ from casadi import exp
 
 #%% Model definition
 # def Model: The def model specifies the equations with their respective parameters.
-def Model(param, y, x, args):
+def Model(param, y, gamma):
     P, T = y[0], y[1]
     A, B, C = param[0], param[1], param[2]
 
@@ -21,7 +21,7 @@ def Model(param, y, x, args):
 Estimation = EstimacaoNaoLinear(Model, symbols_z=['P', 'T'],
                                 symbols_uz=['uP', 'uT'],
                                 symbols_param=['A','B','C'],
-                                folder='resultadoimplicito')
+                                folder='resultado')
 
 #%% Defining observed data manually
 # Input data
@@ -38,7 +38,7 @@ Estimation.setData(data=["data_example3", {'T':T, 'uT':uxT}])
 # algorithm: Informs the optimization algorithm that will be used. Each algorithm has its own keywords;
 # optimizationReport: Informs whether the optimization report should be created (True or False);
 # report: Informs whether the parameters report should be created (True or False).
-Estimation.optimize(initial_estimative = [1, 1.5, 0.009]+Estimation.z.observed.lista_estimativa,
+Estimation.optimize(initial_estimative = [1, 1.5, 0.009]+Estimation.z.observed['estimation'].lista_estimativa,
                     lower_bound=[-50,-1e4,-50]+[0]*len(T)+[200]*len(T),
                     upper_bound=[50,1e4,50]+[300]*len(T)+[400]*len(T),
                     algorithm='ipopt',
@@ -50,7 +50,7 @@ Estimation.optimize(initial_estimative = [1, 1.5, 0.009]+Estimation.z.observed.l
 # report: Informs whether the parameters report should be created (True or False).
 # iterations: Number of iterations to perform the mapping of the objective function. The higher the better mapping, but it
 # increases the execution time
-Estimation.uncertainty()#uncertaintyMethod='Geral' objectiveFunctionMapping=True, iterations=5000, report = True)
+Estimation.uncertainty()
 
 #%% Evaluating residuals and quality index
 # using solely default options

@@ -6,7 +6,7 @@ from numpy import exp
 
 #%% Model definition
 # def Model: The subroutine that specifies the equations with their respective parameters.
-def model(param, y, x, *args):
+def model(param, y, gamma, *args):
 
     ko, E = param[0], param[1]
     reacfrac, time, T = y[0], y[1], y[2]
