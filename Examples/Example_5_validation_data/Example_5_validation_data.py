@@ -6,9 +6,9 @@ from numpy import exp
 
 #%% Model definition
 # def Model: The def model specifies the equations with their respective parameters.
-def model(param, y, gamma):
+def model(param, z, gamma):
     ko, E = param[0], param[1]
-    frac, time, T = y[0], y[1], y[2]
+    frac, time, T = z[0], z[1], z[2]
 
     return [frac - exp(-ko * time * exp(-E * (1 / T - 1. / 630.)))]
 
