@@ -477,6 +477,7 @@ class Grandeza:
         # --------------------------------------
         self.__ID.append(self.__ID_available[2])
         self.estimativa         = estimativa
+        self.vetor_estimativa = array(estimativa,ndmin=2).transpose()
         self.matriz_covariancia = variancia
         # Cálculo da matriz de correlação
         if variancia is not None:

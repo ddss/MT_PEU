@@ -59,7 +59,9 @@ Estime.optimize(initial_estimative=[0.5,25000]+Frac+time+temperature,
 
 #%% Evaluating the parameters uncertainty and coverage region
 # using solely default options
-Estime.uncertainty()
+Estime.setupSolveModel(['frac'], ['time','temperature'])
+
+Estime.uncertainty(objectiveFunctionMapping=True)
 
 #%% prediction
 Estime.setupSolveModel(['frac'], ['time','temperature'])

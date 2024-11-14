@@ -410,7 +410,7 @@ class EstimacaoNaoLinear:
 
         # Flags for information control
         self.__flag = flag()
-        self.__flag.setCaracteristica(['dadosvalidacao','graficootimizacao','relatoriootimizacao',
+        self.__flag.setCaracteristica(['dadosvalidacao','graficootimizacao','relatoriootimizacao','mapeamentoFO',
                                        'Linear'])
         # use of the characteristics:
         # dadosestimacao: indicates if estimation data was entered
@@ -1044,15 +1044,15 @@ class EstimacaoNaoLinear:
 
         # COVARIANCE MATRIX
         # Method: geral - > inv(H)*Gz*Uyy*GyT*inv(H)
-        matriz_covariancia = invHess.dot(self.Gy).dot(U_exp).dot(self.Gy.transpose()).dot(invHess)
+        covariance_matrix = invHess.dot(self.Gy).dot(U_exp).dot(self.Gy.transpose()).dot(invHess)
 
         # ---------------------------------------------------------------------
         # ATTRIBUTION TO THE QUANTITIES
         # ---------------------------------------------------------------------
-        self.parametros._updateParametro(matriz_covariancia=matriz_covariancia[0:self.parametros.NV,0:self.parametros.NV])
+        self.parametros._updateParametro(matriz_covariancia=covariance_matrix[0:self.parametros.NV,0:self.parametros.NV])
 
         self.z._SETevaluated(estimativa=array(self.optsolution['x'][self.parametros.NV:]),
-                             matriz_covariancia=matriz_covariancia[self.parametros.NV:self.parametros.NV + self.z.NV * self.z.observed['estimation'].NE, self.parametros.NV:self.parametros.NV + self.z.NV * self.z.observed['estimation'].NE],
+                             matriz_covariancia=covariance_matrix[self.parametros.NV:self.parametros.NV + self.z.NV * self.z.observed['estimation'].NE, self.parametros.NV:self.parametros.NV + self.z.NV * self.z.observed['estimation'].NE],
                              gL=[[self.z.observed['estimation'].NE * self.z.NV - self.parametros.NV] * self.z.observed['estimation'].NE] * self.z.NV,
                              NE=self.z.observed['estimation'].NE)
 
@@ -1060,9 +1060,12 @@ class EstimacaoNaoLinear:
         # COVERAGE REGION
         # ---------------------------------------------------------------------
         # MAPPING OF OBJECTIVE FUNCTION:
-        if objectiveFunctionMapping and self.parametros.NV != 1:
-            self.__objectiveFunctionMapping(**kwargs)
-            self.__flag.ToggleActive('mapeamentoFO')
+        if objectiveFunctionMapping:
+            if self.__controleFluxo.setupSolveModel:
+                self.__objectiveFunctionMapping(covariance_matrix, **kwargs)
+                self.__flag.ToggleActive('mapeamentoFO')
+            else:
+                warn('The mapping of the objective functon needs setupSolveModel to be previouly executed. Skiped')
 
         # The coverage region is only executed if there is a history of positions and fitness
         if self.__controleFluxo.mapeamentoFO and self.parametros.NV != 1:
@@ -1076,7 +1079,7 @@ class EstimacaoNaoLinear:
             self._out.Parametros(self.parametros, self.FOotimo)
             self._out.Grandezas(self.z, None, dataType='estimation', **kwargs)
 
-    def __objectiveFunctionMapping(self,**kwargs):
+    def __objectiveFunctionMapping(self, covariance_matrix, **kwargs):
         u"""
         __objectiveFunctionMapping(self,**kwargs)
 
@@ -1170,58 +1173,60 @@ class EstimacaoNaoLinear:
             raise TypeError('Upper_limits and lower_limits must be lists or tuples of the same size as self.paramtros.NV')
 
         if upper_bound is None or lower_bound is None:
-            extremo_elipse_superior = [0 for i in range(self.parametros.NV)]
-            extremo_elipse_inferior = [0 for i in range(self.parametros.NV)]
+            estimates = vstack((self.parametros.vetor_estimativa,self.z.evaluated['estimation'].vetor_estimativa))
+            N = self.parametros.NV+self.z.NV*self.z.evaluated['estimation'].NE
+            extremo_elipse_superior = [-10e30 for i in range(N)]
+            extremo_elipse_inferior = [10e30 for i in range(N)]
 
             fisher, FOcomparacao = self.__criteriosAbrangencia()
 
-            Combinacoes = int(factorial(self.parametros.NV) / (factorial(self.parametros.NV - 2) * factorial(2)))
+            Combinacoes = int(factorial(N) / (factorial(N - 2) * factorial(2)))
             p1 = 0
             p2 = 1
             cont = 0
             passo = 1
 
             for pos in range(Combinacoes):
-                if pos == (self.parametros.NV - 1) + cont:
+                if pos == (N - 1) + cont:
                     p1 += 1
                     p2 = p1 + 1
                     passo += 1
-                    cont += self.parametros.NV - passo
+                    cont += N - passo
 
-                cov = array([[self.parametros.matriz_covariancia[p1, p1], self.parametros.matriz_covariancia[p1, p2]],
-                             [self.parametros.matriz_covariancia[p2, p1], self.parametros.matriz_covariancia[p2, p2]]])
+                cov = array([[covariance_matrix[p1, p1], covariance_matrix[p1, p2]],
+                             [covariance_matrix[p2, p1], covariance_matrix[p2, p2]]])
 
-                coordenadas_x, coordenadas_y, width, height, theta = eval_cov_ellipse(cov, [self.parametros.estimativa[p1],
-                                                                                            self.parametros.estimativa[p2]],
+                coordenadas_x, coordenadas_y, width, height, theta = eval_cov_ellipse(cov,
+                                                                                 [estimates[p1,0], estimates[p2,0]],
                                                                                       FOcomparacao, ax=False)
 
-                extremo_elipse_superior[p1] = nanmax(coordenadas_x)
-                extremo_elipse_superior[p2] = nanmax(coordenadas_y)
-                extremo_elipse_inferior[p1] = nanmin(coordenadas_x)
-                extremo_elipse_inferior[p2] = nanmin(coordenadas_y)
+                extremo_elipse_superior[p1] = nanmax([nanmax(coordenadas_x), nanmax(extremo_elipse_superior[p1])])
+                extremo_elipse_superior[p2] = nanmax([nanmax(coordenadas_y), nanmax(extremo_elipse_superior[p2])])
+                extremo_elipse_inferior[p1] = nanmin([nanmin(coordenadas_x), nanmin(extremo_elipse_inferior[p1])])
+                extremo_elipse_inferior[p2] = nanmin([nanmin(coordenadas_y), nanmin(extremo_elipse_inferior[p2])])
                 p2+=1
 
         if upper_bound is None:
-            upper_bound = [extremo_elipse_superior[i] + (extremo_elipse_superior[i]-extremo_elipse_inferior[i])*searchLimitFactor for i in range(self.parametros.NV)]
+            upper_bound = [extremo_elipse_superior[i] + (extremo_elipse_superior[i]-extremo_elipse_inferior[i])*searchLimitFactor for i in range(N)]
         else:
             kwargs.pop('upper_bound') # removes the upper_bound from the extra arguments
 
         if lower_bound is None:
-            lower_bound = [extremo_elipse_inferior[i] - (extremo_elipse_superior[i]-extremo_elipse_inferior[i])*searchLimitFactor for i in range(self.parametros.NV)]
+            lower_bound = [extremo_elipse_inferior[i] - (extremo_elipse_superior[i]-extremo_elipse_inferior[i])*searchLimitFactor for i in range(N)]
         else:
             kwargs.pop('lower_bound') # removes the lower_bound from the extra arguments
 
         # Validating limits
         # Checks if upper bound is greater than lower bound
-        test_bounds = [0]*self.parametros.NV
-        for i in arange(self.parametros.NV):
-            if (lower_bound[i]>upper_bound[i]) or (lower_bound[i]>self.parametros.estimativa[i] or self.parametros.estimativa[i]>upper_bound[i]):
+        test_bounds = [0]*N
+        for i in arange(N):
+            if (lower_bound[i]>upper_bound[i]) or (lower_bound[i]>estimates[i] or estimates[i]>upper_bound[i]):
                 test_bounds[i] = 1
 
         index_test_bounds = [i for i, ele in enumerate(test_bounds) if ele]
 
         if any(test_bounds):
-            raise TypeError(('The parameter estimate of '+'{} '*len(index_test_bounds)+' must be between the lower_limit and the upper_limit. Parameter estimate: {}').format(*[self.parametros.simbolos[i] for i in index_test_bounds],self.parametros.estimativa))
+            raise TypeError('Upper Bound must be greater than Lower Bound and the estimates must be within the interval.')
 
         # ---------------------------------------------------------------------
         # MONTE CARLO METHOD
@@ -1232,99 +1237,40 @@ class EstimacaoNaoLinear:
             for cont in range(iterations):
 
                 # samples generated with uniform distribution
-                amostra_total_uni = [uniform(lower_bound[i], upper_bound[i], 1)[0] for i in range(self.parametros.NV)]
+                amostra_total_uni = [uniform(lower_bound[i], upper_bound[i], 1)[0] for i in range(N)]
 
                 # samples generated with triangular distribution, considering the whole area of the Cartesian plane
-                amostra_total = [triangular(lower_bound[i], self.parametros.estimativa[i], upper_bound[i], 1)[0] for i in range(self.parametros.NV)]
+                amostra_total = [triangular(lower_bound[i], estimates[i], upper_bound[i], 1)[0] for i in range(N)]
 
                 # samples generated with triangular distribution, considering the third quadrant of the Cartesian plane
-                amostra_inf = [triangular(lower_bound[i], (lower_bound[i]+self.parametros.estimativa[i])/2, self.parametros.estimativa[i], 1)[0] for i in range(self.parametros.NV)]
+                amostra_inf = [triangular(lower_bound[i], (lower_bound[i]+estimates[i])/2, estimates[i], 1)[0] for i in range(N)]
 
                 # samples generated with triangular distribution, considering the first quadrant of the Cartesian plane
-                amostra_sup = [triangular(self.parametros.estimativa[i], (upper_bound[i] + self.parametros.estimativa[i]) / 2, upper_bound[i], 1)[0] for i in range(self.parametros.NV)]
+                amostra_sup = [triangular(estimates[i], (upper_bound[i] + estimates[i]) / 2, upper_bound[i], 1)[0] for i in range(N)]
 
-                # Symmetry factor
-                # It is applied to symmetricals to generate more points
-                SF_limits = kwargs.get('symmetryFactorLimit') if kwargs.get('symmetryFactorLimit') is not None else [-2,2,50]
-                SF = linspace(SF_limits[0], SF_limits[1], SF_limits[2], endpoint=True)
+                # amostra = [amostra_total_uni, amostra_inf, amostra_sup, amostra_total]
+                # Solving the model and adjusting the sample
+                parameters = amostra_total_uni[0:self.parametros.NV]
+                z_estimateMatrix =  array(amostra_total_uni[self.parametros.NV:]).reshape((self.z.evaluated['estimation'].NE, self.z.NV),
+                                                                                   order='F')
+                for i in range(self.z.evaluated['estimation'].NE):
+                    index_x = [self.z.simbolos.index(self._setupModel['x'][k]) for k in range(len(self._setupModel['x']))]
+                    index_y = [self.z.simbolos.index(self._setupModel['y'][k]) for k in range(len(self._setupModel['y']))]
+                    data_x = [z_estimateMatrix[i,j] for j in index_x]
+                    data_y = [z_estimateMatrix[i,j] for j in index_y]
+                    y_values = self.solveModel(parameters, data_x, data_y)
 
-                # Calculating the symmetrical points
-                amostras_simetricas = []
-                for i in range(self.parametros.NV-1):
-                    for factor in SF:
+                    for j, k in enumerate(index_y):
+                        z_estimateMatrix[i,k] = float(y_values[j])
 
-                        # Third quadrant (inferior)
-                        # Symmetry with respect to the z axis
-                        simetrica_y_inf = [None] * self.parametros.NV
-                        simetrica_y_inf[i] = self.parametros.estimativa[i] + factor * abs(self.parametros.estimativa[i] - amostra_inf[i])
-                        if simetrica_y_inf[i] > upper_bound[i]:
-                            simetrica_y_inf[i] = upper_bound[i]
-                        elif simetrica_y_inf[i] < lower_bound[i]:
-                            simetrica_y_inf[i] = lower_bound[i]
+                z_estimateVector = z_estimateMatrix.reshape((int(self.z.evaluated['estimation'].NE*self.z.NV), 1),
+                                                    order='F')
 
-                        # Symmetry with respect to the gamma axis
-                        simetrica_x_inf = [None] * self.parametros.NV
-                        simetrica_x_inf[i + 1] = self.parametros.estimativa[i + 1] + factor * abs(self.parametros.estimativa[i + 1] - amostra_inf[i + 1])
-                        if simetrica_x_inf[i+1] > upper_bound[i+1]:
-                            simetrica_x_inf[i+1] = upper_bound[i+1]
-                        elif simetrica_x_inf[i+1] < lower_bound[i+1]:
-                            simetrica_x_inf[i+1] = lower_bound[i+1]
+                sample = vstack((array(parameters).reshape((self.parametros.NV,1)), z_estimateVector))
+                FO = self._excObjectiveFunction(sample, self.z.observed['estimation'].vetor_estimativa)
 
-                        # Symmetry with respect to the origin
-                        simetrica_o_inf = [None] * self.parametros.NV
-                        simetrica_o_inf[i] = simetrica_y_inf[i]
-                        simetrica_o_inf[i + 1] = simetrica_x_inf[i+1]
-
-                        # First quadrant (superior)
-                        # Symmetry with respect to the z axis
-                        simetrica_y_sup = [None] * self.parametros.NV
-                        simetrica_y_sup[i] = self.parametros.estimativa[i] - factor * abs(self.parametros.estimativa[i] - amostra_sup[i])
-                        if simetrica_y_sup[i] > upper_bound[i]:
-                            simetrica_y_sup[i] = upper_bound[i]
-                        elif simetrica_y_sup[i] < lower_bound[i]:
-                            simetrica_y_sup[i] = lower_bound[i]
-
-                        # Symmetry with respect to the gamma axis
-                        simetrica_x_sup = [None] * self.parametros.NV
-                        simetrica_x_sup[i + 1] = self.parametros.estimativa[i + 1] - factor * abs(self.parametros.estimativa[i + 1] - amostra_sup[i + 1])
-                        if simetrica_x_sup[i + 1] > upper_bound[i + 1]:
-                            simetrica_x_sup[i + 1] = upper_bound[i + 1]
-                        elif simetrica_x_sup[i + 1] < lower_bound[i + 1]:
-                            simetrica_x_sup[i + 1] = lower_bound[i + 1]
-
-                        # Symmetry with respect to the origin
-                        simetrica_o_sup= [None] * self.parametros.NV
-                        simetrica_o_sup[i] = simetrica_y_sup[i] # O simétrico em relação ao eixo z corresponde ao gamma do par ordenado
-                        simetrica_o_sup[i + 1] = simetrica_x_sup[i+1]
-
-                        # Completing the list with the parameters that remained constant for each symmetry
-                        simetricos_inf = [simetrica_x_inf, simetrica_y_inf, simetrica_o_inf]
-                        for sim in simetricos_inf:
-                            for j in range(self.parametros.NV):
-                                if sim[j] is None:
-                                    sim[j] = amostra_inf[j]
-
-                        simetricos_sup = [simetrica_x_sup, simetrica_y_sup, simetrica_o_sup]
-                        for sim in simetricos_sup:
-                            for j in range(self.parametros.NV):
-                                if sim[j] is None:
-                                    sim[j] = amostra_sup[j]
-
-                        # Adding the symmetrical points to a list
-                        amostras_simetricas.append(simetrica_x_inf)
-                        amostras_simetricas.append(simetrica_y_inf)
-                        amostras_simetricas.append(simetrica_o_inf)
-                        amostras_simetricas.append(simetrica_x_sup)
-                        amostras_simetricas.append(simetrica_y_sup)
-                        amostras_simetricas.append(simetrica_o_sup)
-
-                amostra = [amostra_total, amostra_inf, amostra_sup, amostra_total_uni, *amostras_simetricas]
-
-                FO = [float(self._excObjectiveFunction(amo_i, self._values)) for amo_i in amostra] #self._excFO returns a DM object, it's necessary convert to float object
-
-                for i,FO_i in enumerate(FO):
-                    self.__decisonVariablesMapped.append(amostra[i])
-                    self.__OFMapped.append(FO_i)
+                self.__decisonVariablesMapped.append(sample.transpose().tolist()[0])
+                self.__OFMapped.append(FO)
 
     def __criteriosAbrangencia(self):
         u"""
