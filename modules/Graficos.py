@@ -11,7 +11,7 @@ from numpy import arctan2, degrees, sqrt, sort, argsort, mean, std, nan, amin, a
 
 from numpy.linalg import eigh, inv
 
-from matplotlib.pyplot import figure, close, clf
+from matplotlib.pyplot import figure, close, clf, colorbar
 import matplotlib.ticker
 
 from matplotlib.patches import Ellipse
@@ -42,6 +42,7 @@ class Grafico:
         edições na legenda.
         """
         # incia a figura
+        self.__kwargs = kwargs
         self.fig_instance = figure(**kwargs)
         # inicia o axes
         self.axes = self.fig_instance.add_subplot(1, 1, 1)
@@ -131,6 +132,36 @@ class Grafico:
 
         self.axes.legend(self.lista_graficos, legenda,fontsize=fontsize,loc=loc,frameon=frameon,fancybox=fancybox, **kwargs)
 
+
+    def grafico_colorbar(self, x, y,  label_x = None, label_y = None, add_legenda = False,
+                        corrigir_limites = True, config_axes = True, **kwargs):
+
+        y = y[argsort(x)]
+        x = sort(x)
+
+        # plot
+        dispersao_sem_incerteza = self.axes.scatter(x, y, **kwargs)
+        colorbar(dispersao_sem_incerteza, label="Objective Function")
+        # Labels
+        self.set_label(label_x, label_y, fontsize=16)
+
+        # Modificação do limite dos gráficos
+        if corrigir_limites:
+            step_x_tickloc, step_y_tickloc = self.get_step_tick()
+            xmin = min(x) - step_x_tickloc / 4.
+            xmax = max(x) + step_x_tickloc / 4.
+            ymin = min(y) - step_y_tickloc / 4.
+            ymax = max(y) + step_y_tickloc / 4.
+            self.set_limites((xmin, xmax), (ymin, ymax))
+
+        # configuração do axes
+        if config_axes:
+            self.config_axes()
+
+        # configuração para legenda
+        if add_legenda:
+            self.lista_graficos.append(dispersao_sem_incerteza)
+
     def grafico_dispersao_sem_incerteza(self, x, y, label_x = None, label_y = None,
                                         add_legenda = False, corrigir_limites = True, config_axes = True,
                                         **kwargs):
@@ -154,8 +185,9 @@ class Grafico:
 
         """
         # Organizando os vetores
-        y = y[argsort(x)]
-        x = sort(x)
+        if len(y) > 1:
+            y = y[argsort(x)]
+            x = sort(x)
 
         # plot
         dispersao_sem_incerteza, = self.axes.plot(x, y, **kwargs)
@@ -385,7 +417,7 @@ class Grafico:
             self.lista_graficos.append(ellip)
 
 
-    def salvar_e_fechar(self, titulo, ajustar=True, config_axes=False, reiniciar=True):
+    def salvar_e_fechar(self, titulo, ajustar=True, config_axes=False, reiniciar=True, reiniciar_fig = False):
         u"""
         Método para salvar o gráfico e fechar a janela
 
@@ -410,13 +442,21 @@ class Grafico:
 
         # reinicia
         if reiniciar:
-            self.reiniciar()
+            self.reiniciar(reiniciar_fig)
 
-    def reiniciar(self):
+    def reiniciar(self, reiniciar_fig):
         u"""
         Método para apagar o que fora plotado no axes, figura
         """
         clf()
-        self.axes.clear()
-        self.axes.tick_params(reset=True)
-        self.lista_graficos = []
+        if reiniciar_fig:
+            self.fig_instance = figure(**self.__kwargs)
+            # inicia o axes
+            self.axes = self.fig_instance.add_subplot(1, 1, 1)
+            # lista de gráficos executados -> para legenda
+            self.lista_graficos = []
+        else:
+            # inicia o axes
+            self.axes.clear()
+            self.axes.tick_params(reset=True)
+            self.lista_graficos = []

@@ -539,7 +539,7 @@ class EstimacaoLinear(EstimacaoNaoLinear):
         # A região de abrangência só é executada caso haja histórico de posicoes e fitness
         if self._EstimacaoNaoLinear__controleFluxo.mapeamentoFO and self.parametros.NV != 1:
             # OBTENÇÃO DA REGIÃO:
-            regiao = self.regiaoAbrangencia()
+            regiao = self.coverageRegion()
             # ATRIBUIÇÃO A GRANDEZA
             self.parametros._updateParametro(regiao_abrangencia=regiao)
 

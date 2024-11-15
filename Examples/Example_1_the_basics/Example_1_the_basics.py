@@ -61,10 +61,9 @@ Estime.optimize(initial_estimative=[0.5,25000]+Frac+time+temperature,
 # using solely default options
 Estime.setupSolveModel(['frac'], ['time','temperature'])
 
-Estime.uncertainty(objectiveFunctionMapping=True)
+Estime.uncertainty(objectiveFunctionMapping=True, iterations=3000,  searchLimitFactor=1/10, compresscov=1e4)
 
 #%% prediction
-Estime.setupSolveModel(['frac'], ['time','temperature'])
 
 Estime.prediction()
 

@@ -13,7 +13,7 @@ Main class of the PEU calculation engine
 # Scientific calculations
 from numpy import array, size, linspace, min, max,\
     mean, nanmax, nanmin, arange, inf, hstack, vstack, zeros, copy, delete
-from numpy.random import uniform, triangular
+from numpy.random import uniform, triangular, multivariate_normal
 from scipy.stats import f, t, chi2
 from scipy.special import factorial
 from numpy.linalg import inv
@@ -22,6 +22,8 @@ from pandas import ExcelFile,read_excel,read_csv,concat,DataFrame
 from os import getcwd, sep
 from casadi import MX,vertcat,horzcat,nlpsol,sum1,jacobian,hessian,mtimes,inv as inv_cas, diag,Function, rootfinder
 from scipy.optimize import fsolve
+from tqdm import tqdm
+from matplotlib.cm import coolwarm
 # Exception Handling
 from warnings import warn
 from os import listdir
@@ -80,7 +82,7 @@ class EstimacaoNaoLinear:
             self.solveModel = 0
             self.prediction = 0
             self.uncertainty = 0
-            self.regiaoAbrangencia = 0
+            self.coverageRegion = 0
             self.residualAnalysis = 0
             self.mapeamentoFO = 0
             self.hessian = 0
@@ -146,7 +148,7 @@ class EstimacaoNaoLinear:
             return ['optimization']
 
         @property
-        def _before_regiaoAbrangencia(self):
+        def _before_coverageRegion(self):
             return ['mapeamentoFO']
 
         @property
@@ -975,7 +977,7 @@ class EstimacaoNaoLinear:
 
         return self.Gy
 
-    def uncertainty(self, report= True, objectiveFunctionMapping=False, **kwargs):
+    def uncertainty(self, report=True, objectiveFunctionMapping=False, **kwargs):
         u"""
         Uncertainty(self, Report = True, objectiveFunctionMapping=True, **kwargs)
 
@@ -1069,10 +1071,33 @@ class EstimacaoNaoLinear:
 
         # The coverage region is only executed if there is a history of positions and fitness
         if self.__controleFluxo.mapeamentoFO and self.parametros.NV != 1:
-                # OBTAINING THE REGION:
-                regiao = self.regiaoAbrangencia()
-                # ATTRIBUTION TO THE QUANTITY
-                self.parametros._updateParametro(regiao_abrangencia=regiao)
+            # OBTAINING THE REGION:
+            self.__controleFluxo.SET_ETAPA('coverageRegion')
+
+            # ---------------------------------------------------------------------
+            # DETERMINATION OF THE COVERAGE REGION BY THE FISHER CRITERIA
+            # ---------------------------------------------------------------------
+            gl1 = self.z.observed['estimation'].NE * self.z.NV - self.parametros.NV
+            gl2 = self.z.observed['estimation'].NE * self.z.NV + self.parametros.NV - self.__symModel.size()[0]
+            fisher, FOadd = self.__criteriosAbrangencia(gl1, gl2)
+
+            # Comparison of the objective function value evaluated in the optimization step with the OFMapped variable.
+            # If they are smaller, the respective parameters will be contained in the coverage region.
+            index = array(self._EstimacaoNaoLinear__OFMapped) < FOadd + self.FOotimo
+
+            regiao = []
+            for sample in array(self.__decisonVariablesMapped)[index].tolist():
+                regiao.append(sample[0:self.parametros.NV])
+
+            # ATTRIBUTION TO THE QUANTITY
+            self.parametros._updateParametro(regiao_abrangencia=regiao)
+            # -------------------------------------------------------------------
+            # ASSESSING WHETHER POINTS WERE OBTAINED TO FILL THE COVERAGE REGION
+            # -------------------------------------------------------------------
+            if regiao == []:
+                warn(
+                    'The coverage region evaluated by the likelihood method contains no points. Review the parameters of the algorithm used.',
+                    UserWarning)
 
         # parameters report creation
         if report is True:
@@ -1134,7 +1159,7 @@ class EstimacaoNaoLinear:
 
         # if MethodObjectivefunctionmapping = 'MonteCarlo':
         if tipo == self.__tipoObjectiveFunctionMapping[0]:
-            kwargsdisponiveis = ('iterations', 'upper_bound', 'lower_bound', 'searchLimitFactor', 'distribution', 'symmetryFactorLimit')
+            kwargsdisponiveis = ('iterations', 'upper_bound', 'lower_bound', 'searchLimitFactor', 'compresscov')
 
             # evaluating whether keywords are available
             if not set(kwargs.keys()).issubset(kwargsdisponiveis):
@@ -1148,16 +1173,10 @@ class EstimacaoNaoLinear:
             if kwargs.get(kwargsdisponiveis[3]) is not None:
                 if kwargs.get(kwargsdisponiveis[3]) < 0:
                     raise ValueError('The search limit factor must be positive.')
-            # evaluating the distribution
+
             if kwargs.get(kwargsdisponiveis[4]) is not None:
-                if kwargs.get(kwargsdisponiveis[4]) not in ['uniform', 'triangular']:
-                    raise ValueError('The distributions available for the MonteCarlo Method are: {}.'.format(['uniform','triangular']))
-            # evaluating the symmetry Factor Limit
-            if kwargs.get(kwargsdisponiveis[5]) is not None:
-                if not isinstance(kwargs.get(kwargsdisponiveis[5]), list):
-                    raise TypeError('The symmetry factor limit must be a list')
-                if isinstance(kwargs.get(kwargsdisponiveis[5]), list) and len(kwargs.get(kwargsdisponiveis[5])) != 3:
-                    raise ValueError('The size of symmetry factor limit must be equal to trhee. See documentation of objectiveFunctionMapping method')
+                if kwargs.get(kwargsdisponiveis[4]) <= 0:
+                    raise ValueError('The compresscov must be positive.')
 
         # ---------------------------------------------------------------------
         # Search limit
@@ -1165,6 +1184,7 @@ class EstimacaoNaoLinear:
         upper_bound = kwargs.get('upper_bound')
         lower_bound = kwargs.get('lower_bound')
         searchLimitFactor = kwargs.get('searchLimitFactor') if kwargs.get('searchLimitFactor') is not None else 1/10.
+        compresscov = kwargs.get('compresscov') if kwargs.get('compresscov') is not None else 1000
 
         #Validation
         if (((not isinstance(upper_bound, list) and not isinstance(upper_bound, tuple)) and upper_bound is not None) or (((not isinstance(lower_bound, list)) and (not isinstance(lower_bound, tuple))) and lower_bound is not None)):
@@ -1172,13 +1192,16 @@ class EstimacaoNaoLinear:
         if (upper_bound is not None and len(upper_bound) != self.parametros.NV) or (lower_bound is not None and len(lower_bound) != self.parametros.NV):
             raise TypeError('Upper_limits and lower_limits must be lists or tuples of the same size as self.paramtros.NV')
 
+        gl1 = 2
+        gl2 = self.z.observed['estimation'].NE * self.z.NV + self.parametros.NV - self.__symModel.size()[0]
+
         if upper_bound is None or lower_bound is None:
             estimates = vstack((self.parametros.vetor_estimativa,self.z.evaluated['estimation'].vetor_estimativa))
             N = self.parametros.NV+self.z.NV*self.z.evaluated['estimation'].NE
-            extremo_elipse_superior = [-10e30 for i in range(N)]
-            extremo_elipse_inferior = [10e30 for i in range(N)]
+            extremo_elipse_superior = [-inf for i in range(N)]
+            extremo_elipse_inferior = [inf for i in range(N)]
 
-            fisher, FOcomparacao = self.__criteriosAbrangencia()
+            fisher, FOadd = self.__criteriosAbrangencia(gl1, gl2)
 
             Combinacoes = int(factorial(N) / (factorial(N - 2) * factorial(2)))
             p1 = 0
@@ -1198,7 +1221,7 @@ class EstimacaoNaoLinear:
 
                 coordenadas_x, coordenadas_y, width, height, theta = eval_cov_ellipse(cov,
                                                                                  [estimates[p1,0], estimates[p2,0]],
-                                                                                      FOcomparacao, ax=False)
+                                                                                      FOadd, ax=False)
 
                 extremo_elipse_superior[p1] = nanmax([nanmax(coordenadas_x), nanmax(extremo_elipse_superior[p1])])
                 extremo_elipse_superior[p2] = nanmax([nanmax(coordenadas_y), nanmax(extremo_elipse_superior[p2])])
@@ -1232,47 +1255,49 @@ class EstimacaoNaoLinear:
         # MONTE CARLO METHOD
         # ---------------------------------------------------------------------
         if tipo == self.__tipoObjectiveFunctionMapping[0]:
-            iterations = int(kwargs.get('iterations') if kwargs.get('iterations') is not None else 500)
+            iterations = int(kwargs.get('iterations') if kwargs.get('iterations') is not None else 2000)
 
-            for cont in range(iterations):
+            for cont in tqdm(range(iterations),'Executing Monte Carlo Method: '):
+
+                sample_normal = multivariate_normal(estimates.transpose()[0], covariance_matrix[0:self.parametros.NV + self.z.NV * self.z.observed['estimation'].NE, 0:self.parametros.NV + self.z.NV * self.z.observed['estimation'].NE]/compresscov, 1).tolist()[0]
 
                 # samples generated with uniform distribution
-                amostra_total_uni = [uniform(lower_bound[i], upper_bound[i], 1)[0] for i in range(N)]
+                sample_uniform = [uniform(lower_bound[i], upper_bound[i], 1)[0] for i in range(N)]
 
                 # samples generated with triangular distribution, considering the whole area of the Cartesian plane
-                amostra_total = [triangular(lower_bound[i], estimates[i], upper_bound[i], 1)[0] for i in range(N)]
+                sample_triangular = [triangular(lower_bound[i], estimates[i], upper_bound[i], 1)[0] for i in range(N)]
 
                 # samples generated with triangular distribution, considering the third quadrant of the Cartesian plane
-                amostra_inf = [triangular(lower_bound[i], (lower_bound[i]+estimates[i])/2, estimates[i], 1)[0] for i in range(N)]
+                sample_triangular_lb = [triangular(lower_bound[i], (estimates[i]-lower_bound[i])/2+lower_bound[i], estimates[i], 1)[0] for i in range(N)]
 
                 # samples generated with triangular distribution, considering the first quadrant of the Cartesian plane
-                amostra_sup = [triangular(estimates[i], (upper_bound[i] + estimates[i]) / 2, upper_bound[i], 1)[0] for i in range(N)]
+                sample_triangular_up = [triangular(estimates[i], (upper_bound[i] - estimates[i])/2+estimates[i], upper_bound[i], 1)[0] for i in range(N)]
 
-                # amostra = [amostra_total_uni, amostra_inf, amostra_sup, amostra_total]
-                # Solving the model and adjusting the sample
-                parameters = amostra_total_uni[0:self.parametros.NV]
-                z_estimateMatrix =  array(amostra_total_uni[self.parametros.NV:]).reshape((self.z.evaluated['estimation'].NE, self.z.NV),
-                                                                                   order='F')
-                for i in range(self.z.evaluated['estimation'].NE):
-                    index_x = [self.z.simbolos.index(self._setupModel['x'][k]) for k in range(len(self._setupModel['x']))]
-                    index_y = [self.z.simbolos.index(self._setupModel['y'][k]) for k in range(len(self._setupModel['y']))]
-                    data_x = [z_estimateMatrix[i,j] for j in index_x]
-                    data_y = [z_estimateMatrix[i,j] for j in index_y]
-                    y_values = self.solveModel(parameters, data_x, data_y)
+                for sample in [sample_normal, sample_uniform, sample_triangular, sample_triangular_lb, sample_triangular_up]:
+                    # Solving the model and adjusting the sample
+                    parameters = sample[0:self.parametros.NV]
+                    z_estimateMatrix =  array(sample[self.parametros.NV:]).reshape((self.z.evaluated['estimation'].NE, self.z.NV),
+                                                                                       order='F')
+                    for i in range(self.z.evaluated['estimation'].NE):
+                        index_x = [self.z.simbolos.index(self._setupModel['x'][k]) for k in range(len(self._setupModel['x']))]
+                        index_y = [self.z.simbolos.index(self._setupModel['y'][k]) for k in range(len(self._setupModel['y']))]
+                        data_x = [z_estimateMatrix[i,j] for j in index_x]
+                        data_y = [z_estimateMatrix[i,j] for j in index_y]
+                        y_values = self.solveModel(parameters, data_x, data_y)
 
-                    for j, k in enumerate(index_y):
-                        z_estimateMatrix[i,k] = float(y_values[j])
+                        for j, k in enumerate(index_y):
+                            z_estimateMatrix[i,k] = float(y_values[j])
 
-                z_estimateVector = z_estimateMatrix.reshape((int(self.z.evaluated['estimation'].NE*self.z.NV), 1),
-                                                    order='F')
+                    z_estimateVector = z_estimateMatrix.reshape((int(self.z.evaluated['estimation'].NE*self.z.NV), 1),
+                                                        order='F')
 
-                sample = vstack((array(parameters).reshape((self.parametros.NV,1)), z_estimateVector))
-                FO = self._excObjectiveFunction(sample, self.z.observed['estimation'].vetor_estimativa)
+                    sample = vstack((array(parameters).reshape((self.parametros.NV,1)), z_estimateVector))
+                    FO = self._excObjectiveFunction(sample, self.z.observed['estimation'].vetor_estimativa)
 
-                self.__decisonVariablesMapped.append(sample.transpose().tolist()[0])
-                self.__OFMapped.append(FO)
+                    self.__decisonVariablesMapped.append(sample.transpose().tolist()[0])
+                    self.__OFMapped.append(float(FO))
 
-    def __criteriosAbrangencia(self):
+    def __criteriosAbrangencia(self, gl1, gl2):
         u"""
          __criteriosAbrangencia(self)
 
@@ -1285,52 +1310,14 @@ class EstimacaoNaoLinear:
             Used to evaluate the coverage region.
         """
 
-        # F test = F(PA,NP,NE*NY-NP)
-        fisher = f.ppf(self.PA, self.parametros.NV, (self.z.observed['estimation'].NE * self.z.NV - self.parametros.NV))
+        # F test = F(PA,NP+NE*NZ,NE*NY-NP-NG*NE)
+        # gl1: parâmetros + todas as granezas (em todos os pontos) + multiplicadores
+        fisher = f.ppf(self.PA, gl1, gl2)
 
-        # Value for the coverage ellipse:
-        ellipseComparacao = self.FOotimo*(float(self.parametros.NV) / (self.z.observed['estimation'].NE * self.z.NV - float(self.parametros.NV)) * fisher)
+        # Value for the coverage region:
+        FOadd = self.FOotimo*(float(gl1) / float(gl2) * fisher)
 
-        return fisher, ellipseComparacao
-
-    def regiaoAbrangencia(self):
-        u"""
-        regiaoAbrangencia(self)
-
-        ==============================================================================================
-        Method to evaluate the coverage region by Fisher's criteria, known as likelihood region [1]
-        ==============================================================================================
-
-             - References
-             ------------
-             [1] SCHWAAB, M. et al. Nonlinear parameter estimation through particle swarm optimization. Chemical Engineering Science, v. 63, n. 6, p. 1542–1552, mar. 2008.
-
-        ==========
-        """
-        # ---------------------------------------------------------------------
-        # FLUX
-        # ---------------------------------------------------------------------
-        self.__controleFluxo.SET_ETAPA('regiaoAbrangencia')
-
-        # ---------------------------------------------------------------------
-        # DETERMINATION OF THE COVERAGE REGION BY THE FISHER CRITERIA
-        # ---------------------------------------------------------------------
-        fisher, ellipseComparacao = self.__criteriosAbrangencia()
-
-        # Comparison of the objective function value evaluated in the optimization step with the OFMapped variable.
-        # If they are smaller, the respective parameters will be contained in the coverage region.
-        regiao = []
-        for pos,OFMapped in enumerate(self.__OFMapped):
-            if OFMapped <= ellipseComparacao+self.FOotimo:
-                regiao.append(self.__decisonVariablesMapped[pos])
-
-        # -------------------------------------------------------------------
-        # ASSESSING WHETHER POINTS WERE OBTAINED TO FILL THE COVERAGE REGION
-        # -------------------------------------------------------------------
-        if regiao == []:
-            warn('The coverage region evaluated by the likelihood method contains no points. Review the parameters of the algorithm used.',UserWarning)
-
-        return regiao
+        return fisher, FOadd
 
     def setupSolveModel(self, symbols_y, symbols_x):
         u"""
@@ -1649,6 +1636,8 @@ class EstimacaoNaoLinear:
         Available plots:
             'regiaoAbrangencia': plots the coverage region of the parameters
 
+            'objectiveFunction': plots the objective function in relation to the parameters
+
             'grandezas-entrada': plots for input data
 
             'grandezas-calculadas': plots for the calculated values of each quantity
@@ -1694,7 +1683,7 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # PLOTS
         # ---------------------------------------------------------------------
-        if (self.__tipoGraficos[1] in types):
+        if self.__tipoGraficos[1] in types:
             # if setData method was executed at any time:
             if self.__controleFluxo.setData:
                 base_dir = sep + self._configFolder['plots-{}'.format(self.__tipoGraficos[1])] + sep
@@ -1732,7 +1721,56 @@ class EstimacaoNaoLinear:
             else:
                 warn('The input graphs could not be created because the setData method was not executed.',UserWarning)
 
-        # created plots for the output data (calculated)
+        # created plots for the mapping of the optimization
+        if self.__tipoGraficos[3] in types:
+            if self.__flag.info['mapeamentoFO']:
+                if self.parametros.NV > 1:
+                    base_dir = sep + self._configFolder['plots-{}'.format(self.__tipoGraficos[3])] + sep
+                    Validacao_Diretorio(base_path, base_dir)
+
+                    parameters_samples = []
+                    for sample in self.__decisonVariablesMapped:
+                        parameters_samples.append(sample[0:self.parametros.NV])
+                    # the plots can only be executed if the number of parameters is greater than 1
+                    # number of non-repeated combinations for the parameters
+                    Combinacoes = int(
+                        factorial(self.parametros.NV) / (factorial(self.parametros.NV - 2) * factorial(2)))
+                    p1 = 0
+                    p2 = 1
+                    cont = 0
+                    passo = 1  # inicialiação dos contadores (pi e p2 são indinces dos parâmetros
+                    # passo: counts the number of evaluated parameters
+                    # cont: compute (param.NV - step1)+(param.NV - step2)
+
+                    for pos in range(Combinacoes):
+                        if pos == (self.parametros.NV - 1) + cont:
+                            p1 += 1
+                            p2 = p1 + 1
+                            passo += 1
+                            cont += self.parametros.NV - passo
+                        aux1 = []  # auxiliary list
+                        aux2 = []  # auxiliary list
+                        for it in range(int(size(parameters_samples) / self.parametros.NV)):
+                            aux1.append(parameters_samples[it][p1])
+                            aux2.append(parameters_samples[it][p2])
+                        cax = Fig.grafico_colorbar(array(aux1), array(aux2),
+                                                  c=self.__OFMapped, cmap='spring',
+                                                  marker='o', s=4)
+                        Fig.grafico_dispersao_sem_incerteza([self.parametros.estimativa[p1]],
+                                                            [self.parametros.estimativa[p2]],
+                                                            marker='*', linestyle='None', color='b')
+                        Fig.set_label(self.parametros.labelGraficos()[p1], self.parametros.labelGraficos()[p2])
+
+                        # SAVE THE PLOT
+                        Fig.salvar_e_fechar(base_path + base_dir + 'objective_function' + '_' +
+                                            str(self.parametros.simbolos[p1]) + '_' + str(
+                            self.parametros.simbolos[p2]) + '.png',
+                                            config_axes=True, reiniciar_fig=True)
+                        p2 += 1
+            else:
+                warn('The objective function graphs could not be created. Please execute the objective function mapping.',
+                    UserWarning)
+
         # quantities-calculated
         if self.__tipoGraficos[2] in types:
             folder = sep + self._configFolder['plots-{}'.format(self.__tipoGraficos[2])] + sep
@@ -1891,30 +1929,32 @@ class EstimacaoNaoLinear:
                     # The plots of the coverage region will be created only if the covariance matrix of the parameters has been calculated.
                     if self.__controleFluxo.uncertainty:
                         # Estimation plots
+                        gl1 = 2
+                        gl2 = self.z.observed['estimation'].NE * self.z.NV + self.parametros.NV - \
+                              self.__symModel.size()[0]
                         if self.parametros.NV > 1:
                             base_dir = sep + self._configFolder['plots-{}'.format(self.__tipoGraficos[0])] + sep
                             Validacao_Diretorio(base_path, base_dir)
-                        # the plots can only be executed if the number of parameters is greater than 1
-                        if self.parametros.NV != 1:
+                            # the plots can only be executed if the number of parameters is greater than 1
                             # number of non-repeated combinations for the parameters
                             Combinacoes = int(
                                 factorial(self.parametros.NV) / (factorial(self.parametros.NV - 2) * factorial(2)))
-                            p1 = 0;
-                            p2 = 1;
-                            cont = 0;
+                            p1 = 0
+                            p2 = 1
+                            cont = 0
                             passo = 1  # inicialiação dos contadores (pi e p2 são indinces dos parâmetros
                             # passo: counts the number of evaluated parameters
                             # cont: compute (param.NV - step1)+(param.NV - step2)
 
                             for pos in range(Combinacoes):
                                 if pos == (self.parametros.NV - 1) + cont:
-                                    p1 += 1;
-                                    p2 = p1 + 1;
+                                    p1 += 1
+                                    p2 = p1 + 1
                                     passo += 1
                                     cont += self.parametros.NV - passo
 
                                 # Plots the coverage region by likelihood method
-                                if self.__controleFluxo.regiaoAbrangencia and self.parametros.regiao_abrangencia != []:
+                                if self.__controleFluxo.coverageRegion and self.parametros.regiao_abrangencia != []:
                                     aux1 = []  # auxiliary list -> coverage region for the parameter P1
                                     aux2 = []  # auxiliary list -> coverage region for the parameter P2
                                     for it in range(int(size(self.parametros.regiao_abrangencia) / self.parametros.NV)):
@@ -1925,7 +1965,7 @@ class EstimacaoNaoLinear:
                                                                         marker='o', linestyle='None', color='b',
                                                                         linewidth=2.0, zorder=1)
                                 # Plots the coverage region by linearization (ellipse) method
-                                fisher, ellipseComparacao = self.__criteriosAbrangencia()
+                                fisher, ellipseComparacao = self.__criteriosAbrangencia(gl1,gl2)
 
                                 cov = array([[self.parametros.matriz_covariancia[p1, p1],
                                               self.parametros.matriz_covariancia[p1, p2]],
@@ -1936,8 +1976,8 @@ class EstimacaoNaoLinear:
                                                        [self.parametros.estimativa[p1], self.parametros.estimativa[p2]],
                                                        ellipseComparacao)
 
-                                if self.__controleFluxo.regiaoAbrangencia and self.parametros.regiao_abrangencia != []:
-                                    Fig.set_legenda([u'Verossimilhança', 'Elipse'], loc='best')
+                                if self.__controleFluxo.coverageRegion and self.parametros.regiao_abrangencia != []:
+                                    Fig.set_legenda([u'Maximum likelihood', 'Elipse'], loc='best')
                                 else:
                                     Fig.set_legenda(['Elipse'], loc='best')
 
