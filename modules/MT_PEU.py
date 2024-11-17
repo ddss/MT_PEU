@@ -20,10 +20,9 @@ from numpy.linalg import inv
 from pandas import ExcelFile,read_excel,read_csv,concat,DataFrame
 # Operating System Packages
 from os import getcwd, sep
-from casadi import MX,vertcat,horzcat,nlpsol,sum1,jacobian,hessian,mtimes,inv as inv_cas, diag,Function, rootfinder
+from casadi import MX, vertcat, nlpsol, jacobian, hessian, diag, Function, rootfinder
 from scipy.optimize import fsolve
 from tqdm import tqdm
-from matplotlib.cm import coolwarm
 # Exception Handling
 from warnings import warn
 from os import listdir
@@ -502,7 +501,7 @@ class EstimacaoNaoLinear:
         if udados.shape[0]*self.z.NV-float(self.parametros.NV) <= 0: # Verificar se há graus de liberdade suficiente
             warn('Insufficient degrees of freedom. Your experimental data set is not enough to estimate the parameters!',UserWarning)
 
-    def setData(self, data, separador=';', decimal='.', gly=[]):
+    def setData(self, data, separador=';', decimal='.', gl=[], PA=[], coverage_intervals = None):
         u"""
         setData(self,data,separador=';',decimal='.' ,dataType= None, glx=[],gly=[]):
         ===================================================================================================================
@@ -697,7 +696,7 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # Saving the experimental data in the variables.
         try:
-            self.z._SETdata(estimativa=Z, matriz_incerteza=uZ, gL=gly)
+            self.z._SETdata(estimativa=Z, matriz_incerteza=uZ, gL=gl, PA=PA)
         except Exception as erro:
             raise RuntimeError(
                 'Error in the creation of the estimation set of the quantity Y: {}'.format(erro))
@@ -923,7 +922,9 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # OPTIMAL POINT OF THE OBJECTIVE FUNCTION
         # ---------------------------------------------------------------------
-        self.FOotimo = float(self.optsolution['f'])
+        self.optsolution['f'] = float(self.optsolution['f'])
+        # degress of freedom
+        self.optsolution['df'] = self.__symDecisionVariables.size()[0] - self.__symModel.size()[0]
         # ---------------------------------------------------------------------
         # OPTIMAL VALUE OF THE PARAMETERS
         # ---------------------------------------------------------------------
@@ -943,7 +944,7 @@ class EstimacaoNaoLinear:
 
         # parameters report creation
         if report is True:
-            self._out.Parametros(self.parametros, self.FOotimo)
+            self._out.Parametros(self.parametros, self.optsolution['f'])
             self._out.Grandezas(self.z, None, dataType='estimation')
 
         #Conversion of the optimization report to html
@@ -1053,10 +1054,14 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         self.parametros._updateParametro(matriz_covariancia=covariance_matrix[0:self.parametros.NV,0:self.parametros.NV])
 
+        gl1 = 2 # the ellipse limit in Dados class is evaluated in pairs (2 variables at time)
+        gl2 = self.z.observed['estimation'].NE * self.z.NV - self.optsolution['df']
+        fisher, ellipse_limit = self.__criteriosAbrangencia(gl1, gl2)
+
         self.z._SETevaluated(estimativa=array(self.optsolution['x'][self.parametros.NV:]),
                              matriz_covariancia=covariance_matrix[self.parametros.NV:self.parametros.NV + self.z.NV * self.z.observed['estimation'].NE, self.parametros.NV:self.parametros.NV + self.z.NV * self.z.observed['estimation'].NE],
                              gL=[[self.z.observed['estimation'].NE * self.z.NV - self.parametros.NV] * self.z.observed['estimation'].NE] * self.z.NV,
-                             NE=self.z.observed['estimation'].NE)
+                             NE=self.z.observed['estimation'].NE, ellipse_limit=ellipse_limit)
 
         # ---------------------------------------------------------------------
         # COVERAGE REGION
@@ -1077,13 +1082,13 @@ class EstimacaoNaoLinear:
             # ---------------------------------------------------------------------
             # DETERMINATION OF THE COVERAGE REGION BY THE FISHER CRITERIA
             # ---------------------------------------------------------------------
-            gl1 = self.z.observed['estimation'].NE * self.z.NV - self.parametros.NV
-            gl2 = self.z.observed['estimation'].NE * self.z.NV + self.parametros.NV - self.__symModel.size()[0]
+            gl1 = self.optsolution['df']
+            gl2 = self.z.observed['estimation'].NE * self.z.NV - self.optsolution['df']
             fisher, FOadd = self.__criteriosAbrangencia(gl1, gl2)
 
             # Comparison of the objective function value evaluated in the optimization step with the OFMapped variable.
             # If they are smaller, the respective parameters will be contained in the coverage region.
-            index = array(self._EstimacaoNaoLinear__OFMapped) < FOadd + self.FOotimo
+            index = array(self._EstimacaoNaoLinear__OFMapped) < FOadd + self.optsolution['f']
 
             regiao = []
             for sample in array(self.__decisonVariablesMapped)[index].tolist():
@@ -1101,7 +1106,7 @@ class EstimacaoNaoLinear:
 
         # parameters report creation
         if report is True:
-            self._out.Parametros(self.parametros, self.FOotimo)
+            self._out.Parametros(self.parametros, self.optsolution['f'])
             self._out.Grandezas(self.z, None, dataType='estimation', **kwargs)
 
     def __objectiveFunctionMapping(self, covariance_matrix, **kwargs):
@@ -1193,7 +1198,7 @@ class EstimacaoNaoLinear:
             raise TypeError('Upper_limits and lower_limits must be lists or tuples of the same size as self.paramtros.NV')
 
         gl1 = 2
-        gl2 = self.z.observed['estimation'].NE * self.z.NV + self.parametros.NV - self.__symModel.size()[0]
+        gl2 = self.z.observed['estimation'].NE * self.z.NV - self.optsolution['df']
 
         if upper_bound is None or lower_bound is None:
             estimates = vstack((self.parametros.vetor_estimativa,self.z.evaluated['estimation'].vetor_estimativa))
@@ -1273,7 +1278,16 @@ class EstimacaoNaoLinear:
                 # samples generated with triangular distribution, considering the first quadrant of the Cartesian plane
                 sample_triangular_up = [triangular(estimates[i], (upper_bound[i] - estimates[i])/2+estimates[i], upper_bound[i], 1)[0] for i in range(N)]
 
-                for sample in [sample_normal, sample_uniform, sample_triangular, sample_triangular_lb, sample_triangular_up]:
+                # samples mixing the triangular sampling
+                sample_triangular_mix = []
+                for i in range(N):
+                    r = uniform(lower_bound[i], upper_bound[i], 1)
+                    if r > 0.5:
+                        sample_triangular_mix.append(sample_triangular_lb[i])
+                    else:
+                        sample_triangular_mix.append(sample_triangular_up[i])
+
+                for sample in [sample_normal, sample_uniform, sample_triangular, sample_triangular_lb, sample_triangular_up, sample_triangular_mix]:
                     # Solving the model and adjusting the sample
                     parameters = sample[0:self.parametros.NV]
                     z_estimateMatrix =  array(sample[self.parametros.NV:]).reshape((self.z.evaluated['estimation'].NE, self.z.NV),
@@ -1315,7 +1329,7 @@ class EstimacaoNaoLinear:
         fisher = f.ppf(self.PA, gl1, gl2)
 
         # Value for the coverage region:
-        FOadd = self.FOotimo*(float(gl1) / float(gl2) * fisher)
+        FOadd = float(self.optsolution['f'])*(float(gl1) / float(gl2) * fisher)
 
         return fisher, FOadd
 
@@ -1596,13 +1610,16 @@ class EstimacaoNaoLinear:
             # -----------------------------------------------------------------
             # VALIDATION OF THE VALUE OF THE OBJECTIVE FUNCTION AS A CHI-SQUARE
             # -----------------------------------------------------------------
-            gL = self.z.observed[type_data].NE * self.z.NV - self.parametros.NV
+            if type_data == 'estimation':
+                gL = self.z.observed[type_data].NE * self.z.NV - self.optsolution['df']
+            if type_data == 'validation':
+                gL = (len(self._setupModel['x'])*self.z.observed[type_data].NE + self.parametros.NV) - len(self._setupModel['y'])*self.z.observed[type_data].NE
 
             chi2max = chi2.ppf(self.PA+(1-self.PA)/2,gL)
             chi2min = chi2.ppf((1-self.PA)/2,gL)
 
             if type_data == 'estimation':
-                self.estatisticas[type_data]['ObjectiveFunction'] = {'chi2max':chi2max, 'chi2min':chi2min, 'FO':self.FOotimo}
+                self.estatisticas[type_data]['ObjectiveFunction'] = {'chi2max':chi2max, 'chi2min':chi2min, 'FO':self.optsolution['f']}
             else:
                 FO = self._excObjectiveFunctionPrediction(self.z.evaluated[type_data].vetor_estimativa,
                                                           self.z.observed[type_data].vetor_estimativa)
@@ -1663,12 +1680,14 @@ class EstimacaoNaoLinear:
 
         if len(dataType) == 0:
             dataType_observed = self.z.observed.keys()
-            dataType_evaluated = self.z.evaluated.keys()
+            if 'evaluated' in self.z._ID:
+                dataType_evaluated = self.z.evaluated.keys()
             if self.__controleFluxo.residualAnalysis:
                 dataType_residual = self.z.residual.keys()
         else:
             dataType_observed = set(dataType).intersection(self.z.observed.keys())
-            dataType_evaluated = set(dataType).intersection(self.z.evaluated.keys())
+            if 'evaluated' in self.z._ID:
+                dataType_evaluated = set(dataType).intersection(self.z.evaluated.keys())
             if self.__controleFluxo.residualAnalysis:
                 dataType_residual = set(dataType).intersection(self.z.residual.keys())
 
@@ -1709,14 +1728,16 @@ class EstimacaoNaoLinear:
                                                                 marker='o', linestyle='None')
                             Fig.salvar_e_fechar(base_path + folder + self.z.simbolos[iy] + '_' + self.z.simbolos[ix])
                             # plots with uncertainty
+                            xerr = vstack((self.z.observed[type_data].matriz_estimativa[:, ix]-self.z.observed[type_data].interval_lb[:,ix],
+                                           self.z.observed[type_data].interval_up[:,ix]-self.z.observed[type_data].matriz_estimativa[:, ix]))
+                            yerr = vstack((self.z.observed[type_data].matriz_estimativa[:, iy]-self.z.observed[type_data].interval_lb[:,iy],
+                                           self.z.observed[type_data].interval_up[:,iy]-self.z.observed[type_data].matriz_estimativa[:, iy]))
                             Fig.grafico_dispersao_com_incerteza(self.z.observed[type_data].matriz_estimativa[:, ix],
                                                                 self.z.observed[type_data].matriz_estimativa[:, iy],
-                                                                self.z.observed[type_data].matriz_incerteza[:, ix],
-                                                                self.z.observed[type_data].matriz_incerteza[:, iy],
+                                                                xerr=xerr, yerr=yerr,
                                                                 label_x=self.z.labelGraficos('observed')[ix],
                                                                 label_y=self.z.labelGraficos('observed')[iy],
-                                                                fator_abrangencia_x=[2.]*self.z.observed[type_data].NE,
-                                                                fator_abrangencia_y=[2.]*self.z.observed[type_data].NE, fmt='o')
+                                                                fmt='o')
                             Fig.salvar_e_fechar(base_path + folder + self.z.simbolos[iy] + '_' + ' ' + self.z.simbolos[ix] + '_interval')
             else:
                 warn('The input graphs could not be created because the setData method was not executed.',UserWarning)
@@ -1812,30 +1833,33 @@ class EstimacaoNaoLinear:
                                                                 self.z.evaluated[type_data].matriz_estimativa[:, iy],
                                                                 label_x=self.z.labelGraficos()[ix],
                                                                 label_y=self.z.labelGraficos()[iy],
-                                                                marker='o', linestyle='None', color = 'r',
+                                                                marker='o', linestyle='None', color = 'b',
                                                                 config_axes=True, add_legenda=True)
                             Fig.set_legenda(['observed','evaluated'],loc='best', fontsize=12)
                             Fig.salvar_e_fechar(base_path + folder + subfolder + self.z.simbolos[iy] + '_' + self.z.simbolos[ix])
 
                             # Plots with uncertainty
                             if self.z.evaluated[type_data].matriz_correlacao is not None:
-                                Fig.grafico_dispersao_com_incerteza(self.z.observed[type_data].matriz_estimativa[:, ix],
-                                                                    self.z.evaluated[type_data].matriz_estimativa[:, iy],
-                                                                    self.z.observed[type_data].matriz_incerteza[:, ix],
-                                                                    self.z.evaluated[type_data].matriz_incerteza[:, iy],
-                                                                    fator_abrangencia_x=[2.]*self.z.observed[type_data].NE,
-                                                                    fator_abrangencia_y=[2.]*self.z.evaluated[type_data].NE, fmt='o',
-                                                                    color='b', add_legenda=True)
+                                xerr = vstack((self.z.observed[type_data].matriz_estimativa[:, ix]-self.z.observed[type_data].interval_lb[:, ix],
+                                               self.z.observed[type_data].interval_up[:, ix]-self.z.observed[type_data].matriz_estimativa[:, ix]))
+                                yerr = vstack((self.z.observed[type_data].matriz_estimativa[:, iy]-self.z.observed[type_data].interval_lb[:, iy],
+                                               self.z.observed[type_data].interval_up[:, iy]-self.z.observed[type_data].matriz_estimativa[:, iy]))
                                 Fig.grafico_dispersao_com_incerteza(self.z.observed[type_data].matriz_estimativa[:, ix],
                                                                     self.z.observed[type_data].matriz_estimativa[:, iy],
-                                                                    self.z.observed[type_data].matriz_incerteza[:, ix],
-                                                                    self.z.observed[type_data].matriz_incerteza[:, iy],
+                                                                    xerr=xerr, yerr=yerr,
                                                                     label_x=self.z.labelGraficos()[ix],
                                                                     label_y=self.z.labelGraficos()[iy],
-                                                                    fator_abrangencia_x=[2.]*self.z.observed[type_data].NE,
-                                                                    fator_abrangencia_y=[2.]*self.z.observed[type_data].NE, fmt='o',
-                                                                    color='r', add_legenda=True)
-                                Fig.set_legenda(['observed','evaluated'],loc='best', fontsize=12)
+                                                                    fmt='o',
+                                                                    color='b', add_legenda=True)
+                                xerr = vstack((self.z.evaluated[type_data].matriz_estimativa[:, ix]-self.z.evaluated[type_data].interval_lb[:, ix],
+                                               self.z.evaluated[type_data].interval_up[:, ix]-self.z.evaluated[type_data].matriz_estimativa[:, ix]))
+                                yerr = vstack((self.z.evaluated[type_data].matriz_estimativa[:, iy]-self.z.evaluated[type_data].interval_lb[:, iy],
+                                               self.z.evaluated[type_data].interval_up[:, iy]-self.z.evaluated[type_data].matriz_estimativa[:, iy]))
+                                Fig.grafico_dispersao_com_incerteza(self.z.evaluated[type_data].matriz_estimativa[:, ix],
+                                                                    self.z.evaluated[type_data].matriz_estimativa[:, iy],
+                                                                    xerr=xerr, yerr=yerr,
+                                                                    fmt='o', color='r', add_legenda=True)
+                                Fig.set_legenda(['observed','evaluated'], loc='best', fontsize=12)
                                 Fig.salvar_e_fechar(base_path + folder + subfolder + self.z.simbolos[iy] + '_' + self.z.simbolos[ix] + '_interval')
 
                     for iy in range(self.z.NV):
@@ -1870,25 +1894,28 @@ class EstimacaoNaoLinear:
 
                         # Comparison between the experimental and calculated values by the model, with variance
                         if self.z.evaluated[type_data].matriz_incerteza is not None:
-                            yerr_calculado = self.z.evaluated[type_data].matriz_incerteza[:, iy]
-
-                            yerr_validacao = self.z.observed[type_data].matriz_incerteza[:, iy]
-
+                            yerr_observed = vstack((y-self.z.observed[type_data].interval_lb[:, iy],
+                                                    self.z.observed[type_data].interval_up[:, iy]-y))
                             # Comparison between the experimental (validation) and calculated values by the model, without variance,
                             # by samples
-                            Fig.grafico_dispersao_com_incerteza(amostras, y, None, yerr_validacao, fator_abrangencia_x=[2.]*len(amostras),
-                                                                fator_abrangencia_y=t_val, fmt="o", color = 'b',
+                            Fig.grafico_dispersao_com_incerteza(amostras, y,
+                                                                xerr=None, yerr=yerr_observed,
+                                                                fmt="o", color = 'b',
                                                                 config_axes=False, corrigir_limites=False,
                                                                 add_legenda=True)
-                            Fig.grafico_dispersao_com_incerteza(amostras, ym, None, yerr_calculado,fator_abrangencia_x=[2.]*len(amostras),
-                                                                fator_abrangencia_y=t_cal, fmt="o", color = 'r', config_axes=False, add_legenda=True)
+
+                            yerr_evaluated = vstack((ym-self.z.evaluated[type_data].interval_lb[:, iy],
+                                                     self.z.evaluated[type_data].interval_up[:, iy]-ym))
+                            Fig.grafico_dispersao_com_incerteza(amostras, ym,
+                                                                None, yerr=yerr_evaluated,
+                                                                fmt="o", color = 'r', config_axes=False, add_legenda=True)
                             Fig.set_label('samples', self.z.labelGraficos()[iy])
                             Fig.set_legenda(['observed', 'evaluated'],fontsize=12, loc='best')
                             Fig.salvar_e_fechar(base_path + folder + str(self.z.simbolos[iy]) + '_samples_interval.png', config_axes=True)
 
                             # calculated z by experimental z
-                            Fig.grafico_dispersao_com_incerteza(y, ym, yerr_validacao, yerr_calculado,
-                                                                fator_abrangencia_x=t_cal, fator_abrangencia_y=t_val,
+                            Fig.grafico_dispersao_com_incerteza(y, ym,
+                                                                xerr=yerr_observed, yerr=yerr_evaluated,
                                                                 fmt="o", corrigir_limites=True, config_axes=False)
                             Fig.grafico_dispersao_sem_incerteza(diagonal, diagonal, linestyle='-', color='k', linewidth=2.0,
                                                                 corrigir_limites=False, config_axes=False)
@@ -1930,8 +1957,7 @@ class EstimacaoNaoLinear:
                     if self.__controleFluxo.uncertainty:
                         # Estimation plots
                         gl1 = 2
-                        gl2 = self.z.observed['estimation'].NE * self.z.NV + self.parametros.NV - \
-                              self.__symModel.size()[0]
+                        gl2 = self.z.observed['estimation'].NE * self.z.NV - self.optsolution['df']
                         if self.parametros.NV > 1:
                             base_dir = sep + self._configFolder['plots-{}'.format(self.__tipoGraficos[0])] + sep
                             Validacao_Diretorio(base_path, base_dir)
@@ -2074,7 +2100,7 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # Creating the parameters report if the optimization method or SETparameter methods was executed.
         if self.__controleFluxo.optimization:
-            self._out.Parametros(self.parametros,self.FOotimo)
+            self._out.Parametros(self.parametros, float(self.optsolution['f']))
         else:
             warn('The parameters report was not created because the optimize method or SETparameter method was not executed')
         # ---------------------------------------------------------------------

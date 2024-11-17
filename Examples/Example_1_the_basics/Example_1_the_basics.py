@@ -35,19 +35,16 @@ time = [120.0,60.0,60.0,120.0,120.0,60.0,60.0,30.0,15.0,60.0,
 60.0,60.0,60.0,60.0,60.0,60.0,30.0,45.1,30.0,30.0,45.0,15.0,30.0,90.0,25.0,
 60.1,60.0,30.0,30.0,60.0]
 # input 1 uncertainty
-uxtime = [1]*41
+uxtime = [0.01]*41
 # Observed data of independent variable (input 2)
 temperature = [600.0,600.0,612.0,612.0,612.0,612.0,620.0,620.0,620.0,
 620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,
 620.0,620.0,620.0,620.0,620.0,620.0,631.0,631.0,631.0,631.0,631.0,639.0,639.0,
 639.0,639.0,639.0,639.0,639.0,639.0,639.0]
 # input 2 uncertainty
-uxtemperature = [1]*41
+uxtemperature = [0.01]*41
 
 #Data entry manual
-Estime.setData(data={'time':time, 'utime':uxtime, 'temperature':temperature,
-                      'utemperature':uxtemperature,'frac':Frac,'ufrac':ufrac})
-
 Estime.setData(data={'time':time, 'utime':uxtime, 'temperature':temperature,
                       'utemperature':uxtemperature,'frac':Frac,'ufrac':ufrac})
 
@@ -61,7 +58,7 @@ Estime.optimize(initial_estimative=[0.5,25000]+Frac+time+temperature,
 # using solely default options
 Estime.setupSolveModel(['frac'], ['time','temperature'])
 
-Estime.uncertainty(objectiveFunctionMapping=True, iterations=3000,  searchLimitFactor=1/10, compresscov=1e4)
+Estime.uncertainty(objectiveFunctionMapping=True, iterations=10000,  searchLimitFactor=1/10, compresscov=5e3)
 
 #%% prediction
 

@@ -50,8 +50,10 @@ Estime.optimize(initial_estimative=[0.005, 20000.000]+Estime.z.observed['estimat
 # iterations: Number of iterations to perform the mapping of the objective function. The higher the better mapping, but it
 # increases the execution time
 # report: Informs whether the parameters report should be created.
+Estime.setupSolveModel(['frac'], ['time','temperature'])
 
-Estime.uncertainty()
+Estime.uncertainty(objectiveFunctionMapping=True, iterations=10000,  searchLimitFactor=1/10, compresscov=5e3)
+
 
 #%% Evaluating model predictions
 # export_y: Exports the calculated data of z, its uncertainty, and degrees of freedom in a txt with comma separation (True or False);

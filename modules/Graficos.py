@@ -213,20 +213,19 @@ class Grafico:
         if add_legenda:
             self.lista_graficos.append(dispersao_sem_incerteza)
 
-    def grafico_dispersao_com_incerteza(self, x, y, ux, uy, label_x = None, label_y = None,
-                                        fator_abrangencia_x = None, fator_abrangencia_y = None,
-                                        add_legenda = False, corrigir_limites = True, config_axes = True, **kwargs):
+    def grafico_dispersao_com_incerteza(self, x, y, xerr, yerr, label_x = None, label_y = None,
+                                        add_legenda = False, corrigir_limites = True,
+                                        config_axes = True, **kwargs):
         u"""
         ========
         Entradas
         ========
         :param x (array): dados de x
         :param y (array): dados de y
-        :param ux (array ou None): uncertainty de x
-        :param uy (array ou None): uncertainty de y
+        :param xerr (array ou None): x deviation
+        :param yerr (array ou None): y deviation
         :param label_x (string): label do eixo x
         :param label_y (string): label do eixo y
-        :param fator_abrangencia: fator de abrangencia
 
         :param add_legenda (bool): adiciona o gráfico no atributo self.lista_graficos (para formatação de legenda)
         :param corrigir_limites (bool): corrige os limites dos gráficos (evita que pontos fiquem muito próximos ao
@@ -235,26 +234,15 @@ class Grafico:
 
         :param **kwargs: keyword argumentos a serem passados para método self.matplotlib.pyplot.errorbar
         """
-        if not isinstance(fator_abrangencia_x, list) or not isinstance(fator_abrangencia_y, list):
-            raise TypeError('The coverage factors must be informed in a form of lists.')
-
         # organizando os vetores
         y = y[argsort(x)]
-        if ux is not None:
-            ux = ux[argsort(x)]
-        if uy is not None:
-            uy = uy[argsort(x)]
+        if xerr is not None:
+            xerr[0] = xerr[0][argsort(x)]
+            xerr[1] = xerr[1][argsort(x)]
+        if yerr is not None:
+            yerr[0] = yerr[0][argsort(x)]
+            yerr[1] = yerr[1][argsort(x)]
         x = sort(x)
-
-        # uncertainty expandida
-        if ux is not None:
-            xerr = [fator_abrangencia_x[i] * ux[i] for i in range(len(ux))]
-        else:
-            xerr = None
-        if uy is not None:
-            yerr = [fator_abrangencia_y[i]*uy[i] for i in range(len(uy))]
-        else:
-            yerr = None
 
         # gráfico
         dispersao_com_incerteza = self.axes.errorbar(x, y, xerr=xerr, yerr=yerr, **kwargs)
@@ -265,15 +253,15 @@ class Grafico:
         # Modificação do limite dos gráficos
         if corrigir_limites:
             step_x_tickloc, step_y_tickloc = self.get_step_tick()
-            if ux is not None:
-                xmin = min(x-xerr) - step_x_tickloc / 4.
-                xmax = max(x+xerr) + step_x_tickloc / 4.
+            if xerr is not None:
+                xmin = min(x-xerr[0]) - step_x_tickloc / 4.
+                xmax = max(x+xerr[1]) + step_x_tickloc / 4.
             else:
                 xmin = min(x) - step_x_tickloc / 4.
                 xmax = max(x) + step_x_tickloc / 4.
-            if uy is not None:
-                ymin = min(y-yerr) - step_y_tickloc / 4.
-                ymax = max(y+yerr) + step_y_tickloc / 4.
+            if yerr is not None:
+                ymin = min(y-yerr[0]) - step_y_tickloc / 4.
+                ymax = max(y+yerr[1]) + step_y_tickloc / 4.
             else:
                 ymin = min(y) - step_y_tickloc / 4.
                 ymax = max(y) + step_y_tickloc / 4.
@@ -286,7 +274,6 @@ class Grafico:
         # Configuração para legenda
         if add_legenda:
                 self.lista_graficos.append(dispersao_com_incerteza)
-
 
     def boxplot(self, x, label_x = None, label_y=None, config_axes=True, **kwargs):
         u"""

@@ -27,6 +27,8 @@ Estimation.setData(data="data_exa8.xlsx")
 # dataType: Defines the purpose of the informed data set: observed, predicao.
 # glx: Degrees of freedom of quantity gamma;
 # gly: Degrees of freedom of quantity z;
+#%% Plotting the main results
+Estimation.plots()
 #%% Optimization - estimating the parameters
 # initial_estimative: List with the initial estimates for the parameters;
 # lower_bound: List with the lower bounds for the parameters;
@@ -44,7 +46,9 @@ Estimation.optimize(initial_estimative = [200, -80680.1]+Estimation.z.observed['
 # uncertaintyMethod: method for calculating the covariance matrix of the parameters;
 # objectiveFunctionMapping: Deals with mapping the objective function (True or False);
 # report: Informs whether the parameters report should be created.
-Estimation.uncertainty()
+Estimation.setupSolveModel(['P'], ['T'])
+
+Estimation.uncertainty(objectiveFunctionMapping=True, iterations=100,  searchLimitFactor=1/10, compresscov=5e3)
 
 #%% Evaluating model predictions
 # export_y: Exports the calculated data of z, its uncertainty, and degrees of freedom in a txt with comma separation (True or False);
@@ -52,9 +56,6 @@ Estimation.uncertainty()
 # export_cov_y: Exports the covariance matrix of z (True or False);
 # export_x: Exports the calculated data of gamma, its uncertainty, and degrees of freedom in a txt with comma separation(True or False);
 # export_cov_x: Exports the covariance matrix of gamma (True or False).
-Estimation.setupSolveModel(symbols_x=['T'],
-                           symbols_y=['P'])
-
 Estimation.prediction()
 
 #%% Evaluating residuals and quality index
@@ -62,8 +63,6 @@ Estimation.residualAnalysis(report=True)
 
 #%% Plotting the main results
 Estimation.plots()
-
-
 
 #%% Packages importing
 # from modules.MT_PEU_Linear import EstimacaoLinear

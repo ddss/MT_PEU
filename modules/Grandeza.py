@@ -6,7 +6,7 @@ Created on Mon Feb  2 11:05:02 2015
 """
 # Importação de pacotes de terceiros
 from numpy import array, size, diag, linspace, min, max, \
-    mean,  std, ndarray, insert, isfinite, arange, sqrt, zeros
+    mean,  std, ndarray, insert, isfinite, arange, sqrt, inf, nanmax, nanmin, arange
 
 from numpy.linalg import cond
 
@@ -15,16 +15,17 @@ from statsmodels.stats.diagnostic import acorr_ljungbox, het_breuschpagan, het_w
 from statsmodels.stats.stattools import durbin_watson
 from statsmodels.graphics.correlation import plot_corr
 
-from scipy.stats import normaltest, shapiro, ttest_1samp, kstest
+from scipy.stats import normaltest, shapiro, ttest_1samp, kstest, t
+from scipy.special import factorial
 
 from matplotlib.pyplot import savefig, close
-    
 from matplotlib.colors import LinearSegmentedColormap
 
+# System Packages
 from os import getcwd, sep
-
+from warnings import warn
 # Subrotinas próprias (desenvolvidas pelo GI-UFBA)
-from subrotinas import Validacao_Diretorio, matrizcorrelacao
+from subrotinas import Validacao_Diretorio, matrizcorrelacao, eval_cov_ellipse
 
 from Graficos import Grafico
 
@@ -105,7 +106,7 @@ class Grandeza:
             raise NameError('You must insert te symbols of the quantities.')
 
 
-        self.__validacaoEntrada(simbolos,simbolos_incertezas,nomes,unidades,label_latex)
+        self.__validacaoEntrada(simbolos, simbolos_incertezas, nomes, unidades, label_latex)
 
         # ------------------------------------------------------------------------------------
         # CRIAÇÃO DE ATRIBUTOS
@@ -127,7 +128,7 @@ class Grandeza:
         # ---------------------------------------------------------------------
         # VARIÁVEIS INTERNAS
         # ---------------------------------------------------------------------   
-        self.__ID = [] # ID`s que a grandeza possui
+        self._ID = [] # ID`s que a grandeza possui
 
     @property
     def __ID_available(self):
@@ -222,7 +223,7 @@ class Grandeza:
 
     class Dados:
 
-        def __init__(self,estimativa, NV, matriz_incerteza=None, matriz_covariancia=None, symbols=None, gL=[], NE=None, **kwargs):
+        def __init__(self,estimativa, NV, matriz_incerteza=None, matriz_covariancia=None, symbols=None, gL=[], PA=[], NE=None, **kwargs):
             """
             Classe interna para organizar os dados das estimativas e suas respectivas incertezas, disponibilizando-os na forma de matriz, vetores e listas.
             ========
@@ -235,7 +236,9 @@ class Grandeza:
             * ``matriz_incerteza``  (array) : uncertainty para os valores das estimativas. Cada coluna contém a uncertainty para os pontos de uma variável.
             * ``matriz_variancia`` (array)  : variância para os valores das estimativas. Deve ser a matriz de covariância.
             * ``gL''(lista)                 : graus de liberdade
+            * ``PA''(list)                  : probabilidade de abrangência para cada dado
             * ``NE`` (int): quantidade de pontos experimentais. Necessário apenas quanto a estimativa é um vetor.
+
             **AVISO:**
             * se estimativa for uma matriz, espera-se que ``matriz_incerteza`` seja uma matriz em que cada coluna seja as *INCERTEZAS* para cada observação de uma certa variável (ela será o atributo ``.matriz_incerteza`` )
             * se estimativa for um vetor, espera-se que seja informada a ``matriz_covariância``
@@ -262,6 +265,8 @@ class Grandeza:
             ======
                 * coluna_dumb (bool): possibilita lidar com uma coluna adicional no FINAL do conjunto de dados, que não faz parte
                 dos dados experimentais. Exemplo: estimação de parâmetros linear -> coluna de 1
+                * coverage_intervals(list with 2 elements): [0] array(NE,N) with the inferior limit of the interval, [1] array(NE,N) with the inferior superior of the interval
+                * ellipse_limit (float): with the superior limit of the ellipse
             """
 
             # ---------------------------------------------------------------------
@@ -284,6 +289,9 @@ class Grandeza:
 
             if not isinstance(gL, list):
                 raise TypeError(u'Freedom degrees must be informed as a list.')
+
+            if not isinstance(gL, list):
+                raise TypeError(u'PA must be informed as a list.')
 
             # ---------------------------------------------------------------------------
             # KEYWORD ARGUMENTS
@@ -320,6 +328,12 @@ class Grandeza:
             # ---------------------------------------------------------------------
             self.NE = self.matriz_estimativa.shape[0]
 
+            # --------------------------------------------------------------------------
+            # Graus de liberdade
+            # --------------------------------------------------------------------------
+            self.gL = gL if len(gL) != 0 else [[100 for i in range(self.NE)] for j in range(NV)]
+            self.PA = PA if len(PA) != 0 else [[0.95 for i in range(self.NE)] for j in range(NV)]
+
             # ---------------------------------------------------------------------------
             # CRIAÇÃO DA MATRIZ COVARIÂNCIA E MATRIZ INCERTEZA (ARRAYS)
             # ---------------------------------------------------------------------------
@@ -345,10 +359,60 @@ class Grandeza:
 
             self._validar() #validação das incertezas
 
-            # ---------------------------------------------------------------------
-            # Graus de liberdade
-            # ---------------------------------------------------------------------
-            self.gL = gL if len(gL) != 0 else [[100] * self.NE] * self.matriz_estimativa.shape[1]
+            # --------------------------------------------------------------------
+            # Intervalos de abrangência com base na elipse (normal multivariada)
+            # --------------------------------------------------------------------
+            N = NV * self.NE
+
+            if (kwargs.get('coverage_intervals') is not None) and (type(kwargs.get('coverage_intervals')) is list):
+
+                if len(kwargs.get('coverage_intervals')) == 2:
+                    self._interval_info = 'provided'
+                    self.interval_up = kwargs.get('coverage_intervals')[0]
+                    self.interval_lb = kwargs.get('coverage_intervals')[1]
+                else:
+                    raise SyntaxError(u'The coverage_intervals must be a list with 2 elements.')
+
+            elif (self.matriz_covariancia is not None) and (kwargs.get('ellipse_limit') is not None):
+                self._interval_info = 'ellipsis'
+                extremo_elipse_superior = [-inf for i in range(N)]
+                extremo_elipse_inferior = [inf for i in range(N)]
+
+                Combinacoes = int(factorial(N) / (factorial(N - 2) * factorial(2)))
+                p1 = 0
+                p2 = 1
+                cont = 0
+                passo = 1
+
+                for pos in range(Combinacoes):
+                    if pos == (N - 1) + cont:
+                        p1 += 1
+                        p2 = p1 + 1
+                        passo += 1
+                        cont += N - passo
+
+                    cov = array([[self.matriz_covariancia[p1, p1], self.matriz_covariancia[p1, p2]],
+                                 [self.matriz_covariancia[p2, p1], self.matriz_covariancia[p2, p2]]])
+
+                    coordenadas_x, coordenadas_y, width, height, theta = eval_cov_ellipse(cov,
+                                                                                          [self.vetor_estimativa[p1, 0],
+                                                                                           self.vetor_estimativa[p2, 0]],
+                                                                                          kwargs.get('ellipse_limit'), ax=False)
+
+                    extremo_elipse_superior[p1] = nanmax([nanmax(coordenadas_x), nanmax(extremo_elipse_superior[p1])])
+                    extremo_elipse_superior[p2] = nanmax([nanmax(coordenadas_y), nanmax(extremo_elipse_superior[p2])])
+                    extremo_elipse_inferior[p1] = nanmin([nanmin(coordenadas_x), nanmin(extremo_elipse_inferior[p1])])
+                    extremo_elipse_inferior[p2] = nanmin([nanmin(coordenadas_y), nanmin(extremo_elipse_inferior[p2])])
+                    p2 += 1
+
+                self.interval_up = array(extremo_elipse_superior).reshape((NE, int(self.vetor_estimativa.shape[0] / NE)),
+                                                                           order='F')  # Conversão de vetor para uma matriz
+                self.interval_lb = array(extremo_elipse_inferior).reshape((NE, int(self.vetor_estimativa.shape[0] / NE)),
+                                                                           order='F')  # Conversão de vetor para uma matriz
+            elif self.matriz_covariancia is not None:
+                self._interval_info = 't-student'
+                self.interval_up = array([[self.matriz_estimativa[i,j] + t.isf((1 - self.PA[j][i]) / 2, self.gL[j][i])*self.matriz_incerteza[i,j] for i in range(self.NE)] for j in range(NV)]).transpose()
+                self.interval_lb = array([[self.matriz_estimativa[i,j] - t.isf((1 - self.PA[j][i]) / 2, self.gL[j][i])*self.matriz_incerteza[i,j] for i in range(self.NE)] for j in range(NV)]).transpose()
 
         def GETListas(self):
             # ---------------------------------------------------------------------
@@ -382,9 +446,9 @@ class Grandeza:
                 if not isfinite(cond(self.matriz_covariancia)):
                     raise TypeError('The covariance matrix of the quantity is singular.')
 
-    def _SETdata(self, estimativa, matriz_incerteza=None, matriz_covariancia=None, gL=[], NE=None, dataType=None, **kwargs):
+    def _SETdata(self, estimativa, matriz_incerteza=None, matriz_covariancia=None, gL=[], PA = [], NE=None, dataType=None, **kwargs):
 
-        if not self.__ID_available[0] in self.__ID:
+        if not self.__ID_available[0] in self._ID:
             self.observed = {}
             if dataType is None:
                 dataType = 'estimation'
@@ -395,36 +459,36 @@ class Grandeza:
         if not dataType in self._available_dataType:
             raise SyntaxError('The dataType should be:{}'.format(self._available_dataType))
 
-        self.__ID.append(self.__ID_available[0]) #observed
+        self._ID.append(self.__ID_available[0]) #observed
 
         self.observed[dataType] = self.Dados(estimativa, self.NV,
                                              matriz_incerteza=matriz_incerteza, matriz_covariancia=matriz_covariancia, symbols=self.simbolos,
-                                             gL=gL, NE=NE, **kwargs)
+                                             gL=gL, PA=PA, NE=NE, **kwargs)
 
-    def _SETevaluated(self, estimativa, matriz_incerteza=None, matriz_covariancia=None, gL=[], NE=None, dataType='estimation', **kwargs):
+    def _SETevaluated(self, estimativa, matriz_incerteza=None, matriz_covariancia=None, gL=[], PA =[], NE=None, dataType='estimation', **kwargs):
 
         if hasattr(self, self.__ID_available[0]):
             kwargs['coluna_dumb'] =  self.observed['estimation']._coluna_dumb
 
-        if not self.__ID_available[1] in self.__ID:
+        if not self.__ID_available[1] in self._ID:
             self.evaluated = {}
 
-        self.__ID.append(self.__ID_available[1])
+        self._ID.append(self.__ID_available[1])
         #self.evaluated = Organizador(estimativa,variancia,gL,tipo,NE)
         self.evaluated[dataType] = self.Dados(estimativa, self.NV,
                                     matriz_incerteza=matriz_incerteza, matriz_covariancia=matriz_covariancia,
-                                    gL=gL, NE=NE, **kwargs)
+                                    gL=gL, PA=[], NE=NE, **kwargs)
 
     def _SETresidual(self, estimativa, matriz_incerteza=None, matriz_covariancia=None, gL=[], NE=None, dataType='estimation', **kwargs):
 
         if hasattr(self, self.__ID_available[0]):
             kwargs['coluna_dumb'] =  self.observed['estimation']._coluna_dumb
 
-        if not self.__ID_available[3] in self.__ID:
+        if not self.__ID_available[3] in self._ID:
             self.residual = {}
             self.estatisticas = {}
 
-        self.__ID.append(self.__ID_available[3])
+        self._ID.append(self.__ID_available[3])
         # self.residual = Organizador(estimativa,variancia,gL,tipo)
 
         self.residual[dataType] = self.Dados(estimativa, self.NV,
@@ -475,7 +539,7 @@ class Grandeza:
         # --------------------------------------
         # EXECUÇÃO
         # --------------------------------------
-        self.__ID.append(self.__ID_available[2])
+        self._ID.append(self.__ID_available[2])
         self.estimativa         = estimativa
         self.vetor_estimativa = array(estimativa,ndmin=2).transpose()
         self.matriz_covariancia = variancia
@@ -644,7 +708,7 @@ class Grandeza:
 
         '''
     
-        if self.__ID_available[3] in self.__ID: # Testes para os resíduos
+        if self.__ID_available[3] in self._ID: # Testes para os resíduos
             # Variável para salvar os nomes dos testes estatísticos - consulta
             # identifica o nome do teste, e o tipo de resposta (1.0 - float, {} - dicionário, [] - lista)
             # É nessa variável que o Relatório se baseia para obter as informações
@@ -718,7 +782,7 @@ class Grandeza:
         # VALIDAÇÃO DAS ENTRADAS
         # ---------------------------------------------------------------------
         if ID is None:
-            ID = self.__ID
+            ID = self._ID
 
         if False in [ele in self.__ID_available for ele in ID]:
             raise NameError(u'You inserted an unavailable ID. The available IDs are: ' +','.join(self.__ID_available) + '.')

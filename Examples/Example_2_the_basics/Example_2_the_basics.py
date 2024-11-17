@@ -41,7 +41,9 @@ Estime.optimize(initial_estimative=[18,20000]+Estime.z.observed['estimation'].li
 #%% Evaluating the parameters uncertainty and coverage region
 # uncertaintyMethod: method for calculating the covariance matrix of the parameters;
 # objectiveFunctionMapping: Deals with mapping the objective function (True or False);
-Estime.uncertainty(objectiveFunctionMapping=False)
+Estime.setupSolveModel(['frac'], ['time','temperature'])
+
+Estime.uncertainty(objectiveFunctionMapping=True, iterations=10000,  searchLimitFactor=1/10, compresscov=1e3)
 
 #%%Running the charts without prediction.
 # using solely default options

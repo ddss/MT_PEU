@@ -28,7 +28,7 @@ Estimation = EstimacaoNaoLinear(Model, symbols_z=['P', 'T'],
 T = [297.1,298.2,299.3,301.2,304.2,307.2,310.2,314.1,316.2,317.8,318.2,320.2,
      323.1,326.2,329.1,331.2,334.2,337.1,340.2,343.2,346.2,349.1,352.2]
 # Input data uncertainty
-uxT = [0.1]*len(T)
+uxT = [0.01]*len(T)
 
 #%% Setting the observed data set using manual format and import
 Estimation.setData(data=["data_example3", {'T':T, 'uT':uxT}])
@@ -50,7 +50,9 @@ Estimation.optimize(initial_estimative = [1, 1.5, 0.009]+Estimation.z.observed['
 # report: Informs whether the parameters report should be created (True or False).
 # iterations: Number of iterations to perform the mapping of the objective function. The higher the better mapping, but it
 # increases the execution time
-Estimation.uncertainty()
+Estimation.setupSolveModel(['P'], ['T'])
+
+Estimation.uncertainty(objectiveFunctionMapping=True, iterations=10000,  searchLimitFactor=1/10, compresscov=5e3)
 
 #%% Evaluating residuals and quality index
 # using solely default options

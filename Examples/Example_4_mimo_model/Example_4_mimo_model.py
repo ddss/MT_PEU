@@ -52,7 +52,10 @@ Estime.optimize(initial_estimative=[3,0.1,5,0.4]+Estime.z.observed['estimation']
 # lower_bound: Lower limit of parameters;
 # upper_bound: Upper limit of the parameters.
 # report: Informs whether the parameters report should be created.
-Estime.uncertainty()
+Estime.setupSolveModel(['y1','y2'], ['x1','x2'])
+
+Estime.uncertainty(objectiveFunctionMapping=True, iterations=10000,  searchLimitFactor=1/10, compresscov=100)
+
 
 #%% prediction
 Estime.setupSolveModel(['y1','y2'], ['x1','x2'])
