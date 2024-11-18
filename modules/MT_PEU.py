@@ -922,20 +922,20 @@ class EstimacaoNaoLinear:
         # ---------------------------------------------------------------------
         # OPTIMAL POINT OF THE OBJECTIVE FUNCTION
         # ---------------------------------------------------------------------
+        self.optsolution['x'] = array(self.optsolution['x'], dtype=float)
+        self.optsolution['lam_g'] = array(self.optsolution['lam_g'], dtype=float)
         self.optsolution['f'] = float(self.optsolution['f'])
         # degress of freedom
         self.optsolution['df'] = self.__symDecisionVariables.size()[0] - self.__symModel.size()[0]
         # ---------------------------------------------------------------------
         # OPTIMAL VALUE OF THE PARAMETERS
         # ---------------------------------------------------------------------
-        self.__opt_param = [float(self.optsolution['x'][i]) for i in range(self.parametros.NV)] # converts DM type in float type
-
         # every time optimization is run all previous information about parameters is lost
-        self.parametros._SETparametro(self.__opt_param, None, None,
+        self.parametros._SETparametro(self.optsolution['x'][0:self.parametros.NV].transpose().tolist()[0], None, None,
                                       limite_superior=upper_bound[0:self.parametros.NV],
                                       limite_inferior=lower_bound[0:self.parametros.NV])
 
-        self.z._SETevaluated(estimativa=array(self.optsolution['x'][self.parametros.NV:]), NE=self.z.observed['estimation'].NE)
+        self.z._SETevaluated(estimativa=self.optsolution['x'][self.parametros.NV:], NE=self.z.observed['estimation'].NE)
 
         # check if the parameters estimative is equal to the informed boundaries
         for i in range(self.parametros.NV):
@@ -1049,19 +1049,62 @@ class EstimacaoNaoLinear:
         # Method: geral - > inv(H)*Gz*Uyy*GyT*inv(H)
         covariance_matrix = invHess.dot(self.Gy).dot(U_exp).dot(self.Gy.transpose()).dot(invHess)
 
-        # ---------------------------------------------------------------------
-        # ATTRIBUTION TO THE QUANTITIES
-        # ---------------------------------------------------------------------
-        self.parametros._updateParametro(matriz_covariancia=covariance_matrix[0:self.parametros.NV,0:self.parametros.NV])
-
-        gl1 = 2 # the ellipse limit in Dados class is evaluated in pairs (2 variables at time)
+        # Coverage Intervals
+        gl1 = 2  # the ellipse limit in Dados class is evaluated in pairs (2 variables at time)
         gl2 = self.z.observed['estimation'].NE * self.z.NV - self.optsolution['df']
         fisher, ellipse_limit = self.__criteriosAbrangencia(gl1, gl2)
 
-        self.z._SETevaluated(estimativa=array(self.optsolution['x'][self.parametros.NV:]),
+        N = self.parametros.NV + self.z.NV * self.z.observed['estimation'].NE + self.__symModel.size()[0]
+        extremo_elipse_superior = [-inf for i in range(N)]
+        extremo_elipse_inferior = [inf for i in range(N)]
+
+        estimates_full = vstack((self.optsolution['x'], self.optsolution['lam_g']))
+
+        Combinacoes = int(factorial(N) / (factorial(N - 2) * factorial(2)))
+        p1 = 0
+        p2 = 1
+        cont = 0
+        passo = 1
+
+        for pos in range(Combinacoes):
+            if pos == (N - 1) + cont:
+                p1 += 1
+                p2 = p1 + 1
+                passo += 1
+                cont += N - passo
+
+            cov = array([[covariance_matrix[p1, p1], covariance_matrix[p1, p2]],
+                         [covariance_matrix[p2, p1], covariance_matrix[p2, p2]]])
+
+            coordenadas_x, coordenadas_y, width, height, theta = eval_cov_ellipse(cov,
+                                                                                  [estimates_full[p1, 0],
+                                                                                   estimates_full[p2, 0]],
+                                                                                  ellipse_limit, ax=False)
+
+            extremo_elipse_superior[p1] = nanmax([nanmax(coordenadas_x), nanmax(extremo_elipse_superior[p1])])
+            extremo_elipse_superior[p2] = nanmax([nanmax(coordenadas_y), nanmax(extremo_elipse_superior[p2])])
+            extremo_elipse_inferior[p1] = nanmin([nanmin(coordenadas_x), nanmin(extremo_elipse_inferior[p1])])
+            extremo_elipse_inferior[p2] = nanmin([nanmin(coordenadas_y), nanmin(extremo_elipse_inferior[p2])])
+            p2 += 1
+
+        interval_parameters_up = extremo_elipse_superior[0:self.parametros.NV]
+        interval_parameters_lb = extremo_elipse_inferior[0:self.parametros.NV]
+
+        interval_z_up = array(extremo_elipse_superior[self.parametros.NV:self.parametros.NV + self.z.NV * self.z.observed['estimation'].NE]).reshape((self.z.observed['estimation'].NE, self.z.NV),
+                                                                  order='F')  # Conversão de vetor para uma matriz
+        interval_z_lb = array(extremo_elipse_inferior[self.parametros.NV:self.parametros.NV + self.z.NV * self.z.observed['estimation'].NE]).reshape((self.z.observed['estimation'].NE, self.z.NV),
+                                                                  order='F')
+
+        # ---------------------------------------------------------------------
+        # ATTRIBUTION TO THE QUANTITIES
+        # ---------------------------------------------------------------------
+        self.parametros._updateParametro(matriz_covariancia=covariance_matrix[0:self.parametros.NV,0:self.parametros.NV],
+                                         coverage_interval=[interval_parameters_lb, interval_parameters_up])
+
+        self.z._SETevaluated(estimativa=self.optsolution['x'][self.parametros.NV:],
                              matriz_covariancia=covariance_matrix[self.parametros.NV:self.parametros.NV + self.z.NV * self.z.observed['estimation'].NE, self.parametros.NV:self.parametros.NV + self.z.NV * self.z.observed['estimation'].NE],
                              gL=[[self.z.observed['estimation'].NE * self.z.NV - self.parametros.NV] * self.z.observed['estimation'].NE] * self.z.NV,
-                             NE=self.z.observed['estimation'].NE, ellipse_limit=ellipse_limit)
+                             NE=self.z.observed['estimation'].NE, coverage_intervals=[interval_z_lb, interval_z_up])
 
         # ---------------------------------------------------------------------
         # COVERAGE REGION
@@ -1531,7 +1574,12 @@ class EstimacaoNaoLinear:
                 if self.__controleFluxo.uncertainty:
                     evaluated_uz[:, coluna_z] = uypredicted[:, i]
 
-            self.z._SETevaluated(evaluated_z, matriz_incerteza = evaluated_uz, dataType='validation')
+            # Coverage Intervals
+            gl1 = 2  # the ellipse limit in Dados class is evaluated in pairs (2 variables at time)
+            gl2 = self.z.observed['estimation'].NE * self.z.NV - self.optsolution['df']
+            fisher, ellipse_limit = self.__criteriosAbrangencia(gl1, gl2)
+
+            self.z._SETevaluated(evaluated_z, matriz_incerteza = evaluated_uz, dataType='validation', ellipse_limit=ellipse_limit)
         else:
             warn('It is needed validation data. Prediction skiped.')
 

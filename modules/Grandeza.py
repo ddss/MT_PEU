@@ -368,8 +368,8 @@ class Grandeza:
 
                 if len(kwargs.get('coverage_intervals')) == 2:
                     self._interval_info = 'provided'
-                    self.interval_up = kwargs.get('coverage_intervals')[0]
-                    self.interval_lb = kwargs.get('coverage_intervals')[1]
+                    self.interval_lb = kwargs.get('coverage_intervals')[0]
+                    self.interval_up = kwargs.get('coverage_intervals')[1]
                 else:
                     raise SyntaxError(u'The coverage_intervals must be a list with 2 elements.')
 
@@ -554,6 +554,8 @@ class Grandeza:
         self.regiao_abrangencia = regiao
         self.limite_superior = limite_superior
         self.limite_inferior = limite_inferior
+        self.interval_lb = kwargs.get('coverage_interval')[0] if kwargs.get('coverage_interval') is not None else None
+        self.interval_up = kwargs.get('coverage_interval')[1] if kwargs.get('coverage_interval') is not None else None
 
         # --------------------------------------
         # VALIDAÇÃO
@@ -563,7 +565,7 @@ class Grandeza:
             if not isfinite(cond(self.matriz_covariancia)):
                 raise TypeError('The covariance matrix of the parameters is singular.')
 
-    def _updateParametro(self,**kwargs):
+    def _updateParametro(self, **kwargs):
         u'''
         Método para fazer atualização de informações contidas em Parâmetros.
 
@@ -597,7 +599,9 @@ class Grandeza:
         else:
             regiao = self.regiao_abrangencia
 
-        self._SETparametro(estimativa, variancia, regiao, limite_inferior, limite_superior)
+        coverage_interval = kwargs.get('coverage_interval') if kwargs.get('coverage_interval') is not None else [self.interval_lb, self.interval_up]
+
+        self._SETparametro(estimativa, variancia, regiao, limite_inferior, limite_superior, coverage_interval=coverage_interval)
 
     def labelGraficos(self,add=None, printunit=True):
         u'''

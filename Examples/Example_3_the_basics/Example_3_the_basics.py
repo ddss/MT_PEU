@@ -52,7 +52,7 @@ Estimation.optimize(initial_estimative = [1, 1.5, 0.009]+Estimation.z.observed['
 # increases the execution time
 Estimation.setupSolveModel(['P'], ['T'])
 
-Estimation.uncertainty(objectiveFunctionMapping=True, iterations=10000,  searchLimitFactor=1/10, compresscov=5e3)
+Estimation.uncertainty(objectiveFunctionMapping=True, iterations=20000,  searchLimitFactor=1/10, compresscov=5e3)
 
 #%% Evaluating residuals and quality index
 # using solely default options

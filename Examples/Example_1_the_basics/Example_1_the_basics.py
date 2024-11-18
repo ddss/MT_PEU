@@ -70,7 +70,7 @@ Estime.residualAnalysis()
 
 #%% Plotting the main results
 # using solely default options
-Estime.plots()
+#Estime.plots()
 
 Estime.reports(export_z=True, export_cov_z=True)
 

@@ -127,6 +127,36 @@ class Report:
             # Valor da função objetivo no ponto ótimo
             f.write( '<p> Valor da função objetivo no ponto ótimo : {:.3g} </p>'  .format(pontoOtimo))
             f.write(self.__quebra)
+            f.write(('<h3>INTERVALOS DE ABRANGÊNCIA : </h3>'))
+
+            f.write('<table border rules = all>\n')
+            f.write('<tr>\n')
+            f.write(
+                ('<td>Simbolos</td>' + '<td>{:^10}</td>' * parametros.NV).format(*parametros.simbolos) + self.__quebra)
+            f.write('</tr>\n')
+            if parametros.interval_lb is not None:
+                f.write('<tr>\n')
+                f.write(('<td>lb:</td>' + '<td>{:^10.3e}</td>' * parametros.NV).format(
+                    *parametros.interval_lb) + self.__quebra)
+                f.write('</tr>\n')
+            else:
+                f.write('<tr>\n')
+                f.write(('<td>lb</td>' + '<td>{:^10}</td>' * parametros.NV).format(
+                    *['N/A'] * parametros.NV) + self.__quebra)
+                f.write('</tr>\n')
+            if parametros.interval_up is not None:
+                f.write('<tr>\n')
+                f.write(('<td>ub</td>' + '<td>{:^10.3e}</td>' * parametros.NV).format(
+                    *parametros.interval_up) + self.__quebra)
+                f.write('</tr>\n')
+                f.write('</table>\n')
+            else:
+                f.write('<tr>\n')
+                f.write(('<td>ub:</td>' + '<td>{:^10}</td>' * parametros.NV).format(
+                    *['N/A'] * parametros.NV) + self.__quebra)
+                f.write('</table>\n')
+
+            f.write(self.__quebra)
             f.write(('<h3>RESTRIÇÕES : </h3>'))
 
             f.write('<table border rules = all>\n')
@@ -145,6 +175,7 @@ class Report:
                 f.write('<tr>\n')
                 f.write(('<td>Limite inferior</td>'+ '<td>{:^10.3e}</td>'*parametros.NV).format(*parametros.limite_inferior) + self.__quebra)
                 f.write('</tr>\n')
+                f.write('</table>\n')
             else:
                 f.write('<tr>\n')
                 f.write(('<td>Limite inferior</td>'+ '<td>{:^10}</td>'*parametros.NV).format(*['N/A']*parametros.NV) + self.__quebra)
