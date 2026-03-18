@@ -1,7 +1,7 @@
 # Calculation Engine for Parameter Estimator with Uncertainty - MT_PEU
 
 <p align="justify">
-The MT_PEU is an open-source calculation engine developed for parameter estimation of linear and non-linear steady-state models in the presence of uncertainty on the observed data. Additionally, the MT_PEU performs statistical evaluations regarding the quality of the estimation, i.e. how well the model describes the observed data, using: (i) coverage region of parameters, (ii) hypothesis testing on residues.</p>
+The MT_PEU is an open-source calculation engine developed for parameter estimation of steady-state models in the presence of uncertainty on the observed data. Additionally, the MT_PEU performs statistical evaluations regarding the quality of the estimation, i.e. how well the model describes the observed data, using: (i) coverage region of parameters, (ii) hypothesis testing on residues, (iii) charts describing the prediction of the model.</p>
 
 <p align="justify">
 MT_PEU builts on two main classes (EstimacaoNaoLinear and EstimacaoLinear), whose methods allow: (i) <i>optimization</i> (parameter estimation); (ii) <i>evaluation of parameter uncertainty</i> (including the coverage region); (iii) <i>evaluation of  prediction model estimates and its uncertainty</i>; and (iv) <i>residual analysis</i> (important to evaluate the model quality).
@@ -16,45 +16,26 @@ This calculation engine is based on Python programming language and builts on a 
 * **Inclusion of different datasets**
   <p align="justify"> It allows to insert observed datasets, obtained experimentally, both for parameter estimation and validation purposes. </p>
 
-* **Model parameter estimation**
+* **Parameter estimation**
   <p align="justify">
-    <text> The parameters are obtained through the solution of an optimization problem, which cost function is a weighted least squares: </text>  </p>
+    <text> The following optimization problem is solved (Rosario, 2022): </text>  </p>
   <p align="center">
   <img src = "./Imagens/ObjectiveFunction.png">
   </p>
-  <p align="justify">The optimization routines were developed by symbolic computation using the <i>casadi</i> package. The following algorithms are available: (i) <i>ipopt</i>, based on interior point primal-dual method and indicated for large dimension nonlinear problems; and (ii) <i>sqpmethod</i>, which uses sequential quadratic programming. Regarding linear models on the parameters, the solution is obtained analytically.</p>
   
-  The MT_PEU is applicable for the following systems: SISO, MISO, and MIMO.
+  <p align="justify"> where $\theta$ is the parameters vector, $z^e$ is the vector of experimental data, $z^m$ is the vector of model predictions, $g$ is the vector representing the model equations.</p>
+  
+  <p align="justify">The optimization routines were developed using symbolic computation using the <i>casadi</i> package. The following algorithms are available: (i) <i>ipopt</i>, based on interior point primal-dual method and indicated for large dimension nonlinear problems; and (ii) <i>sqpmethod</i>, which uses sequential quadratic programming. Regarding linear models on the parameters, the solution is obtained analytically.</p>
 
-* **Parameter uncertainty evaluation**
-  <p align="justify"> The evaluation of parameter uncertainty is carried out after the optimization step and can be performed through three methods:</p>
 
-  * Geral, based on the sensibility of the objective function to small variations in the parameters at the optimal point.
+* **Uncertainty evaluation**
+  <p align="justify"> The evaluation of uncertainty is carried out after the optimization step and is performed through:</p>
 
   <p align="center">
   <img src = "./Imagens/Geral.png">
   </p>
 
-  * 2InvHessiana, based on an approximation of (1):
-
-  <p align="center">
-  <img src = "./Imagens/2invHessian.png">
-  </p>
-
-  * SensibilidadeModelo, based on an approximation of (1):
-  <p align="center">
-  <img src = "./Imagens/Sensibilidade.png">
-  </p>
-
-    <p align="justify">It's recommended to compare the parameter covariance matrix obtained by each method, in order to ensure that the results are consistent.</p>
-
-* **Uncertainty evaluation for the estimated outputs**
-
-  <p align="justify"> The model prediction as well as the associated uncertainty is evaluated based on estimated parameters and experimental dataset:	</p>
-
-  <p align="center">
-  <img src = "./Imagens/Uyy.png">
-  </p>
+  <p align="justify"> where $\eta$ is the vector of model predictions, parameters and lagrange multipliers, and $L$ is the lagrangean function.</p>
 
 * **Residual analysis**
   <p align="justify">
@@ -97,7 +78,7 @@ This calculation engine is based on Python programming language and builts on a 
 *The easiest way to install the Python 3 and the referred packages is through the anaconda distribution*: https://www.anaconda.com/distribution/
 *After installing the Anaconda distribution, one can use the Anaconda Prompt and install casadi through the command: **pip install casadi**.*
 
-Finally, one can download the MT-PEU files at https://github.com/ddss/MT_PEU/archive/Teste.zip and, through a code Editor, like PyCharm, use the engine. A
+Finally, one can download the MT-PEU files and, through a code Editor, like PyCharm, use the engine. A
 simplest way to use MT-PEU is through the Jupyter Notebook - just start the Jupyter at Anaconda Navigator and using the interface lookfor ".ipynb" files in the MT-PEU folder.
 
 # Getting Started
@@ -111,85 +92,85 @@ The same examples are presented in simple .py files to be used in code editors.
 To exemplify the usage of MT-PEU, let's reproduce the Example_1.py file:
 
 ```python
-
-# packages imports
-from MT_PEU import EstimacaoNaoLinear
+#%% Packages importing
+from sys import path
+path.append("../../modules")#A list of strings that specifies the search path for modules
+from modules.MT_PEU import EstimacaoNaoLinear
 from numpy import exp
 
-
-# Model definition
+#%% Model definition
 # def Model: The subroutine that specifies the equations with their respective parameters.
-def Modelo(param, x, *args):
+def model(param, z, gamma, *args):
+
     ko, E = param[0], param[1]
-    tempo, T = x[:, 0], x[:, 1]
+    reacfrac, time, T = z[0], z[1], z[2]
 
-    return exp(-(ko * 10 ** 17) * tempo * exp(-E / T))
+    return [reacfrac - exp(-(ko*10**17)*time*exp(-E/T))]
 
-
-# Starting the MT_PEU main object
+#%% Starting the MT_PEU main object
 # Model: Pass the model defined in def Model;
-# symbols_gamma: list of symbols for quantity gamma;
-# symbols_ux: list of symbols for uncertainty gamma;
 # symbols_z: list of symbols for quantity z;
 # symbols_uz: list of symbols for uncertainty z;
 # symbols_param: list of symbols for the parameters to be estimated;
 # folder: string with the name of the folder where reports and charts will be saved;
-Estime = EstimacaoNaoLinear(Modelo, simbolos_x=['t', 'Tao'], simbolos_y=['z'], simbolos_param=['ko', 'E'],
-                            Folder='Exemplo1')
+Estime = EstimacaoNaoLinear(model, symbols_z=['frac', 'time', 'temperature'], symbols_uz=['ufrac', 'utime', 'utemperature'],
+                            symbols_param=['ko','E'], folder='resultado')
 
-# dependent quantity observed data
-y = [0.9, 0.949, 0.886, 0.785, 0.791, 0.890, 0.787, 0.877, 0.938,
-     0.782, 0.827, 0.696, 0.582, 0.795, 0.800, 0.790, 0.883, 0.712, 0.576, 0.715, 0.673,
-     0.802, 0.802, 0.804, 0.794, 0.804, 0.799, 0.764, 0.688, 0.717, 0.802, 0.695, 0.808,
-     0.655, 0.309, 0.689, 0.437, 0.425, 0.638, .659, 0.449]
+#%% Defining the observed data set
+Frac = [0.9,0.949,0.886,0.785,0.791,0.890,0.787,0.877,0.938,
+0.782,0.827,0.696,0.582,0.795,0.800,0.790,0.883,0.712,0.576,0.715,0.673,
+0.802,0.802,0.804,0.794,0.804,0.799,0.764,0.688,0.717,0.802,0.695,0.808,
+0.655,0.309,0.689,0.437,0.425,0.638,.659,0.449]
+# uncertainty of dependent variables
+ufrac = [1]*41
+# Observed data of independent variable (input 1)
+time = [120.0,60.0,60.0,120.0,120.0,60.0,60.0,30.0,15.0,60.0,
+45.1,90.0,150.0,60.0,60.0,60.0,30.0,90.0,150.0,90.4,120.0,
+60.0,60.0,60.0,60.0,60.0,60.0,30.0,45.1,30.0,30.0,45.0,15.0,30.0,90.0,25.0,
+60.1,60.0,30.0,30.0,60.0]
+# input 1 uncertainty
+uxtime = [0.01]*41
+# Observed data of independent variable (input 2)
+temperature = [600.0,600.0,612.0,612.0,612.0,612.0,620.0,620.0,620.0,
+620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,620.0,
+620.0,620.0,620.0,620.0,620.0,620.0,631.0,631.0,631.0,631.0,631.0,639.0,639.0,
+639.0,639.0,639.0,639.0,639.0,639.0,639.0]
+# input 2 uncertainty
+uxtemperature = [0.01]*41
 
-# uncertainty of z
-uy = [1] * 41
+#Data entry manual
+Estime.setData(data={'time':time, 'utime':uxtime, 'temperature':temperature,
+                      'utemperature':uxtemperature,'frac':Frac,'ufrac':ufrac})
 
-# independent quantity observed data
-time = [120.0, 60.0, 60.0, 120.0, 120.0, 60.0, 60.0, 30.0, 15.0, 60.0,
-        45.1, 90.0, 150.0, 60.0, 60.0, 60.0, 30.0, 90.0, 150.0, 90.4, 120.0,
-        60.0, 60.0, 60.0, 60.0, 60.0, 60.0, 30.0, 45.1, 30.0, 30.0, 45.0, 15.0, 30.0, 90.0, 25.0,
-        60.1, 60.0, 30.0, 30.0, 60.0]
+#%% Optimization - estimating the parameters
+# initial_estimate: list containing initial estimate for optimization algorithm
+Estime.optimize(initial_estimative=[0.5,25000]+Frac+time+temperature,
+                lower_bound=[0,20000]+[0]*41+[0]*41+[500]*41,
+                upper_bound=[1,30000]+[1]*41+[200]*41+[700]*41)
 
-# uncertainty of time
-uxtime = [1] * 41
+#%% Evaluating the parameters uncertainty and coverage region
+# using solely default options
+Estime.setupSolveModel(['frac'], ['time','temperature'])
 
-# independent quantity observed data
-temperature = [600.0, 600.0, 612.0, 612.0, 612.0, 612.0, 620.0, 620.0, 620.0,
-               620.0, 620.0, 620.0, 620.0, 620.0, 620.0, 620.0, 620.0, 620.0, 620.0, 620.0, 620.0,
-               620.0, 620.0, 620.0, 620.0, 620.0, 620.0, 631.0, 631.0, 631.0, 631.0, 631.0, 639.0, 639.0,
-               639.0, 639.0, 639.0, 639.0, 639.0, 639.0, 639.0]
+Estime.uncertainty(objectiveFunctionMapping=True, iterations=50,  searchLimitFactor=1/10, compresscov=5e3)
 
-# uncertainty of temperature
-uxtemperature = [1] * 41
-
-# MT-PEU allows data to be entered in the following three ways.
-
-# Setting manual data entry
-Estime.setData(
-    data={'Time': time, 'UxTime': uxtime, 'Temperature': temperature, 'Uxtemperature': uxtemperature, 'Y': y, 'uY': uy})
-
-# Data entry using .XLSX
-Estime.setData(data=["data_exa1"])
-
-# Data entry using .CSV
-Estime.setData(data=["data_exa1_independent", "data_exa1_dependent"])
-
-# executing the parameter estimation process
-Estime.optimize(initial_estimative=[0.5, 25000], algoritmo='ipopt')
-
-# calculating parameters uncertainty
-Estime.parametersUncertainty(metodoIncerteza='Geral')
-
-# model's predictions
+#%% prediction
 Estime.prediction()
 
-# residuals analysis
+#%% Evaluating residuals and quality index
+# using solely default options
 Estime.residualAnalysis()
 
-# plotting graphs with residuals analysis and predicted data
+#%% Plotting the main results
+# using solely default options
 Estime.plots()
+
+Estime.reports(export_z=True, export_cov_z=True)
+
+#%% Reference of this case study
+# SCHWAAB, M.M.;PINTO, J.C. Análise de Dados Experimentais I: Fundamentos da Estátistica e Estimação de Parâmetros.
+# Rio de Janeiro: e-papers, 2007.
+#%%
 ```
 
 # References
@@ -197,3 +178,4 @@ This project is based in:
 
 * BARD, Y. Nonlinear parameter estimation. New York: Academic Press, 1974
 * SCHWAAB, M. M.; PINTO, J. C. Análise de Dados Experimentais I: Fundamentos da Estatística e Estimação de Parâmetros. Rio de Janeiro: e-papers, 2007.
+* Rosario, T.C. Abordagem simultânea na reconciliação de dados e estimação de parâmetros: avaliação da matriz de covariância e regiões de abrangência das variáveis de decisão. Thesis (Master). Universidade Federal da Bahia, Salvador - BA, 2022.
